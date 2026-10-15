@@ -1,0 +1,355 @@
+/* Visuais aprovados 0.39.68: estrutura comum para cabeçalho, Planeamento e Património. */
+/* @order 7600 */
+body[data-current-view="transactions"] #mainContent>header{display:none!important}
+/* @order 7601 */
+#transactions .movements-hero{display:flex!important;flex-direction:column!important;align-items:stretch!important;gap:16px!important;margin:0 0 20px!important;padding:0!important}
+/* @order 7602 */
+#transactions .movements-heading-line{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+/* @order 7603 */
+#transactions .movement-create-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+/* @order 7604 */
+#transactions .movement-create-actions>button{min-height:40px!important;margin:0!important;width:auto!important;white-space:nowrap}
+/* @order 7605 */
+#transactions .movements-hero-actions{display:flex!important;align-items:center!important;justify-content:flex-start!important;gap:12px!important;flex-wrap:wrap!important;width:100%!important;border-top:1px solid var(--line);padding-top:12px!important;margin:0!important}
+/* @order 7606 */
+#transactions .movement-type-tabs{display:flex!important;align-items:center;gap:6px!important;flex-wrap:wrap!important;margin-left:auto!important;width:auto!important}
+/* @order 7607 */
+#transactions .movement-type-tab{min-height:38px!important;padding:8px 13px!important;font-size:13px!important;flex:0 0 auto!important}
+/* @order 7608 */
+#transactions .movements-period-control{min-height:46px!important;gap:8px!important;padding:6px 10px!important;flex:0 0 auto!important}
+/* @order 7609 */
+#transactions .movement-history-toggle{min-height:38px!important;padding:8px 12px!important;font-size:13px!important}
+/* @order 7610 */
+#modal .split-choice-options{top:calc(100% + 4px);border-radius:8px;box-shadow:0 8px 24px #0003;min-width:100%;width:max-content;max-width:min(300px,calc(100vw - 48px));font-size:13px;padding:4px;outline-offset:2px}
+/* @order 7611 */
+#modal .split-choice-options option{padding:7px 9px;min-height:30px}
+/* @order 7612 */
+#weeklyHub #reviewWorkflow{padding:18px!important;margin:0 0 14px!important}
+/* @order 7613 */
+#weeklyHub #reviewWorkflow>.section-head{padding:0!important;margin:0 0 12px!important;min-height:0!important;gap:16px!important}
+/* @order 7614 */
+#weeklyHub #reviewWorkflow .section-head h2{font-size:24px!important;margin:0 0 5px!important}
+/* @order 7615 */
+#weeklyHub .ex-review-steps{gap:10px!important;margin:12px 0!important}
+/* @order 7616 */
+#weeklyHub .ex-review-steps article{padding:12px!important;gap:5px!important}
+/* @order 7617 */
+#weeklyHub .review-account-list{gap:8px!important;margin:12px 0!important}
+/* @order 7618 */
+#weeklyHub .review-account{padding:12px!important;gap:12px!important}
+/* @order 7619 */
+#weeklyHub .review-account :is(h3,p){margin:0 0 5px!important}
+/* @order 7620 */
+#weeklyHub .review-account form{gap:8px!important}
+/* @order 7621 */
+#weeklyHub .review-account form [data-review-difference]:empty{display:none}
+/* @order 7622 */
+#weeklyHub .review-close{margin-top:12px!important;padding-top:12px!important;gap:12px!important}
+/* @order 7623 */
+@media(max-width:900px){#transactions .movement-type-tabs{margin-left:0!important;flex-basis:100%!important}#transactions .movement-create-actions{justify-content:flex-start!important}#transactions .movements-heading-line{gap:12px}}
+/* @order 7624 */
+@media(max-width:500px){#transactions .movements-period-control{flex:1 1 210px!important}#transactions .movement-create-actions{gap:8px}#transactions .movement-type-tab{padding:7px 10px!important}#weeklyHub #reviewWorkflow{padding:14px!important}}
+/* @order 7500 */
+#planner .planner-agenda-head>div.agenda-primary-actions{display:flex!important;flex-direction:row!important;align-items:center!important;justify-content:flex-end!important;flex-wrap:wrap!important;gap:12px!important;margin-left:auto!important;grid-template-columns:none!important}
+/* @order 7501 */
+#planner .planner-agenda-head>div.agenda-primary-actions>button{width:auto!important;flex:0 0 auto!important;white-space:nowrap!important}
+/* @order 7502 */
+#modal #transactionSplitRows .tx-split-row.tx-split-row-deep{grid-template-columns:minmax(110px,1fr) minmax(110px,1fr) minmax(100px,1fr) minmax(100px,1fr) 100px auto!important;align-items:start!important;gap:8px 10px!important;padding:12px!important;margin-bottom:10px!important}
+/* @order 7503 */
+#modal #transactionSplitRows .tx-split-row.tx-split-row-deep>label{margin:0!important;gap:5px!important;font-size:12px!important}
+/* @order 7504 */
+#modal #transactionSplitRows :is(input,textarea){min-height:36px!important;height:36px!important;padding:7px 9px!important;font-size:13px!important;border-radius:7px!important}
+/* @order 7505 */
+#modal #transactionSplitRows .split-choice input{padding-right:30px!important}
+/* @order 7506 */
+#modal #transactionSplitRows .tx-split-actions{align-self:start!important;margin-top:23px!important;display:flex!important;align-items:center!important;gap:6px!important;grid-column:6!important;grid-row:1!important}
+/* @order 7507 */
+#modal #transactionSplitRows .tx-split-actions>button{min-height:36px!important;height:36px!important;margin:0!important;padding:6px 9px!important;font-size:12px!important;line-height:20px!important}
+/* @order 7508 */
+#modal #transactionSplitRows .tx-split-note{grid-column:1/-1!important}
+/* @order 7509 */
+#modal #transactionSplitRows .tx-split-note textarea{resize:vertical!important;height:36px!important;min-height:36px!important}
+/* @order 7510 */
+#modal #transactionSplitWorkbench .transaction-split-workbench-head{padding:12px 16px!important;gap:12px!important}
+/* @order 7511 */
+#modal #transactionSplitWorkbench .transaction-split-workbench-head h3{font-size:22px!important}
+/* @order 7512 */
+#modal #transactionSplitWorkbench .transaction-split-workbench-head p{margin:4px 0!important;font-size:12px!important;max-width:720px}
+/* @order 7513 */
+#modal #transactionSplitWorkbench .transaction-split-workbench-summary{padding:10px 16px!important;margin:0!important;gap:12px!important}
+/* @order 7514 */
+body.equilibrio-studio #mainContent>.view.active>.section-head,body.equilibrio-studio #mainContent>.view.active>.life-page{margin-left:0!important;margin-right:0!important;max-width:none!important;padding-left:0!important;padding-right:0!important}
+/* @order 7515 */
+body.equilibrio-studio #insights>.section-head{padding:0!important;margin:0 0 20px!important;background:transparent!important;border:0!important;box-shadow:none!important;min-height:0!important}
+/* @order 7516 */
+body[data-current-view="insights"] #mainContent>header{display:none!important}
+/* @order 7517 */
+#transactionCategoryHint{font-size:12px;line-height:1.5;margin:4px 0 12px}
+/* @order 7518 */
+@media(max-width:1050px){#modal #transactionSplitRows .tx-split-row.tx-split-row-deep{grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto!important}#modal #transactionSplitRows .tx-split-row>label:nth-child(1){grid-column:1!important;grid-row:1!important}#modal #transactionSplitRows .tx-split-row>label:nth-child(2){grid-column:2/4!important;grid-row:1!important}#modal #transactionSplitRows .tx-split-row>label:nth-child(3){grid-column:1!important;grid-row:2!important}#modal #transactionSplitRows .tx-split-row>label:nth-child(4){grid-column:2/4!important;grid-row:2!important}#modal #transactionSplitRows .tx-split-row>label:nth-child(5){grid-column:1/3!important;grid-row:3!important}#modal #transactionSplitRows .tx-split-actions{grid-column:3!important;grid-row:3!important}#modal #transactionSplitRows .tx-split-note{grid-row:4!important}}
+/* @order 7519 */
+body.equilibrio-studio #mainContent>.view.active>.section-head{border:0!important;background:transparent!important;box-shadow:none!important}
+/* @order 7520 */
+#modal #transactionSplitRows .tx-split-row.tx-split-row-deep>label.tx-split-note{display:grid!important;grid-template-columns:auto minmax(0,1fr)!important;align-items:center!important;gap:10px!important}
+/* @order 7400 */
+#mainContent > .view.active{width:100%!important;max-width:none!important;margin:0!important;box-sizing:border-box}
+/* @order 7401 */
+#mainContent > .area-tabs,#mainContent > .area-subtabs{margin-left:0!important;margin-right:0!important;max-width:none!important}
+/* @order 7402 */
+#planner .agenda-primary-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-left:auto}
+/* @order 7403 */
+#planner .agenda-primary-actions button{margin:0!important;white-space:normal!important;min-height:40px}
+/* @order 7404 */
+#planner .planner-agenda-filters{display:flex!important;flex-wrap:wrap!important;gap:12px!important}
+/* @order 7405 */
+#planner .planner-agenda-sidebar{display:flex!important;grid-template-columns:none!important}
+/* @order 7406 */
+.practical-manager{width:min(1020px,calc(100vw - 32px))!important;max-width:calc(100vw - 32px)!important;max-height:calc(100dvh - 32px)!important;background:var(--paper);color:var(--ink);border:1px solid var(--line);border-radius:16px;padding:0}
+/* @order 7407 */
+.practical-manager .plan-manager-body{padding:20px!important;overflow:auto;max-height:calc(100dvh - 160px)}
+/* @order 7408 */
+#historyManagerDialog #activity{display:block!important;margin:0!important;padding:0!important;max-width:none!important}
+/* @order 7409 */
+#historyManagerDialog #activity>.section-head{display:none}
+/* @order 7410 */
+#subscriptionsManagerDialog #agendaSubscriptionsPreview{display:flex!important;flex-direction:column;gap:16px;padding:0!important;margin:0!important;border:0!important;background:transparent!important;max-width:none}
+/* @order 7411 */
+#subscriptionsManagerDialog .life-content{order:0;min-width:0}
+/* @order 7412 */
+#subscriptionsManagerDialog .subscription-review-card{order:1;padding:16px!important;margin:0!important;min-width:0}
+/* @order 7413 */
+#subscriptionsManagerDialog .subscription-review-card summary{cursor:pointer;font-weight:600}
+/* @order 7414 */
+#subscriptionsManagerDialog .subscription-dashboard{display:flex!important;flex-direction:column;gap:20px;background:transparent!important;padding:0!important;border:0!important}
+/* @order 7415 */
+#subscriptionsManagerDialog .subscription-page-head{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin:0!important;padding:0!important}
+/* @order 7416 */
+#subscriptionsManagerDialog .subscription-table-body{display:flex!important;flex-direction:column;gap:0}
+/* @order 7417 */
+#subscriptionsManagerDialog .subscription-table-row{display:grid!important;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr) auto auto!important;gap:12px!important;align-items:center;padding:16px!important;border:0!important;border-bottom:1px solid var(--line)!important;border-radius:0!important;background:var(--paper)!important;margin:0!important;min-width:0}
+/* @order 7418 */
+#subscriptionsManagerDialog .subscription-service-main{display:flex;gap:10px;min-width:0;overflow-wrap:anywhere}
+/* @order 7419 */
+#subscriptionsManagerDialog .subscription-service-main>span{display:grid;gap:4px}
+/* @order 7420 */
+#subscriptionsManagerDialog .subscription-service-main small,#subscriptionsManagerDialog .subscription-service-next small,#subscriptionsManagerDialog .subscription-service-meta{font-size:12px;color:var(--muted)}
+/* @order 7421 */
+#subscriptionsManagerDialog .subscription-service-meta{grid-column:1/-1;padding:0!important;margin:0!important}
+/* @order 7422 */
+#subscriptionsManagerDialog .subscription-lower-grid{display:block!important;grid-template-columns:none!important;padding:0!important;margin:0!important}
+/* @order 7423 */
+#subscriptionsManagerDialog .subscription-history-card{padding:18px!important;margin:0!important;min-width:0}
+/* @order 7424 */
+.tx-split-actions{display:flex;gap:8px;align-items:center;justify-content:flex-end}
+/* @order 7425 */
+.tx-split-actions button{width:auto!important;min-height:36px!important;padding:6px 10px!important;white-space:nowrap}
+/* @order 7426 */
+#plansHub .plans-hub-detail>summary{display:none!important}
+/* @order 7427 */
+#plansHub .plans-hub-detail{padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important;margin:0!important}
+/* @order 7428 */
+#plansHub #plansHubOverview{display:flex!important;justify-content:space-between;align-items:center;gap:16px;padding:18px 20px!important;margin:16px 0 20px!important;border:1px solid var(--line);border-radius:12px;background:var(--paper)!important}
+/* @order 7429 */
+#plansHubOverview h3{font-size:18px;margin:0 0 6px}
+/* @order 7430 */
+#plansHubOverview p{margin:0!important;color:var(--muted);font-size:14px}
+/* @order 7431 */
+.plan-mode-count{white-space:nowrap;color:var(--muted);font-size:13px}
+/* @order 7432 */
+#plansHub :is(#goals,#budgets,#planningPlus){display:block!important;margin:0!important;padding:0!important;max-width:none!important}
+/* @order 7433 */
+#plansHub #planningPlus>.report-grid{display:flex!important;flex-direction:column!important;gap:16px}
+/* @order 7434 */
+#plansHub .plan-reserve-panel{order:0}
+/* @order 7435 */
+#plansHub .plan-envelope-detail{order:1;padding:16px;border:1px solid var(--line);border-radius:12px}
+/* @order 7436 */
+#plansHub :is(.plan-envelope-detail,.plans-hub-detail) [hidden]{display:none!important}
+/* @order 7437 */
+#decisionsHub .decisions-hero{padding:0!important;background:transparent!important;border:0!important;box-shadow:none!important;margin:0 0 20px!important;min-height:0!important}
+/* @order 7438 */
+#decisionsHub .decisions-hero h2{font-size:30px!important;line-height:1.2!important}
+/* @order 7439 */
+#decisionsHub .decision-flow{display:none!important}
+/* @order 7440 */
+#decisionsHub .decisions-overview{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:16px!important;margin:0 0 20px!important}
+/* @order 7441 */
+#decisionsHub .decisions-overview>article{padding:18px!important;background:var(--paper)!important;border:1px solid var(--line)!important;border-radius:12px!important;min-height:0!important;color:var(--ink)!important;box-shadow:none!important}
+/* @order 7442 */
+#decisionsHub .decisions-overview strong{font-size:26px!important;line-height:1.3!important;margin:8px 0!important}
+/* @order 7443 */
+#decisionsHub .decision-simulator-v25{padding:20px!important;margin:0 0 20px!important;background:var(--paper)!important;box-shadow:none!important}
+/* @order 7444 */
+#decisionsHub .ex-decision-columns{display:grid!important;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr)!important;gap:24px!important;align-items:start}
+/* @order 7445 */
+#decisionsHub .simulator-fields{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:14px!important}
+/* @order 7446 */
+#decisionsHub .simulator-fields label{min-width:0!important}
+/* @order 7447 */
+#decisionsHub :is(.simulator-actions,.decisions-secondary-grid){gap:12px!important}
+/* @order 7448 */
+#decisionsHub #simulationResult{padding:18px!important;background:var(--bg)!important;border:1px solid var(--line);border-radius:12px;min-width:0}
+/* @order 7449 */
+@media(max-width:700px){#planner .agenda-primary-actions{margin-left:0;width:100%}.practical-manager .plan-manager-body{padding:12px!important}#subscriptionsManagerDialog .subscription-table-row{grid-template-columns:minmax(0,1fr) auto auto!important}#subscriptionsManagerDialog .subscription-service-next{grid-column:1/-1;grid-row:2}#decisionsHub .ex-decision-columns{grid-template-columns:1fr!important}#decisionsHub .decisions-overview{grid-template-columns:1fr!important}#plansHub #plansHubOverview{align-items:flex-start!important;flex-direction:column}#historyManagerDialog .report-grid{grid-template-columns:1fr!important}}
+/* @order 7450 */
+body.equilibrio-studio[data-current-view] #mainContent{padding-left:clamp(16px,2.5vw,40px)!important;padding-right:clamp(16px,2.5vw,40px)!important}
+/* @order 7451 */
+@media(max-width:650px){body.equilibrio-studio[data-current-view] #mainContent{padding-left:14px!important;padding-right:14px!important}}
+/* @order 7452 */
+#subscriptionsManagerDialog .subscription-service-next{display:grid!important;gap:5px;align-content:start}
+/* @order 7453 */
+#subscriptionsManagerDialog .subscription-service-value{display:grid;gap:7px;justify-items:end}
+/* @order 7454 */
+#subscriptionsManagerDialog .subscription-card-head{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin:0 0 14px!important;padding:0!important}
+/* @order 7455 */
+#subscriptionsManagerDialog .subscription-card-head select{width:auto!important;min-width:140px;max-width:100%!important}
+/* @order 7456 */
+#subscriptionsManagerDialog .subscription-history-summary{display:flex!important;gap:12px;align-items:baseline;flex-wrap:wrap;margin-bottom:14px}
+/* @order 7457 */
+#subscriptionsManagerDialog .subscription-actions-menu>summary{list-style:none!important;display:grid;place-items:center;padding:5px!important;min-height:36px;min-width:36px;cursor:pointer;border:1px solid var(--line);border-radius:8px}
+/* @order 7458 */
+#subscriptionsManagerDialog .subscription-actions-menu>summary::-webkit-details-marker{display:none}
+/* @order 7459 */
+body:is([data-current-view="plansHub"],[data-current-view="decisionsHub"]) #mainContent>header{display:none!important}
+/* @order 7460 */
+body.equilibrio-studio #plansHub>.section-head{padding:0!important;margin:0 0 20px!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;min-height:0!important}
+/* @order 7461 */
+body.equilibrio-studio #plansHub>.section-head::before{display:none!important}
+/* @order 7462 */
+#plansHub :is(#goals,#budgets)>.section-head>div{display:none}
+/* @order 7463 */
+#plansHub :is(#goals,#budgets)>.section-head{justify-content:flex-end!important;padding:0!important;min-height:0!important}
+/* @order 7464 */
+body.equilibrio-studio #decisionsHub .decisions-overview>article>strong{font-size:26px!important;display:block!important;line-height:1.3!important}
+/* @order 7465 */
+#decisionsHub .ex-decision-inputs>[data-ex-commit]{margin-top:12px}
+/* @order 7466 */
+#plansHub .ex-tabs button[aria-pressed="true"]{background:color-mix(in srgb,var(--blue) 14%,var(--paper))!important;color:var(--blue)!important;border-color:var(--blue)!important}
+/* @order 7000 */
+.app-topbar{display:grid!important;grid-template-columns:auto minmax(0,1fr) auto!important;gap:16px!important;padding:12px 24px!important;min-height:64px!important;background:var(--paper)!important;backdrop-filter:none!important;border-bottom:1px solid var(--line)!important;box-shadow:none!important}
+/* @order 7001 */
+.app-topbar .top-brand{gap:9px!important}/* @order 7002 */.app-topbar .top-brand b{display:block!important;font-size:19px!important}/* @order 7003 */.app-topbar .top-brand img{width:30px!important;height:30px!important}
+/* @order 7004 */
+.app-topbar .top-primary-nav{display:flex!important;gap:3px!important;overflow:visible!important;justify-content:flex-start!important;min-width:0!important;flex-wrap:nowrap!important}
+/* @order 7005 */
+.app-topbar .top-nav-link{padding:10px 11px!important;font-size:13px!important;min-height:38px!important;border-radius:8px!important;box-shadow:none!important;white-space:nowrap!important}
+/* @order 7006 */
+.app-topbar .top-nav-link.active{background:color-mix(in srgb,var(--blue) 12%,var(--paper))!important;color:var(--blue)!important;box-shadow:none!important}
+/* @order 7007 */
+.app-topbar .topbar-tools{display:flex!important;gap:8px!important;width:auto!important;min-width:0!important;flex-wrap:nowrap!important;justify-content:flex-end!important}
+/* @order 7008 */
+.app-topbar .top-search-slot{width:170px!important;max-width:170px!important;min-width:0!important;flex:0 1 170px!important;margin:0!important}/* @order 7009 */.app-topbar .top-search-slot .inline-search-label{height:36px!important;min-height:36px!important;border-radius:8px!important;background:var(--bg)!important}
+/* @order 7010 */
+.app-topbar .top-finance-slot{width:auto!important;flex:0 0 auto!important;margin:0!important}/* @order 7011 */.app-topbar .top-context-controls{flex:0 0 auto!important;width:auto!important;gap:6px!important;justify-content:flex-end!important}
+/* @order 7012 */
+.app-topbar .top-context-controls .top-space-slot{width:110px!important;flex:0 1 110px!important;max-width:110px!important;margin:0!important}/* @order 7013 */.app-topbar .space-picker label{display:none!important}/* @order 7014 */.app-topbar .space-picker select{width:110px!important;min-width:0!important;max-width:110px!important;background:var(--paper)!important;border:1px solid var(--line)!important;color:var(--ink)!important;padding:6px 9px!important}
+/* @order 7015 */
+.app-topbar #privacyToggle{display:grid!important;place-items:center;width:36px!important;min-width:36px!important;padding:8px!important;color:var(--ink)!important;border:1px solid var(--line)!important;background:var(--paper)!important}/* @order 7016 */.app-topbar #privacyToggle svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.7}
+/* @order 7017 */
+#topNavigationToggle{display:none!important}/* @order 7018 */.app-topbar .practical-quick summary{display:flex;align-items:center;justify-content:center;min-width:92px!important;padding:8px 12px!important;font-weight:600!important;background:var(--blue)!important}/* @order 7019 */.app-topbar .practical-quick[open]>div{left:auto!important;right:0!important}
+/* @order 7020 */
+:is(#planner,#plansHub,#decisionsHub,#wealth,#wealthMoneyHub,#wealthHoldingsHub) :is(.panel,.wa-v3-card){border-radius:10px!important;border:1px solid var(--line)!important;background:var(--paper)!important;box-shadow:none!important}
+/* @order 7021 */
+#planner .planner-agenda-head{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:16px!important;margin-bottom:18px!important}/* @order 7022 */#planner .planner-agenda-head h2,#wealth .section-head h2{display:block!important;font-size:28px!important;font-weight:700!important;line-height:1.2!important;margin:0 0 8px!important}/* @order 7023 */#planner .planner-agenda-head .eyebrow{display:none!important}/* @order 7024 */#planner #addTransaction3{width:auto!important;flex:0 0 auto!important;padding:10px 15px!important}
+/* @order 7025 */
+.approved-planning-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin:0 0 18px}/* @order 7026 */.approved-planning-metrics #agendaMonthFacts{display:contents}/* @order 7027 */.approved-metric{display:flex;flex-direction:column;gap:10px;padding:20px!important;margin:0!important;min-width:0}/* @order 7028 */.approved-metric>span{font-size:13px;color:var(--muted)}/* @order 7029 */.approved-metric>strong{font-size:28px;font-weight:700;color:var(--ink);line-height:1.2;font-variant-numeric:tabular-nums}
+/* @order 7030 */
+#planner .approved-planning-metrics .planner-forecast-card{padding:20px!important;margin:0!important;background:var(--paper)!important;display:flex!important;flex-direction:column!important;gap:10px!important;border-color:var(--line)!important}/* @order 7031 */.approved-planning-metrics .planner-side-heading{display:block!important;margin:0!important}/* @order 7032 */.approved-planning-metrics .planner-side-heading>span,.approved-planning-metrics .forecast-rule,.approved-planning-metrics #forecastItems{display:none!important}/* @order 7033 */.approved-planning-metrics #forecastBalance{font-size:28px!important;color:var(--ink)!important;line-height:1.2!important;margin:0!important}/* @order 7034 */.approved-planning-metrics #forecastHint{font-size:11px!important;margin:0!important}/* @order 7035 */.approved-planning-metrics .insight-label{font-size:13px!important;color:var(--muted)!important;margin:0!important}
+/* @order 7036 */
+#planner .planner-agenda-grid{display:grid!important;grid-template-columns:minmax(0,2.5fr) minmax(260px,1fr)!important;gap:18px!important;margin-bottom:18px!important}/* @order 7037 */#planner .planner-commitments-panel{padding:20px!important;overflow:visible!important}/* @order 7038 */#planner .planner-panel-heading{padding:0!important;border:0!important;margin-bottom:12px!important}/* @order 7039 */#planner .planner-panel-heading p,#planner .planner-panel-icon{display:none!important}/* @order 7040 */#planner .planner-panel-heading h3{font-size:18px!important}
+/* @order 7041 */
+#planner .ex-agenda-tools{display:flex!important;align-items:flex-end!important;flex-wrap:wrap!important;gap:8px!important;margin:0 0 14px!important;padding:0!important}/* @order 7042 */#planner .ex-agenda-tools label{display:grid;gap:4px;font-size:11px;color:var(--muted)}/* @order 7043 */#planner .ex-agenda-tools :is(input,button){min-height:34px!important;height:34px!important;padding:6px 10px!important;border-radius:7px!important;font-size:12px!important}/* @order 7044 */#planner .ex-agenda-tools [data-agenda-layout=calendar]{margin-left:auto}
+/* @order 7045 */
+#planner .ex-calendar{gap:0!important;border:1px solid var(--line);border-radius:8px;overflow:hidden}/* @order 7046 */#planner .ex-weekday{padding:9px 2px;background:var(--bg);font-size:12px!important;text-align:center;border-bottom:1px solid var(--line)}/* @order 7047 */#planner .ex-day{min-width:0!important;min-height:88px!important;padding:8px!important;border:0!important;border-right:1px solid var(--line)!important;border-bottom:1px solid var(--line)!important;border-radius:0!important;background:var(--paper)!important;box-shadow:none!important;align-content:start}/* @order 7048 */#planner .ex-day.active{background:color-mix(in srgb,var(--blue) 10%,var(--paper))!important;box-shadow:inset 0 0 0 2px var(--blue)!important}/* @order 7049 */#planner .ex-day>span{display:block;font-size:10px!important;line-height:1.4!important;padding:4px!important;border-radius:4px!important;background:color-mix(in srgb,var(--red) 9%,var(--paper));color:var(--ink);overflow:hidden;text-overflow:ellipsis}/* @order 7050 */#planner .ex-day>span.positive{background:color-mix(in srgb,var(--green) 12%,var(--paper))}/* @order 7051 */#planner .ex-day small{font-size:10px!important}
+/* @order 7052 */
+#planner .planner-agenda-sidebar{display:flex!important;flex-direction:column!important;gap:14px!important;min-width:0}/* @order 7053 */#planner .planner-agenda-sidebar>#agendaRows{order:0;padding:18px!important;margin:0!important}/* @order 7054 */#planner .planner-agenda-sidebar>#agendaNext{order:1;padding:18px!important}/* @order 7055 */#planner .approved-agenda-insights{order:2}/* @order 7056 */#planner #agendaRows h4{font-size:17px!important;margin:0 0 14px!important}/* @order 7057 */#planner #agendaRows .agenda31-row{margin:0 0 8px;padding:12px!important;border:1px solid var(--line);border-radius:8px}/* @order 7058 */#planner .approved-agenda-insights .planner-insights-card{padding:12px!important;margin:8px 0 0!important}/* @order 7059 */#planner .approved-agenda-insights summary,#planner .approved-agenda-extras summary{font-size:12px;color:var(--muted);cursor:pointer;padding:10px 0}
+/* @order 7060 */
+#planner #agendaMonthServices{padding:20px!important;margin-bottom:18px!important}/* @order 7061 */#planner .planner-recurring-actions{margin:0!important;padding:8px 0!important;border:0!important;display:flex!important;flex-wrap:wrap;gap:8px}/* @order 7062 */#planner .planner-recurring-actions button{width:auto!important;font-size:12px!important}/* @order 7063 */#planner .planner-agenda-filters{margin:0 0 12px!important;padding:0!important;gap:6px!important}
+/* @order 7064 */
+.approved-card-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}/* @order 7065 */.approved-card-heading h3{margin:0!important;font-size:18px!important}/* @order 7066 */.approved-wealth-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:18px}/* @order 7067 */#wealth .wealth-v3-hero-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:18px!important;margin-bottom:18px!important}/* @order 7068 */#wealth .wealth-v3-net,#wealth .wealth-v3-composition{padding:20px!important;min-height:0!important}/* @order 7069 */#wealth .wealth-v3-chart{height:190px!important;max-width:100%;margin:10px 0!important}/* @order 7070 */#wealth .wealth-v3-composition-bar{margin:20px 0!important;height:22px!important}/* @order 7071 */#wealth .wealth-v3-legend{display:grid!important;gap:0!important}/* @order 7072 */#wealth .wealth-v3-legend>span{padding:12px 0!important;border-bottom:1px solid var(--line)!important;display:flex!important;justify-content:space-between!important}/* @order 7073 */#wealth .wealth-v3-legend b{font-size:15px!important}/* @order 7074 */.approved-wealth-inventory{padding:20px!important;margin-bottom:18px!important}
+/* @order 7075 */
+:is(#agendaMonthServices,.approved-wealth-inventory) table{width:100%;border-collapse:collapse;font-size:13px}/* @order 7076 */:is(#agendaMonthServices,.approved-wealth-inventory) th{background:var(--bg);color:var(--muted);font-weight:500;text-align:left}/* @order 7077 */:is(#agendaMonthServices,.approved-wealth-inventory) :is(td,th){padding:12px;border-bottom:1px solid var(--line);vertical-align:middle}/* @order 7078 */:is(#agendaMonthServices,.approved-wealth-inventory) td.amount{white-space:nowrap;font-variant-numeric:tabular-nums}/* @order 7079 */.approved-state{font-size:11px;padding:5px 8px;border-radius:5px;display:inline-block;white-space:nowrap;background:color-mix(in srgb,var(--green) 9%,var(--paper));color:var(--ink)}/* @order 7080 */.approved-state.pending{background:color-mix(in srgb,var(--orange) 12%,var(--paper))}/* @order 7081 */.approved-footnote{font-size:12px;color:var(--muted);margin:14px 0 0}
+/* @order 7082 */
+.provider-icon{display:inline-flex;width:30px;height:30px;min-width:30px;align-items:center;justify-content:center;border-radius:50%;background:color-mix(in srgb,var(--blue) 12%,var(--paper));color:var(--blue);font-weight:700;font-size:15px;overflow:hidden;vertical-align:middle}/* @order 7083 */.provider-icon img{width:100%;height:100%;object-fit:contain}/* @order 7084 */.provider-icon svg{width:24px;height:24px}/* @order 7085 */.provider-digi{background:#0098f7;color:#fff;font-size:24px}/* @order 7086 */.provider-spotify{background:#1ed760;color:#10251d}/* @order 7087 */.provider-name{display:inline-flex;align-items:center;gap:10px;min-width:0}/* @order 7088 */.subscription-service-main>.provider-icon{flex-shrink:0}/* @order 7089 */.provider-settings-list{margin-top:12px}/* @order 7090 */.provider-settings p{line-height:1.6}/* @order 7091 */.provider-settings-list .attention-row{gap:12px}/* @order 7092 */.provider-settings-list .provider-name{flex:1;overflow-wrap:anywhere}
+/* @order 7093 */
+@media(max-width:1430px){.app-topbar{grid-template-columns:auto minmax(0,1fr)!important;gap:10px 20px!important}.app-topbar .top-primary-nav{justify-content:flex-end!important}.app-topbar .topbar-tools{grid-column:1/-1!important;justify-content:flex-end!important}.app-topbar .top-search-slot{width:220px!important;max-width:220px!important;flex-basis:220px!important}}
+/* @order 7094 */
+@media(max-width:950px){#planner .planner-agenda-grid{grid-template-columns:1fr!important}#planner .planner-agenda-sidebar{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important}#planner .approved-agenda-insights{grid-column:1/-1}#wealth .wealth-v3-hero-grid{grid-template-columns:1fr!important}.approved-wealth-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.app-topbar .top-nav-link{padding:9px 7px!important;font-size:12px!important}}
+/* @order 7095 */
+@media(max-width:650px){.app-topbar{padding:10px 14px!important;grid-template-columns:1fr auto!important;gap:10px!important}.app-topbar #topNavigationToggle{display:block!important;width:36px;min-height:36px;padding:6px;grid-column:2;grid-row:1}.app-topbar .top-primary-nav{display:none!important;grid-column:1/-1;flex-wrap:wrap!important;justify-content:flex-start!important}.app-topbar.navigation-open .top-primary-nav{display:flex!important}.app-topbar .topbar-tools{display:grid!important;grid-template-columns:auto minmax(0,1fr)!important;gap:10px 6px!important;width:100%!important}.app-topbar .top-search-slot{grid-column:1/-1;grid-row:2;width:100%!important;max-width:none!important}.app-topbar .top-finance-slot{grid-column:1;grid-row:1}.app-topbar .top-context-controls{grid-column:2;grid-row:1;gap:4px!important}.app-topbar .top-context-controls .top-space-slot{width:auto!important;flex:1 1 90px!important;max-width:none!important}.app-topbar .space-picker select{width:100%!important;max-width:110px!important}.app-topbar .top-brand b{font-size:18px!important}.approved-planning-metrics{gap:8px}.approved-metric{padding:12px!important}.approved-metric>strong{font-size:21px}.approved-metric>span{font-size:11px}.approved-planning-metrics #forecastBalance{font-size:21px!important}.approved-planning-metrics #forecastHint{display:none!important}#planner .approved-planning-metrics .planner-forecast-card{padding:12px!important}.approved-planning-metrics .insight-label{font-size:11px!important}#planner .planner-agenda-head{align-items:flex-start!important;flex-wrap:wrap!important}#planner .planner-agenda-head h2,#wealth .section-head h2{font-size:25px!important}#planner .planner-commitments-panel{padding:12px!important}#planner .planner-agenda-sidebar{display:flex!important}#planner .ex-day{min-height:65px!important;padding:5px!important}#planner .ex-day>span{font-size:9px!important;padding:2px!important}#planner .ex-day small{font-size:9px!important}#planner #agendaMonthServices,.approved-wealth-inventory{padding:14px!important}.approved-wealth-metrics{gap:10px}#wealth .wealth-v3-net,#wealth .wealth-v3-composition{padding:16px!important}}
+/* @order 7200 */
+body:is([data-current-view="planner"],[data-current-view="wealth"],[data-current-view="wealthMoneyHub"],[data-current-view="wealthHoldingsHub"]) #mainContent>header{display:none!important}
+/* @order 7201 */
+#planner .approved-planning-metrics #forecastItems,#planner .approved-planning-metrics .forecast-rule{display:none!important}
+/* @order 7202 */
+#planner .approved-planning-metrics #forecastBalance{font-size:28px!important;margin:0!important;line-height:1.2!important}
+/* @order 7203 */
+#planner .approved-planning-metrics #forecastHint{font-size:10px!important;margin:0!important;line-height:1.35!important}
+/* @order 7204 */
+#planner .planner-agenda-sidebar>#agendaRows{max-height:580px;overflow-y:auto;overscroll-behavior:auto;scrollbar-gutter:stable}
+/* @order 7205 */
+#planner .planner-agenda-sidebar>#agendaRows[hidden]{display:none!important}
+/* @order 7206 */
+@media(max-width:650px){#planner .approved-planning-metrics #forecastBalance{font-size:21px!important}#planner .approved-planning-metrics #forecastHint{display:none!important}.app-topbar .topbar-tools{min-width:0!important}.app-topbar .top-context-controls .top-space-slot{min-width:0!important}.app-topbar .space-picker{min-width:0!important;width:100%!important}.app-topbar .space-picker select{min-width:0!important;max-width:100%!important}.app-topbar .practical-quick summary{min-width:84px!important;padding:8px!important}#planner .approved-planning-metrics .planner-forecast-card{overflow-wrap:anywhere}#planner .ex-agenda-tools [data-agenda-layout=calendar]{margin-left:0!important}}
+/* @order 7210 */
+.movement-description-cell>.provider-icon{position:absolute;left:3px;top:50%;transform:translateY(-50%);width:28px;height:28px;flex:none}
+/* @order 7220 */
+.app-topbar #topSpaceSlot{order:0!important}
+/* @order 7221 */
+.app-topbar .welcome-launcher{order:1!important}
+/* @order 7222 */
+.app-topbar #privacyToggle{order:2!important}
+/* @order 7223 */
+.app-topbar .top-settings-button{order:3!important}
+/* @order 7224 */
+.app-topbar #topSearchSlot .inline-search-label{border:1px solid var(--line)!important;padding:5px 10px!important}
+/* @order 7225 */
+#planner .planner-panel-heading{margin:0 0 12px!important;min-height:0!important;flex:none!important}
+/* @order 7226 */
+#planner .planner-panel-heading h3{margin:0!important;line-height:1.3!important}
+/* @order 7227 */
+#planner .ex-agenda-tools{flex:none!important;min-height:0!important;padding:0!important;line-height:1.3!important}
+/* @order 7228 */
+#planner #paymentCalendar{padding:0!important;margin:0!important}
+/* @order 7229 */
+#planner .planner-commitments-panel{gap:0!important}
+/* @order 7230 */
+#planner .approved-planning-metrics .planner-forecast-card{gap:8px!important}
+/* @order 7231 */
+#planner .approved-planning-metrics .planner-side-heading{margin:0!important;padding:0!important}
+/* @order 7232 */
+#planner .approved-planning-metrics .planner-side-heading .insight-label{margin:0!important;font-weight:400!important;color:var(--muted)!important;line-height:1.3!important}
+/* @order 7233 */
+#wealth .wa-v3-button.main{background:var(--blue)!important;color:var(--paper)!important;border:0!important}
+/* @order 7234 */
+#wealth .wealth-v3-chart-line{stroke:var(--blue)!important}
+/* @order 7235 */
+#wealth .wealth-v3-chart-area{fill:color-mix(in srgb,var(--blue) 10%,transparent)!important}
+/* @order 7236 */
+#wealth .wealth-v3-composition-bar i:nth-child(1){background:var(--blue)!important}
+/* @order 7237 */
+#wealth .wealth-v3-composition-bar i:nth-child(2){background:color-mix(in srgb,var(--blue) 60%,var(--paper))!important}
+/* @order 7240 */
+#planner.view.active{display:block!important}
+/* @order 7241 */
+#planner .planner-agenda-head{padding:0!important;margin-bottom:16px!important}
+/* @order 7242 */
+#planner .planner-agenda-head p{margin:0!important;line-height:1.5!important}
+/* @order 7243 */
+#planner .area-tabs{margin-bottom:16px!important}
+/* @order 7244 */
+#planner .planner-agenda-sidebar>#agendaNext h3{margin:0 0 14px!important;font-size:17px!important}
+/* @order 7245 */
+#wealth .approved-wealth-inventory .table-wrap,#planner #agendaMonthServices .table-wrap{overflow-x:auto!important;max-width:100%!important;min-width:0!important;display:block!important}
+/* @order 7246 */
+.private-values #appTopbar :is(button,select,summary){pointer-events:auto!important}
+/* @order 7247 */
+#wealth .wealth-v3-chart text{font-size:12px;fill:var(--muted);font-family:inherit}
+/* @order 7248 */
+.equilibrio-studio #planner .ex-day{min-height:74px!important}
+/* @order 7249 */
+@media(max-width:650px){.equilibrio-studio #planner .ex-day{min-height:65px!important}#wealth .approved-wealth-inventory table,#wealth .approved-wealth-inventory tbody{display:block!important;width:100%!important}#wealth .approved-wealth-inventory thead{display:none!important}#wealth .approved-wealth-inventory tr{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px!important;border-bottom:1px solid var(--line);padding:14px 0!important}#wealth .approved-wealth-inventory td{padding:0!important;border:0!important;min-width:0;overflow-wrap:anywhere}#wealth .approved-wealth-inventory td::before{content:attr(data-label);display:block;font-size:11px;color:var(--muted);margin-bottom:4px}#wealth .approved-wealth-inventory td:first-child{grid-column:1/-1;font-weight:700}#wealth .approved-wealth-inventory td:last-child{align-self:end}#wealth .approved-wealth-inventory td.amount{white-space:normal!important}}
+/* @order 7250 */
+#planner #agendaRows .approved-day-action{grid-column:1/-1!important;grid-row:auto!important;grid-area:auto!important;width:100%!important;min-height:36px!important;margin-top:8px!important;padding:9px!important;font-size:12px!important}
+/* @order 7251 */
+.approved-metric>small{font-size:10px;color:var(--muted);line-height:1.3}

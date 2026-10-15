@@ -1,0 +1,194 @@
+/* @order 21000 */
+body.equilibrio-studio #casaStock .desk-workspace{grid-template-columns:minmax(0,1fr) 310px!important;gap:20px!important;align-items:start}
+/* @order 21001 */
+#casaStock .casa-pantry-locations{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px}
+/* @order 21002 */
+#casaStock .casa-pantry-locations button{color:var(--ink);font-size:13px!important;min-height:40px;padding:8px 13px;border-radius:9px}
+/* @order 21003 */
+#casaStock .casa-pantry-locations button[aria-pressed=true]{background:color-mix(in srgb,var(--accent) 16%,var(--paper));border-color:var(--accent);color:var(--ink)}
+/* @order 21004 */
+#casaStock .casa-filter-bar{grid-template-columns:minmax(180px,1fr) minmax(180px,230px) auto!important;padding:0!important;border:0!important;background:transparent!important;margin:22px 0!important}
+/* @order 21005 */
+#casaStock .casa-filter-bar label,#casaStock .casa-stock-count{font-size:12px!important}
+/* @order 21006 */
+#casaStock .desk-table th{font-size:12px!important;text-transform:none;letter-spacing:0;padding:14px 18px!important}
+/* @order 21007 */
+#casaStock .desk-table td{padding:19px 18px!important;font-size:13px!important;line-height:1.5}
+/* @order 21008 */
+#casaStock .desk-table td:first-child{width:50%}
+/* @order 21009 */
+#casaStock .desk-table td:nth-child(2){text-align:right;white-space:nowrap!important}
+/* @order 21010 */
+#casaStock .desk-table td:last-child{min-width:120px;text-align:right;font-variant-numeric:tabular-nums}
+/* @order 21011 */
+#casaStock .desk-inspector-heading{padding:20px;border-bottom:0}
+/* @order 21012 */
+#casaStock .desk-inspector-heading h3{font-size:23px!important;line-height:1.3!important;margin-top:8px!important}
+/* @order 21013 */
+#casaStock .desk-inspector-heading>span{font-size:11px;letter-spacing:.07em;text-transform:uppercase}
+/* @order 21014 */
+#casaStock .desk-owned-content{padding:0 20px 20px!important}
+/* @order 21015 */
+#casaStock .desk-inspector .casa-stock-card{padding:0 0 22px!important;margin:0 0 22px!important;gap:15px!important}
+/* @order 21016 */
+#casaStock .desk-inspector .casa-stock-card>h3{display:none}
+/* @order 21017 */
+#casaStock .casa-pantry-quantity{display:flex;align-items:baseline;flex-wrap:wrap;gap:9px;margin:10px 0 6px}
+/* @order 21018 */
+#casaStock .casa-pantry-quantity strong{font-size:34px!important;line-height:1.15!important;font-variant-numeric:tabular-nums;letter-spacing:-.03em}
+/* @order 21019 */
+#casaStock .casa-pantry-quantity span{font-size:14px;color:var(--muted)}
+/* @order 21020 */
+#casaStock .casa-pantry-facts{display:grid;gap:14px;margin:0;padding-top:16px;border-top:1px solid var(--line)}
+/* @order 21021 */
+#casaStock .casa-pantry-facts dt{font-size:12px;color:var(--muted);margin-bottom:4px}
+/* @order 21022 */
+#casaStock .casa-pantry-facts dd{font-size:14px;color:var(--ink);margin:0;overflow-wrap:anywhere}
+/* @order 21023 */
+#casaStock .casa-stock-card .casa-connection{align-self:flex-start;font-size:12px!important;padding:5px 9px}
+/* @order 21024 */
+#casaStock .desk-inspector .casa-pantry-main-actions{margin-top:4px!important;display:grid!important;grid-template-columns:1fr 1fr;gap:10px!important}
+/* @order 21025 */
+#casaStock .casa-stock-card .casa-actions button{font-size:13px!important;min-height:40px!important;padding:9px 12px!important}
+/* @order 21026 */
+#casaStock .casa-pantry-options{padding-top:14px;border-top:1px solid var(--line);font-size:13px}
+/* @order 21027 */
+#casaStock .casa-pantry-options summary{color:var(--ink);line-height:1.5}
+/* @order 21028 */
+#casaStock .desk-supplement{padding:0 20px 20px!important;font-size:12px;line-height:1.6}
+/* @order 21029 */
+@media(max-width:1050px){body.equilibrio-studio #casaStock .desk-workspace{grid-template-columns:minmax(0,1fr) 270px!important}#casaStock .desk-table th,#casaStock .desk-table td{padding:14px 12px!important}}
+/* @order 21030 */
+@media(max-width:760px){body.equilibrio-studio #casaStock .desk-workspace{grid-template-columns:minmax(0,1fr)!important}#casaStock .casa-filter-bar{grid-template-columns:1fr 1fr!important}#casaStock .casa-stock-count{grid-column:1/-1}#casaStock .desk-table td:last-child{min-width:0}#casaStock .desk-table td:first-child{width:42%}}
+/* @order 21031 */
+@media(max-width:450px){#casaStock .casa-filter-bar{grid-template-columns:1fr!important}#casaStock .desk-table th,#casaStock .desk-table td{padding:12px 9px!important}#casaStock .desk-table th{font-size:11px!important}#casaStock .desk-table td{font-size:12px!important}#casaStock .desk-table .desk-record-button{font-size:13px!important}#casaStock .desk-table td small{font-size:11px!important}}
+/* @order 21040 */
+#unifiedData .u-task-nav button,#unifiedSettings .u-task-nav button{color:var(--ink)!important;font-size:14px!important;line-height:1.45;min-height:44px}
+/* @order 21041 */
+#unifiedSettings .u-task-nav,#unifiedData .u-task-nav{padding:22px 16px!important;border-radius:14px}
+/* @order 21042 */
+#unifiedSettings .u-task-nav nav,#unifiedData .u-task-nav nav{display:grid;gap:6px;margin-top:20px}
+/* @order 21043 */
+#unifiedSettings .u-task-nav button.active,#unifiedData .u-task-nav button.active{background:color-mix(in srgb,var(--accent) 16%,var(--paper))!important;color:var(--ink)!important}
+/* @order 21044 */
+#unifiedSettings .u-settings-content{gap:22px;line-height:1.55}
+/* @order 21045 */
+#unifiedSettings .u-settings-content>.panel{padding:26px!important;border-radius:14px}
+/* @order 21046 */
+#unifiedSettings .u-settings-content h2{font-size:23px!important;margin-bottom:12px}
+/* @order 21047 */
+#unifiedSettings .u-settings-content label,#unifiedSettings .u-settings-content button{font-size:13px!important;line-height:1.5}
+/* @order 21048 */
+#unifiedSettings .settings-backup-grid{display:grid;grid-template-columns:1fr;gap:20px}
+/* @order 21049 */
+#weeklyHub .u-review-extra{display:block!important;grid-template-columns:none!important;padding-top:0;margin-top:22px}
+/* @order 21050 */
+#weeklyHub .u-review-extra[hidden],#weeklyHub .u-review-topic[hidden]{display:none!important}
+/* @order 21051 */
+#weeklyHub .u-review-topic{width:100%;padding:22px!important;min-width:0}
+/* @order 21052 */
+#weeklyHub .u-review-combined{display:grid!important;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:24px;align-items:start}
+/* @order 21053 */
+#weeklyHub .u-review-combined>.u-source{min-width:0;width:100%!important;margin:0!important}
+/* @order 21054 */
+#weeklyReviewBody{width:100%;min-width:0}
+/* @order 21055 */
+#weeklyReviewBody .review30-main-grid,#weeklyReviewBody .review30-bottom-grid{gap:22px!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important}
+/* @order 21056 */
+#weeklyReviewBody .review30-kpi-strip{display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:12px!important;margin:22px 0!important}
+/* @order 21057 */
+#weeklyReviewBody .review30-kpi-strip article{padding:18px 14px!important;min-width:0}
+/* @order 21058 */
+#weeklyReviewBody .review30-kpi-strip strong{font-size:21px!important;line-height:1.4}
+/* @order 21059 */
+#weeklyReviewBody :is(p,small){font-size:12px!important;line-height:1.55!important}
+/* @order 21060 */
+.u-split-period{gap:10px!important;flex-wrap:wrap;align-items:end!important}
+/* @order 21061 */
+.u-split-period label{display:grid;gap:5px;font-size:12px;color:var(--muted);margin:0}
+/* @order 21062 */
+.u-split-period button{min-height:38px;padding:7px 12px;font-size:22px!important;line-height:1}
+/* @order 21063 */
+body[data-unified-view=reports] #mainContent>header{display:none!important}
+/* @order 21064 */
+#reportDesk>.r-head{margin:0 0 22px;align-items:center}
+/* @order 21065 */
+#reports .r-head h2,#weeklyHub>.u-head h2{font-size:28px!important;line-height:1.25!important;margin:0 0 8px}
+/* @order 21066 */
+#reports .r-head p,#weeklyHub>.u-head p{font-size:13px!important;line-height:1.55;color:var(--muted)}
+/* @order 21067 */
+#wealthContributionButton{margin-top:20px!important}
+/* @order 21068 */
+#unifiedInventory .desk-inspector-heading{padding:23px!important;border-bottom:0}
+/* @order 21069 */
+#unifiedInventory .desk-inspector-heading h3{font-size:24px!important;line-height:1.3;margin-top:8px!important}
+/* @order 21070 */
+#unifiedInventory .u-inventory-detail{padding:0 23px 23px!important}
+/* @order 21071 */
+#unifiedInventory .u-inspector-value{display:grid!important;gap:9px;padding:22px 0!important;margin:18px 0!important;border-block:1px solid var(--line)}
+/* @order 21072 */
+#unifiedInventory .u-inspector-value strong{font-size:32px!important;line-height:1.2;font-variant-numeric:tabular-nums}
+/* @order 21073 */
+#unifiedInventory .u-inventory-detail dl{display:grid;gap:16px;margin:20px 0}
+/* @order 21074 */
+#unifiedInventory .u-inventory-detail dl>div{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;font-size:13px;line-height:1.5}
+/* @order 21075 */
+#unifiedInventory .u-inventory-detail dt{color:var(--muted)}
+/* @order 21076 */
+#unifiedInventory .u-inventory-detail dd{margin:0;color:var(--ink);overflow-wrap:anywhere}
+/* @order 21077 */
+#wealthMoneyHub .u-inventory-legacy{margin-top:24px;padding:22px;border:1px solid var(--line);border-radius:14px;background:var(--paper)}
+/* @order 21078 */
+#wealthMoneyHub .u-inventory-legacy>summary{font-size:16px!important;line-height:1.5;padding:2px 0}
+/* @order 21079 */
+#wealthMoneyHub .u-inventory-legacy[open]>summary{margin-bottom:24px}
+/* @order 21080 */
+#wealthMoneyHub .u-inventory-legacy .panel{margin-top:18px;padding:20px;min-width:0}
+/* @order 21081 */
+#unifiedPlans .decision-simulator-v25{font-size:14px!important;line-height:1.5}
+/* @order 21082 */
+#unifiedPlans .decision-simulator-v25 h2,#unifiedPlans .decision-simulator-v25 h3{font-size:23px!important;line-height:1.35!important}
+/* @order 21083 */
+#unifiedPlans .decision-simulator-v25 :is(label,input,select,button){font-size:14px!important;line-height:1.5!important}
+/* @order 21084 */
+#unifiedPlans .decision-simulator-v25 :is(p,small,.muted){font-size:12px!important;line-height:1.6!important}
+/* @order 21085 */
+#unifiedPlans .decision-simulator-v25 .simulation-comparison strong{font-size:25px!important;line-height:1.4!important}
+/* @order 21086 */
+#unifiedPlans .decision-simulator-v25 .simulation-comparison article{padding:20px!important}
+/* @order 21087 */
+.movement-account-cell .provider-icon{width:24px;height:24px;min-width:24px;overflow:hidden;background:color-mix(in srgb,var(--accent) 13%,var(--paper));color:var(--ink);border-radius:7px}
+/* @order 21088 */
+.movement-account-cell .provider-icon svg{width:18px;height:18px}
+/* @order 21089 */
+.provider-account{color:var(--ink);background:color-mix(in srgb,var(--accent) 13%,var(--paper))}
+/* @order 21090 */
+@media(max-width:1100px){#weeklyHub .u-review-combined{grid-template-columns:minmax(0,1fr)!important}#weeklyReviewBody .review30-kpi-strip{grid-template-columns:repeat(3,minmax(0,1fr))!important}}
+/* @order 21091 */
+@media(max-width:760px){#weeklyReviewBody .review30-main-grid,#weeklyReviewBody .review30-bottom-grid{grid-template-columns:minmax(0,1fr)!important}#weeklyReviewBody .review30-kpi-strip{grid-template-columns:repeat(2,minmax(0,1fr))!important}#weeklyHub .u-review-topic{padding:14px!important}#unifiedSettings .u-task-nav,#unifiedData .u-task-nav{padding:16px!important}}
+/* @order 21100 */
+#weeklyReviewBody strong .sensitive-value,#weeklyReviewBody b .sensitive-value,#reviewMonthHub strong .sensitive-value,#reviewMonthHub b .sensitive-value,#unifiedPlans .decision-simulator-v25 strong .sensitive-value{font-size:inherit!important;line-height:inherit!important}
+/* @order 21101 */
+#weeklyReviewBody .review30-timeline-panel,#weeklyReviewBody .review30-conclusions{grid-column:1/-1}
+/* @order 21102 */
+#weeklyReviewBody .review30-conclusions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+/* @order 21103 */
+#weeklyReviewBody .review30-conclusions>.review30-section-head{grid-column:1/-1}
+/* @order 21104 */
+#weeklyReviewBody .review30-day-date,#weeklyReviewBody .review30-day-card b,#weeklyReviewBody .review30-day-card span{font-size:12px!important;line-height:1.5!important;overflow-wrap:normal}
+/* @order 21105 */
+#reviewMonthHub>h2{font-size:25px!important;line-height:1.35!important;margin:0 0 12px!important}
+/* @order 21106 */
+#reviewMonthHub>p{margin:0 0 22px!important;font-size:13px!important;line-height:1.6!important}
+/* @order 21107 */
+#reviewMonthHub .review-month-kpis{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:12px!important;margin-bottom:20px}
+/* @order 21108 */
+#reviewMonthHub .review-month-kpis strong{font-size:23px!important;line-height:1.4!important}
+/* @order 21109 */
+#reviewMonthHub .review-category-top{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:10px!important}
+/* @order 21110 */
+#weeklyHub .u-review-combined .analysis-v3-more{display:none!important}
+/* @order 21111 */
+@media(max-width:850px){#weeklyReviewBody .review30-timeline{grid-template-columns:repeat(2,minmax(0,1fr))!important}#weeklyReviewBody .review30-timeline:before{display:none}#weeklyReviewBody .review30-conclusions{grid-template-columns:1fr}}
+/* @order 21112 */
+@media(max-width:450px){#weeklyReviewBody .review30-timeline{grid-template-columns:1fr!important}#reviewMonthHub .review-category-top{grid-template-columns:repeat(2,minmax(0,1fr))!important}#reviewMonthHub .review-month-kpis strong{font-size:19px!important}}

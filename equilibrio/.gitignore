@@ -1,0 +1,7 @@
+node_modules/
+dist-desktop/
+*.log
+
+# Update signing secrets stay outside the source/build
+release-secrets/
+equilibrio-update-*-private.pem

@@ -1,0 +1,847 @@
+<!doctype html>
+<html lang="pt-PT">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#14213d" />
+    <meta
+      name="description"
+      content="Organiza finanças pessoais e a gestão da casa numa aplicação desktop com dados locais."
+    />
+    <title>Equilíbrio — Finanças pessoais</title>
+    <link rel="icon" href="Equilibrio.ico" />
+      <link rel="stylesheet" href="ui.css" />
+  </head>
+  <body data-build="1.0.0">
+    <a class="skip-link" href="#mainContent">Saltar para o conteúdo</a>
+    <button type="button" id="menuBackdrop" aria-label="Fechar menu"></button>
+    <div
+      id="notice"
+      class="notice"
+      role="status"
+      aria-live="polite"
+      hidden
+    ></div>
+    <aside class="sidebar" id="mainNavigation">
+      <a class="brand" href="#"><img src="Equilibrio.png" alt="" aria-hidden="true"> Equilíbrio</a>
+      <nav aria-label="Navegação principal">
+        <button type="button" class="nav-link active" data-view="dashboard">
+          ⌂ <span>Visão geral</span>
+        </button>
+        <button type="button" class="nav-link" data-view="transactions">
+          ↕ <span>Movimentos</span>
+        </button>
+        <button type="button" class="nav-link" data-view="budgets">
+          ◴ <span>Orçamentos</span>
+        </button>
+        <button type="button" class="nav-link" data-view="goals">
+          ◎ <span>Objetivos</span>
+        </button>
+        <button type="button" class="nav-link" data-view="accounts">
+          ▣ <span>Contas</span>
+        </button>
+        <button type="button" class="nav-link" data-view="planner">
+          □ <span>Planeamento</span>
+        </button>
+        <button type="button" class="nav-link" data-view="insights">
+          ◌ <span>Análises</span>
+        </button>
+        <button type="button" class="nav-link" data-view="review">
+          ✓ <span>Rever importação</span>
+        </button>
+        <button type="button" class="nav-link" data-view="debts">
+          ⌁ <span>Cartões e dívidas</span>
+        </button>
+        <button type="button" class="nav-link" data-view="reports">
+          ▥ <span>Relatórios</span>
+        </button>
+        <button type="button" class="nav-link" data-view="wealth">
+          ◈ <span>Património</span>
+        </button>
+        <button type="button" class="nav-link" data-view="cashflow">
+          ⌇ <span>Fluxo de caixa</span>
+        </button>
+        <button type="button" class="nav-link" data-view="planningPlus">
+          ▢ <span>Planeamento+</span>
+        </button>
+        <button type="button" class="nav-link" data-view="casaPurchases">
+          🏠 <span>Compras</span>
+        </button>
+        <button type="button" class="nav-link" data-view="casaShopping">
+          🛒 <span>Lista de compras</span>
+        </button>
+        <button type="button" class="nav-link" data-view="casaProducts">
+          ▦ <span>Produtos</span>
+        </button>
+        <button type="button" class="nav-link" data-view="casaStock">
+          ▤ <span>Despensa / Stock</span>
+        </button>
+        <button type="button" class="nav-link" data-view="casaStores">
+          ◫ <span>Supermercados</span>
+        </button>
+        <button type="button" class="nav-link" data-view="casaAnalytics">
+          ◌ <span>Análises de consumo</span>
+        </button>
+      </nav>
+      <div class="sidebar-bottom">
+        <button type="button" id="settingsButton" class="text-button">⚙ Definições</button>
+        <button type="button" id="desktopUpdateButton" class="text-button">↻ Atualizar aplicação</button>
+        <button type="button" id="exportData" class="text-button">⇩ Exportar dados</button>
+        <button type="button" id="importData" class="text-button">⇧ Restaurar cópia</button>
+        <button type="button" id="importCsv" class="text-button">
+          ↥ Importar extrato CSV
+        </button>
+        <button type="button" id="resetData" class="text-button danger">↻ Repor dados</button>
+        <div id="appBuildBadge" class="app-build-badge" title="Build em execução">v1.0.0</div>
+      </div>
+    </aside>
+    <main id="mainContent">
+      <header>
+        <button type="button"
+          id="menuToggle"
+          class="secondary"
+          aria-label="Abrir menu"
+          aria-controls="mainNavigation"
+          aria-expanded="false"
+        >
+          ☰
+        </button>
+        <div>
+          <p class="eyebrow" id="today"></p>
+          <h1 id="pageTitle">O teu equilíbrio</h1>
+        </div>
+        <button type="button" class="primary" id="addTransaction">+ Novo movimento</button>
+      </header>
+      <div class="workspace-bar">
+        <div id="globalPeriod"></div>
+        <button type="button" id="undo" class="secondary" disabled>↶ Desfazer</button>
+      </div>
+      <div id="demoBanner" class="demo-banner" hidden>
+        <div>
+          <b>Estás a explorar uma demonstração</b
+          ><span
+            >Os valores são exemplos. Começa com uma página em branco quando
+            estiveres pronto.</span
+          >
+        </div>
+        <button type="button" id="demoStart" class="secondary">Usar os meus dados</button>
+      </div>
+
+      <section id="dashboard" class="view active summary-dashboard">
+        <div class="summary-shell">
+          <div class="summary-topline">
+            <div class="summary-title-block">
+              <h2>Resumo</h2>
+              <p>Visão geral da tua situação financeira</p>
+            </div>
+            <div class="summary-period-control" aria-label="Período do resumo">
+              <button type="button" id="summaryPrevMonth" class="summary-month-arrow" aria-label="Mês anterior">‹</button>
+              <label class="summary-month-picker-wrap">
+                <span aria-hidden="true">▣</span>
+                <select id="monthPicker" class="month-picker" aria-label="Mês a consultar"></select>
+              </label>
+              <button type="button" id="summaryNextMonth" class="summary-month-arrow" aria-label="Mês seguinte">›</button>
+            </div>
+          </div>
+
+          <div class="summary-kpi-grid">
+            <article class="summary-kpi summary-kpi-balance">
+              <span class="summary-kpi-icon" aria-hidden="true">€</span>
+              <div><p>Saldo total</p><strong id="balanceValue">€0,00</strong><small id="balanceTrend">Saldo atual de todas as contas</small></div>
+            </article>
+            <article class="summary-kpi summary-kpi-income">
+              <span class="summary-kpi-icon" aria-hidden="true">↗</span>
+              <div><p>Rendimentos (mês)</p><strong id="incomeValue">€0,00</strong><small id="incomeTrend">— vs. mês anterior</small><button type="button" class="link-button" id="incomeBreakdownButton">Ver cálculo</button></div>
+            </article>
+            <article class="summary-kpi summary-kpi-expense">
+              <span class="summary-kpi-icon" aria-hidden="true">↘</span>
+              <div><p>Despesas (mês)</p><strong id="expenseValue">€0,00</strong><small id="expenseTrend">— vs. mês anterior</small><button type="button" class="link-button" id="expenseBreakdownButton">Ver cálculo</button></div>
+            </article>
+            <article class="summary-kpi summary-kpi-saving">
+              <span class="summary-kpi-icon" aria-hidden="true">◎</span>
+              <div><p>Poupança (mês)</p><strong id="savingValue">€0,00</strong><small><b id="savingRate">—</b> da tua receita</small></div>
+            </article>
+          </div>
+
+          <div class="summary-chart-grid">
+            <section class="summary-panel summary-balance-panel">
+              <div class="summary-panel-heading"><h3>Evolução do saldo</h3><label class="summary-range-label">Período <select id="summaryBalanceRange" aria-label="Período da evolução do saldo"><option value="3">3 meses</option><option value="6" selected>6 meses</option><option value="12">12 meses</option><option value="24">24 meses</option></select></label></div>
+              <div id="summaryBalanceChart" class="summary-svg-chart" aria-label="Evolução do saldo"></div>
+            </section>
+            <section class="summary-panel summary-income-expense-panel">
+              <div class="summary-panel-heading"><h3>Rendimentos vs Despesas</h3><label class="summary-range-label">Período <select id="summaryIncomeRange" aria-label="Período dos rendimentos e despesas"><option value="3">3 meses</option><option value="6" selected>6 meses</option><option value="12">12 meses</option><option value="24">24 meses</option></select></label></div>
+              <div class="summary-chart-legend"><span class="income">● Rendimentos</span><span class="expense">● Despesas</span></div>
+              <div class="chart summary-bars" id="chart"></div>
+            </section>
+            <section class="summary-panel summary-expense-panel">
+              <div class="summary-panel-heading"><h3>Distribuição de despesas (mês)</h3></div>
+              <div class="summary-donut-layout">
+                <div id="summaryExpenseDonut" class="summary-donut" aria-label="Distribuição das categorias com despesa líquida positiva" aria-describedby="summaryExpenseExplanation"><div class="summary-donut-center"><strong id="summaryExpenseTotal">€0,00</strong><span>Total líquido</span></div></div>
+                <div id="summaryExpenseLegend" class="summary-donut-legend"></div>
+              </div>
+              <p id="summaryExpenseExplanation" class="summary-expense-explanation"></p>
+            </section>
+          </div>
+
+          <div class="summary-bottom-grid">
+            <section class="summary-panel summary-list-panel">
+              <div class="summary-panel-heading"><h3>Contas</h3><button type="button" class="link-button" data-goto="accounts">Ver todas</button></div>
+              <div id="summaryAccounts" class="summary-list"></div>
+              <div id="summaryAccountsTotal" class="summary-list-total"></div>
+            </section>
+            <section class="summary-panel summary-list-panel">
+              <div class="summary-panel-heading"><h3>Últimos movimentos</h3><button type="button" class="link-button" data-goto="transactions">Ver todos</button></div>
+              <div id="summaryRecentTransactions" class="summary-list"></div>
+            </section>
+            <section class="summary-panel summary-list-panel">
+              <div class="summary-panel-heading"><h3>Próximos pagamentos</h3><button type="button" class="link-button" data-goto="planner">Ver agenda</button></div>
+              <div id="summaryUpcomingPayments" class="summary-list"></div>
+            </section>
+          </div>
+
+          <div class="dashboard-legacy" aria-hidden="true">
+            <div id="dashboardAccountBalances"></div>
+            <div id="recentTransactions"></div>
+            <div id="budgetPreview"></div>
+            <div id="goalPreview"></div>
+            <div class="dashboard-grid"></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="transactions" class="view movements-dashboard">
+        <div class="movements-hero">
+          <div class="movements-heading-line">
+          <div class="movements-title-block">
+            <h2>Movimentos</h2>
+            <p>Regista, filtra e organiza todas as tuas entradas e saídas.</p>
+          </div>
+            <div class="movement-create-actions">
+              <button type="button" class="primary movement-add-button" id="addTransaction2">+ Novo movimento</button>
+              <button type="button" class="secondary movement-transfer-button" id="addTransfer2">↔ Transferir</button>
+            </div>
+          </div>
+          <div class="movements-hero-actions">
+            <div class="movements-period-control" aria-label="Período dos movimentos">
+              <span class="movements-period-icon" aria-hidden="true">▣</span>
+              <label class="movement-direct-month"><span>Mês</span><select id="movementMonthSelect" aria-label="Mês dos movimentos"></select></label><label class="movement-direct-year"><span>Ano</span><select id="movementYearSelect" aria-label="Ano dos movimentos"></select></label><strong id="movementsPeriodLabel" class="movement-period-status" aria-live="polite">—</strong>
+              <button type="button" class="movement-period-arrow" data-action="tx-month-prev" aria-label="Mês anterior">‹</button>
+              <button type="button" class="movement-period-arrow" data-action="tx-month-next" aria-label="Mês seguinte">›</button>
+            </div>
+            <button type="button" id="movementHistoryToggle" class="movement-history-toggle" aria-pressed="false">Todo o histórico</button>
+            <div class="movement-type-tabs" role="tablist" aria-label="Filtrar movimentos por tipo">
+              <button type="button" class="movement-type-tab active" data-tx-type-tab="all">Todos</button>
+              <button type="button" class="movement-type-tab" data-tx-type-tab="expense">Despesas</button>
+              <button type="button" class="movement-type-tab" data-tx-type-tab="income">Receitas</button>
+              <button type="button" class="movement-type-tab" data-tx-type-tab="transfer">Transferências</button>
+              <button type="button" class="movement-type-tab" data-tx-type-tab="recurring">Recorrentes</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="movement-kpi-grid" aria-label="Resumo do período">
+          <article class="movement-kpi movement-kpi-income">
+            <span class="movement-kpi-icon" aria-hidden="true">↑</span>
+            <div><p>Entradas</p><strong id="movementIncomeKpi">0,00 €</strong><small id="movementIncomeTrend">No período selecionado</small></div>
+          </article>
+          <article class="movement-kpi movement-kpi-expense">
+            <span class="movement-kpi-icon" aria-hidden="true">↓</span>
+            <div><p>Saídas</p><strong id="movementExpenseKpi">0,00 €</strong><small id="movementExpenseTrend">No período selecionado</small></div>
+          </article>
+          <article class="movement-kpi movement-kpi-balance">
+            <span class="movement-kpi-icon" aria-hidden="true">=</span>
+            <div><p>Saldo do período</p><strong id="movementNetKpi">0,00 €</strong><small id="movementNetTrend">Entradas menos saídas</small></div>
+          </article>
+          <article class="movement-kpi movement-kpi-review">
+            <span class="movement-kpi-icon" aria-hidden="true">◷</span>
+            <div><p>Por rever</p><strong id="movementReviewKpi">0 movimentos</strong><small>Aguardam a tua validação</small></div>
+          </article>
+        </div>
+
+        <div class="panel table-panel movements-workbench">
+          <aside class="movement-filter-sidebar" aria-label="Filtros rápidos de movimentos">
+            <section class="movement-filter-section">
+              <div class="movement-filter-heading"><h3>Contas</h3><span aria-hidden="true">⌃</span></div>
+              <div id="movementAccountFilters" class="movement-filter-list"></div>
+            </section>
+            <section class="movement-filter-section">
+              <div class="movement-filter-heading"><h3>Categorias</h3><span aria-hidden="true">⌃</span></div>
+              <div id="movementCategoryFilters" class="movement-filter-list"></div>
+            </section>
+            <section class="movement-filter-section">
+              <div class="movement-filter-heading"><h3>Estado</h3><span aria-hidden="true">⌃</span></div>
+              <div id="movementStatusFilters" class="movement-filter-list"></div>
+            </section>
+          </aside>
+
+          <div class="movement-table-pane">
+            <div class="movement-table-toolbar">
+              <label class="movement-search-wrap" aria-label="Pesquisar movimentos">
+                <span aria-hidden="true">⌕</span>
+                <input id="searchTransactions" placeholder="Pesquisar movimentos…" />
+              </label>
+              <div class="movement-date-range" aria-label="Filtrar movimentos por datas">
+                <label><span>De</span><input id="movementDateStart" type="date" aria-label="Data inicial"></label>
+                <label><span>Até</span><input id="movementDateEnd" type="date" aria-label="Data final"></label>
+                <button type="button" id="movementDateClear" class="movement-date-clear" title="Limpar intervalo" aria-label="Limpar filtro de datas">×</button>
+              </div>
+              <label class="movement-sort-wrap">Ordenar por
+                <select id="transactionSort" aria-label="Ordenar movimentos">
+                  <option value="date-desc">Data (mais recentes)</option>
+                  <option value="date-asc">Data (mais antigos)</option>
+                  <option value="amount-desc">Valor (maior primeiro)</option>
+                  <option value="amount-asc">Valor (menor primeiro)</option>
+                </select>
+              </label>
+              <div class="movement-view-switch" aria-label="Vista dos movimentos">
+                <button type="button" class="active" data-movement-view="list" aria-label="Vista em lista" title="Vista em lista">☷</button>
+                <button type="button" data-movement-view="compact" aria-label="Vista compacta" title="Vista compacta">⌗</button>
+              </div>
+            </div>
+            <div class="movement-legacy-filters" aria-hidden="true">
+              <select id="typeFilter"><option value="all">Todos</option><option value="expense">Despesas</option><option value="income">Receitas</option><option value="transfer">Transferências</option><option value="adjustment">Ajustes</option></select>
+              <select id="accountFilter"><option value="">Todas as contas</option></select>
+              <select id="periodFilter"><option value="month">Mês selecionado</option><option value="all">Todo o histórico</option></select>
+              <button type="button" id="exportCSV">Exportar CSV</button>
+            </div>
+            <div id="transactionsTable"></div>
+          </div>
+        </div>
+
+      </section>
+      <section id="budgets" class="view">
+        <div class="section-head">
+          <div>
+            <h2>Orçamentos</h2>
+            <p>Limites mensais por categoria, aplicados ao mês selecionado.</p>
+          </div>
+          <button type="button" class="primary" id="addBudget">+ Criar orçamento</button>
+        </div>
+        <div id="budgetsGrid" class="budget-grid"></div>
+      </section>
+      <section id="goals" class="view">
+        <div class="section-head">
+          <div>
+            <h2>Objetivos</h2>
+            <p>Transforma intenções em progresso mensurável.</p>
+          </div>
+          <button type="button" class="primary" id="addGoal">+ Novo objetivo</button>
+        </div>
+        <div id="goalsGrid" class="goals-grid"></div>
+      </section>
+      <section id="accounts" class="view">
+        <div class="section-head">
+          <div>
+            <h2>Contas</h2>
+            <p>Uma visão simples de onde está o teu dinheiro.</p>
+          </div>
+          <button type="button" class="primary" id="addAccount">+ Nova conta</button>
+        </div>
+        <div id="accountsGrid" class="accounts-grid"></div>
+      </section>
+      <section id="planner" class="view planner-agenda-view">
+        <div class="section-head planner-agenda-head">
+          <div>
+            <p class="eyebrow">Planeamento</p>
+            <h2>Planeamento</h2>
+            <p>Organiza o mês e decide com confiança.</p>
+          </div>
+        </div>
+        <div id="plannerAgendaFilters" class="planner-agenda-filters"></div>
+        <div class="planner-agenda-grid">
+          <article class="panel planner-commitments-panel">
+            <div class="planner-panel-heading">
+              <span class="planner-panel-icon" aria-hidden="true">□</span>
+              <div><h3>Mapa do mês</h3><p>Compromissos e ações rápidas</p></div>
+            </div>
+            <div id="agendaMonthTools" class="ex-agenda-tools"></div><div id="paymentCalendar" class="calendar-list"></div>
+            <div class="planner-recurring-actions">
+              <button type="button" id="addTransaction3" class="primary full">+ Novo compromisso</button>
+              <button type="button" id="manageRecurring" class="secondary full">+ Movimento mensal</button>
+              <button type="button" id="addSalaryRecurring" class="secondary full">+ Ordenado</button>
+            </div>
+
+          </article>
+          <aside class="planner-agenda-sidebar" aria-label="Resumo da agenda">
+            <article class="panel forecast planner-forecast-card">
+              <div class="planner-side-heading"><span aria-hidden="true">▥</span><p class="insight-label">Saldo previsto</p></div>
+              <strong id="forecastBalance">€0,00</strong>
+              <p id="forecastHint">Com base nos movimentos recorrentes deste mês.</p>
+              <div class="forecast-rule"></div>
+              <div id="forecastItems"></div>
+            </article>
+            <article class="panel planner-insights-card">
+              <div class="planner-side-heading"><span aria-hidden="true">◉</span><h3>Insights do mês</h3></div>
+              <div id="plannerInsights"></div>
+            </article>
+          </aside>
+        </div>
+      </section>
+      <section id="review" class="view">
+        <div class="section-head">
+          <div>
+            <h2>Rever importação</h2>
+            <p>Confirma os movimentos antes de os adicionar às tuas contas.</p>
+          </div>
+          <button type="button" class="primary" id="importCsv2">
+            ↥ Importar extrato CSV
+          </button>
+        </div>
+        <div class="review-layout">
+          <article class="panel table-panel">
+            <div class="review-message" id="reviewMessage"></div>
+            <div id="reviewTable"></div>
+            <div class="review-learning">
+              <label class="checkbox"><input type="checkbox" id="learnImportRules" checked> Memorizar as categorias e beneficiários confirmados</label>
+              <small>Quando o estabelecimento é identificável, cria uma regra reutilizável para os próximos extratos.</small>
+            </div>
+            <div class="review-actions">
+              <button type="button" class="text-button danger" id="discardImports">
+                Limpar lista</button
+              ><button type="button" class="primary" id="confirmImports">
+                Confirmar movimentos
+              </button>
+            </div>
+          </article>
+          <aside class="panel rules-panel">
+            <div class="panel-heading">
+              <div>
+                <h2>Regras automáticas</h2>
+                <p>Aplicadas ao importar</p>
+              </div>
+              <button type="button" class="link-button" id="addRule">+ Regra</button>
+            </div>
+            <div id="rulesList"></div>
+          </aside>
+        </div>
+      </section>
+      <section id="debts" class="view">
+        <div class="section-head">
+          <div>
+            <h2>Cartões e dívidas</h2>
+            <p>Vê os compromissos que tens e quando terminam.</p>
+          </div>
+          <button type="button" class="primary" id="addDebt">+ Nova dívida</button>
+        </div>
+        <div class="debt-summary" id="debtSummary"></div>
+        <div class="debt-grid" id="debtGrid"></div>
+      </section>
+      <section id="reports" class="view">
+        <div class="section-head">
+          <div>
+            <h2>Relatórios</h2>
+            <p>Compara o teu comportamento financeiro ao longo do tempo.</p>
+          </div>
+          <div class="header-actions">
+            <select id="reportYear" class="report-select"></select
+            ><button type="button" id="closeMonth" class="secondary">Fechar mês</button>
+          </div>
+        </div>
+        <div class="report-cards" id="reportCards"></div>
+        <article class="panel annual-panel">
+          <div class="panel-heading">
+            <div>
+              <h2>Receitas e despesas por mês</h2>
+              <p id="reportSubtitle">Resumo anual</p>
+            </div>
+          </div>
+          <div id="annualChart" class="annual-chart"></div>
+        </article>
+        <div class="report-grid">
+          <article class="panel">
+            <h2>Categorias do ano</h2>
+            <div id="annualCategories" class="breakdown"></div>
+          </article>
+          <article class="panel">
+            <h2>Alertas</h2>
+            <p>Orçamentos perto do limite, pagamentos vencidos, importações pendentes e possíveis duplicados.</p>
+            <div id="alertsList" class="alerts-list"></div>
+          </article>
+        </div>
+        <article class="panel month-close">
+          <div class="panel-heading">
+            <div>
+              <h2>Lista de verificação</h2>
+              <p>Confirma os passos antes de fechar o mês.</p>
+            </div>
+          </div>
+          <div id="monthChecklist" class="checklist"></div>
+        </article>
+      </section>
+      <section id="wealth" class="view">
+        <div class="section-head">
+          <div>
+            <h2>Património</h2>
+            <p>O retrato completo do que tens, deves e investes.</p>
+          </div>
+          <button type="button" class="primary" id="addInvestment">+ Investimento</button>
+        </div>
+        <div class="wealth-cards" id="wealthCards"></div>
+        <div class="report-grid">
+          <article class="panel">
+            <div class="panel-heading">
+              <div>
+                <h2>Investimentos</h2>
+                <p>Posições registadas manualmente</p>
+              </div>
+            </div>
+            <div id="investmentsList"></div>
+          </article>
+          <article class="panel">
+            <h2>Composição do património</h2>
+            <div id="wealthComposition" class="breakdown"></div>
+          </article>
+        </div>
+      </section>
+      <section id="cashflow" class="view">
+        <div class="section-head">
+          <div>
+            <h2>Fluxo de caixa</h2>
+            <p>
+              Antecipar dinheiro a entrar e sair torna as decisões mais seguras.
+            </p>
+          </div>
+          <button type="button" class="primary" id="addPending">+ Pagamento pendente</button>
+        </div>
+        <div class="cash-cards" id="cashCards"></div>
+        <div class="report-grid">
+          <article class="panel cash-agenda-panel">
+            <details class="forecast-agenda-disclosure" open>
+              <summary>
+                <span><b>Agenda financeira</b><small>Próximos movimentos pendentes e recorrentes</small></span>
+              </summary>
+              <div id="cashAgenda"></div>
+            </details>
+          </article>
+          <article class="panel">
+            <h2>Transferências e reconciliação</h2>
+            <p>Move dinheiro entre contas ou confirma o saldo real do banco.</p>
+            <div class="action-stack">
+              <button type="button" class="primary full" id="makeTransfer">
+                ↔ Transferir entre contas</button
+              ><button type="button" class="secondary full" id="reconcileAccount">
+                ✓ Reconciliar conta
+              </button>
+            </div>
+            <div id="reconciliationList"></div>
+          </article>
+        </div>
+      </section>
+      <section id="planningPlus" class="view">
+        <div class="section-head">
+          <div>
+            <h2>Reservas</h2>
+            <p>
+              Prepara despesas futuras e acompanha o plano anual sem alterar os saldos.
+            </p>
+          </div>
+        </div>
+        <div class="report-grid">
+          <article class="panel">
+            <div class="panel-heading">
+              <div>
+                <h2>Limites mensais por categoria</h2>
+                <p>
+                  Limites de planeamento por categoria. Não movimentam dinheiro.
+                </p>
+              </div>
+              <button type="button" class="link-button" id="addEnvelope">+ Limite</button>
+            </div>
+            <div id="envelopesList"></div>
+          </article>
+          <article class="panel">
+            <div class="panel-heading">
+              <div>
+                <h2>Reservas para despesas anuais</h2>
+                <p>Pequenas provisões mensais evitam surpresas.</p>
+              </div>
+              <button type="button" class="link-button" id="addReserve">+ Despesa anual</button>
+            </div>
+            <div id="reservesList"></div>
+          </article>
+        </div>
+        <article class="panel simulator decision-simulator-v25">
+          <div class="panel-heading">
+            <div>
+              <h2>Simulador de decisões</h2>
+              <p>Compara a tua situação atual com uma decisão concreta, sem criar movimentos nem alterar saldos.</p>
+            </div>
+            <span class="version-pill simulator-context-pill">Cenário</span>
+          </div>
+          <div class="simulator-baseline" id="simBaselineSummary"></div>
+          <div class="simulator-fields simulator-fields-v25">
+            <label>Decisão
+              <select id="simDecisionType">
+                <option value="purchase">Se comprar isto…</option>
+                <option value="monthly-expense">Se assumir uma despesa mensal…</option>
+                <option value="reduce-expense">Se reduzir uma despesa…</option>
+                <option value="credit">Se fizer um crédito…</option>
+                <option value="income">Se o rendimento mudar…</option>
+                <option value="custom">Cenário personalizado</option>
+              </select>
+            </label>
+            <label class="sim-field sim-field-amount">Valor (€)<input id="simAmount" type="number" min="0" step="0.01" value="500" /></label>
+            <label class="sim-field sim-field-horizon">Horizonte (meses)<input id="simMonths" type="number" min="1" max="120" value="12" /></label>
+            <label class="sim-field sim-field-income-direction">Variação do rendimento
+              <select id="simIncomeDirection"><option value="increase">Aumenta</option><option value="decrease">Diminui</option></select>
+            </label>
+            <label class="sim-field sim-field-rate">TAEG / taxa anual (%)<input id="simAnnualRate" type="number" min="0" max="100" step="0.01" value="8" /></label>
+            <label class="sim-field sim-field-credit-term">Prazo do crédito (meses)<input id="simCreditMonths" type="number" min="1" max="480" value="36" /></label>
+            <label class="sim-field sim-field-credit-spend checkbox"><input id="simCreditSpent" type="checkbox" checked /> O valor do crédito é gasto imediatamente</label>
+            <label class="sim-field sim-field-custom-monthly">Alteração mensal (€)<input id="simMonthlyChange" type="number" step="0.01" value="0" placeholder="Ex.: -120 ou 300" /></label>
+            <label class="sim-field sim-field-custom-oneoff">Impacto único (€)<input id="simOneOff" type="number" step="0.01" value="0" placeholder="Ex.: -1500 ou 500" /></label>
+          </div>
+          <div class="simulator-actions">
+            <button type="button" id="runSimulation" class="primary">Calcular cenário</button>
+            <button id="resetSimulation" class="secondary" type="button">Repor valores</button>
+          </div>
+          <div id="simulationResult" class="simulation-result"></div>
+        </article>
+      </section>
+      <section id="casaHome" class="view casa-view"></section>
+      <section id="casaPurchases" class="view casa-view"></section>
+      <section id="casaShopping" class="view casa-view"></section>
+      <section id="casaProducts" class="view casa-view"></section>
+      <section id="casaStock" class="view casa-view"></section>
+      <section id="casaStores" class="view casa-view"></section>
+      <section id="casaAnalytics" class="view casa-view"></section>
+      <section id="casaRecipes" class="view casa-view"></section>
+      <section id="casaMeals" class="view casa-view"></section>
+      <section id="casaPrices" class="view casa-view"></section>
+      <section id="insights" class="view">
+        <div class="section-head">
+          <div>
+            <h2>Análises</h2>
+            <p>Percebe os teus padrões e decide com mais clareza.</p>
+          </div>
+        </div>
+        <div class="insights-grid insights-grid-v21">
+          <article class="panel recurring-panel">
+            <div class="panel-heading">
+              <div>
+                <h2>Movimentos regulares</h2>
+                <p>Previsíveis todos os meses</p>
+              </div>
+              <span class="pill" id="recurringCount">0</span>
+            </div>
+            <div id="recurringList"></div>
+          </article>
+          <article class="panel">
+            <h2>Distribuição das despesas</h2>
+            <p>Por categoria, neste mês</p>
+            <div id="categoryBreakdown" class="breakdown"></div>
+          </article>
+          <article class="panel insight-hero insight-hero-compact">
+            <p class="insight-label">Maior categoria de despesa</p>
+            <h2 id="topCategory">—</h2>
+            <strong id="topCategoryAmount">€0,00</strong>
+            <p id="topCategoryHint">Ainda não existem despesas neste mês.</p>
+          </article>
+          <article class="panel monthly-summary-compact">
+            <h2>Resumo do mês</h2>
+            <div id="monthlySummary" class="summary-list"></div>
+          </article>
+        </div>
+      </section>
+      <section id="settings" class="view">
+        <div class="section-head">
+          <div>
+            <h2>Definições</h2>
+            <p>O teu espaço, os teus dados.</p>
+          </div>
+        </div>
+        <div class="settings-grid">
+          <article class="panel">
+            <h2>Perfil</h2>
+            <label class="settings-label" for="profileName"
+              >Como te chamas?</label
+            ><input
+              id="profileName"
+              maxlength="60"
+              placeholder="O teu nome"
+            /><button type="button" class="primary full" id="saveProfile">
+              Guardar nome
+            </button>
+          </article>
+          <article class="panel">
+            <h2>Os teus dados</h2>
+            <p id="storageInfo"></p>
+            <p>
+              Os dados pertencem ao Espaço Financeiro atual. Mantém uma cópia
+              de segurança fora da aplicação para poderes recuperar tudo se necessário.
+            </p>
+            <div class="settings-data-command-grid">
+              <button type="button" class="settings-command primary" id="backupSettings"><span>Guardar cópia</span><small>Exportar o Espaço atual</small></button>
+              <button type="button" class="settings-command secondary" id="restoreSettings"><span>Restaurar cópia</span><small>Substituir os dados do espaço atual</small></button>
+              <button type="button" class="settings-command secondary" id="rawBackup"><span>Dados originais</span><small>Exportação técnica para diagnóstico</small></button>
+            </div>
+          </article>
+          <article class="panel settings-reset-panel">
+            <details>
+              <summary><span><b>Reiniciar / demonstração</b><small>Opções usadas apenas quando queres começar de novo</small></span></summary>
+              <p>Troca entre uma demonstração com exemplos e um espaço vazio para os teus registos.</p>
+              <div class="settings-reset-actions">
+                <button type="button" class="secondary" id="startEmpty">Começar com os meus dados</button>
+                <button type="button" class="secondary" id="loadDemo">Carregar demonstração</button>
+              </div>
+            </details>
+          </article>
+          <article class="panel">
+            <h2>Como funciona</h2>
+            <ul class="help-list">
+              <li>
+                O saldo das contas é atual. Receitas, despesas e relatórios
+                seguem o período selecionado.
+              </li>
+              <li>
+                Pagamentos agendados só alteram o saldo quando os confirmas.
+              </li>
+              <li>
+                Transferências e ajustes de saldo não contam como receitas ou
+                despesas.
+              </li>
+              <li>
+                Objetivos e reservas identificam dinheiro nas contas; não são
+                despesas.
+              </li>
+              <li>
+                Nos pagamentos de empréstimos, só juros e encargos contam como
+                despesa.
+              </li>
+              <li>
+                CSV: Data;Descrição;Valor;Categoria;Conta. Despesas têm valor
+                negativo. Datas AAAA-MM-DD ou DD/MM/AAAA.
+              </li>
+              <li>Usa Ctrl/Cmd + K para pesquisar movimentos.</li>
+            </ul>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <dialog id="modal">
+      <form method="dialog" id="modalForm">
+        <button type="button" class="close" value="cancel" aria-label="Fechar">×</button>
+        <div id="modalContent"></div>
+      </form>
+    </dialog>
+    <template id="transactionForm"
+      ><h2>Novo movimento</h2>
+      <p class="modal-subtitle">Regista uma entrada ou uma saída.</p>
+      <div class="type-tabs">
+        <label
+          ><input type="radio" name="type" value="expense" checked />
+          Despesa</label
+        ><label
+          ><input type="radio" name="type" value="income" /> Receita</label
+        >
+      </div>
+      <label
+        >Descrição<input
+          name="description"
+          required
+          placeholder="Ex.: Compras de supermercado"
+      /></label>
+      <div class="two-cols">
+        <label
+          >Valor (€)<input
+            name="amount"
+            type="number"
+            min="0.01"
+            step="0.01"
+            required
+            placeholder="0,00" /></label
+        ><label>Data<input name="date" type="date" required /></label>
+      </div>
+      <div class="two-cols">
+        <label
+          >Categoria<input
+            name="category"
+            id="transactionCategory"
+            list="categoryList"
+            required
+            placeholder="Ex.: Alimentação" /><datalist
+            id="categoryList"
+          ></datalist></label
+        ><label
+          >Conta<select name="account" id="transactionAccount"></select
+        ></label>
+      </div>
+      <label
+        >Nota<textarea
+          name="note"
+          rows="2"
+          placeholder="Opcional"
+        ></textarea></label
+      ><label
+        >Fatura ou comprovativo (PDF até 8 MB)<input
+          id="txReceipt"
+          type="file"
+          accept="image/*,application/pdf" /></label
+      ><label class="checkbox"
+        ><input name="recurring" type="checkbox" /> Repetir todos os
+        meses</label
+      ><button type="submit" class="primary full" value="submit">
+        Guardar movimento
+      </button></template
+    >
+    <input id="backupFile" type="file" accept="application/json" hidden /><input
+      id="csvFile"
+      type="file"
+      accept=".csv,text/csv"
+      hidden
+    />
+    <script src="provider-icons.js"></script>
+    <script src="finance.js"></script>
+    <script src="reconciliation-model.js"></script>
+    <script src="casa-model.js"></script>
+    <script src="casa-life-model.js"></script>
+    <script src="casa-daily-model.js"></script>
+    <script src="casa-complete-model.js"></script>
+    <script src="features-model.js"></script>
+    <script src="complete-model.js"></script>
+    <script src="life-model.js"></script>
+    <script src="planning-model.js"></script>
+    <script src="receipt-model.js"></script>
+    <script src="practical-model.js"></script>
+    <script src="experience-model.js"></script>
+    <script src="backup-info.js"></script>
+    <script src="workspace.js"></script>
+    <script src="features-ui.js"></script>
+    <script src="complete-ui.js"></script>
+    <script src="life-ui.js"></script>
+    <script src="planning-ui.js"></script>
+    <script src="daily-ui.js"></script>
+    <script src="receipt-reader.js"></script>
+    <script src="receipt-ui.js"></script>
+    <script src="casa-ui.js"></script>
+    <script src="casa-home-ui.js"></script>
+    <script src="casa-catalog-ui.js"></script>
+    <script src="casa-life-ui.js"></script>
+    <script src="casa-daily-ui.js"></script>
+    <script src="casa-complete-ui.js"></script>
+    <script src="casa-shopping-ui.js"></script>
+    <script src="casa-render-ui.js"></script>
+    <script src="desktop-bridge.js"></script>
+    <script src="analysis-page-ui.js"></script>
+    <script src="wealth-analysis-v3.js"></script>
+    <script src="welcome-ui.js"></script>
+    <script src="reconciliation-ui.js"></script>
+    <script src="practical-ui.js"></script>
+    <script src="experience-ui.js"></script>
+    <script src="provider-icons-ui.js"></script>
+    <script src="approved-visual-ui.js"></script>
+    <script src="ui-lifecycle.js"></script>
+    <script src="workbench-ui.js"></script>
+    <script src="interface-ui.js"></script>
+    <script src="unified-workspace-ui.js"></script>
+    <script src="receipt-assistance-ui.js"></script>
+    <script src="productivity-model.js"></script>
+    <script src="draft-ui.js"></script>
+    <script src="productivity-ui.js"></script>
+    <script src="reports-model.js"></script>
+    <script src="reports-ui.js"></script>
+    <script src="space-transfer-model.js"></script>
+    <script src="space-transfer-ui.js"></script>
+  </body>
+</html>

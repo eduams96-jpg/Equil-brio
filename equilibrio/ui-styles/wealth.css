@@ -1,0 +1,720 @@
+/* Fonte de estilos: wealth. @order preserva a cascata; novos blocos usam uma ordem única. */
+/* @order 47 */
+.investment-row{display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:1px solid var(--line)}
+/* @order 48 */
+.investment-row b{font-size:13px}
+/* @order 49 */
+.investment-meta{font-size:11px;color:var(--muted);margin-top:3px}
+/* @order 338 */
+.investment-row p {
+  font-size: 12px;
+  margin: 4px 0;
+}
+/* @order 714 */
+.investment-row b {
+  font-size: 14px;
+}
+/* @order 715 */
+.investment-row p {
+  font-size: 12px;
+}
+/* @order 716 */
+.investment-row .link-button {
+  font-size: 12px;
+}
+/* @order 1008 */
+#investmentsHub .life-metrics {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+/* @order 1011 */
+@media (max-width: 600px) {
+  #investmentsHub .life-metrics {
+    grid-template-columns: 1fr;
+  }
+}
+/* @order 1619 */
+#wealth > #wealthEvolution{
+  margin-top:32px!important;
+}
+/* @order 1620 */
+#wealthEvolution .wealth-snapshot-toolbar{
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr);
+  gap:18px;
+  align-items:start;
+  margin:14px 0 20px;
+  padding:14px 16px;
+  border:1px solid var(--line);
+  border-radius:11px;
+  background:var(--surface-2,var(--paper));
+}
+/* @order 1621 */
+#wealthEvolution .wealth-snapshot-toolbar button{margin:0!important;white-space:nowrap;}
+/* @order 1622 */
+#wealthEvolution .wealth-snapshot-toolbar p{margin:1px 0 0!important;font-size:12px!important;line-height:1.5;}
+/* @order 1640 */
+@media(max-width:720px){
+  #wealthEvolution .wealth-snapshot-toolbar{grid-template-columns:1fr;}
+}
+/* @order 1762 */
+#wealth .wealth-cards{
+  grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  gap:10px!important;
+  margin-bottom:16px!important;
+}
+/* @order 1763 */
+#wealth .wealth-cards .metric{padding:13px 14px!important;min-height:0!important;}
+/* @order 1764 */
+#wealth .wealth-cards .metric p{margin-bottom:5px!important;font-size:11px!important;}
+/* @order 1765 */
+#wealth .wealth-cards .metric strong{font-size:20px!important;margin-bottom:0!important;}
+/* @order 1766 */
+#wealthEvolution .wealth-snapshot-toolbar{
+  grid-template-columns:auto minmax(280px,680px)!important;
+  justify-content:center!important;
+  align-items:center!important;
+  text-align:left!important;
+  gap:16px!important;
+  padding:12px 14px!important;
+}
+/* @order 1767 */
+#wealthEvolution .wealth-snapshot-toolbar p{margin:0!important;}
+/* @order 1768 */
+@media(max-width:900px){#wealth .wealth-cards{grid-template-columns:repeat(2,minmax(0,1fr))!important;}}
+/* @order 1769 */
+@media(max-width:620px){#wealth .wealth-cards{grid-template-columns:1fr!important;}}
+/* @order 1770 */
+@media(max-width:620px){#wealthEvolution .wealth-snapshot-toolbar{grid-template-columns:1fr!important;text-align:center!important;}}
+/* @order 1771 */
+@media(max-width:620px){#wealthEvolution .wealth-snapshot-toolbar button{justify-self:center!important;}}
+/* @order 1872 */
+#wealthEvolution .wealth-snapshot-toolbar{grid-template-columns:auto minmax(280px,680px)!important;justify-content:start!important;text-align:left!important;}
+/* @order 1874 */
+@media(max-width:620px){#wealthEvolution .wealth-snapshot-toolbar{grid-template-columns:1fr!important;text-align:left!important}}
+/* @order 1875 */
+@media(max-width:620px){#wealthEvolution .wealth-snapshot-toolbar button{justify-self:start!important}}
+/* @order 1976 */
+.wealth-year-line{height:185px;display:grid;grid-template-columns:repeat(12,minmax(28px,1fr));gap:8px;align-items:end;overflow-x:auto;padding-top:8px}
+/* @order 1977 */
+.wealth-year-line>div{height:100%;display:grid;grid-template-rows:1fr auto auto;gap:4px;align-items:end;text-align:center;min-width:34px}
+/* @order 1978 */
+.wealth-year-line i{display:block;width:70%;justify-self:center;background:var(--accent);opacity:.72;border-radius:4px 4px 1px 1px;min-height:4px}
+/* @order 1979 */
+.wealth-year-line i.negative{background:#c96c54}
+/* @order 1980 */
+.wealth-year-line small{font-size:9px;color:var(--muted)}
+/* @order 1981 */
+.wealth-year-line b{font-size:9px;white-space:nowrap}
+/* @order 2643 */
+#assetsHub .assets-compact-head{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:12px!important;
+  margin-bottom:10px!important;
+}
+/* @order 2645 */
+#assetsHub .assets-total-card{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:18px!important;
+  width:min(100%,360px)!important;
+  padding:10px 13px!important;
+  margin:0!important;
+}
+/* @order 2646 */
+#assetsHub .assets-total-card span{font-size:10px!important;color:var(--muted)!important;}
+/* @order 2647 */
+#assetsHub .assets-total-card strong{font-size:19px!important;white-space:nowrap!important;}
+/* @order 2648 */
+#assetsHub .assets-compact-grid{
+  display:grid!important;
+  grid-template-columns:repeat(auto-fit,minmax(300px,1fr))!important;
+  gap:10px!important;
+}
+/* @order 2649 */
+#assetsHub .asset-compact-card{padding:12px 14px!important;min-height:0!important;}
+/* @order 2650 */
+#assetsHub .asset-compact-main{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:16px!important;}
+/* @order 2651 */
+#assetsHub .asset-compact-main h3{font-size:14px!important;margin:0 0 2px!important;}
+/* @order 2652 */
+#assetsHub .asset-compact-main small{font-size:10px!important;color:var(--muted)!important;}
+/* @order 2653 */
+#assetsHub .asset-compact-main strong{font-size:20px!important;white-space:nowrap!important;}
+/* @order 2654 */
+#assetsHub .asset-compact-actions{gap:5px!important;margin-top:8px!important;}
+/* @order 2655 */
+#assetsHub .asset-compact-actions .secondary{min-height:28px!important;padding:4px 8px!important;font-size:10px!important;}
+/* @order 2656 */
+#assetsHub .asset-history{margin-top:8px!important;border-top:1px solid var(--line)!important;padding-top:6px!important;}
+/* @order 2657 */
+#assetsHub .asset-history>summary{font-size:10.5px!important;padding:2px 0!important;cursor:pointer!important;}
+/* @order 2658 */
+#assetsHub .asset-history p{margin:5px 0!important;font-size:10.5px!important;}
+/* @order 2659 */
+#assetsHub .assets-footnote{font-size:10px!important;margin:8px 0 0!important;}
+/* @order 2672 */
+@media(max-width:700px){
+  #assetsHub .assets-compact-head{align-items:stretch!important;flex-direction:column!important;}
+}
+/* @order 2673 */
+@media(max-width:700px){
+  #assetsHub .assets-total-card{width:100%!important;}
+}
+/* @order 4691 */
+#wealth .wealth-cards{
+  display:grid!important;
+  grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  gap:12px!important;
+  margin:0 0 16px!important;
+}
+/* @order 4700 */
+#wealth>.report-grid{
+  display:grid!important;
+  grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr)!important;
+  gap:16px!important;
+  align-items:stretch;
+}
+/* @order 4701 */
+#wealth>.report-grid>.panel{
+  padding:24px 25px!important;
+  min-height:280px;
+}
+/* @order 4702 */
+#wealth>.report-grid .panel-heading{margin-bottom:10px;}
+/* @order 4703 */
+#wealth>.report-grid h2{font-size:17px!important;}
+/* @order 4704 */
+#wealth #investmentsList .investment-row{
+  gap:16px;
+  padding:13px 0;
+}
+/* @order 4705 */
+#wealth #investmentsList .investment-row>div{min-width:0;}
+/* @order 4706 */
+#wealth #investmentsList .investment-row>div:last-child{text-align:right;}
+/* @order 4707 */
+#wealth #investmentsList .investment-row b{font-size:14px;}
+/* @order 4708 */
+#wealth #investmentsList .investment-row p{margin:3px 0 0;line-height:1.4;overflow-wrap:anywhere;}
+/* @order 4709 */
+#wealth #investmentsList .row-actions{justify-content:flex-end;flex-wrap:wrap;gap:4px 8px;}
+/* @order 4710 */
+#wealth #wealthComposition .breakdown-row{
+  display:grid;
+  grid-template-columns:minmax(100px,.8fr) minmax(70px,1.7fr) auto;
+  align-items:center;
+  gap:12px;
+  margin:16px 0;
+}
+/* @order 4712 */
+#wealth #wealthComposition .breakdown-row b{white-space:nowrap;font-variant-numeric:tabular-nums;}
+/* @order 4713 */
+#wealth #wealthEvolution{
+  margin-top:18px!important;
+  padding:24px 25px!important;
+}
+/* @order 4714 */
+#wealthEvolution .wealth-snapshot-toolbar{
+  grid-template-columns:auto minmax(0,1fr)!important;
+  justify-content:stretch!important;
+  text-align:left!important;
+  gap:18px!important;
+  margin:17px 0 20px!important;
+  padding:15px 17px!important;
+  background:var(--wealth-wash)!important;
+  border-color:var(--wealth-border)!important;
+  border-radius:12px!important;
+}
+/* @order 4715 */
+#wealthEvolution .wealth-snapshot-toolbar button{justify-self:start!important;}
+/* @order 4716 */
+#wealthEvolution .wealth-snapshot-toolbar p{max-width:85ch!important;line-height:1.5!important;}
+/* @order 4717 */
+#wealthEvolution .wealth-timeline{padding-top:12px;}
+/* @order 4718 */
+#wealthEvolution .mini-metrics{margin:18px 0 0;}
+/* @order 4754 */
+#assetsHub .life-page,#investmentsHub .life-page{max-width:none;}
+/* @order 4755 */
+#assetsHub .life-heading h2,#investmentsHub .life-heading h2{margin:0 0 18px;}
+/* @order 4756 */
+#assetsHub .assets-compact-head{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) minmax(280px,390px);
+  align-items:center!important;
+  gap:16px!important;
+  margin:0 0 16px!important;
+  padding:17px 18px;
+  background:var(--paper);
+  border:1px solid var(--wealth-border);
+  border-radius:16px;
+  box-shadow:0 8px 28px color-mix(in srgb,var(--ink) 4%,transparent);
+}
+/* @order 4757 */
+#assetsHub .assets-compact-head .life-toolbar{margin:0!important;}
+/* @order 4758 */
+#assetsHub .assets-compact-head .life-toolbar button{min-height:40px;}
+/* @order 4759 */
+#assetsHub .assets-total-card{
+  width:100%!important;
+  min-height:76px;
+  padding:13px 17px!important;
+  background:var(--wealth-wash)!important;
+  box-shadow:none!important;
+}
+/* @order 4760 */
+#assetsHub .assets-total-card>span{
+  font-size:12px!important;
+  font-weight:600;
+  line-height:1.35;
+}
+/* @order 4761 */
+#assetsHub .assets-total-card strong{
+  font-size:clamp(20px,2vw,27px)!important;
+  line-height:1.2;
+  margin:0;
+  overflow-wrap:anywhere;
+}
+/* @order 4762 */
+#assetsHub .assets-total-card strong .sensitive-value{font-size:inherit!important;line-height:inherit;}
+/* @order 4763 */
+#assetsHub .assets-compact-grid{
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  gap:14px!important;
+  margin:0 0 15px!important;
+}
+/* @order 4764 */
+#assetsHub .assets-compact-grid:empty::before{
+  content:"Os bens e as suas avaliações aparecerão aqui.";
+  grid-column:1/-1;
+  display:grid;
+  place-content:center;
+  min-height:174px;
+  padding:22px;
+  color:var(--muted);
+  text-align:center;
+  border:1px dashed var(--wealth-border);
+  border-radius:16px;
+  background:var(--paper);
+}
+/* @order 4765 */
+#assetsHub .asset-compact-card{
+  padding:19px 20px!important;
+  border-top:3px solid var(--wealth-tone)!important;
+}
+/* @order 4766 */
+#assetsHub .asset-compact-main{align-items:flex-start!important;min-width:0;}
+/* @order 4767 */
+#assetsHub .asset-compact-main>div{min-width:0;}
+/* @order 4768 */
+#assetsHub .asset-compact-main h3{font-size:16px!important;line-height:1.3;overflow-wrap:anywhere;}
+/* @order 4769 */
+#assetsHub .asset-compact-main small{font-size:11px!important;}
+/* @order 4770 */
+#assetsHub .asset-compact-main strong{
+  font-size:clamp(18px,1.6vw,23px)!important;
+  line-height:1.2;
+  text-align:right;
+  overflow-wrap:anywhere;
+}
+/* @order 4771 */
+#assetsHub .asset-compact-actions{display:flex;flex-wrap:wrap;gap:7px!important;margin:17px 0 0!important;}
+/* @order 4772 */
+#assetsHub .asset-compact-actions button{min-height:33px!important;padding:6px 10px!important;font-size:11px!important;}
+/* @order 4773 */
+#assetsHub .asset-history{margin-top:16px!important;padding-top:11px!important;}
+/* @order 4774 */
+#assetsHub .asset-history>summary{font-size:12px!important;}
+/* @order 4775 */
+#assetsHub .assets-footnote{font-size:12px!important;line-height:1.5;margin:0!important;}
+/* @order 4776 */
+#investmentsHub .life-content{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:16px;
+  align-items:start;
+}
+/* @order 4777 */
+#investmentsHub .life-content>.life-toolbar,
+#investmentsHub .life-content>.life-metrics{grid-column:1/-1;margin:0!important;}
+/* @order 4778 */
+#investmentsHub .life-content>.life-toolbar{gap:10px;margin:0 0 1px!important;}
+/* @order 4779 */
+#investmentsHub .life-content>.life-metrics{
+  grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  gap:12px!important;
+}
+/* @order 4780 */
+#investmentsHub .life-metrics>.panel{
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+  min-height:128px;
+  padding:18px 20px!important;
+  border-top:3px solid var(--wealth-tone)!important;
+}
+/* @order 4781 */
+#investmentsHub .life-metrics>.panel:first-child{
+  background:linear-gradient(128deg,#123b39,#146a58 85%)!important;
+  border-color:#146a58!important;
+}
+/* @order 4783 */
+#investmentsHub .life-metrics>.panel:nth-child(2){border-top-color:var(--orange)!important;}
+/* @order 4784 */
+#investmentsHub .life-metrics>.panel:nth-child(3){border-top-color:#83a68d!important;}
+/* @order 4785 */
+#investmentsHub .life-metrics>.panel:nth-child(4){border-top-color:#7894ac!important;}
+/* @order 4786 */
+#investmentsHub .life-metrics>.panel p{font-size:12px;line-height:1.35;margin:0;}
+/* @order 4787 */
+#investmentsHub .life-metrics>.panel strong{
+  font-size:clamp(20px,1.8vw,26px);
+  line-height:1.18;
+  margin:10px 0 0;
+  overflow-wrap:anywhere;
+}
+/* @order 4788 */
+#investmentsHub .life-content>.panel{
+  min-height:300px;
+  padding:23px 24px!important;
+  margin:0!important;
+}
+/* @order 4789 */
+#investmentsHub .life-content>.panel h3{font-size:17px;margin:0 0 17px;}
+/* @order 4790 */
+#investmentsHub .life-content>.panel>.attention-row{
+  align-items:center;
+  gap:12px;
+  padding:13px 0;
+}
+/* @order 4791 */
+#investmentsHub .attention-row>div:first-child{min-width:0;}
+/* @order 4792 */
+#investmentsHub .attention-row b{font-size:13px;overflow-wrap:anywhere;}
+/* @order 4793 */
+#investmentsHub .attention-row p{font-size:11px;line-height:1.45;margin:4px 0 0;overflow-wrap:anywhere;}
+/* @order 4794 */
+#investmentsHub .attention-row button{flex:0 0 auto;max-width:100%;white-space:normal;}
+/* @order 4795 */
+#investmentsHub .trade-details{margin-top:3px;padding:9px 0 0;}
+/* @order 4796 */
+#investmentsHub .trade-details summary{padding:4px 0;}
+/* @order 4797 */
+#investmentsHub .life-content>.panel>p:last-child{font-size:12px;line-height:1.55;margin-bottom:0;}
+/* @order 4798 */
+@media(max-width:1050px){
+  #wealth .wealth-cards,
+  #investmentsHub .life-content>.life-metrics{grid-template-columns:repeat(2,minmax(0,1fr))!important;}
+}
+/* @order 4800 */
+@media(max-width:1050px){
+  #investmentsHub .life-content{grid-template-columns:1fr;}
+}
+/* @order 4801 */
+@media(max-width:1050px){
+  #investmentsHub .life-content>.life-toolbar,
+  #investmentsHub .life-content>.life-metrics{grid-column:1;}
+}
+/* @order 4802 */
+@media(max-width:1050px){
+  #investmentsHub .life-content>.panel{min-height:0;}
+}
+/* @order 4803 */
+@media(max-width:720px){
+  #wealth>.report-grid{grid-template-columns:1fr!important;}
+}
+/* @order 4804 */
+@media(max-width:720px){
+  #wealth>.report-grid>.panel{min-height:0;}
+}
+/* @order 4810 */
+@media(max-width:720px){
+  #assetsHub .assets-compact-head{grid-template-columns:1fr!important;}
+}
+/* @order 4811 */
+@media(max-width:520px){
+  #wealth .wealth-cards{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important;}
+}
+/* @order 4815 */
+@media(max-width:520px){
+  #wealth>.report-grid>.panel,#wealth #wealthEvolution{padding:18px!important;}
+}
+/* @order 4816 */
+@media(max-width:520px){
+  #wealth #wealthComposition .breakdown-row{grid-template-columns:minmax(73px,.8fr) minmax(45px,1.3fr) auto;gap:7px;font-size:11px;}
+}
+/* @order 4817 */
+@media(max-width:520px){
+  #wealth #wealthComposition .breakdown-row b{font-size:10px;}
+}
+/* @order 4818 */
+@media(max-width:520px){
+  #wealthEvolution .wealth-snapshot-toolbar{grid-template-columns:1fr!important;text-align:left!important;gap:10px!important;}
+}
+/* @order 4819 */
+@media(max-width:520px){
+  #wealthEvolution .wealth-snapshot-toolbar button{justify-self:start!important;}
+}
+/* @order 4834 */
+@media(max-width:520px){
+  #assetsHub .assets-compact-head{padding:15px!important;}
+}
+/* @order 4835 */
+@media(max-width:520px){
+  #assetsHub .assets-total-card{gap:9px!important;}
+}
+/* @order 4836 */
+@media(max-width:520px){
+  #assetsHub .asset-compact-main{display:grid!important;grid-template-columns:1fr;gap:9px!important;}
+}
+/* @order 4837 */
+@media(max-width:520px){
+  #assetsHub .asset-compact-main strong{text-align:left;white-space:normal!important;}
+}
+/* @order 4838 */
+@media(max-width:520px){
+  #assetsHub .asset-compact-actions button{width:auto!important;flex:0 1 auto;}
+}
+/* @order 4839 */
+@media(max-width:520px){
+  #investmentsHub .life-content>.life-metrics{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:9px!important;}
+}
+/* @order 4840 */
+@media(max-width:520px){
+  #investmentsHub .life-metrics>.panel{min-height:116px;padding:15px!important;}
+}
+/* @order 4841 */
+@media(max-width:520px){
+  #investmentsHub .life-metrics>.panel strong{font-size:20px;}
+}
+/* @order 4842 */
+@media(max-width:520px){
+  #investmentsHub .life-content>.panel{padding:19px!important;}
+}
+/* @order 4843 */
+@media(max-width:520px){
+  #investmentsHub .life-content>.panel>.attention-row{align-items:flex-start;flex-wrap:wrap;}
+}
+/* @order 4844 */
+@media(max-width:520px){
+  #investmentsHub .attention-row button{margin:0;}
+}
+/* @order 4845 */
+#wealthMoneyHub,#wealthHoldingsHub{min-width:0;scroll-margin-top:105px;}
+/* @order 4846 */
+.wealth-combined-view>.section-head{
+  padding:22px 25px!important;
+  margin:0 0 13px!important;
+  border:1px solid var(--line);
+  border-left:4px solid var(--blue);
+  border-radius:15px;
+  background:linear-gradient(105deg,color-mix(in srgb,var(--blue) 7%,var(--paper)),var(--paper) 65%);
+}
+/* @order 4847 */
+.wealth-combined-view>.section-head h2{margin:0 0 4px!important;font-size:clamp(23px,2vw,28px)!important;}
+/* @order 4848 */
+.wealth-combined-view>.section-head h2,
+.wealth-combined-view>#accounts>.section-head h2,
+.wealth-combined-view>#debts>.section-head h2{display:block!important;}
+/* @order 4849 */
+.wealth-combined-view>.section-head p{margin:0;font-size:12px;line-height:1.5;}
+/* @order 4850 */
+.wealth-section-nav{display:flex;flex-wrap:wrap;gap:7px;margin:0 0 17px;}
+/* @order 4851 */
+.wealth-section-nav button{
+  min-height:34px;
+  padding:7px 13px;
+  border:1px solid var(--line);
+  border-radius:999px;
+  background:var(--paper);
+  color:var(--ink);
+  font:650 11px 'DM Sans',sans-serif;
+  cursor:pointer;
+}
+/* @order 4852 */
+.wealth-section-nav button:hover{border-color:var(--blue);color:var(--blue);}
+/* @order 4853 */
+.wealth-combined-view.active>.view{display:block!important;min-width:0;margin:0 0 20px;scroll-margin-top:105px;}
+/* @order 4854 */
+.wealth-combined-view.active>.view:last-child{margin-bottom:0;}
+/* @order 4855 */
+.wealth-combined-view>.view>.section-head{margin-bottom:15px!important;}
+/* @order 4856 */
+#wealthMoneyHub>#debts,#wealthHoldingsHub>#investmentsHub{
+  padding-top:20px;
+  border-top:1px solid var(--line);
+}
+/* @order 4857 */
+#wealthHoldingsHub>#assetsHub .life-page,#wealthHoldingsHub>#investmentsHub .life-page{padding-top:0;}
+/* @order 4858 */
+@media(max-width:700px){
+  .wealth-combined-view>.section-head{padding:19px!important;}
+}
+/* @order 4859 */
+@media(max-width:700px){
+  .wealth-combined-view.active>.view{margin-bottom:16px;}
+}
+/* @order 4860 */
+@media(max-width:700px){
+  #wealthMoneyHub>#debts,#wealthHoldingsHub>#investmentsHub{padding-top:16px;}
+}
+/* @order 5618 */
+.wealth-v3-hero-grid{
+  display:grid;
+  grid-template-columns:minmax(0,1.6fr) minmax(320px,1fr);
+  gap:14px;
+}
+/* @order 5619 */
+.wealth-v3-net{
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+  min-height:292px;
+  padding:23px 25px;
+  background:linear-gradient(125deg,color-mix(in srgb,#80dfbb 8%,var(--wa-v3-surface)),var(--wa-v3-surface) 65%);
+}
+/* @order 5620 */
+.wealth-v3-net>div:first-child>strong{
+  display:block;
+  margin:9px 0 3px;
+  color:var(--wa-v3-strong);
+  font-size:clamp(32px,4vw,53px);
+  font-weight:800;
+  letter-spacing:-.055em;
+  line-height:1.08;
+  overflow-wrap:anywhere;
+}
+/* @order 5622 */
+.wealth-v3-net p{font-size:11px;}
+/* @order 5623 */
+.wealth-v3-delta{
+  display:inline-block;
+  padding:4px 7px;
+  border-radius:999px;
+  background:color-mix(in srgb,#47b586 22%,var(--wa-v3-surface));
+  color:var(--wa-v3-mint);
+  font-weight:800;
+}
+/* @order 5624 */
+.wealth-v3-delta.down{
+  background:color-mix(in srgb,#d68174 19%,var(--wa-v3-surface));
+  color:#b25545;
+}
+/* @order 5625 */
+.wealth-v3-chart{display:block;width:100%;height:106px;margin-top:12px;overflow:visible;}
+/* @order 5626 */
+.wealth-v3-chart-base{stroke:var(--wa-v3-border);stroke-width:1;fill:none;}
+/* @order 5627 */
+.wealth-v3-chart-area{fill:color-mix(in srgb,#7fdfbb 10%,transparent);}
+/* @order 5628 */
+.wealth-v3-chart-line{stroke:#5dcc9f;stroke-width:3;fill:none;vector-effect:non-scaling-stroke;}
+/* @order 5629 */
+.wealth-v3-chart circle{fill:#7ce2b7;stroke:var(--wa-v3-surface);stroke-width:2;}
+/* @order 5630 */
+.wealth-v3-chart-labels{display:flex;justify-content:space-between;color:var(--wa-v3-muted);font-size:10px;}
+/* @order 5631 */
+.wealth-v3-chart-empty{
+  display:grid;
+  align-items:end;
+  min-height:114px;
+  margin-top:14px;
+  padding:16px;
+  border:1px dashed var(--wa-v3-border);
+  border-radius:10px;
+  color:var(--wa-v3-muted);
+  font-size:11px;
+  line-height:1.5;
+}
+/* @order 5632 */
+.wealth-v3-composition{min-height:292px;padding:23px 24px;}
+/* @order 5633 */
+.wealth-v3-split{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:17px 0 13px;}
+/* @order 5634 */
+.wealth-v3-split>div{display:grid;gap:5px;min-width:0;padding:11px 12px;border:1px solid var(--wa-v3-border);border-radius:10px;background:var(--wa-v3-soft);}
+/* @order 5635 */
+.wealth-v3-split span{color:var(--wa-v3-muted);font-size:11px;}
+/* @order 5636 */
+.wealth-v3-split strong{font-size:18px;line-height:1.1;overflow-wrap:anywhere;}
+/* @order 5637 */
+.wealth-v3-composition-bar{display:flex;height:11px;margin:12px 0 10px;border-radius:999px;background:var(--wa-v3-border);overflow:hidden;}
+/* @order 5638 */
+.wealth-v3-composition-bar i{height:100%;min-width:0;}
+/* @order 5639 */
+.wealth-v3-composition-bar i:nth-child(1){background:#80dfbb;}
+/* @order 5640 */
+.wealth-v3-composition-bar i:nth-child(2){background:#8dc5df;}
+/* @order 5641 */
+.wealth-v3-composition-bar i:nth-child(3){background:#ccd9cb;}
+/* @order 5642 */
+.wealth-v3-legend{display:grid;gap:5px;font-size:11px;}
+/* @order 5643 */
+.wealth-v3-legend span{display:flex;justify-content:space-between;gap:10px;min-width:0;color:var(--wa-v3-muted);}
+/* @order 5644 */
+.wealth-v3-legend span::before{content:"";flex:0 0 6px;width:6px;height:6px;align-self:center;border-radius:50%;background:#80dfbb;}
+/* @order 5645 */
+.wealth-v3-legend span:nth-child(2)::before{background:#8dc5df;}
+/* @order 5646 */
+.wealth-v3-legend span:nth-child(3)::before{background:#ccd9cb;}
+/* @order 5647 */
+.wealth-v3-legend span:nth-child(4)::before{background:#e2a59a;}
+/* @order 5648 */
+.wealth-v3-legend span b{margin-left:auto;color:var(--wa-v3-text);font-variant-numeric:tabular-nums;white-space:nowrap;}
+/* @order 5649 */
+.wealth-v3-detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:stretch;}
+/* @order 5650 */
+.wealth-v3-detail{display:flex;flex-direction:column;padding:20px 21px 17px;}
+/* @order 5651 */
+.wealth-v3-detail>.wa-v3-footer-link{margin-top:auto;padding-top:14px;}
+/* @order 5658 */
+.wa-v3-avatar.assets{background:color-mix(in srgb,#e6b885 26%,var(--wa-v3-surface));color:var(--wa-v3-amber);}
+/* @order 5659 */
+.wa-v3-avatar.investments{background:color-mix(in srgb,#85c9e9 25%,var(--wa-v3-surface));color:var(--wa-v3-ice);}
+/* @order 5666 */
+.wealth-v3-more>#addInvestment{margin:0 18px 15px;}
+/* @order 5667 */
+.wealth-v3-more>.wealth-cards,
+.wealth-v3-more>.report-grid,
+.wealth-v3-more>#wealthEvolution{margin:0 16px 15px!important;}
+/* @order 5668 */
+.wealth-v3-more>.report-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:14px!important;}
+/* @order 5669 */
+.wealth-v3-more>.report-grid>.panel{min-width:0;}
+/* @order 5738 */
+@media(max-width:820px){
+  .wealth-v3-more>.report-grid{grid-template-columns:1fr!important;}
+}
+/* @order 5749 */
+@media(max-width:580px){
+  .wealth-v3-net>div:first-child>strong{font-size:37px;}
+}
+/* @order 5750 */
+@media(max-width:580px){
+  .wealth-v3-split strong{font-size:15px;}
+}
+/* @order 5763 */
+@media(max-width:580px){
+  .wealth-v3-more>.wealth-cards,.wealth-v3-more>.report-grid,.wealth-v3-more>#wealthEvolution{margin-inline:12px!important;}
+}
+
+/* Organização visual 0.39.60 */
+/* @order 6058 */
+#wealth .section-head h2 {font-size:28px!important;line-height:1.2!important;}
+/* @order 6059 */
+#wealth .section-head {margin-bottom:18px!important;}
+/* @order 6060 */
+#wealth .wa-v3-eyebrow {display:none!important;}
+/* @order 6061 */
+#wealth .wealth-v3-hero-grid {grid-template-columns:1fr 1fr!important;gap:18px!important;}
+/* @order 6062 */
+#wealth .wealth-v3-net,#wealth .wealth-v3-composition {min-height:0!important;padding:22px!important;}
+/* @order 6063 */
+#wealth .wealth-v3-net strong {font-size:38px!important;}
+/* @order 6064 */
+#wealth .wealth-v3-detail-grid {gap:18px!important;}
+/* @order 6065 */
+#wealth .wealth-v3-detail {padding:22px!important;}
+/* @order 6066 */
+@media(max-width:800px) { #wealth .wealth-v3-hero-grid,#wealth .wealth-v3-detail-grid {grid-template-columns:1fr!important;} #wealth .section-head h2 {font-size:24px!important;} }

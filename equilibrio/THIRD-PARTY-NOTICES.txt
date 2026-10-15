@@ -1,0 +1,13 @@
+Equilíbrio - componentes de terceiros
+
+PDF.js: Copyright Mozilla Foundation; Apache License 2.0.
+https://github.com/mozilla/pdf.js
+Tesseract.js / Tesseract.js-core: colaboradores dos projetos; Apache License 2.0.
+https://github.com/naptha/tesseract.js
+https://github.com/naptha/tesseract.js-core
+Dados linguísticos Tesseract (português): projeto Tesseract; Apache License 2.0.
+https://github.com/tesseract-ocr/tessdata
+Texto Apache 2.0: APACHE-2.0.txt. Avisos originais nos ficheiros preservados.
+DM Sans: licença SIL Open Font License, incluída em assets/fonts/OFL-DM-Sans.txt.
+Electron e Chromium: licenças incluídas junto do executável pelo empacotador.
+As licenças dos componentes não alteram os direitos sobre o código do projeto.

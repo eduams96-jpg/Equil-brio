@@ -1,0 +1,122 @@
+/* @order 7700 */
+.desk-workspace{display:grid!important;grid-template-columns:minmax(0,1.35fr) minmax(320px,1fr);gap:18px;align-items:start;width:100%;min-width:0;margin:16px 0 20px}
+/* @order 7701 */
+.desk-list-panel,.desk-inspector{min-width:0;background:var(--paper);color:var(--ink);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+/* @order 7702 */
+.desk-list-heading,.desk-inspector-heading{padding:16px 18px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:12px}
+/* @order 7703 */
+.desk-list-heading h3,.desk-inspector-heading h3{font-size:17px!important;margin:0!important;line-height:1.35}
+/* @order 7704 */
+.desk-list-heading span,.desk-inspector-heading>span{font-size:12px;color:var(--muted)}
+/* @order 7705 */
+.desk-inspector-heading{display:block}
+/* @order 7790 */
+.desk-inspector-heading>span{display:block;margin-bottom:5px}
+/* @order 7706 */
+.desk-table-scroll{max-width:100%;overflow-x:auto;min-width:0}
+/* @order 7707 */
+.desk-table,.desk-detail-table{border-collapse:collapse;width:100%;margin:0!important;table-layout:auto;font-size:13px!important}
+/* @order 7708 */
+.desk-table th,.desk-detail-table th{padding:11px 14px!important;font-size:11px!important;text-transform:uppercase;letter-spacing:.4px;font-weight:600;color:var(--muted);border-bottom:1px solid var(--line);text-align:left;white-space:normal!important}
+/* @order 7709 */
+.desk-table td,.desk-detail-table td{padding:13px 14px!important;border-bottom:1px solid var(--line);vertical-align:middle;white-space:normal!important;overflow-wrap:anywhere}
+/* @order 7710 */
+.desk-table tbody tr:last-child td,.desk-detail-table tbody tr:last-child td{border-bottom:0}
+/* @order 7711 */
+.desk-table .is-selected{background:color-mix(in srgb,var(--accent) 12%,var(--paper))}
+/* @order 7712 */
+.desk-record-button{display:inline!important;min-height:0!important;background:none!important;border:0!important;border-radius:0!important;padding:0!important;color:var(--ink)!important;font-size:14px!important;font-weight:650;line-height:1.4!important;text-align:left;box-shadow:none!important}
+/* @order 7713 */
+.desk-table td small{display:block;color:var(--muted);font-size:12px;line-height:1.5;margin-top:4px;max-width:320px}
+/* @order 7714 */
+.desk-value{font-variant-numeric:tabular-nums;font-weight:600}
+/* @order 7715 */
+.desk-owned-content,.desk-supplement{padding:16px 18px;min-width:0;overflow-wrap:anywhere}
+/* @order 7716 */
+.desk-supplement:empty{display:none}
+/* @order 7717 */
+.desk-inspector .desk-source{display:block!important;margin:0!important;padding:0!important;width:100%!important;max-width:none!important;grid-template-columns:none!important;background:transparent!important;border:0!important;box-shadow:none!important}
+/* @order 7718 */
+.desk-inspector :is(.casa-product-card,.casa-stock-card,.casa-store-card,.account-card,.asset-compact-card,.debt-card,.practical-equipment-grid>article){width:100%!important;min-width:0!important;margin:0 0 12px!important;padding:12px!important;background:transparent!important;box-shadow:none!important;border:0!important;border-bottom:1px solid var(--line)!important;border-radius:0!important}
+/* @order 7719 */
+.desk-inspector .desk-record-view:last-child :is(.casa-product-card,.casa-stock-card,.casa-store-card,.account-card,.asset-compact-card,.debt-card){border-bottom:0!important;margin-bottom:0!important}
+/* @order 7720 */
+.desk-inspector :is(.casa-actions,.row-actions,.decision-actions){display:flex!important;flex-wrap:wrap!important;gap:8px!important;margin-top:12px!important}
+/* @order 7721 */
+.desk-inspector button{white-space:normal!important;max-width:100%!important}
+/* @order 7722 */
+.desk-inspector :is(input,select,textarea){max-width:100%!important;min-width:0!important}
+/* @order 7723 */
+.desk-inspector :is(.casa-shop-row,.attention-row,.casa-meal){display:block!important;min-width:0!important}
+/* @order 7724 */
+.desk-inspector :is(.casa-shop-price,.casa-shop-check){margin:8px 0!important}
+/* @order 7725 */
+.desk-inspector .casa-shop-group>h3{display:none}
+/* @order 7726 */
+.desk-record-view[hidden],.desk-inspector .desk-source[hidden]{display:none!important}
+/* @order 7727 */
+.desk-empty,.desk-guidance{font-size:13px;color:var(--muted);line-height:1.6;margin:14px 18px}
+/* @order 7728 */
+.desk-supplement .desk-guidance{margin:0}
+/* @order 7729 */
+.desk-detail-tabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+/* @order 7730 */
+.desk-detail-tabs button{min-height:36px;padding:7px 12px;font-size:13px}
+/* @order 7731 */
+.desk-detail-tabs [aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 0 -2px var(--accent)}
+/* @order 7732 */
+.desk-supplement h4{margin:0 0 12px;font-size:15px}
+/* @order 7733 */
+.desk-supplement>div>button{margin:12px 8px 0 0}
+/* @order 7734 */
+.desk-context{margin:12px 0;padding:14px 16px;background:var(--paper);border:1px solid var(--line);border-radius:10px}
+/* @order 7735 */
+.desk-context>summary{font-size:13px;font-weight:600;cursor:pointer}
+/* @order 7736 */
+.desk-context[open]>summary{margin-bottom:14px}
+/* @order 7737 */
+.desk-page .desk-page-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-left:auto}
+/* @order 7738 */
+.desk-page :is(.casa-summary-grid,.life-metrics,.casa-shop-summary).desk-metric-strip{display:flex!important;gap:24px;flex-wrap:wrap;padding:14px 0!important;border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin:12px 0!important;background:transparent}
+/* @order 7739 */
+.desk-metric-strip>article{border:0!important;padding:0!important;box-shadow:none!important;background:transparent!important;flex:1 1 140px}
+/* @order 7740 */
+.desk-metric-strip strong{font-size:22px!important}
+/* @order 7741 */
+.desk-page .desk-redundant-picker,.desk-page .desk-legacy-tabs,.desk-page .wealth-section-nav{display:none!important}
+/* @order 7742 */
+.desk-page :is(#accounts,#debts,#assetsHub,#investmentsHub){padding:0!important;margin:0!important;border:0!important;background:transparent!important}
+/* @order 7743 */
+.desk-page :is(#accounts,#debts)>.section-head,.desk-page :is(#assetsHub,#investmentsHub)>.life-page>.life-heading{display:none!important}
+/* @order 7744 */
+.desk-page :is(#debtSummary,.assets-total-card,#investmentsHub .life-metrics){display:none!important}
+/* @order 7745 */
+.desk-check{width:17px!important;min-height:17px!important;height:17px!important;vertical-align:middle;margin:0 9px 0 0!important}
+/* @order 7746 */
+.desk-page :is(.review-layout,.casa-home-grid){display:contents!important}
+/* @order 7747 */
+body.private-values .desk-value,body.private-values .desk-inspector :is(strong,.desk-detail-table td){filter:blur(8px);user-select:none}
+/* @order 7748 */
+@media(max-width:860px){.desk-workspace{grid-template-columns:minmax(0,1fr)!important;gap:14px}.desk-inspector{width:100%}.desk-table td small{max-width:none}.desk-inspector .desk-source{max-width:100%!important}}
+/* @order 7749 */
+@media(max-width:500px){.desk-list-heading,.desk-inspector-heading,.desk-owned-content,.desk-supplement{padding:12px 14px}.desk-table th,.desk-table td,.desk-detail-table th,.desk-detail-table td{padding:10px 9px!important}.desk-record-button{font-size:13px!important}.desk-table td small{font-size:11px}.desk-table th:last-child,.desk-table td:last-child{max-width:90px}.desk-page .desk-page-actions{margin-left:0}.desk-table td:first-child{min-width:130px}}
+
+/* @order 7791 */
+#wealthMoneyHub.desk-page .desk-inspector #accountsGrid,#wealthMoneyHub.desk-page .desk-inspector #debtGrid{display:block!important;width:100%!important;grid-template-columns:none!important}
+/* @order 7792 */
+#wealthMoneyHub.desk-page #accounts .desk-inspector .account-card,#wealthMoneyHub.desk-page .desk-inspector .account-card,#wealthHoldingsHub.desk-page .desk-inspector .asset-compact-card{width:100%!important;max-width:none!important;min-width:0!important;display:block!important;padding:0!important}
+/* @order 7793 */
+#mainContent:has(>.desk-page.active[id^="casa"])>header{display:none!important}
+
+/* @order 7794 */
+#wealthMoneyHub.desk-page .desk-inspector #accountsGrid[hidden],#wealthMoneyHub.desk-page .desk-inspector #debtGrid[hidden],#wealthHoldingsHub.desk-page .desk-inspector .desk-source[hidden]{display:none!important}
+/* @order 7795 */
+#wealthMoneyHub.desk-page .desk-inspector .account-card{min-height:0!important;height:auto!important;border-top:0!important}
+/* @order 7796 */
+.desk-page .assets-compact-head:has(.life-toolbar:empty),.desk-page .life-toolbar:empty,.desk-page .desk-inspector .desk-source>h3{display:none!important}
+
+/* @order 7797 */
+#wealthHoldingsHub.desk-page #assetsHub .assets-compact-head:has(.life-toolbar:empty),#wealthHoldingsHub.desk-page #investmentsHub .life-toolbar:empty{display:none!important}
+
+/* @order 7798 */
+#dataHub.desk-page .data-hub-tabs.desk-legacy-tabs{display:none!important}

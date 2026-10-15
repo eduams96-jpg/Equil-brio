@@ -1,0 +1,154 @@
+/* @order 20000 */
+#welcomeDialog:has(.welcome-centered){width:min(740px,calc(100vw - 32px));max-width:740px;border:1px solid var(--line);border-radius:24px;background:var(--paper);color:var(--ink)}
+/* @order 20001 */
+.welcome-centered{display:block!important;min-height:0!important;padding:38px 44px}
+/* @order 20002 */
+.welcome-centered .welcome-hero{padding:0!important;min-height:0!important;background:none!important;align-items:center;text-align:center;overflow:visible;color:var(--ink)}
+/* @order 20003 */
+.welcome-centered .welcome-hero::before,.welcome-centered .welcome-hero::after,.welcome-centered .welcome-kicker,.welcome-centered .welcome-hero-note,.welcome-centered .welcome-step{display:none!important}
+/* @order 20004 */
+.welcome-centered .welcome-brand{justify-content:center;color:var(--ink);font-size:20px}
+/* @order 20005 */
+.welcome-centered .welcome-brand img{width:44px;height:44px}
+/* @order 20006 */
+.welcome-centered .welcome-hero h2{margin:22px 0 10px;max-width:none;font-size:30px!important;line-height:1.2;color:var(--ink)}
+/* @order 20007 */
+.welcome-centered .welcome-hero>p:not(.welcome-kicker){color:var(--muted);font-size:14px!important;max-width:none}
+/* @order 20008 */
+.welcome-centered .welcome-content{padding:26px 0 0!important;background:transparent!important}
+/* @order 20009 */
+.welcome-centered .welcome-content h3,.welcome-centered .welcome-intro{text-align:center}
+/* @order 20010 */
+.welcome-centered .welcome-content h3{font-size:17px}
+/* @order 20011 */
+.welcome-centered .welcome-spaces{grid-template-columns:repeat(2,minmax(0,1fr));max-height:320px;padding:5px;gap:14px}
+/* @order 20012 */
+.welcome-centered .welcome-space{min-height:96px;position:relative;padding:18px 14px}
+/* @order 20013 */
+.welcome-centered .welcome-actions{margin-top:24px}
+/* @order 20014 */
+.welcome-centered .welcome-preference{text-align:center;line-height:1.5}
+/* @order 20015 */
+#modal.financial-detail-dialog{width:min(1100px,calc(100vw - 40px))!important;max-width:1100px!important}
+/* @order 20016 */
+#modal.financial-detail-dialog #modalForm{max-width:none!important}
+/* @order 20017 */
+#modal.financial-detail-dialog #modalContent{display:block!important;max-width:none!important}
+/* @order 20018 */
+#modal.financial-detail-dialog .table-wrap{overflow:auto;max-height:min(58vh,650px);margin-top:20px}
+/* @order 20019 */
+#modal.financial-detail-dialog .u-table{width:100%;table-layout:auto;min-width:580px}
+/* @order 20020 */
+#modal.financial-detail-dialog .u-table th,#modal.financial-detail-dialog .u-table td{padding:13px 16px!important;text-align:left;vertical-align:top;line-height:1.5}
+/* @order 20021 */
+#modal.financial-detail-dialog .u-table td:first-child{white-space:nowrap;width:120px}
+/* @order 20022 */
+#modal.financial-detail-dialog .u-table th:last-child,#modal.financial-detail-dialog .u-table td:last-child{text-align:right;white-space:nowrap;width:150px;font-variant-numeric:tabular-nums}
+/* @order 20023 */
+#modal.financial-detail-dialog .u-table td:nth-child(2){width:38%}
+/* @order 20024 */
+#modal.financial-detail-dialog .u-table .link-button{padding:0!important;text-align:left!important;line-height:1.5!important;font-size:inherit!important;white-space:normal}
+/* @order 20025 */
+#modal.balance-variation-dialog #modalContent{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 24px}
+/* @order 20026 */
+#modal.balance-variation-dialog #variationResult{grid-column:1/-1}
+/* @order 20027 */
+#dashboard #balanceVariationButton,#dashboard #incomeBreakdownButton,#dashboard #expenseBreakdownButton{display:block!important;width:max-content!important;margin-top:9px!important;padding:4px 0!important;text-align:left!important;text-underline-offset:4px;font-size:12px!important;line-height:1.4!important}
+/* @order 20028 */
+#weeklyHub #unifiedReviewCategories{max-height:none!important;overflow:visible!important;display:grid;gap:10px}
+/* @order 20029 */
+#weeklyHub .u-review-categories{align-self:start!important}
+/* @order 20030 */
+#weeklyHub .u-category-bar{grid-template-columns:minmax(110px,1fr) minmax(100px,1.5fr) auto!important;gap:12px!important;min-height:30px}
+/* @order 20031 */
+.u-review-navigation{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 20px}
+/* @order 20032 */
+.u-review-navigation button{font-size:13px;min-height:38px}
+/* @order 20033 */
+.u-review-navigation button.active{border-color:var(--accent);color:var(--accent)}
+/* @order 20034 */
+.u-review-extra{margin-bottom:20px}
+/* @order 20035 */
+.u-review-topic>h3{margin:0 0 16px}
+/* @order 20036 */
+#transactions .movement-search-wrap,#transactions .movement-search-wrap input{background:transparent!important;box-shadow:none!important}
+/* @order 20037 */
+#modal.transaction-editor #modalForm>.form-actions,#modal.transaction-editor .form-actions,#modal.transaction-editor .modal-actions{background:transparent!important;box-shadow:none!important}
+/* @order 20038 */
+#transactions.movement-compact-view .movement-description-cell,#transactions.movement-compact-view .movement-table-row{height:auto!important;min-height:46px!important;overflow:visible!important}
+/* @order 20039 */
+#transactions.movement-compact-view .movement-description-cell{align-items:center!important;padding-block:7px!important}
+/* @order 20040 */
+#transactions.movement-compact-view .provider-icon{width:28px!important;height:28px!important;min-width:28px!important;min-height:28px!important;flex:0 0 28px!important;overflow:visible!important;line-height:1!important}
+/* @order 20041 */
+#transactions .provider-icon img{max-width:100%!important;max-height:100%!important;object-fit:contain!important}
+/* @order 20042 */
+#transactions .movement-table-row .movement-description-cell .movement-description-note.note-default{color:var(--muted)!important}
+/* @order 20043 */
+#transactions .movement-table-row .movement-description-cell .movement-description-note.note-blue{color:#91c2ff!important}
+/* @order 20044 */
+#transactions .movement-table-row .movement-description-cell .movement-description-note.note-green{color:#8cdbb8!important}
+/* @order 20045 */
+#transactions .movement-table-row .movement-description-cell .movement-description-note.note-purple{color:#d0adff!important}
+/* @order 20046 */
+#transactions .movement-table-row .movement-description-cell .movement-description-note.note-orange{color:#ffc185!important}
+/* @order 20047 */
+#transactions .movement-table-row .movement-description-cell .movement-description-note.note-red{color:#ff9eab!important}
+/* @order 20048 */
+#unifiedPlans.u-plans-grid{grid-template-columns:minmax(0,1fr)!important}
+/* @order 20049 */
+#unifiedPlans .u-decision-pane{display:block;min-width:0}
+/* @order 20050 */
+#unifiedPlans .u-decision-tabs{display:flex!important;flex-wrap:wrap;gap:10px!important;margin-bottom:16px}
+/* @order 20051 */
+#unifiedPlans .u-decision-tabs button{font-size:13px!important;min-height:38px}
+/* @order 20052 */
+#unifiedPlans .ex-decision-columns{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;gap:24px!important}
+/* @order 20053 */
+#unifiedPlans .simulation-comparison{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+/* @order 20054 */
+#unifiedPlans .simulation-comparison article{min-width:0}
+/* @order 20055 */
+#unifiedPlans .simulation-comparison strong{font-size:20px!important;line-height:1.4}
+/* @order 20056 */
+#unifiedPlans .simulation-comparison small{line-height:1.5}
+/* @order 20057 */
+.u-split-period{display:flex;gap:8px;align-items:center}
+/* @order 20058 */
+.u-split-period select{min-height:36px!important;width:auto!important;max-width:170px;padding:7px 28px 7px 10px!important;font-size:13px!important}
+/* @order 20059 */
+#planner .planner-agenda-grid{grid-template-columns:minmax(0,2fr) minmax(330px,1fr)!important}
+/* @order 20060 */
+#planner .planner-agenda-sidebar{gap:16px!important;min-width:0}
+/* @order 20061 */
+#planner .planner-agenda-sidebar>section,#planner .planner-agenda-sidebar>article{padding:18px!important;margin:0!important}
+/* @order 20062 */
+#planner .planner-agenda-sidebar .section-head,#planner .planner-agenda-sidebar .approved-card-heading{align-items:center;gap:12px}
+/* @order 20063 */
+#planner .planner-agenda-sidebar table{width:100%;table-layout:auto}
+/* @order 20064 */
+#planner .planner-agenda-sidebar th,#planner .planner-agenda-sidebar td{padding:12px 6px!important;line-height:1.4}
+/* @order 20065 */
+#planner .u-services-total{padding-top:12px;margin-top:12px}
+/* @order 20066 */
+#planner button,#planner .primary,#planner .secondary,#planner .area-tabs button,#planner .u-services-card button{font-size:13px!important;line-height:1.35!important}
+/* @order 20067 */
+@media(max-width:1000px){#planner .planner-agenda-grid{grid-template-columns:minmax(0,1fr)!important}#planner .planner-agenda-sidebar{grid-template-columns:repeat(2,minmax(0,1fr))}#unifiedPlans .ex-decision-columns{grid-template-columns:minmax(0,1fr)!important}}
+/* @order 20068 */
+@media(max-width:600px){.welcome-centered{padding:26px 18px}.welcome-centered .welcome-spaces{grid-template-columns:1fr;max-height:280px}.welcome-centered .welcome-hero h2{font-size:25px!important}.welcome-centered .welcome-space{min-height:76px}#modal.financial-detail-dialog{width:calc(100vw - 16px)!important}#modal.balance-variation-dialog #modalContent{grid-template-columns:1fr}#planner .planner-agenda-sidebar{grid-template-columns:1fr}#weeklyHub .u-category-bar{grid-template-columns:minmax(80px,1fr) minmax(50px,1fr) auto!important;gap:8px!important}}
+/* @order 20100 */
+#modal.transaction-editor #modalContent .transaction-editor-footer{background:transparent!important;box-shadow:none!important}
+/* @order 20101 */
+#unifiedPlans #decisionsHub .ex-decision-columns{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;align-items:start;gap:24px!important}
+/* @order 20102 */
+#unifiedPlans #decisionsHub .simulator-baseline{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:12px!important}
+/* @order 20103 */
+@media(max-width:1000px){#unifiedPlans #decisionsHub .ex-decision-columns{grid-template-columns:1fr!important}#unifiedPlans #decisionsHub .simulator-baseline{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+/* @order 20104 */
+#modal.balance-variation-dialog #modalContent>#formTitle,#modal.balance-variation-dialog #modalContent>#formError,#modal.balance-variation-dialog #modalContent>.modal-subtitle,#modal.balance-variation-dialog #modalContent>button[type=submit]{grid-column:1/-1}
+/* @order 20105 */
+body.equilibrio-studio #plansHub #unifiedPlans #decisionsHub .ex-decision-columns{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;gap:24px!important}
+/* @order 20106 */
+body.equilibrio-studio #plansHub #unifiedPlans #decisionsHub .simulator-baseline{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:12px!important}
+/* @order 20107 */
+@media(max-width:1000px){body.equilibrio-studio #plansHub #unifiedPlans #decisionsHub .ex-decision-columns{grid-template-columns:1fr!important}body.equilibrio-studio #plansHub #unifiedPlans #decisionsHub .simulator-baseline{grid-template-columns:repeat(2,minmax(0,1fr))!important}}

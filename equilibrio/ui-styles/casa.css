@@ -1,0 +1,1326 @@
+/* Fonte de estilos: casa. @order preserva a cascata; novos blocos usam uma ordem única. */
+/* @order 2074 */
+.casa-beta-banner{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:18px;padding:13px 16px;border:1px solid #cfe3d6;background:#eef8f1;border-radius:12px}
+/* @order 2075 */
+.casa-beta-banner b{display:block}
+/* @order 2076 */
+.casa-beta-banner p{margin:2px 0 0;color:var(--muted);font-size:13px}
+/* @order 2077 */
+.casa-beta-badge{white-space:nowrap;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#126247;background:#d9efe2;border-radius:999px;padding:6px 9px}
+/* @order 2078 */
+.casa-toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:0 0 16px}
+/* @order 2079 */
+.casa-toolbar .casa-search{min-width:220px;flex:1}
+/* @order 2080 */
+.casa-toolbar select{min-width:180px}
+/* @order 2081 */
+.casa-toolbar .secondary,.casa-toolbar .primary{min-height:40px}
+/* @order 2082 */
+.casa-summary-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px;margin:0 0 18px}
+/* @order 2083 */
+.casa-summary-card{background:var(--paper);border:1px solid var(--line);border-radius:13px;padding:16px}
+/* @order 2084 */
+.casa-summary-card span{display:block;color:var(--muted);font-size:12px}
+/* @order 2085 */
+.casa-summary-card strong{display:block;font-size:24px;line-height:1.2;margin:7px 0 3px}
+/* @order 2086 */
+.casa-summary-card small{color:var(--muted)}
+/* @order 2087 */
+.casa-table-wrap{overflow:auto;border:1px solid var(--line);border-radius:12px;background:var(--paper)}
+/* @order 2088 */
+.casa-table{width:100%;border-collapse:collapse;min-width:760px}
+/* @order 2089 */
+.casa-table th,.casa-table td{padding:12px 13px;border-bottom:1px solid var(--line);text-align:left;font-size:13px;vertical-align:middle}
+/* @order 2090 */
+.casa-table th{font-size:11px;text-transform:uppercase;letter-spacing:.055em;color:var(--muted);font-weight:650;background:color-mix(in srgb,var(--canvas) 70%,var(--paper))}
+/* @order 2091 */
+.casa-table tr:last-child td{border-bottom:0}
+/* @order 2092 */
+.casa-table tbody tr:hover{background:color-mix(in srgb,var(--blue-pale) 45%,transparent)}
+/* @order 2093 */
+.casa-store{display:flex;align-items:center;gap:9px;font-weight:650}
+/* @order 2094 */
+.casa-store-logo{display:grid;place-items:center;width:28px;height:28px;border-radius:8px;background:#e7f3ed;color:#136247;font-size:12px;font-weight:800;flex:none}
+/* @order 2095 */
+.casa-status{display:inline-flex;align-items:center;border-radius:999px;padding:4px 8px;font-size:11px;font-weight:700;background:#e1f3e7;color:#146142}
+/* @order 2096 */
+.casa-origin-pill{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:4px 8px;font-size:11px;background:#ecf5f0;color:#285d49}
+/* @order 2097 */
+.casa-row-actions{display:flex;gap:4px;justify-content:flex-end}
+/* @order 2098 */
+.casa-icon-button{border:0;background:transparent;color:var(--muted);padding:6px 8px;border-radius:7px;cursor:pointer}
+/* @order 2099 */
+.casa-icon-button:hover{background:var(--blue-pale);color:var(--blue)}
+/* @order 2100 */
+.casa-shopping-layout{display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:18px}
+/* @order 2101 */
+.casa-shopping-list{background:var(--paper);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+/* @order 2102 */
+.casa-shopping-add{display:flex;gap:8px;padding:12px;border-bottom:1px solid var(--line)}
+/* @order 2103 */
+.casa-shopping-add input{flex:1}
+/* @order 2104 */
+.casa-shopping-row{display:grid;grid-template-columns:auto minmax(0,1fr) 70px 88px 90px 32px;gap:10px;align-items:center;padding:11px 13px;border-bottom:1px solid var(--line);font-size:13px}
+/* @order 2105 */
+.casa-shopping-row:last-child{border-bottom:0}
+/* @order 2106 */
+.casa-shopping-row.done{opacity:.55}
+/* @order 2107 */
+.casa-shopping-row.done b{text-decoration:line-through}
+/* @order 2108 */
+.casa-shopping-row small{display:block;color:var(--muted)}
+/* @order 2109 */
+.casa-shopping-total{font-weight:700;text-align:right}
+/* @order 2110 */
+.casa-side-card{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:13px}
+/* @order 2111 */
+.casa-side-card h3{margin:0 0 10px}
+/* @order 2112 */
+.casa-side-card .casa-big{display:block;font-size:28px;margin:5px 0}
+/* @order 2113 */
+.casa-progress{height:8px;background:#e8eeeb;border-radius:99px;overflow:hidden;margin:10px 0}
+/* @order 2114 */
+.casa-progress>span{display:block;height:100%;background:var(--blue);border-radius:99px}
+/* @order 2115 */
+.casa-suggestions{display:grid;gap:7px}
+/* @order 2116 */
+.casa-suggestion{display:flex;justify-content:space-between;gap:10px;border-top:1px solid var(--line);padding-top:7px}
+/* @order 2117 */
+.casa-suggestion button{border:0;background:transparent;color:var(--blue);font-size:18px;cursor:pointer}
+/* @order 2118 */
+.casa-card-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+/* @order 2119 */
+.casa-product-card,.casa-stock-card,.casa-store-card{background:var(--paper);border:1px solid var(--line);border-radius:13px;padding:16px}
+/* @order 2120 */
+.casa-product-card h3,.casa-stock-card h3,.casa-store-card h3{margin:0 0 4px}
+/* @order 2121 */
+.casa-card-meta{color:var(--muted);font-size:12px}
+/* @order 2122 */
+.casa-product-price{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;margin-top:15px}
+/* @order 2123 */
+.casa-product-price strong{font-size:21px}
+/* @order 2124 */
+.casa-trend-up{color:var(--red)}
+/* @order 2125 */
+.casa-trend-down{color:var(--green)}
+/* @order 2126 */
+.casa-stock-level{display:flex;align-items:center;justify-content:space-between;margin-top:13px}
+/* @order 2127 */
+.casa-stock-dot{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:6px;background:var(--green)}
+/* @order 2128 */
+.casa-stock-dot.low{background:var(--orange)}
+/* @order 2129 */
+.casa-stock-dot.out{background:var(--red)}
+/* @order 2130 */
+.casa-analytics-grid{display:grid;grid-template-columns:1.35fr 1fr;gap:16px}
+/* @order 2131 */
+.casa-bars{display:grid;gap:10px;margin-top:14px}
+/* @order 2132 */
+.casa-bar-row{display:grid;grid-template-columns:125px minmax(80px,1fr) 70px;gap:10px;align-items:center;font-size:13px}
+/* @order 2133 */
+.casa-bar{height:9px;border-radius:999px;background:#e8eeeb;overflow:hidden}
+/* @order 2134 */
+.casa-bar span{display:block;height:100%;background:var(--blue);border-radius:inherit}
+/* @order 2135 */
+.casa-insight-list{display:grid;gap:10px}
+/* @order 2136 */
+.casa-insight{border:1px solid var(--line);border-radius:10px;padding:12px}
+/* @order 2137 */
+.casa-insight b{display:block;margin-bottom:3px}
+/* @order 2138 */
+.casa-insight p{margin:0;color:var(--muted);font-size:13px}
+/* @order 2139 */
+.casa-dashboard-strip{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:13px;margin:17px 0}
+/* @order 2140 */
+.casa-dashboard-card{border:1px solid var(--line);background:var(--paper);border-radius:13px;padding:16px;cursor:pointer}
+/* @order 2141 */
+.casa-dashboard-card:hover{border-color:#bdd8c9}
+/* @order 2142 */
+.casa-dashboard-card .eyebrow{margin:0 0 7px}
+/* @order 2143 */
+.casa-dashboard-card strong{font-size:23px;display:block;margin:3px 0}
+/* @order 2144 */
+.casa-dashboard-card small{color:var(--muted)}
+/* @order 2145 */
+.casa-detail-dialog{width:min(720px,calc(100vw - 32px));border:0;padding:0;border-radius:16px;background:var(--paper);color:var(--ink);box-shadow:0 25px 90px #0005}
+/* @order 2146 */
+.casa-detail-dialog::backdrop{background:#07150f99;backdrop-filter:blur(2px)}
+/* @order 2147 */
+.casa-detail-head{display:flex;justify-content:space-between;align-items:flex-start;padding:20px 22px;border-bottom:1px solid var(--line)}
+/* @order 2148 */
+.casa-detail-head h2{margin:0}
+/* @order 2149 */
+.casa-detail-head button{border:0;background:transparent;font-size:22px;color:var(--muted);cursor:pointer}
+/* @order 2150 */
+.casa-detail-body{padding:20px 22px}
+/* @order 2151 */
+.casa-detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+/* @order 2152 */
+.casa-detail-box{border:1px solid var(--line);border-radius:11px;padding:13px}
+/* @order 2153 */
+.casa-detail-box span{display:block;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.05em}
+/* @order 2154 */
+.casa-detail-box strong{display:block;margin-top:4px}
+/* @order 2155 */
+.casa-link-preview{margin-top:16px;border:1px solid #bfe0cc;background:#edf8f1;border-radius:12px;padding:14px}
+/* @order 2156 */
+.casa-link-preview p{margin:4px 0 0;color:var(--muted);font-size:13px}
+/* @order 2157 */
+body[data-theme="dark"] .casa-beta-banner{background:#173a31;border-color:#31584c}
+/* @order 2158 */
+.casa-beta-badge{}
+/* @order 2159 */
+body[data-theme="dark"] .casa-beta-badge{background:#234e40;color:#bce8d0}
+/* @order 2160 */
+body[data-theme="dark"] .casa-summary-card,body[data-theme="dark"] .casa-table-wrap,body[data-theme="dark"] .casa-shopping-list,body[data-theme="dark"] .casa-side-card,body[data-theme="dark"] .casa-product-card,body[data-theme="dark"] .casa-stock-card,body[data-theme="dark"] .casa-store-card,body[data-theme="dark"] .casa-dashboard-card,body[data-theme="dark"] .casa-detail-dialog{background:var(--paper);border-color:#36505c}
+/* @order 2161 */
+body[data-theme="dark"] .casa-table th{background:#172c35}
+/* @order 2162 */
+body[data-theme="dark"] .casa-table th,body[data-theme="dark"] .casa-table td,body[data-theme="dark"] .casa-shopping-row,body[data-theme="dark"] .casa-shopping-add,body[data-theme="dark"] .casa-suggestion{border-color:#36505c}
+/* @order 2163 */
+body[data-theme="dark"] .casa-table tbody tr:hover{background:#1d3b3a}
+/* @order 2164 */
+body[data-theme="dark"] .casa-store-logo{background:#244b40;color:#c7ead8}
+/* @order 2165 */
+body[data-theme="dark"] .casa-status{background:#244b40;color:#bfe6d2}
+/* @order 2166 */
+body[data-theme="dark"] .casa-origin-pill{background:#253f48;color:#c7dbe3}
+/* @order 2167 */
+body[data-theme="dark"] .casa-link-preview{background:#173a31;border-color:#31584c}
+/* @order 2168 */
+body[data-theme="dark"] .casa-bar,body[data-theme="dark"] .casa-progress{background:#2e4853}
+/* @order 2169 */
+@media(max-width:1080px){.casa-summary-grid{grid-template-columns:repeat(2,1fr)}}
+/* @order 2170 */
+@media(max-width:1080px){.casa-shopping-layout,.casa-analytics-grid{grid-template-columns:1fr}}
+/* @order 2171 */
+@media(max-width:1080px){.casa-card-grid{grid-template-columns:repeat(2,1fr)}}
+/* @order 2172 */
+@media(max-width:700px){.casa-summary-grid,.casa-card-grid,.casa-dashboard-strip{grid-template-columns:1fr}}
+/* @order 2173 */
+@media(max-width:700px){.casa-shopping-row{grid-template-columns:auto 1fr 70px}}
+/* @order 2174 */
+@media(max-width:700px){.casa-shopping-row>*:nth-child(4),.casa-shopping-row>*:nth-child(5){display:none}}
+/* @order 2175 */
+@media(max-width:700px){.casa-detail-grid{grid-template-columns:1fr}}
+/* @order 2176 */
+@media(max-width:700px){.casa-toolbar>*{width:100%;min-width:0!important}}
+/* @order 2208 */
+@media screen {
+  #casaPurchases .section-head, #casaShopping .section-head { align-items: center; margin-bottom: 22px; }
+}
+/* @order 2209 */
+@media screen {
+  #casaPurchases .section-head h2, #casaShopping .section-head h2 { display: block !important; font-size: 23px; margin: 0 0 5px; }
+}
+/* @order 2210 */
+@media screen {
+  #casaPurchases .section-head p, #casaShopping .section-head p { margin: 0; max-width: 70ch; color: var(--gui-muted); }
+}
+/* @order 2211 */
+@media screen {
+  #casaPurchases .casa-summary-grid { grid-template-columns: repeat(3,minmax(0,1fr)); gap: 16px; margin-bottom: 24px; }
+}
+/* @order 2212 */
+@media screen {
+  #casaPurchases .casa-summary-card { padding: 22px; border-color: var(--gui-border); }
+}
+/* @order 2213 */
+@media screen {
+  #casaPurchases .casa-summary-card:first-child { background: var(--gui-soft); }
+}
+/* @order 2214 */
+@media screen {
+  .casa-summary-card strong { font-size: 29px; letter-spacing: -.035em; }
+}
+/* @order 2215 */
+@media screen {
+  .casa-summary-card strong span { display: inline; font-size: inherit; color: inherit; }
+}
+/* @order 2216 */
+@media screen {
+  .casa-search-label { display: grid; gap: 7px; color: var(--gui-muted); font-size: 13px; margin-bottom: 20px; max-width: 520px; }
+}
+/* @order 2217 */
+@media screen {
+  .casa-search-label input { min-height: 44px; }
+}
+/* @order 2218 */
+@media screen {
+  #casaPurchaseList .casa-product-card { display: flex; flex-direction: column; gap: 12px; padding: 22px; border-color: var(--gui-border); }
+}
+/* @order 2219 */
+@media screen {
+  #casaPurchaseList .casa-product-card h3 { font-size: 18px; overflow-wrap: anywhere; }
+}
+/* @order 2220 */
+@media screen {
+  #casaPurchaseList .casa-product-card p { margin: 0; color: var(--gui-muted); font-size: 13px; }
+}
+/* @order 2221 */
+@media screen {
+  #casaPurchaseList .casa-product-card > strong { font-size: 27px; letter-spacing: -.03em; }
+}
+/* @order 2222 */
+@media screen {
+  #casaPurchaseList .casa-product-card button { align-self: flex-start; margin-top: auto; }
+}
+/* @order 2223 */
+@media screen {
+  .casa-connection { display: inline-flex; width: fit-content; border-radius: 6px; padding: 5px 9px; font-size: 12px; font-weight: 600; background: var(--gui-soft); color: var(--gui-accent); }
+}
+/* @order 2224 */
+@media screen {
+  .casa-connection.unlinked { color: var(--gui-muted); background: var(--canvas); border: 1px solid var(--gui-border); }
+}
+/* @order 2225 */
+@media screen {
+  .casa-empty { grid-column: 1/-1; padding: 38px 24px; text-align: center; border: 1px dashed var(--gui-border); border-radius: 14px; background: var(--gui-surface); }
+}
+/* @order 2226 */
+@media screen {
+  .casa-empty strong { font-size: 18px; display: block; color: var(--gui-text); }
+}
+/* @order 2227 */
+@media screen {
+  .casa-empty p { max-width: 48ch; margin: 8px auto 0; color: var(--gui-muted); }
+}
+/* @order 2228 */
+@media screen {
+  #casaShoppingForm { display: grid; grid-template-columns: minmax(0,2fr) minmax(0,1fr) auto; align-items: end; gap: 16px; padding: 22px; margin-bottom: 22px; }
+}
+/* @order 2229 */
+@media screen {
+  #casaShoppingForm label { display: grid; gap: 8px; margin: 0; min-width: 0; color: var(--gui-muted); font-size: 13px; }
+}
+/* @order 2230 */
+@media screen {
+  #casaShoppingForm input, #casaShoppingForm button { min-height: 44px; margin: 0; }
+}
+/* @order 2231 */
+@media screen {
+  #casaShopping .casa-card-grid { grid-template-columns: 1fr; gap: 8px; }
+}
+/* @order 2232 */
+@media screen {
+  #casaShopping .casa-product-card { display: grid; grid-template-columns: minmax(0,1fr) minmax(80px,180px) auto; align-items: center; gap: 16px; padding: 16px 20px; }
+}
+/* @order 2233 */
+@media screen {
+  #casaShopping .casa-product-card label { display: flex; align-items: center; gap: 12px; margin: 0; overflow-wrap: anywhere; min-width: 0; }
+}
+/* @order 2234 */
+@media screen {
+  #casaShopping .casa-product-card input { width: 20px; height: 20px; flex-shrink: 0; margin: 0; }
+}
+/* @order 2235 */
+@media screen {
+  #casaShopping .casa-product-card p { margin: 0; color: var(--gui-muted); font-size: 13px; overflow-wrap: anywhere; }
+}
+/* @order 2236 */
+@media screen {
+  #casaShopping .casa-product-card:has(input:checked) { background: var(--gui-soft); }
+}
+/* @order 2237 */
+@media screen {
+  #casaShopping .casa-product-card:has(input:checked) label { text-decoration: line-through; color: var(--gui-muted); }
+}
+/* @order 2238 */
+@media screen {
+  .casa-list-caption { margin: 0 0 12px; font-size: 13px; color: var(--gui-muted); }
+}
+/* @order 2239 */
+@media screen {
+  #casaPurchaseLines { display: grid; gap: 12px; margin-bottom: 14px; }
+}
+/* @order 2240 */
+@media screen {
+  #casaPurchaseLines .casa-entry { padding: 16px; border: 1px solid var(--gui-border); border-radius: 12px; background: var(--gui-soft); gap: 12px; }
+}
+/* @order 2241 */
+@media screen {
+  #casaPurchaseLines label { margin: 0; }
+}
+/* @order 2242 */
+@media screen {
+  #casaPurchaseLines button { justify-self: start; padding: 4px 0; }
+}
+/* @order 2243 */
+@media screen {
+  #casaPurchaseTotal { padding: 14px 0; border-bottom: 1px solid var(--gui-border); font-size: 20px; font-weight: 650; }
+}
+/* @order 2244 */
+@media screen {
+  #casaDeletePurchase { color: var(--red); margin-top: 18px; }
+}
+/* @order 2245 */
+@media screen {
+  #casaDashboardStrip { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px; }
+}
+/* @order 2246 */
+@media screen {
+  .casa-dashboard-card { border-color: var(--gui-border); padding: 22px; }
+}
+/* @order 2247 */
+@media screen {
+  .casa-beta-banner { border-style: dashed; }
+}
+/* @order 2248 */
+@media screen {
+  #casaProducts .section-head h2, #casaStores .section-head h2, #casaStock .section-head h2 { display: block !important; }
+}
+/* @order 2249 */
+@media screen {
+  .casa-actions, .casa-list-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+}
+/* @order 2250 */
+@media screen {
+  .casa-actions { margin-top: 12px; }
+}
+/* @order 2251 */
+@media screen {
+  .casa-offers { list-style: none; padding: 0; display: grid; gap: 10px; }
+}
+/* @order 2252 */
+@media screen {
+  .casa-offers li { border-bottom: 1px solid var(--gui-border); padding-bottom: 10px; font-size: 13px; }
+}
+/* @order 2253 */
+@media screen {
+  .casa-checkout-group { padding: 16px; border: 1px solid var(--gui-border); border-radius: 12px; margin-bottom: 12px; }
+}
+/* @order 2254 */
+@media screen {
+  .casa-checkout-group li { margin-block: 10px; overflow-wrap: anywhere; }
+}
+/* @order 2255 */
+@media screen {
+  .casa-view .section-head h2 { display: block !important; }
+}
+/* @order 2256 */
+@media screen {
+  .casa-view .section-head { flex-wrap: wrap; gap: 14px; }
+}
+/* @order 2257 */
+@media screen {
+  .casa-life-table { width: 100%; border-collapse: collapse; min-width: 580px; }
+}
+/* @order 2258 */
+@media screen {
+  .casa-life-table th, .casa-life-table td { padding: 12px 16px; border-bottom: 1px solid var(--gui-border); text-align: left; font-size: 13px; overflow-wrap: anywhere; }
+}
+/* @order 2259 */
+@media screen {
+  .casa-life-table th { background: var(--gui-soft); color: var(--gui-text); }
+}
+/* @order 2260 */
+@media screen {
+  .casa-meal-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 14px; }
+}
+/* @order 2261 */
+@media screen {
+  .casa-meal { border-top: 1px solid var(--gui-border); padding-block: 14px; }
+}
+/* @order 2262 */
+@media screen {
+  .casa-ingredient-row { display: grid; grid-template-columns: minmax(0,2fr) minmax(0,1fr); gap: 12px; padding: 14px; border: 1px solid var(--gui-border); border-radius: 12px; margin-block: 10px; }
+}
+/* @order 2263 */
+@media screen {
+  .casa-ingredient-row button { justify-self: start; }
+}
+/* @order 2264 */
+@media screen {
+  .casa-recipe-notes { white-space: pre-wrap; overflow-wrap: anywhere; }
+}
+/* @order 2265 */
+@media screen {
+  #casaAnalytics .casa-summary-grid { grid-template-columns: repeat(3,minmax(0,1fr)); }
+}
+/* @order 2266 */
+@media screen {
+  #casaPrices > label { display: grid; gap: 8px; max-width: 500px; margin-bottom: 20px; }
+}
+/* @order 2267 */
+@media screen {
+  #casaShopping .section-head { flex-wrap: wrap; gap: 10px; }
+}
+/* @order 2268 */
+@media screen {
+  #casaShopping .casa-list-actions { justify-content: flex-end; max-width: 190px; }
+}
+/* @order 2269 */
+@media screen {
+  @media(max-width:1000px) {
+    #casaShoppingForm { grid-template-columns: 1fr 1fr; }
+  }
+}
+/* @order 2270 */
+@media screen {
+  @media(max-width:1000px) {
+    #casaShoppingForm button { grid-column: 1/-1; justify-self: start; }
+  }
+}
+/* @order 2273 */
+@media screen {
+  @media(max-width:600px) {
+    #casaPurchases .section-head { flex-wrap: wrap; gap: 12px; }
+  }
+}
+/* @order 2274 */
+@media screen {
+  @media(max-width:600px) {
+    #casaPurchases .casa-summary-grid { grid-template-columns: 1fr; gap: 10px; }
+  }
+}
+/* @order 2275 */
+@media screen {
+  @media(max-width:600px) {
+    #casaPurchases .casa-summary-card { padding: 18px; }
+  }
+}
+/* @order 2276 */
+@media screen {
+  @media(max-width:600px) {
+    #casaShoppingForm { grid-template-columns: 1fr; padding: 18px; }
+  }
+}
+/* @order 2277 */
+@media screen {
+  @media(max-width:600px) {
+    #casaShoppingForm button { width: 100%; }
+  }
+}
+/* @order 2278 */
+@media screen {
+  @media(max-width:600px) {
+    #casaShopping .casa-product-card { grid-template-columns: minmax(0,1fr) auto; gap: 10px; padding: 16px; }
+  }
+}
+/* @order 2279 */
+@media screen {
+  @media(max-width:600px) {
+    #casaShopping .casa-product-card p { grid-column: 1; padding-left: 32px; }
+  }
+}
+/* @order 2280 */
+@media screen {
+  @media(max-width:600px) {
+    #casaShopping .casa-product-card button { grid-column: 2; grid-row: 1/3; padding: 8px 10px; }
+  }
+}
+/* @order 2281 */
+@media screen {
+  @media(max-width:600px) {
+    #casaShopping .casa-list-actions { grid-column: 1/-1; max-width: none; justify-content: flex-start; }
+  }
+}
+/* @order 2282 */
+@media screen {
+  @media(max-width:600px) {
+    #casaDashboardStrip { grid-template-columns: 1fr; }
+  }
+}
+/* @order 2283 */
+@media screen {
+  @media(max-width:600px) {
+    .casa-beta-banner { flex-wrap: wrap; }
+  }
+}
+/* @order 2284 */
+@media screen {
+  @media(max-width:600px) {
+    .casa-meal-grid, .casa-ingredient-row, #casaAnalytics .casa-summary-grid { grid-template-columns: 1fr; }
+  }
+}
+/* @order 2286 */
+.casa-filter-bar{display:flex;flex-wrap:wrap;gap:16px;margin:16px 0}
+/* @order 2287 */
+.casa-filter-bar label{flex:1;min-width:160px}
+/* @order 2288 */
+.casa-filter-bar input,.casa-filter-bar select{width:100%}
+/* @order 2289 */
+.casa-stock-card[hidden]{display:none}
+/* @order 2290 */
+.casa-attention{grid-column:1/-1;width:100%;margin:0}
+/* @order 2291 */
+.casa-offers small{display:block}
+/* @order 2292 */
+.casa-dashboard-card p{overflow-wrap:anywhere}
+/* @order 2311 */
+.casa-checkout-line{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:12px 0;border-bottom:1px solid var(--line)}
+/* @order 2312 */
+.casa-checkout-line>strong,.casa-checkout-line>small{grid-column:1/-1}
+/* @order 2313 */
+.casa-checkout-line input{width:100%;min-width:0}
+/* @order 2314 */
+.casa-product-detail section{padding:12px 0;border-bottom:1px solid var(--line)}
+/* @order 2315 */
+.casa-product-detail ul{padding-left:20px}
+/* @order 2316 */
+.casa-product-detail li{margin:10px 0;overflow-wrap:anywhere}
+/* @order 2454 */
+#dashboard #casaDashboardStrip,
+#dashboard .casa-dashboard-strip,
+#dashboard .casa-attention{display:none!important;}
+/* @order 2578 */
+#casaHome{min-width:0;}
+/* @order 2579 */
+#casaHome .casa-home-head{align-items:flex-end!important;}
+/* @order 2580 */
+#casaHome .casa-home-kpis{margin-bottom:var(--ui-gap)!important;}
+/* @order 2581 */
+#casaHome .casa-summary-card{min-width:0;}
+/* @order 2582 */
+#casaHome .casa-summary-card strong{font-variant-numeric:tabular-nums;}
+/* @order 2583 */
+#casaHome .casa-home-budget{
+  height:5px;
+  margin-top:8px;
+  border-radius:999px;
+  overflow:hidden;
+  background:color-mix(in srgb,var(--muted) 16%,transparent);
+}
+/* @order 2584 */
+#casaHome .casa-home-budget>span{display:block;height:100%;border-radius:inherit;background:var(--accent);}
+/* @order 2585 */
+#casaHome .casa-home-grid{
+  display:grid;
+  grid-template-columns:minmax(0,1.25fr) minmax(300px,.75fr);
+  gap:var(--ui-gap);
+  align-items:start;
+  margin-bottom:var(--ui-gap);
+}
+/* @order 2586 */
+#casaHome .panel{min-width:0;}
+/* @order 2587 */
+#casaHome .casa-home-issues{display:grid;gap:7px;}
+/* @order 2588 */
+#casaHome .casa-home-issue,
+#casaHome .casa-home-purchase{
+  width:100%;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  min-height:0;
+  padding:10px 11px;
+  border:1px solid var(--line);
+  border-radius:10px;
+  background:transparent;
+  color:inherit;
+  text-align:left;
+  cursor:pointer;
+}
+/* @order 2589 */
+#casaHome .casa-home-issue:hover,
+#casaHome .casa-home-purchase:hover{background:color-mix(in srgb,var(--accent) 6%,transparent);}
+/* @order 2590 */
+#casaHome .casa-home-issue>span:first-child,
+#casaHome .casa-home-purchase>span:first-child{display:grid;gap:2px;min-width:0;}
+/* @order 2591 */
+#casaHome .casa-home-issue small,
+#casaHome .casa-home-purchase small{font-size:10px;color:var(--muted);line-height:1.35;}
+/* @order 2592 */
+#casaHome .casa-home-issue.warn{border-left:3px solid var(--orange);}
+/* @order 2593 */
+#casaHome .casa-home-issue.danger{border-left:3px solid var(--red);}
+/* @order 2594 */
+#casaHome .casa-home-issue.info{border-left:3px solid var(--accent);}
+/* @order 2595 */
+#casaHome .casa-home-open-unlinked{margin-top:9px;}
+/* @order 2596 */
+#casaHome .casa-home-week-metrics{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:8px;
+  margin:6px 0 12px;
+}
+/* @order 2597 */
+#casaHome .casa-home-week-metrics>div{display:grid;gap:2px;padding:10px;border:1px solid var(--line);border-radius:10px;}
+/* @order 2598 */
+#casaHome .casa-home-week-metrics strong{font-size:18px;font-variant-numeric:tabular-nums;}
+/* @order 2599 */
+#casaHome .casa-home-week-metrics span{font-size:9px;color:var(--muted);line-height:1.25;}
+/* @order 2600 */
+#casaHome .casa-home-needs{display:flex;flex-wrap:wrap;gap:6px;align-items:center;}
+/* @order 2601 */
+#casaHome .casa-home-needs>span{font-size:10px;padding:5px 7px;border-radius:999px;background:color-mix(in srgb,var(--accent) 8%,transparent);}
+/* @order 2602 */
+#casaHome .casa-home-needs>small{font-size:10px;color:var(--muted);}
+/* @order 2603 */
+#casaHome .casa-home-shortcuts{margin-bottom:var(--ui-gap);}
+/* @order 2604 */
+#casaHome .casa-home-shortcut-grid{
+  display:grid;
+  grid-template-columns:repeat(5,minmax(0,1fr));
+  gap:8px;
+}
+/* @order 2605 */
+#casaHome .casa-home-shortcut-grid .secondary{justify-content:flex-start;min-width:0;white-space:normal;}
+/* @order 2606 */
+#casaHome .casa-home-purchase-list{display:grid;gap:6px;}
+/* @order 2607 */
+#casaHome .casa-home-purchase-value{display:grid;justify-items:end;gap:2px;white-space:nowrap;}
+/* @order 2608 */
+#casaHome .casa-home-purchase-value .linked{color:var(--green);}
+/* @order 2609 */
+#casaHome .casa-home-purchase-value .unlinked{color:var(--orange);}
+/* @order 2610 */
+#casaHome .casa-empty.compact{padding:14px 2px!important;}
+/* @order 2611 */
+#casaHome .casa-empty.compact p{margin-bottom:0;}
+/* @order 2612 */
+#casaHome .panel-heading>.secondary{flex:0 0 auto;}
+/* @order 2613 */
+.casa-link-preview{display:grid;gap:7px;padding:11px 12px;margin:10px 0;border:1px solid var(--line);border-radius:10px;}
+/* @order 2614 */
+.casa-link-preview p{margin:0;}
+/* @order 2615 */
+.casa-link-preview .secondary{justify-self:start;}
+/* @order 2616 */
+.casa-linked-focus{
+  outline:2px solid color-mix(in srgb,var(--accent) 70%,transparent)!important;
+  outline-offset:2px;
+  border-radius:10px;
+  background:color-mix(in srgb,var(--accent) 7%,transparent)!important;
+  transition:background .2s ease,outline-color .2s ease;
+}
+/* @order 2617 */
+@media(max-width:1150px){
+  #casaHome .casa-home-shortcut-grid{grid-template-columns:repeat(3,minmax(0,1fr));}
+}
+/* @order 2618 */
+@media(max-width:900px){
+  #casaHome .casa-home-grid{grid-template-columns:1fr;}
+}
+/* @order 2619 */
+@media(max-width:700px){
+  #casaHome .casa-home-head{align-items:flex-start!important;}
+}
+/* @order 2620 */
+@media(max-width:700px){
+  #casaHome .casa-home-shortcut-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
+}
+/* @order 2621 */
+@media(max-width:700px){
+  #casaHome .casa-home-week-metrics{grid-template-columns:1fr;}
+}
+/* @order 2622 */
+@media(max-width:700px){
+  #casaHome .casa-home-purchase{align-items:flex-start;}
+}
+/* @order 5100 */
+#casaShopping .casa-shop-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:16px 0 10px}
+/* @order 5101 */
+#casaShopping .casa-shop-summary>div{display:grid;gap:5px;padding:16px;border:1px solid var(--line);border-radius:14px;background:var(--paper)}
+/* @order 5102 */
+#casaShopping .casa-shop-summary strong{font-size:1.65rem;line-height:1.2}
+/* @order 5103 */
+#casaShopping .casa-shop-summary span,#casaShopping small{color:var(--muted)}
+/* @order 5104 */
+#casaShopping progress{display:block;width:100%;height:7px;margin:0 0 18px;accent-color:var(--accent)}
+/* @order 5105 */
+#casaShopping .casa-shop-add{display:grid;grid-template-columns:minmax(160px,2fr) minmax(100px,1fr) auto;gap:12px;align-items:end;margin:14px 0 22px}
+/* @order 5106 */
+#casaShopping .casa-shop-group{margin:20px 0}
+/* @order 5107 */
+#casaShopping .casa-shop-group>h3{font-size:1rem;display:flex;gap:12px;align-items:center;padding-bottom:10px;border-bottom:1px solid var(--line)}
+/* @order 5108 */
+#casaShopping .casa-shop-row{display:grid;grid-template-columns:minmax(180px,1fr) auto;gap:12px;align-items:center;padding:16px;margin:10px 0;border:1px solid var(--line);border-radius:12px;background:var(--paper);min-width:0}
+/* @order 5109 */
+#casaShopping .casa-shop-row.is-done{border-color:color-mix(in srgb,var(--accent) 45%,var(--line));background:color-mix(in srgb,var(--accent) 5%,var(--paper))}
+/* @order 5110 */
+#casaShopping .casa-shop-check{display:flex;flex-direction:row;gap:12px;align-items:center;margin:0;min-width:0;cursor:pointer}
+/* @order 5111 */
+#casaShopping .casa-shop-check input{width:23px;height:23px;min-width:23px;accent-color:var(--accent);margin:0}
+/* @order 5112 */
+#casaShopping .casa-shop-check span{display:grid;gap:5px;overflow-wrap:anywhere}
+/* @order 5113 */
+#casaShopping .casa-shop-price{display:grid;gap:5px;text-align:right}
+/* @order 5114 */
+#casaShopping .casa-shop-row>.casa-actions,#casaShopping .casa-shop-note{grid-column:1/-1;margin:0}
+/* @order 5115 */
+#casaShopping .casa-shop-row .casa-actions{flex-wrap:wrap}
+/* @order 5116 */
+#casaShopping .casa-shop-row details{min-width:0}
+/* @order 5117 */
+#casaShopping .casa-shop-row summary{cursor:pointer;padding:9px 12px;border:1px solid var(--line);border-radius:8px}
+/* @order 5118 */
+#casaShopping .casa-shop-row details[open]{flex-basis:100%}
+/* @order 5119 */
+#casaShopping .casa-shop-row details[open]>.casa-actions{margin-top:8px}
+/* @order 5120 */
+#casaShopping.casa-in-store .casa-shop-check{font-size:1.1rem;min-height:48px}
+/* @order 5121 */
+#casaShopping.casa-in-store .casa-shop-row button{min-height:44px}
+/* @order 5122 */
+@media(max-width:650px){
+ #casaShopping .casa-shop-summary{gap:6px}
+}
+/* @order 5123 */
+@media(max-width:650px){
+ #casaShopping .casa-shop-summary>div{padding:10px}
+}
+/* @order 5124 */
+@media(max-width:650px){
+ #casaShopping .casa-shop-summary strong{font-size:1.25rem}
+}
+/* @order 5125 */
+@media(max-width:650px){
+ #casaShopping .casa-shop-summary span{font-size:.75rem}
+}
+/* @order 5126 */
+@media(max-width:650px){
+ #casaShopping .casa-shop-add{grid-template-columns:1fr 1fr}
+}
+/* @order 5127 */
+@media(max-width:650px){
+ #casaShopping .casa-shop-add button{grid-column:1/-1}
+}
+/* @order 5128 */
+@media(max-width:650px){
+ #casaShopping .casa-shop-row{grid-template-columns:1fr;padding:12px}
+}
+/* @order 5129 */
+@media(max-width:650px){
+ #casaShopping .casa-shop-price{text-align:left;padding-left:35px}
+}
+/* @order 5130 */
+body[data-current-view^="casa"] .area-tabs{
+  display:flex!important;
+  flex-wrap:nowrap!important;
+  gap:4px!important;
+  overflow-x:auto!important;
+  overflow-y:hidden!important;
+  padding:5px!important;
+  margin-bottom:17px!important;
+  scrollbar-width:thin;
+  scrollbar-color:color-mix(in srgb,var(--accent) 35%,transparent) transparent;
+  scroll-snap-type:x proximity;
+}
+/* @order 5131 */
+body[data-current-view^="casa"] .area-tabs button{
+  flex:0 0 auto!important;
+  white-space:nowrap!important;
+  scroll-snap-align:start;
+  border-radius:9px!important;
+  font-weight:600;
+}
+/* @order 5132 */
+body[data-current-view^="casa"] .area-tabs button.active{
+  background:color-mix(in srgb,var(--accent) 12%,var(--paper))!important;
+  color:var(--accent)!important;
+}
+/* @order 5133 */
+.casa-view{min-width:0;--casa-wash:color-mix(in srgb,var(--accent) 7%,var(--paper));}
+/* @order 5134 */
+.casa-view .section-head{
+  position:relative;
+  isolation:isolate;
+  overflow:hidden;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:18px;
+  padding:22px 24px;
+  margin-bottom:17px;
+  border:1px solid color-mix(in srgb,var(--accent) 17%,var(--line));
+  border-radius:19px;
+  background:linear-gradient(112deg,color-mix(in srgb,var(--accent) 10%,var(--paper)),var(--paper) 62%);
+  box-shadow:0 7px 26px color-mix(in srgb,var(--ink) 4%,transparent);
+}
+/* @order 5135 */
+.casa-view .section-head::after{
+  content:"";
+  position:absolute;
+  z-index:-1;
+  right:-75px;
+  top:-125px;
+  width:300px;
+  height:300px;
+  border:1px solid color-mix(in srgb,var(--accent) 13%,transparent);
+  border-radius:50%;
+  box-shadow:0 0 0 49px color-mix(in srgb,var(--accent) 3%,transparent);
+  pointer-events:none;
+}
+/* @order 5136 */
+.casa-view .section-head>div:first-child{min-width:0;}
+/* @order 5137 */
+.casa-view .section-head h2{
+  display:block!important;
+  margin:0 0 5px!important;
+  font-size:clamp(23px,2vw,29px)!important;
+  line-height:1.13;
+  letter-spacing:-.035em;
+}
+/* @order 5138 */
+.casa-view .section-head p{margin:0!important;max-width:62ch;color:var(--muted);font-size:13px;line-height:1.5;}
+/* @order 5139 */
+.casa-view .section-head .casa-actions{margin:0!important;justify-content:flex-end;align-items:center;}
+/* @order 5140 */
+.casa-view .section-head button{white-space:nowrap;}
+/* @order 5141 */
+.casa-home-kicker{
+  display:block;
+  width:fit-content;
+  margin-bottom:6px;
+  color:var(--accent);
+  font-size:10px;
+  font-weight:800;
+  letter-spacing:.13em;
+  text-transform:uppercase;
+}
+/* @order 5142 */
+#casaHome .casa-home-start{
+  position:relative;
+  overflow:hidden;
+  display:grid;
+  grid-template-columns:minmax(0,1.35fr) minmax(260px,.65fr);
+  gap:24px;
+  align-items:center;
+  min-height:280px;
+  padding:clamp(24px,4vw,45px);
+  border-radius:21px;
+  background:radial-gradient(circle at 94% 9%,#54a57d80 0,transparent 27%),linear-gradient(120deg,#0d5848,#194f59);
+  color:#fff;
+  box-shadow:0 20px 38px #0a534426;
+}
+/* @order 5143 */
+#casaHome .casa-home-start::after{
+  content:"";
+  position:absolute;
+  right:-85px;
+  bottom:-180px;
+  width:430px;
+  height:430px;
+  border:1px solid #ffffff30;
+  border-radius:50%;
+  box-shadow:0 0 0 56px #ffffff09,0 0 0 110px #ffffff08;
+  pointer-events:none;
+}
+/* @order 5144 */
+#casaHome .casa-home-start>*{position:relative;z-index:1;}
+/* @order 5145 */
+#casaHome .casa-home-start .casa-home-kicker{color:#b2e1c5;}
+/* @order 5146 */
+#casaHome .casa-home-start h3{margin:0 0 9px;font-size:clamp(26px,3vw,39px);line-height:1.09;letter-spacing:-.045em;max-width:20ch;}
+/* @order 5147 */
+#casaHome .casa-home-start p{margin:0;max-width:60ch;color:#def0e8;line-height:1.55;}
+/* @order 5148 */
+#casaHome .casa-home-start-actions{display:grid;gap:9px;}
+/* @order 5149 */
+#casaHome .casa-home-start-actions button{
+  width:100%;
+  min-height:44px;
+  justify-content:flex-start;
+  border-color:#ffffff58;
+  background:#fff;
+  color:#174f46;
+  font-weight:700;
+}
+/* @order 5150 */
+#casaHome .casa-home-start-actions button:hover{background:#e7f4eb;}
+/* @order 5151 */
+#casaHome .casa-home-start-actions .primary{background:#bce4c7;color:#163d36;border-color:#bce4c7;}
+/* @order 5152 */
+.casa-view .casa-summary-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:11px;margin-bottom:14px;}
+/* @order 5153 */
+#casaPurchases .casa-summary-grid{grid-template-columns:repeat(3,minmax(0,1fr));}
+/* @order 5154 */
+#casaAnalytics .casa-summary-grid{grid-template-columns:repeat(4,minmax(0,1fr));}
+/* @order 5155 */
+.casa-view .casa-summary-card{
+  position:relative;
+  overflow:hidden;
+  min-width:0;
+  min-height:121px;
+  padding:18px 19px!important;
+  border:1px solid var(--line)!important;
+  border-radius:15px;
+  background:var(--paper)!important;
+  box-shadow:0 4px 15px color-mix(in srgb,var(--ink) 3%,transparent);
+}
+/* @order 5156 */
+.casa-view .casa-summary-card::before{
+  content:"";
+  position:absolute;
+  left:0;
+  top:0;
+  bottom:0;
+  width:4px;
+  background:var(--accent);
+}
+/* @order 5157 */
+.casa-view .casa-summary-card:nth-child(2)::before{background:#c99c49;}
+/* @order 5158 */
+.casa-view .casa-summary-card:nth-child(3)::before{background:#4e8cb3;}
+/* @order 5159 */
+.casa-view .casa-summary-card:nth-child(4)::before{background:#a879b1;}
+/* @order 5160 */
+.casa-view .casa-summary-card span{font-size:11px;font-weight:650;line-height:1.3;}
+/* @order 5161 */
+.casa-view .casa-summary-card strong{margin:9px 0 3px;font-size:clamp(22px,2vw,28px);line-height:1.15;letter-spacing:-.045em;overflow-wrap:anywhere;}
+/* @order 5162 */
+.casa-view .casa-summary-card small{display:block;font-size:11px;line-height:1.35;}
+/* @order 5163 */
+#casaHome .casa-home-grid{gap:13px;margin-bottom:13px;}
+/* @order 5164 */
+#casaHome .casa-home-grid .panel,#casaHome .casa-home-recent{border-radius:16px;padding:20px;box-shadow:0 4px 15px color-mix(in srgb,var(--ink) 3%,transparent);}
+/* @order 5165 */
+#casaHome .panel-heading{margin-bottom:11px;}
+/* @order 5166 */
+#casaHome .panel-heading h3{font-size:17px;letter-spacing:-.025em;}
+/* @order 5167 */
+#casaHome .casa-home-issue,#casaHome .casa-home-purchase{padding:10px 12px;border-radius:10px;background:color-mix(in srgb,var(--paper) 94%,var(--accent));}
+/* @order 5168 */
+#casaHome .casa-home-issue b,#casaHome .casa-home-purchase b{font-size:12px;}
+/* @order 5169 */
+#casaHome .casa-home-week-metrics{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;}
+/* @order 5170 */
+#casaHome .casa-home-week-metrics>div{min-width:0;background:var(--casa-wash);border:0;padding:12px;}
+/* @order 5171 */
+#casaHome .casa-home-week-metrics strong{font-size:23px;}
+/* @order 5172 */
+#casaHome .casa-home-week-metrics span{font-size:10px;}
+/* @order 5173 */
+.casa-view .casa-card-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:12px;}
+/* @order 5174 */
+.casa-view .casa-product-card,.casa-view .casa-stock-card,.casa-view .casa-store-card{
+  min-width:0;
+  padding:18px;
+  border:1px solid var(--line);
+  border-radius:15px;
+  background:var(--paper);
+  box-shadow:0 4px 14px color-mix(in srgb,var(--ink) 3%,transparent);
+}
+/* @order 5175 */
+.casa-view .casa-product-card h3,.casa-view .casa-stock-card h3,.casa-view .casa-store-card h3{font-size:17px;line-height:1.25;letter-spacing:-.025em;overflow-wrap:anywhere;}
+/* @order 5176 */
+.casa-view .casa-product-card p,.casa-view .casa-stock-card p,.casa-view .casa-store-card p{font-size:12px;line-height:1.45;color:var(--muted);}
+/* @order 5177 */
+.casa-view .casa-actions{margin-top:11px;gap:6px;}
+/* @order 5178 */
+.casa-view .casa-product-card .casa-actions,.casa-view .casa-stock-card .casa-actions{align-items:center;}
+/* @order 5179 */
+.casa-view .casa-product-card .casa-actions button,.casa-view .casa-stock-card .casa-actions button{min-height:34px;padding:6px 10px;font-size:11px;}
+/* @order 5180 */
+.casa-view .casa-search-label{max-width:560px;margin:0 0 14px;}
+/* @order 5181 */
+.casa-view .casa-search-label input{min-height:42px;}
+/* @order 5182 */
+#casaPurchaseList .casa-more-purchases{grid-column:1/-1;justify-self:center;min-height:39px;padding:8px 18px;margin:9px 0;}
+/* @order 5183 */
+#casaShoppingForm{border-radius:16px;margin-bottom:12px;padding:16px 18px;background:var(--paper);box-shadow:0 4px 15px color-mix(in srgb,var(--ink) 3%,transparent);}
+/* @order 5184 */
+#casaShopping .casa-shopping-toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:0 0 10px;}
+/* @order 5185 */
+#casaShopping .casa-list-caption{margin:0;font-weight:650;}
+/* @order 5186 */
+#casaShopping .casa-shopping-filters{display:flex;gap:3px;padding:3px;border:1px solid var(--line);border-radius:11px;background:var(--paper);}
+/* @order 5187 */
+#casaShopping .casa-shopping-filters button{min-height:31px;padding:6px 10px;border:0;border-radius:8px;background:transparent;color:var(--muted);font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;}
+/* @order 5188 */
+#casaShopping .casa-shopping-filters button.active{background:color-mix(in srgb,var(--accent) 12%,var(--paper));color:var(--accent);}
+/* @order 5189 */
+#casaShopping .casa-card-grid{grid-template-columns:1fr;gap:6px;}
+/* @order 5190 */
+#casaShopping .casa-product-card{grid-template-columns:minmax(0,1.3fr) minmax(100px,.7fr) auto;gap:10px;min-height:65px;padding:10px 15px;}
+/* @order 5191 */
+#casaShopping .casa-product-card[hidden]{display:none!important;}
+/* @order 5192 */
+#casaShopping .casa-product-card label{font-size:13px;font-weight:650;}
+/* @order 5193 */
+#casaShopping .casa-product-card p{margin:0;}
+/* @order 5194 */
+#casaShopping .casa-list-actions{max-width:none;justify-content:flex-end;margin:0;}
+/* @order 5195 */
+#casaShopping .casa-list-actions button{min-height:32px;padding:6px 9px;font-size:11px;}
+/* @order 5196 */
+#casaShopping .casa-shopping-filter-empty{padding:22px;}
+/* @order 5197 */
+#casaShopping .casa-shopping-filter-empty[hidden]{display:none!important;}
+/* @order 5198 */
+#casaShopping .casa-shopping-note{margin:10px 2px;color:var(--muted);font-size:11px;}
+/* @order 5199 */
+#casaStock .casa-filter-bar{
+  display:grid;
+  grid-template-columns:minmax(0,2fr) minmax(170px,1fr) auto;
+  align-items:end;
+  gap:10px;
+  margin:0 0 14px;
+  padding:12px 14px;
+  border:1px solid var(--line);
+  border-radius:13px;
+  background:var(--paper);
+}
+/* @order 5200 */
+#casaStock .casa-filter-bar label{display:grid;gap:5px;margin:0;min-width:0;color:var(--muted);font-size:11px;font-weight:700;}
+/* @order 5201 */
+#casaStock .casa-filter-bar input,#casaStock .casa-filter-bar select{min-height:38px;}
+/* @order 5202 */
+#casaStock .casa-stock-count{padding:10px 4px;color:var(--muted);font-size:11px;white-space:nowrap;}
+/* @order 5203 */
+#casaStock .casa-stock-card{display:flex;flex-direction:column;gap:6px;}
+/* @order 5204 */
+#casaStock .casa-stock-card[hidden]{display:none!important;}
+/* @order 5205 */
+#casaStock .casa-stock-card strong{font-size:25px;line-height:1.1;letter-spacing:-.04em;}
+/* @order 5206 */
+#casaStock .casa-stock-card p{margin:0;}
+/* @order 5207 */
+#casaStock .casa-stock-card .casa-connection{align-self:flex-start;}
+/* @order 5208 */
+#casaStock .casa-stock-card .casa-actions{margin-top:auto;padding-top:12px;}
+/* @order 5209 */
+#casaRecipes .casa-product-card{display:flex;flex-direction:column;}
+/* @order 5210 */
+#casaRecipes .casa-product-card .casa-actions{margin-top:auto;padding-top:9px;}
+/* @order 5211 */
+#casaMeals .casa-meal-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:11px;}
+/* @order 5212 */
+#casaMeals .casa-product-card{padding:16px 18px;}
+/* @order 5213 */
+#casaMeals .casa-product-card h3{padding-bottom:9px;border-bottom:1px solid var(--line);font-size:15px;}
+/* @order 5214 */
+#casaMeals .casa-meal{display:grid;grid-template-columns:70px minmax(0,1fr);gap:5px 10px;align-items:start;padding:8px 0;border:0;}
+/* @order 5215 */
+#casaMeals .casa-meal+ .casa-meal{border-top:1px solid var(--line);}
+/* @order 5216 */
+#casaMeals .casa-meal b{font-size:11px;color:var(--muted);}
+/* @order 5217 */
+#casaMeals .casa-meal p{margin:0;}
+/* @order 5218 */
+#casaMeals .casa-meal .casa-actions,#casaMeals .casa-meal .casa-connection{grid-column:2;margin:0;}
+/* @order 5219 */
+#casaMeals .casa-meal .casa-actions button{min-height:29px;padding:4px 8px;font-size:10px;}
+/* @order 5220 */
+.casa-card-details,.casa-history-disclosure{
+  border:1px solid var(--line);
+  border-radius:11px;
+  background:color-mix(in srgb,var(--accent) 3%,var(--paper));
+}
+/* @order 5221 */
+.casa-card-details{margin:8px 0;padding:0 11px;}
+/* @order 5222 */
+.casa-card-details summary,.casa-history-disclosure summary{list-style:none;cursor:pointer;color:var(--accent);font-weight:700;}
+/* @order 5223 */
+.casa-card-details summary::-webkit-details-marker,.casa-history-disclosure summary::-webkit-details-marker{display:none;}
+/* @order 5224 */
+.casa-card-details summary{padding:10px 0;font-size:11px;}
+/* @order 5225 */
+.casa-card-details summary::after,.casa-history-disclosure summary::after{content:"⌄";float:right;font-size:16px;line-height:1;transition:transform .18s ease;}
+/* @order 5226 */
+.casa-card-details[open] summary::after,.casa-history-disclosure[open] summary::after{transform:rotate(180deg);}
+/* @order 5227 */
+.casa-card-details ul{margin:0 0 10px;padding-left:18px;}
+/* @order 5228 */
+#casaCatalogCards .casa-product-card .casa-actions{margin-top:auto;padding-top:10px;border-top:1px solid var(--line);}
+/* @order 5229 */
+#casaCatalogCards .casa-product-card>p:empty{display:none;}
+/* @order 5230 */
+#casaCatalogCards .casa-offers{margin:6px 0 0;}
+/* @order 5231 */
+#casaCatalogCards .casa-offers li:last-child{border-bottom:0;padding-bottom:0;}
+/* @order 5232 */
+.casa-card-actions-more{flex-basis:100%;padding:0 9px;border:1px solid var(--line);border-radius:9px;}
+/* @order 5233 */
+.casa-card-actions-more summary{list-style:none;min-height:32px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;color:var(--accent);font-size:11px;font-weight:700;}
+/* @order 5234 */
+.casa-card-actions-more summary::-webkit-details-marker{display:none;}
+/* @order 5235 */
+.casa-card-actions-more summary::after{content:"⌄";font-size:16px;line-height:1;}
+/* @order 5236 */
+.casa-card-actions-more[open] summary::after{transform:rotate(180deg);}
+/* @order 5237 */
+.casa-card-actions-menu{display:flex;flex-wrap:wrap;gap:6px;padding:0 0 9px;}
+/* @order 5238 */
+.casa-history-disclosure{margin:17px 0 0;padding:0 16px;}
+/* @order 5239 */
+.casa-history-disclosure summary{display:flex;align-items:center;gap:10px;padding:13px 0;font-size:13px;}
+/* @order 5240 */
+.casa-history-disclosure summary small{margin-left:auto;color:var(--muted);font-size:11px;font-weight:500;}
+/* @order 5241 */
+.casa-history-disclosure summary::after{margin-left:5px;}
+/* @order 5242 */
+.casa-history-disclosure .casa-table-wrap{max-height:430px;overflow:auto;margin:0 0 15px;}
+/* @order 5243 */
+.casa-history-disclosure .casa-life-table th{position:sticky;top:0;z-index:1;}
+/* @order 5244 */
+.casa-history-disclosure>p{max-width:90ch;color:var(--muted);font-size:12px;}
+/* @order 5245 */
+#casaAnalytics>label{display:grid;gap:6px;max-width:220px;margin:0 0 12px;color:var(--muted);font-size:11px;font-weight:700;}
+/* @order 5246 */
+#casaAnalytics>p{font-size:11px;line-height:1.5;color:var(--muted);max-width:100ch;}
+/* @order 5247 */
+#casaAnalytics>h3{margin:18px 0 9px;font-size:15px;}
+/* @order 5248 */
+#casaAnalytics>.casa-card-grid{margin-bottom:12px;}
+/* @order 5249 */
+#casaAnalytics .casa-card-grid .casa-product-card{min-height:77px;}
+/* @order 5250 */
+#casaAnalytics .casa-card-grid .casa-product-card strong{font-size:20px;}
+/* @order 5251 */
+#casaAnalytics>.casa-table-wrap .casa-life-table{min-width:0;}
+/* @order 5252 */
+#casaAnalytics>.casa-table-wrap .casa-life-table th:last-child,#casaAnalytics>.casa-table-wrap .casa-life-table td:last-child{text-align:right;}
+/* @order 5253 */
+.casa-view .casa-table-wrap{max-width:100%;}
+/* @order 5254 */
+.casa-view .casa-life-table th,.casa-view .casa-life-table td{padding:10px 12px;}
+/* @order 5255 */
+body[data-theme="dark"] .casa-view .section-head{background:linear-gradient(112deg,color-mix(in srgb,var(--accent) 13%,var(--paper)),var(--paper) 65%);}
+/* @order 5256 */
+body[data-theme="dark"] .casa-view .casa-summary-card,body[data-theme="dark"] .casa-view .casa-product-card,body[data-theme="dark"] .casa-view .casa-stock-card,body[data-theme="dark"] .casa-view .casa-store-card{background:var(--paper)!important;border-color:var(--line)!important;}
+/* @order 5257 */
+body[data-theme="dark"] #casaHome .casa-home-start{background:radial-gradient(circle at 94% 9%,#5ca27a45 0,transparent 27%),linear-gradient(120deg,#103d34,#153943);}
+/* @order 5258 */
+@media(max-width:1000px){
+  .casa-view .casa-summary-grid,#casaAnalytics .casa-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
+}
+/* @order 5259 */
+@media(max-width:1000px){
+  #casaHome .casa-home-start{grid-template-columns:1fr;min-height:0;}
+}
+/* @order 5260 */
+@media(max-width:1000px){
+  #casaHome .casa-home-start-actions{display:flex;flex-wrap:wrap;}
+}
+/* @order 5261 */
+@media(max-width:1000px){
+  #casaHome .casa-home-start-actions button{width:auto;}
+}
+/* @order 5262 */
+@media(max-width:1000px){
+  #casaStock .casa-filter-bar{grid-template-columns:repeat(2,minmax(0,1fr));}
+}
+/* @order 5263 */
+@media(max-width:1000px){
+  #casaStock .casa-stock-count{grid-column:1/-1;padding:0;}
+}
+/* @order 5264 */
+@media(max-width:700px){
+  body[data-current-view^="casa"] .area-tabs{margin:0 -14px 14px!important;border-radius:0!important;padding:5px 12px!important;}
+}
+/* @order 5265 */
+@media(max-width:700px){
+  .casa-view .section-head{align-items:flex-start;padding:18px;border-radius:15px;}
+}
+/* @order 5266 */
+@media(max-width:700px){
+  .casa-view .section-head .casa-actions{justify-content:flex-start;}
+}
+/* @order 5267 */
+@media(max-width:700px){
+  .casa-view .section-head .casa-actions button{min-height:37px;padding:7px 10px;font-size:11px;}
+}
+/* @order 5268 */
+@media(max-width:700px){
+  .casa-view .casa-summary-grid,#casaPurchases .casa-summary-grid,#casaAnalytics .casa-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;}
+}
+/* @order 5269 */
+@media(max-width:700px){
+  .casa-view .casa-summary-card{min-height:109px;padding:13px!important;}
+}
+/* @order 5270 */
+@media(max-width:700px){
+  .casa-view .casa-summary-card strong{font-size:21px;}
+}
+/* @order 5271 */
+@media(max-width:700px){
+  .casa-view .casa-summary-card small{font-size:10px;}
+}
+/* @order 5272 */
+@media(max-width:700px){
+  #casaHome .casa-home-start{padding:23px;gap:18px;}
+}
+/* @order 5273 */
+@media(max-width:700px){
+  #casaHome .casa-home-start h3{font-size:29px;}
+}
+/* @order 5274 */
+@media(max-width:700px){
+  #casaHome .casa-home-start-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));}
+}
+/* @order 5275 */
+@media(max-width:700px){
+  #casaHome .casa-home-start-actions button{width:100%;white-space:normal;text-align:left;}
+}
+/* @order 5276 */
+@media(max-width:700px){
+  #casaHome .casa-home-start-actions .primary{grid-column:1/-1;}
+}
+/* @order 5277 */
+@media(max-width:700px){
+  #casaHome .casa-home-week-metrics{grid-template-columns:repeat(3,minmax(0,1fr));}
+}
+/* @order 5278 */
+@media(max-width:700px){
+  #casaHome .casa-home-week-metrics>div{padding:9px 7px;}
+}
+/* @order 5279 */
+@media(max-width:700px){
+  #casaHome .casa-home-week-metrics strong{font-size:19px;}
+}
+/* @order 5280 */
+@media(max-width:700px){
+  #casaHome .casa-home-week-metrics span{font-size:9px;}
+}
+/* @order 5281 */
+@media(max-width:700px){
+  #casaShopping .casa-shopping-toolbar{align-items:flex-start;flex-direction:column;}
+}
+/* @order 5282 */
+@media(max-width:700px){
+  #casaShopping .casa-shopping-filters{width:100%;}
+}
+/* @order 5283 */
+@media(max-width:700px){
+  #casaShopping .casa-shopping-filters button{flex:1;}
+}
+/* @order 5284 */
+@media(max-width:700px){
+  #casaShopping .casa-product-card{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:7px;padding:12px;}
+}
+/* @order 5285 */
+@media(max-width:700px){
+  #casaShopping .casa-product-card p{grid-column:1;padding-left:31px;}
+}
+/* @order 5286 */
+@media(max-width:700px){
+  #casaShopping .casa-list-actions{grid-column:1/-1;grid-row:auto;justify-content:flex-start;}
+}
+/* @order 5287 */
+@media(max-width:700px){
+  #casaShopping .casa-product-card>button{grid-row:1/3;grid-column:2;}
+}
+/* @order 5288 */
+@media(max-width:700px){
+  #casaStock .casa-filter-bar{grid-template-columns:1fr;}
+}
+/* @order 5289 */
+@media(max-width:700px){
+  #casaStock .casa-stock-count{grid-column:auto;}
+}
+/* @order 5290 */
+@media(max-width:700px){
+  #casaMeals .casa-meal-grid{grid-template-columns:1fr;}
+}
+/* @order 5291 */
+@media(max-width:700px){
+  .casa-view .casa-card-grid{grid-template-columns:1fr;}
+}
+/* @order 5292 */
+@media(max-width:380px){
+  .casa-view .casa-summary-card strong{font-size:19px;}
+}
+/* @order 5293 */
+@media(max-width:380px){
+  #casaHome .casa-home-start-actions{grid-template-columns:1fr;}
+}
+/* @order 5294 */
+@media(max-width:380px){
+  #casaHome .casa-home-start-actions .primary{grid-column:auto;}
+}
+/* @order 5295 */
+@media(prefers-reduced-motion:reduce){.casa-card-details summary::after,.casa-history-disclosure summary::after{transition:none;}}
