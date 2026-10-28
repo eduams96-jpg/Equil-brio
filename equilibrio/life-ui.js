@@ -578,7 +578,7 @@
         <span class="subscription-service-main">${ProviderIcons.html(s.name)}<span class="subscription-service-copy"><b>${esc(s.name)}</b><small>${frequencyLabel(s)} · ${esc(s.category || "Subscrições")}</small></span></span>
         <span class="subscription-service-next"><small>Próxima cobrança</small><b>${dateLabel(s.nextDate)}</b></span>
         <span class="subscription-service-value"><strong class="amount expense">−${eur(s.amount)}</strong><em class="subscription-state ${statusClass}">${statusLabel}</em></span>
-        <details class="subscription-actions-menu"><summary aria-label="Ações para ${esc(s.name)}">⋯</summary><div class="subscription-actions">${b("Editar", "life-subscription", s.id)}${b("Associar histórico", "life-subscription-history", s.id)}${b("Histórico", "recurring-history", `subscription~${s.id}`)}${b("Apagar", "life-delete-subscription", s.id)}</div></details>
+        ${s.status!=='cancelled'?b('Cancelar subscrição','life-cancel-subscription',s.id):''}<details class="subscription-actions-menu"><summary aria-label="Ações para ${esc(s.name)}">⋯</summary><div class="subscription-actions">${b("Editar", "life-subscription", s.id)}${b("Associar histórico", "life-subscription-history", s.id)}${b("Histórico", "recurring-history", `subscription~${s.id}`)}${b("Apagar", "life-delete-subscription", s.id)}</div></details>
         <div class="subscription-service-meta">Última cobrança: ${last ? dateLabel(last.date) : "—"}</div>
       </article>`;
     };
@@ -1162,6 +1162,10 @@
     },
     "life-subscription": (id) => openSubscriptionForm(id, false),
     "life-subscription-history": (id) => openSubscriptionForm(id, true),
+    "life-cancel-subscription": (id) => {
+      const s=find("subscriptions",id);if(!s||s.status==='cancelled')return;
+      form('Cancelar subscrição','<p>Cancelar <strong>'+esc(s.name)+'</strong> no Equilíbrio?</p><p>As cobranças futuras deixam de aparecer na Agenda. Os movimentos e o histórico de preços mantêm-se.</p><p>Esta ação não cancela o contrato junto do fornecedor. Para reativar, usa Editar e escolhe o estado Ativa.</p>',()=>commit(()=>L.subscription(data,{...s,status:'cancelled'},id),'Subscrição cancelada; histórico preservado.'),'','Confirmar cancelamento');
+    },
     "life-delete-subscription": (id) => {
       const s = find("subscriptions", id);
       if (!s) return;

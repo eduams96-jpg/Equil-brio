@@ -112,12 +112,18 @@
     const adjustments=[];
     let total = null,
       date = "";
+    let adjacent=null;
     for (const line of lines) {
+      const continuation=line.match(/^(\d+(?:[,.]\d+)?)\s*(?:kg|g|l|ml|un)?\s*[x×]\s*(\d+[,.]\d{2})\s*(?:€|EUR)?(?:\s*\/\s*(?:kg|g|l|ml|un))?$/i);
+      if(continuation&&adjacent){adjacent.quantity=Number(continuation[1].replace(',','.'));adjacent.unitPrice=Number(continuation[2].replace(',','.'));adjacent.sourceLine+='\n'+line;adjacent=null;continue;}
+      adjacent=null;
       const day = line.match(/\b(\d{2})[\/.\-](\d{2})[\/.\-](\d{4})\b/);
       if (day && F.validDate(`${day[3]}-${day[2]}-${day[1]}`)) {
         date = `${day[3]}-${day[2]}-${day[1]}`;
         dates.add(date);
       }
+      const iso=line.match(/\b(\d{4})-(\d{2})-(\d{2})\b/);
+      if(iso&&F.validDate(iso[0])){date=iso[0];dates.add(date);}
       const price = line.match(
         /(-?\d+(?:[ .]\d{3})*[,.]\d{2})\s*(?:€|EUR)?\s*(?:[ABC])?$/i,
       );
@@ -126,7 +132,7 @@
       const name = line.slice(0, price.index).trim();
       if(/\b(desconto|portes|arredondamento)\b/.test(clean(name)))adjustments.push({kind:clean(name).includes('desconto')?'discount':clean(name).includes('portes')?'shipping':'rounding',amount,line});
       if (
-        /^\s*(total(?: a pagar)?|valor total|total eur)\s*[:€]?\s*$/i.test(name)
+        /^(?:total(?: a pagar| documento)?(?: eur)?|valor total)\s*[:€()]*\s*$/i.test(clean(name).replace(/\(eur\)/g,'eur'))
       ) {
         total = amount;
         totals.push(amount);
@@ -153,11 +159,17 @@
         quantity: detail ? Number(detail[2].replace(",", ".")) : 1,
         amount,
         category: category(detail ? detail[1] : name),
+        sourceLine: line,
+        unitPrice: detail ? Number(detail[3].replace(",", ".")) : null,
       });
+      adjacent=detail?null:items.at(-1);
     }
     const warnings = [];
     if (new Set(totals.map(F.cents)).size > 1) { total = null; warnings.push('Foram lidos totais diferentes. Confirma o total do documento.'); }
     if (dates.size > 1) { date = ''; warnings.push('Foram lidas datas diferentes. Confirma a data da compra.'); }
+    const itemTotal=F.money(items.reduce((n,item)=>n+item.amount,0));
+    if(total!==null&&F.cents(itemTotal)!==F.cents(total))warnings.push('A soma dos artigos lidos ('+itemTotal.toFixed(2).replace('.',',')+' €) difere do total ('+total.toFixed(2).replace('.',',')+' €). Confere descontos e linhas em falta; os valores não foram ajustados automaticamente.');
+    for(const item of items)if(item.unitPrice!==null&&F.cents(item.quantity*item.unitPrice)!==F.cents(item.amount))warnings.push('Confere quantidade e preço na linha «'+item.name+'»: a multiplicação não coincide com o total lido.');
     if (unresolved.length) warnings.push('Existem linhas não reconhecidas, descontos ou valores negativos a conferir.');
     return {
       merchant: lines.find((l) => /[a-zÀ-ÿ]/i.test(l)) || "",
@@ -169,6 +181,21 @@
       adjustments,
       text: String(text),
     };
+  }
+  function inspect(draft) {
+    const issues=[],items=draft.items||[],total=draft.total;
+    if(!draft.merchant?.trim())issues.push({field:'merchant',message:'Confirma a loja.'});
+    if(!F.validDate(draft.date)||draft.date>F.today())issues.push({field:'date',message:'Confirma uma data válida, até hoje.'});
+    if(!Number.isFinite(total)||total<=0)issues.push({field:'total',message:'Confirma o total do documento.'});
+    if(!items.length)issues.push({field:'items',message:'Não há artigos incluídos. Adiciona as linhas em falta.'});
+    let cents=0;
+    for(let index=0;index<items.length;index++){
+      const item=items[index];if(!item.name?.trim()||!Number.isFinite(item.quantity)||item.quantity<=0||!Number.isFinite(item.amount)||item.amount<=0)issues.push({field:'item',index,message:'Confere nome, quantidade e total desta linha.'});
+      if(Number.isFinite(item.amount))cents+=F.cents(item.amount);
+      if(Number.isFinite(item.unitPrice)&&Number.isFinite(item.quantity)&&Number.isFinite(item.amount)&&F.cents(item.quantity*item.unitPrice)!==F.cents(item.amount))issues.push({field:'item',index,message:'Quantidade × preço lido não coincide com o total; confere descontos e arredondamentos.'});
+    }
+    if(Number.isFinite(total)&&total>0&&cents!==F.cents(total))issues.push({field:'balance',message:'A soma dos artigos difere do total. Confere descontos ou linhas em falta.'});
+    return{issues,itemTotal:cents/100,total:Number.isFinite(total)?total:null,difference:Number.isFinite(total)?F.money(total-cents/100):null};
   }
   function review(d, draft) {
     validateText(draft.text);
@@ -285,6 +312,6 @@
         if(totals(t.receiptItems)!==totals(t.splits || [{category:t.category,amount:t.amount}])) throw Error('As categorias têm de coincidir com os produtos da fatura. Esta versão mantém a classificação confirmada na leitura.');
       }
   }
-  root.ReceiptFinance = { parse, category, review, apply, validate, nameKey, suggest, learningPreview, remember, updateRule, removeRule, searchText, validateText, replaceAttachment };
+  root.ReceiptFinance = { parse, inspect, category, review, apply, validate, nameKey, suggest, learningPreview, remember, updateRule, removeRule, searchText, validateText, replaceAttachment };
   if (typeof module !== "undefined") module.exports = root.ReceiptFinance;
 })(globalThis);

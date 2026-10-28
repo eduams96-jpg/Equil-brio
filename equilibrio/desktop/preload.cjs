@@ -72,3 +72,5 @@ contextBridge.exposeInMainWorld('financasDesktop', {
   dataDeleteEntitySync: (spaceId, domain, entityId) => ipcRenderer.sendSync('financas:data:entity-delete-sync', { spaceId, domain, entityId }),
   migrateJson: (incomingContent, currentContent) => ipcRenderer.invoke('financas:migration:apply', { incomingContent, currentContent }),
 });
+
+contextBridge.exposeInMainWorld("EquilibrioMobile",{onChange:callback=>{if(typeof callback!=="function")return;ipcRenderer.on("equilibrio:mobile:changed",(_event,spaceId)=>callback(String(spaceId)));},action:input=>ipcRenderer.invoke("equilibrio:mobile:action",input)});

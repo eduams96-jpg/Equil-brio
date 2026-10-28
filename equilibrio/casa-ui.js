@@ -92,7 +92,9 @@
       const row = document.createElement('fieldset');
       row.className = 'panel casa-receipt-line';
       row.dataset.sourceName = name;
+      row.dataset.receiptIndex = String(lines.children.length);
       row.innerHTML = `<legend>Artigo ${lines.children.length+1}</legend>` +
+        (item.sourceLine?'<small class="receipt-source-line">Lido: '+esc(item.sourceLine)+'</small>':'') +
         `<div class="two-cols"><label>Produto<input data-receipt-name value="${esc(name)}" maxlength="160" required></label><label>Total da linha (€)<input data-receipt-total type="number" min="0.01" step="0.01" value="${Number.isFinite(amount)&&amount>0?amount:''}" required></label></div>` +
         `<label class="checkbox"><input data-receipt-stock type="checkbox" ${checked?'checked':''}> Adicionar ao stock</label>` +
         `<div data-receipt-stock-fields ${checked?'':'hidden'}><div class="two-cols"><label>Produto do catálogo<select data-receipt-product><option value="">Novo produto</option>${options}</select></label><label>Unidade<select data-receipt-unit>${C.stockUnits.map(([id,label])=>`<option value="${esc(id)}">${esc(label)}</option>`).join('')}</select></label></div>` +
@@ -132,28 +134,29 @@
     dateInput.onchange = updateBalance;
 
      updateBalance();
-    window.ReceiptAssistanceUI?.enhanceReview("product");
+    window.ReceiptAssistanceUI?.enhanceReview("product",draft);
     window.DraftUI?.begin('casaReceipt',()=>({draft:{...draft,items:[...lines.children].map(row=>({name:row.querySelector('[data-receipt-name]').value,quantity:Number(row.querySelector('[data-receipt-packages]').value),amount:Number(row.querySelector('[data-receipt-total]').value),category:row.querySelector('[data-receipt-category]').value}))}}));
   }
   function readReceiptInCasa() {
     form('Ler fatura para a Casa',
       '<p>A leitura é local. As linhas serão apenas sugestões; confirma tudo antes de adicionar produtos ou stock.</p><label>Imagem ou PDF<input name="casaReceiptFile" type="file" accept="image/png,image/jpeg,image/webp,application/pdf" required></label><p id="casaReceiptProgress" role="status">Imagens até 10 MB; PDF até 8 MB e 10 páginas.</p>',
       async values => {
-        const origin = key, stamp = JSON.stringify(data);
+        const origin = key, stamp = JSON.stringify(data), fileInput=document.querySelector("[name=casaReceiptFile]");
         receiptController?.abort();
         receiptController = new AbortController();
         const own = receiptController;
         const result = await ReceiptReader.read(values.get('casaReceiptFile'),message=>{
           const progress = $('#casaReceiptProgress');
           if (progress) progress.textContent = message;
-        },own.signal,{attachment:false});
-        if (own.signal.aborted || key!==origin || JSON.stringify(data)!==stamp)
+        },own.signal,{attachment:false,image:ReceiptImageUI.options(document.querySelector("[name=casaReceiptFile]"))});
+        if (own.signal.aborted || key!==origin || JSON.stringify(data)!==stamp || !document.getElementById("modal").open || !fileInput.isConnected)
           throw Error('A leitura foi interrompida ou os dados mudaram. Abre novamente a fatura.');
-        reviewReceiptInCasa(ReceiptFinance.parse(result.text));
+        reviewReceiptInCasa({...ReceiptFinance.parse(result.text),reading:result.reading});
         return false;
       },
       'A imagem/PDF não fica guardada na Casa. Guarda o original fora da aplicação se precisares dele.',
       'Ler e conferir');
+    ReceiptImageUI.bind(document.querySelector('[name=casaReceiptFile]'));
   }
   function openPurchase(id) {
     const p = state().purchases.find(p=>p.id===id); if(!p) return notice('Compra não encontrada.',true);
@@ -172,14 +175,14 @@
   function render() {
     const c=state(), month=Finance.today().slice(0,7), purchases=c.purchases.filter(p=>p.date.startsWith(month));
     const total=CasaDaily.insights(data,month).total;
-    $('#casaPurchases').innerHTML=`<div class="section-head"><div><h2>Compras</h2><p>Registos de compras, artigos e stock da Casa.</p></div><div class="casa-actions"><button type="button" id="casaReadReceipt" class="secondary">Ler fatura</button><button type="button" id="casaNewPurchase" class="primary">+ Nova compra</button></div></div><div class="casa-summary-grid"><article class="casa-summary-card"><span>Compras líquidas este mês</span><strong>${eur(total)}</strong><small>Compras menos reembolsos do mês</small></article><article class="casa-summary-card"><span>Compras este mês</span><strong>${purchases.length}</strong><small>Registos neste espaço</small></article></div><label class="casa-search-label">Pesquisar compras<input id="casaPurchaseSearch" type="search" placeholder="Loja, artigo ou texto da fatura"></label><div id="casaPurchaseList" class="casa-card-grid"></div>`;
+    $('#casaPurchases').innerHTML=`<div class="section-head"><div><h2>Compras</h2><p>Registos de compras, artigos e stock da Casa.</p></div></div><div class="casa-actions casa-purchases-toolbar"><label class="casa-search-label casa-purchase-search">Pesquisar compras<input id="casaPurchaseSearch" type="search" placeholder="Loja, artigo ou texto da fatura"></label><button type="button" id="casaReadReceipt" class="secondary">Ler fatura</button><button type="button" id="casaNewPurchase" class="primary">+ Nova compra</button></div><div class="casa-summary-grid"><article class="casa-summary-card"><span>Compras líquidas este mês</span><strong>${eur(total)}</strong><small>Compras menos reembolsos do mês</small></article><article class="casa-summary-card"><span>Compras este mês</span><strong>${purchases.length}</strong><small>Registos neste espaço</small></article></div><div id="casaPurchaseList" class="casa-card-grid"></div>`;
     $('#casaNewPurchase').onclick=purchaseForm;
     $('#casaReadReceipt').onclick=readReceiptInCasa;
     $('#casaPurchaseSearch').value=purchaseQuery;
     const paint = () => {
       const q=ReceiptFinance.nameKey($('#casaPurchaseSearch').value),terms=q.split(' ').filter(Boolean);
       const rows=c.purchases.filter(p=>{const text=ReceiptFinance.nameKey([p.store,p.receiptText,...p.items.flatMap(i=>[i.name,i.sourceName])].filter(Boolean).join(' '));return terms.every(term=>text.includes(term));}).slice().sort((a,b)=>b.date.localeCompare(a.date));
-      $('#casaPurchaseList').innerHTML=rows.length?rows.slice(0,purchaseLimit).map(p=>`<article class="casa-product-card"><h3>${esc(p.store)}</h3><p>${esc(new Date(p.date+'T12:00:00').toLocaleDateString('pt-PT'))} · ${p.items.length} ${p.items.length===1?'artigo':'artigos'}</p><strong>${eur(p.total)}</strong><span class="casa-connection ${p.transactionId?'':'unlinked'}">${p.transactionId?'✓ Movimento associado':'Sem movimento financeiro'}</span><button type="button" class="secondary" data-purchase="${esc(p.id)}">Ver compra</button></article>`).join('')+(rows.length>purchaseLimit?`<button type="button" class="secondary casa-more-purchases" id="casaMorePurchases">Mostrar mais compras · ${rows.length-purchaseLimit} por ver</button>`:''):`<div class="casa-empty"><strong>${q?'Não encontrámos essa compra':'As compras da casa começam aqui'}</strong><p>${q?'Experimenta outro supermercado ou nome de artigo.':'Usa “Nova compra” para registar os artigos e escolher se queres debitar uma conta.'}</p></div>`;
+      $('#casaPurchaseList').innerHTML=rows.length?rows.slice(0,purchaseLimit).map(p=>`<article class="casa-product-card"><h3>${esc(p.store)}</h3><p>${esc(new Date(p.date+'T12:00:00').toLocaleDateString('pt-PT'))} · ${p.items.length} ${p.items.length===1?'artigo':'artigos'}</p><strong>${eur(p.total)}</strong><span class="casa-connection ${p.transactionId?'':'unlinked'}">${p.transactionId?'✓ Movimento associado':'Sem movimento financeiro'}</span><button type="button" class="secondary" data-purchase="${esc(p.id)}">Ver compra</button></article>`).join('')+(rows.length>purchaseLimit?`<button type="button" class="secondary casa-more-purchases" id="casaMorePurchases">Mostrar mais compras · ${rows.length-purchaseLimit} por ver</button>`:''):`<div class="casa-empty"><strong>${q?'Não encontrámos essa compra':'As compras da casa começam aqui'}</strong><p>${q?'Experimenta outro supermercado ou nome de artigo.':'Usa “Nova compra” para registar os artigos, o supermercado e o stock recebido.'}</p></div>`;
       document.querySelectorAll('[data-purchase]').forEach(b=>b.onclick=()=>openPurchase(b.dataset.purchase));
       $('#casaMorePurchases')?.addEventListener('click',()=>{purchaseLimit+=12;paint();});
     }; $('#casaPurchaseSearch').oninput=e=>{purchaseQuery=e.target.value;purchaseLimit=12;paint();}; paint();

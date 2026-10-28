@@ -61,7 +61,7 @@ test('v0.39.41 manutenção: build de produção não leva documentação histó
   }
   const release = read('scripts/package-release.cjs');
   const candidateExpression = release.match(/const candidates=(.*);/)[1];
-  const candidates = require('node:vm').runInNewContext(candidateExpression, { pkg });
+  const candidates = require('node:vm').runInNewContext(candidateExpression, { pkg, fs, path, root });
   assert.ok(candidates.includes('package-lock.json'));
   assert.deepEqual(Array.from(candidates.filter(file => /\.md$/i.test(file) && !/^assets\/licenses\/[^/]*(?:LICENSE|NOTICE)[^/]*$/i.test(file))).sort(),
     ['ARQUITETURA.md', 'ATUALIZACOES.md', 'ROADMAP.md', `AUDITORIA-v${pkg.version}.md`, `DESKTOP-v${pkg.version}.md`, `PROPOSTAS-VISUAIS-v${pkg.version}.md`, `REVISAO-CASA-E-LAYOUTS-v${pkg.version}.md`, 'README.md'].sort());

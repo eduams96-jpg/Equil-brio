@@ -1,0 +1,218 @@
+/* @order 43000 */
+#dataHub #unifiedData.u-task-grid,#settings #unifiedSettings.u-settings-workspace{display:grid!important;grid-template-columns:215px minmax(0,1fr)!important;gap:0!important;align-items:start;max-width:none;background:transparent;border:0}
+/* @order 43001 */
+#dataHub #unifiedData>.u-task-nav,#settings #unifiedSettings>.u-task-nav{position:sticky;top:86px;min-width:0;min-height:calc(100vh - 150px);padding:26px 16px!important;background:var(--paper);border:0!important;border-right:1px solid var(--line)!important;border-radius:0!important;box-shadow:none}
+/* @order 43002 */
+#dataHub #unifiedData .u-task-nav h2,#settings #unifiedSettings .u-task-nav h2{margin:0 12px 26px!important;font-size:22px!important}
+/* @order 43003 */
+#dataHub #unifiedData .u-task-nav nav,#settings #unifiedSettings .u-task-nav nav{display:flex!important;flex-direction:column!important;gap:6px!important;margin:0;padding:0;border:0;background:transparent}
+/* @order 43004 */
+#dataHub #unifiedData .u-task-nav button,#settings #unifiedSettings .u-task-nav button{display:flex;align-items:center;justify-content:flex-start;gap:10px;width:100%;min-height:46px;text-align:left;padding:12px!important;border:0!important;background:transparent;border-radius:8px;color:var(--muted);font-size:14px!important;white-space:normal}
+/* @order 43005 */
+#dataHub #unifiedData .u-task-nav button[aria-current=page],#settings #unifiedSettings .u-task-nav button[aria-current=page]{background:color-mix(in srgb,var(--blue) 14%,var(--paper))!important;color:var(--text);font-weight:700}
+/* @order 43006 */
+#dataHub #unifiedData .u-task-nav button b{margin-left:auto;padding:3px 7px;border-radius:5px;background:var(--line)}
+/* @order 43007 */
+#dataHub #unifiedData .u-task-content,#settings #unifiedSettings .u-settings-content{padding:26px 32px;min-width:0;width:auto!important;max-width:none}
+/* @order 43008 */
+#dataHub #unifiedData .u-task-content>.u-source,#dataHub #unifiedData .u-task-content>section,#dataHub #unifiedData .u-task-content>article{border:0!important;background:transparent!important;box-shadow:none!important;border-radius:0!important;padding:0!important}
+/* @order 43009 */
+#dataHub #unifiedData .data-section-title h2,.settings-page-heading h2{font-size:30px!important;letter-spacing:-.7px;margin:8px 0!important}
+/* @order 43010 */
+#dataHub #unifiedData .data-section-icon{display:none}
+/* @order 43011 */
+#dataHub #unifiedData .u-attention-switch{margin-bottom:22px;justify-content:flex-start}
+/* @order 43012 */
+#dataHub #unifiedData .data-inbox-filterbar{justify-content:flex-start!important;margin:22px 0 14px!important;padding-bottom:16px;border-bottom:1px solid var(--line);gap:8px;flex-wrap:wrap}
+/* @order 43013 */
+#dataHub #unifiedData .data-inbox-filterbar button{background:transparent!important;border:0!important;box-shadow:none!important;border-radius:6px!important;font-size:13px!important}
+/* @order 43014 */
+#dataHub #unifiedData .data-inbox-sources{display:flex!important;flex-wrap:wrap;align-items:center;gap:6px;margin:0 0 20px!important;padding:0!important;border:0!important;background:transparent!important}
+/* @order 43015 */
+#dataHub #unifiedData .data-inbox-sources h3{font-size:12px!important;margin:0 8px 0 0!important;color:var(--muted)}
+/* @order 43016 */
+#dataHub #unifiedData .data-source-button{width:auto!important;max-width:100%;min-height:34px;padding:5px 9px!important;font-size:12px!important;background:transparent!important;border:1px solid var(--line)!important;border-radius:6px!important;gap:9px}
+/* @order 43017 */
+#dataHub #unifiedData .data-source-avatar{display:none!important}
+/* @order 43018 */
+#dataHub #unifiedData .u-inbox-workspace{display:grid!important;grid-template-columns:minmax(0,1.2fr) minmax(300px,1fr)!important;gap:28px!important;align-items:start}
+/* @order 43019 */
+#dataHub #unifiedData .data-inbox-main,#dataHub #unifiedData .data-inbox-table{background:transparent!important;border:0!important;box-shadow:none!important;padding:0!important;min-width:0}
+/* @order 43020 */
+#dataHub #unifiedData .data-inbox-toolbar{padding:0 0 18px!important;gap:12px;flex-wrap:wrap}
+/* @order 43021 */
+#dataHub #unifiedData .data-inbox-th{display:none!important}
+/* @order 43022 */
+#dataHub #unifiedData #dataInboxTableBody{max-height:620px;overflow:auto;scrollbar-gutter:stable}
+/* @order 43023 */
+#dataHub #unifiedData .data-inbox-tr{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;gap:12px!important;padding:18px 14px!important;border:0!important;border-bottom:1px solid var(--line)!important;border-radius:0!important;min-height:78px;align-items:center!important}
+/* @order 43024 */
+#dataHub #unifiedData .data-inbox-tr.is-selected{background:color-mix(in srgb,var(--blue) 12%,var(--paper))!important;box-shadow:inset 3px 0 var(--blue)}
+/* @order 43025 */
+#dataHub #unifiedData .data-inbox-tr>.data-inbox-cell:not(.data-inbox-description):not(:nth-child(4)){display:none!important}
+/* @order 43026 */
+#dataHub #unifiedData .data-inbox-tr>.data-inbox-description{grid-column:1!important;grid-row:1!important;min-width:0;padding:0!important}
+/* @order 43027 */
+#dataHub #unifiedData .data-inbox-tr>.data-inbox-cell:nth-child(4){grid-column:2!important;grid-row:1!important;white-space:nowrap}
+/* @order 43028 */
+#dataHub #unifiedData .data-inbox-description>small,#dataHub #unifiedData .data-inbox-inline-source,#dataHub #unifiedData .data-inbox-inline-suggestion{display:none!important}
+/* @order 43029 */
+#dataHub #unifiedData [data-inbox-select-record]{font-size:14px!important;padding:0!important;line-height:1.5;text-align:left;overflow-wrap:anywhere}
+/* @order 43030 */
+#dataHub #unifiedData .u-inbox-summary{display:block;margin-top:6px;font-size:12px;color:var(--muted)}
+/* @order 43031 */
+#dataHub #unifiedData #dataInboxInspector{padding:8px 0 0 28px!important;border:0!important;border-left:1px solid var(--line)!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;position:sticky;top:92px;min-width:0}
+/* @order 43032 */
+#dataHub #unifiedData #dataInboxInspector h3{font-size:23px!important;margin:12px 0 16px!important;line-height:1.35;overflow-wrap:anywhere}
+/* @order 43033 */
+#dataHub #unifiedData .u-inbox-amount{font-size:34px!important;letter-spacing:-.6px;margin:22px 0!important}
+/* @order 43034 */
+#dataHub #unifiedData .u-inbox-meta{display:grid;grid-template-columns:1fr 1fr;gap:22px 18px;padding:20px 0;border-block:1px solid var(--line);margin:0 0 20px}
+/* @order 43035 */
+#dataHub #unifiedData .u-inbox-meta dt{font-size:12px;color:var(--muted);margin-bottom:7px}
+/* @order 43036 */
+#dataHub #unifiedData .u-inbox-meta dd{margin:0;font-size:14px;overflow-wrap:anywhere}
+/* @order 43037 */
+#dataHub #unifiedData .u-inbox-note{font-size:13px!important;line-height:1.7!important;color:var(--muted);margin:16px 0!important}
+/* @order 43038 */
+#dataHub #unifiedData #dataInboxInspector .u-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:24px}
+/* @order 43039 */
+#dataHub #unifiedData .desk-workspace,#dataHub #unifiedData .document-library,#dataHub #unifiedData .u-import-grid{border:0!important;background:transparent!important;box-shadow:none!important;gap:28px}
+/* @order 43040 */
+#dataHub #unifiedData .desk-inspector,#dataHub #unifiedData .document-detail,#dataHub #unifiedData .u-import-inspector{border:0!important;border-left:1px solid var(--line)!important;background:transparent!important;box-shadow:none!important;border-radius:0!important;padding:12px 0 12px 28px!important}
+/* @order 43041 */
+#dataHub #unifiedData .desk-list-panel,#dataHub #unifiedData .desk-list-heading,#dataHub #unifiedData .document-list{border:0!important;background:transparent!important;box-shadow:none!important}
+/* @order 43042 */
+#settings #unifiedSettings .settings-topic-group{margin:0!important;padding:0!important;border:0!important;min-width:0;grid-column:auto!important;grid-row:auto!important}
+/* @order 43043 */
+#settings #unifiedSettings .settings-topic-cards{display:flex!important;flex-direction:column!important;gap:0!important;max-width:1000px}
+/* @order 43044 */
+#settings #unifiedSettings .settings-topic-cards>.panel,#settings #unifiedSettings .settings-topic-cards>section,#settings #unifiedSettings .settings-topic-cards>article{border:0!important;border-bottom:1px solid var(--line)!important;background:transparent!important;box-shadow:none!important;border-radius:0!important;padding:24px 0!important;margin:0!important;min-width:0;width:100%}
+/* @order 43045 */
+#settings #unifiedSettings .settings-page-heading{margin-bottom:8px}
+/* @order 43046 */
+.settings-overline{font-size:11px!important;letter-spacing:1.1px;text-transform:uppercase;color:var(--muted);margin:0 0 10px!important}
+/* @order 43047 */
+#settings #unifiedSettings .setting-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:28px;padding:24px 0;border-bottom:1px solid var(--line)}
+/* @order 43048 */
+#settings #unifiedSettings .setting-row:last-child{border-bottom:0}
+/* @order 43049 */
+#settings #unifiedSettings .setting-row h3{font-size:15px!important;margin:0 0 7px!important}
+/* @order 43050 */
+#settings #unifiedSettings .setting-row p{font-size:13px!important;color:var(--muted);margin:0!important;line-height:1.6}
+/* @order 43051 */
+#settings #unifiedSettings .settings-segments{display:flex;gap:4px;border:1px solid var(--line);border-radius:7px;padding:4px;flex-wrap:wrap}
+/* @order 43052 */
+#settings #unifiedSettings .settings-segments button{background:transparent;border:0!important;padding:9px 14px!important;color:inherit;font-size:13px!important;border-radius:5px;min-height:36px}
+/* @order 43053 */
+#settings #unifiedSettings .settings-segments button[aria-pressed=true]{background:color-mix(in srgb,var(--blue) 20%,var(--paper))!important;font-weight:700}
+/* @order 43054 */
+#settingsPrivacy{width:46px;min-width:46px;height:28px;min-height:28px;border:1px solid var(--line);border-radius:30px;background:var(--line);padding:3px!important;display:flex;align-items:center}
+/* @order 43055 */
+#settingsPrivacy span{display:block;width:20px;height:20px;border-radius:50%;background:var(--paper);box-shadow:0 1px 3px #0003}
+/* @order 43056 */
+#settingsPrivacy[aria-checked=true]{background:var(--blue)}
+/* @order 43057 */
+#settingsPrivacy[aria-checked=true] span{margin-left:17px}
+/* @order 43058 */
+#settings #unifiedSettings .settings-topic-cards .panel h2,#settings #unifiedSettings .settings-topic-cards .panel h3{font-size:18px!important;margin:0 0 12px!important}
+/* @order 43059 */
+#settings #unifiedSettings .settings-topic-cards .panel p{font-size:13px;line-height:1.7;max-width:850px}
+/* @order 43060 */
+#settings #unifiedSettings input,#settings #unifiedSettings select{max-width:100%}
+/* @order 43061 */
+#settings #unifiedSettings #profileName{max-width:450px;margin-right:12px}
+/* @order 43062 */
+#settings #unifiedSettings #saveProfile{width:auto!important;display:inline-flex}
+/* @order 43063 */
+#faqDialog{width:min(1440px,calc(100vw - 40px))!important;max-width:none!important;max-height:calc(100vh - 40px)!important;height:min(920px,calc(100vh - 40px));padding:0!important;overflow:hidden!important;border:1px solid var(--line);border-radius:12px;background:var(--paper);color:var(--text)}
+/* @order 43064 */
+#faqDialog[open]{display:flex;flex-direction:column}
+/* @order 43065 */
+#faqDialog .faq-head{flex-shrink:0;display:flex;justify-content:space-between;align-items:center;padding:16px 24px;border-bottom:1px solid var(--line);margin:0!important}
+/* @order 43066 */
+#faqDialog .faq-head h2{font-size:16px!important;margin:0!important}
+/* @order 43067 */
+#faqDialog .faq-head button{width:34px;min-width:34px;min-height:34px;height:34px;padding:0!important;border:0!important;background:transparent;font-size:22px!important}
+/* @order 43068 */
+#faqDialog .faq-shell{display:grid;grid-template-columns:215px minmax(0,1fr);min-height:0;flex:1;overflow:auto}
+/* @order 43069 */
+#faqDialog .faq-rail{border-right:1px solid var(--line);padding:30px 18px}
+/* @order 43070 */
+#faqDialog .faq-rail h3{font-size:22px!important;margin:0 12px 24px!important}
+/* @order 43071 */
+#faqDialog .faq-rail nav{display:flex;flex-direction:column;gap:6px}
+/* @order 43072 */
+#faqDialog .faq-rail button{background:transparent;border:0;color:inherit;font-size:14px!important;text-align:left;line-height:1.5;padding:12px!important;min-height:46px;border-radius:7px}
+/* @order 43073 */
+#faqDialog .faq-rail button[aria-current=page]{background:color-mix(in srgb,var(--blue) 15%,var(--paper));font-weight:700}
+/* @order 43074 */
+#faqDialog .faq-main{padding:30px 36px;min-width:0}
+/* @order 43075 */
+#faqDialog .faq-main header h2{font-size:30px!important;letter-spacing:-.5px;margin:8px 0!important}
+/* @order 43076 */
+#faqDialog .faq-main header p{color:var(--muted);font-size:14px}
+/* @order 43077 */
+#faqDialog .faq-search{display:block!important;margin:24px 0!important}
+/* @order 43078 */
+#faqDialog .faq-search span{display:block;font-size:12px;color:var(--muted);margin-bottom:8px}
+/* @order 43079 */
+#faqDialog .faq-search input{width:100%;padding:15px!important;font-size:15px!important}
+/* @order 43080 */
+#faqDialog .faq-split{display:grid;grid-template-columns:minmax(230px,.8fr) minmax(0,1.3fr);gap:30px;align-items:start}
+/* @order 43081 */
+#faqDialog .faq-questions{display:flex!important;flex-direction:column!important;gap:0!important;max-height:520px;overflow:auto;min-width:0}
+/* @order 43082 */
+#faqDialog .faq-question{display:block;width:100%;border:0!important;border-bottom:1px solid var(--line)!important;border-radius:0!important;background:transparent;color:inherit;text-align:left;white-space:normal;overflow-wrap:anywhere;line-height:1.6!important;font-size:14px!important;font-weight:500;padding:16px 14px!important}
+/* @order 43083 */
+#faqDialog .faq-question[aria-pressed=true]{background:color-mix(in srgb,var(--blue) 14%,var(--paper));box-shadow:inset 3px 0 var(--blue)}
+/* @order 43084 */
+#faqDialog .faq-answer{border-left:1px solid var(--line);padding-left:28px;min-width:0}
+/* @order 43085 */
+#faqDialog .faq-answer h3{font-size:23px!important;line-height:1.4;margin:10px 0 18px!important;overflow-wrap:anywhere}
+/* @order 43086 */
+#faqDialog .faq-answer p{font-size:14px;line-height:1.8;color:var(--muted)}
+/* @order 43087 */
+#faqDialog .faq-steps{padding-left:26px;margin:24px 0}
+/* @order 43088 */
+#faqDialog .faq-steps li{padding:0 0 0 8px;margin:0 0 20px;font-size:14px;line-height:1.8}
+/* @order 43089 */
+#faqDialog .faq-steps li::marker{color:var(--blue);font-weight:750}
+/* @order 43090 */
+#faqDialog .faq-note{border-left:2px solid var(--blue);padding-left:14px}
+/* @order 43091 */
+#faqDialog .faq-answer>button{margin-top:12px;white-space:normal}
+/* @order 43092 */
+@media(max-width:1100px){#dataHub #unifiedData .u-task-content,#settings #unifiedSettings .u-settings-content{padding:24px}#dataHub #unifiedData .u-inbox-workspace{grid-template-columns:minmax(0,1fr)!important}#dataHub #unifiedData #dataInboxInspector{position:static;padding-left:0!important;border-left:0!important;border-top:1px solid var(--line)!important;padding-top:22px!important}#faqDialog .faq-split{grid-template-columns:1fr}#faqDialog .faq-answer{padding:24px 0 0;border-left:0;border-top:1px solid var(--line)}#faqDialog .faq-questions{max-height:290px}}
+/* @order 43093 */
+@media(max-width:900px){#dataHub #unifiedData.u-task-grid,#settings #unifiedSettings.u-settings-workspace,#faqDialog .faq-shell{grid-template-columns:minmax(0,1fr)!important}#dataHub #unifiedData>.u-task-nav,#settings #unifiedSettings>.u-task-nav{min-height:0;position:static;border-right:0!important;border-bottom:1px solid var(--line)!important;padding:16px!important}#dataHub #unifiedData .u-task-nav nav,#settings #unifiedSettings .u-task-nav nav{flex-direction:row!important;flex-wrap:wrap}#dataHub #unifiedData .u-task-nav button,#settings #unifiedSettings .u-task-nav button{width:auto;flex:1 1 140px}#dataHub #unifiedData .u-task-nav h2,#settings #unifiedSettings .u-task-nav h2{margin:0 0 12px!important}#faqDialog .faq-rail{border-right:0;border-bottom:1px solid var(--line);padding:14px}#faqDialog .faq-rail h3{display:none}#faqDialog .faq-rail nav{flex-direction:row;flex-wrap:wrap}#faqDialog .faq-rail button{min-height:38px;font-size:12px!important;padding:8px!important}}
+/* @order 43094 */
+@media(max-width:600px){#dataHub #unifiedData .u-task-content,#settings #unifiedSettings .u-settings-content{padding:20px 12px}#settings #unifiedSettings .setting-row{grid-template-columns:1fr;gap:14px}#settings #unifiedSettings .settings-segments{width:fit-content}#dataHub #unifiedData .data-inbox-tr{padding:14px 10px!important}#dataHub #unifiedData .u-inbox-meta{grid-template-columns:1fr}#faqDialog{width:calc(100vw - 16px)!important;height:calc(100vh - 16px);max-height:calc(100vh - 16px)!important}#faqDialog .faq-main{padding:20px 16px}#faqDialog .faq-head{padding:12px 16px}#faqDialog .faq-head h2{font-size:14px!important}#faqDialog .faq-main header h2{font-size:26px!important}#faqDialog .faq-split{gap:20px}}
+/* @order 43095 */
+body[data-theme=dark] #dataHub #unifiedData .u-task-nav button[aria-current=page],body[data-theme=dark] #settings #unifiedSettings .u-task-nav button[aria-current=page],body[data-theme=dark] #faqDialog .faq-rail button[aria-current=page]{color:#a6e6d0}
+/* @order 43096 */
+#dataHub #unifiedData .data-inbox-tr[hidden],#settings #unifiedSettings [data-settings-group][hidden],#faqDialog .faq-answer[hidden]{display:none!important}
+/* @order 43097 */
+#settings #unifiedSettings .settings-page-heading,#faqDialog .faq-main>header{display:block!important;padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important}
+/* @order 43098 */
+#dataHub #unifiedData .data-inbox-filterbar{background:transparent!important;padding:0 0 16px!important}
+/* @order 43099 */
+#dataHub #unifiedData .u-task-nav button,#settings #unifiedSettings .u-task-nav button,#faqDialog .faq-rail button{font-weight:500!important}
+/* @order 43100 */
+#dataHub #unifiedData .u-task-nav button[aria-current=page],#settings #unifiedSettings .u-task-nav button[aria-current=page],#faqDialog .faq-rail button[aria-current=page]{font-weight:700!important}
+/* @order 43101 */
+#mainContent:has(>#settings.active)>header{display:none!important}
+/* @order 43102 */
+#settings #unifiedSettings .settings-page-heading h2{font-size:30px!important}
+/* @order 43103 */
+@media(max-width:650px){.app-topbar .topbar-tools{grid-template-columns:minmax(0,1fr)!important}.app-topbar .topbar-tools #topFinanceSlot{grid-column:1/-1;grid-row:1;width:100%!important;justify-content:space-between}.app-topbar .topbar-tools .top-context-controls{grid-column:1/-1;grid-row:2;width:100%!important;justify-content:flex-end!important}.app-topbar .topbar-tools .top-search-slot{grid-column:1/-1;grid-row:3}}
+/* @order 43104 */
+#dataHub #unifiedData .data-inbox-heading{display:flex!important;align-items:start;justify-content:space-between;gap:18px;flex-wrap:wrap;padding:0!important}
+/* @order 43105 */
+#dataHub #unifiedData .data-inbox-heading .u-attention-switch{margin:8px 0 0!important;gap:8px}
+/* @order 43106 */
+#dataHub #unifiedData .data-inbox-sources{display:none!important}
+/* @order 43107 */
+#dataHub #unifiedData .u-inbox-origin-control{display:flex;align-items:center;gap:8px;margin:0!important;font-size:12px;color:var(--muted)}
+/* @order 43108 */
+#dataHub #unifiedData .u-inbox-origin-control select{max-width:180px;min-width:110px}

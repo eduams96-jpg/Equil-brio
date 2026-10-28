@@ -13,7 +13,8 @@
       document.head.append(s);
     }));
   }
-  async function read(file, progress, signal, options = {}) {
+  async function read(file, progress = () => {}, signal, options = {}) {
+    const started=performance.now(), pages=[], readingWarnings=[];
     if (!file || file.size > 10 * 1024 * 1024)
       throw Error("Escolhe uma imagem até 10 MB ou um PDF até 8 MB.");
     const isPDF = file.type === "application/pdf";
@@ -35,7 +36,9 @@
     const check = () => {
       if (signal?.aborted) throw Error("Leitura cancelada.");
     };
-    async function ocr(canvas) {
+    async function ocr(canvas, pageNumber) {
+      const prepared=ReceiptImage.prepare(canvas,options.image||{});
+      readingWarnings.push(...prepared.warnings);
       check();
       await engine();
       check();
@@ -58,7 +61,10 @@
           ),
       });
       check();
-      return (await worker.recognize(canvas)).data.text;
+      const result=(await worker.recognize(prepared.canvas)).data;
+      pages.push({page:pageNumber,method:'ocr',confidence:Number.isFinite(result.confidence)?result.confidence:null,characters:result.text.length,width:prepared.canvas.width,height:prepared.canvas.height,adjustments:prepared.geometry});
+      prepared.canvas.width=prepared.canvas.height=1;
+      return result.text;
     }
     try {
       let text = "",
@@ -95,20 +101,27 @@
               lastY = null;
             }
           }
-          if (line.trim().length < 25) {
-            const view = page.getViewport({ scale: 2 });
+          if (line.trim().length < 25 && !options.fastTextOnly) {
+            const baseView = page.getViewport({ scale: 1 });
+            const view = page.getViewport({ scale: baseView.width >= 780 ? 1 : 2 });
             if (view.width * view.height > 16000000)
               throw Error("A página é demasiado grande.");
             const canvas = document.createElement("canvas");
             canvas.width = view.width;
             canvas.height = view.height;
+            const ctx = canvas.getContext("2d");
+            ctx.fillStyle = "white";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
             await page.render({
               canvasContext: canvas.getContext("2d"),
               viewport: view,
             }).promise;
-            line = await ocr(canvas);
+            line = await ocr(canvas,p);
+            canvas.width=canvas.height=1;
           }
+          else pages.push({page:p,method:line.trim()?"text":"none",confidence:null,characters:line.length});
           text += line + "\n";
+          if(text.length>200000)throw Error("O documento tem demasiado texto. Escolhe até 200 000 caracteres.");
         }
         if (options.attachment !== false)
           attachment = await new Promise((resolve, reject) => {
@@ -135,7 +148,7 @@
           ctx.fillStyle = "white";
           ctx.fillRect(0, 0, canvas.width, canvas.height);
           ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-          text = await ocr(canvas);
+          text = await ocr(bitmap,1);
           if (options.attachment !== false) {
             let quality = 0.85,
               url;
@@ -159,7 +172,9 @@
         }
       }
       check();
-      return { text, attachment };
+      if(text.length>200000)throw Error('O documento tem demasiado texto.');
+      if(pages.some(p=>p.method==='ocr'&&p.confidence!==null&&p.confidence<70))readingWarnings.push('A leitura encontrou caracteres pouco seguros. Confirma os campos e os artigos com o documento.');
+      return { text, attachment, reading:{durationMs:Math.round(performance.now()-started),pages,warnings:[...new Set(readingWarnings)]} };
     } catch (error) {
       // Some engine failures reject with a string; the UI needs an Error.
       if (signal?.aborted) throw Error('Leitura cancelada.');

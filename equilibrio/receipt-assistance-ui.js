@@ -14,6 +14,7 @@
   function refreshReview() {
     if(!activeReview?.form.isConnected||!$('.receipt-learning-preview',activeReview.form))return;
     const {form,kind}=activeReview,merchant=$(kind==='category'?'[name=merchant]':'[name=casaReceiptStore]',form)?.value||'';
+    qualityReview();
     for(const entry of reviewRows(form,kind)) {
       let hint=$('.receipt-article-hint',entry.row);
       if(!hint){hint=document.createElement('div');hint.className='receipt-article-hint';entry.row.append(hint);}
@@ -38,10 +39,29 @@
       if(kind==='product'&&items.some(i=>!i.catalogId)){const p=document.createElement('p');p.textContent='Os novos produtos assinalados para stock também serão memorizados após a confirmação.';preview.append(p);}
     }catch(error){const p=document.createElement('p');p.className='error';p.textContent=error.message;preview.append(p);}
   }
-  function enhanceReview(kind) {
+  function qualityReview(){
+    if(!activeReview?.draft||!activeReview.form.isConnected)return;
+    const {form,kind,draft}=activeReview,rows=reviewRows(form,kind).filter(e=>!e.omit.checked),isFinance=kind==='category';
+    const items=rows.map(e=>{const i=Number(e.row.dataset.receiptIndex),original=draft.items?.[i];return{name:e.name.value,quantity:isFinance?Number($('[name=quantity'+i+']',e.row).value):original?.quantity||1,amount:Number($(isFinance?'[name=price'+i+']':'[data-receipt-total]',e.row).value),unitPrice:original?.unitPrice};});
+    const report=R.inspect({merchant:$(isFinance?'[name=merchant]':'[name=casaReceiptStore]',form).value,date:$(isFinance?'[name=receiptDate]':'[name=casaReceiptDate]',form).value,total:Number($(isFinance?'[name=receiptTotal]':'[name=casaReceiptTotal]',form).value),items});
+    const panel=$('.receipt-quality-review',form);if(!panel)return;
+    $('.receipt-quality-summary',panel).textContent=report.issues.length?report.issues.length+' pontos a conferir antes de guardar':'Os totais e os campos principais coincidem. Confere ainda com o documento.';
+    $('.receipt-quality-balance',panel).textContent='Artigos: '+eur(report.itemTotal)+' · Documento: '+(report.total===null?'Por indicar':eur(report.total))+' · Diferença: '+(report.difference===null?'Por indicar':eur(report.difference));
+    const list=$('.receipt-quality-issues',panel);list.replaceChildren();for(const issue of report.issues){const li=document.createElement('li');li.textContent=(issue.field==='item'?'Artigo '+(Number(rows[issue.index].row.dataset.receiptIndex)+1)+': ':'')+issue.message;list.append(li);}
+    for(const entry of reviewRows(form,kind)){entry.row.classList.remove('receipt-needs-review');entry.row.querySelector('.receipt-line-check')?.remove();}
+    for(let i=0;i<rows.length;i++){const issues=report.issues.filter(e=>e.field==='item'&&e.index===i);if(!issues.length)continue;rows[i].row.classList.add('receipt-needs-review');const hint=document.createElement('p');hint.className='receipt-line-check';hint.textContent=issues.map(e=>e.message).join(' ');rows[i].row.append(hint);}
+  }
+  function enhanceReview(kind,draft) {
     const form=$('#modalForm');if(!form||$('.receipt-learning',form))return;
-    activeReview={form,kind};form.classList.add('receipt-assisted-review');
+    activeReview={form,kind,draft};form.classList.add('receipt-assisted-review');
     $('#modal').classList.add('receipt-review-dialog');
+    if(draft){
+      const panel=document.createElement('section');panel.className='receipt-quality-review panel';panel.setAttribute('aria-label','Conferência da leitura');
+      panel.innerHTML='<h3>Conferir a leitura</h3><p class="receipt-quality-summary" role="status"></p><p class="receipt-quality-balance amount"></p><ul class="receipt-quality-issues"></ul>';
+      const messages=[...(draft.warnings||[]),...(draft.reading?.warnings||[])];if(messages.length){const details=document.createElement('details'),summary=document.createElement('summary');summary.textContent='Avisos da leitura inicial';details.append(summary);const list=document.createElement('ul');for(const message of [...new Set(messages)]){const li=document.createElement('li');li.textContent=message;list.append(li);}details.append(list);panel.append(details);}
+      if(draft.reading){const timing=document.createElement('p');timing.className='receipt-reading-time';timing.textContent='Leitura local: '+(draft.reading.durationMs/1000).toFixed(1).replace('.',',')+' s · '+draft.reading.pages.length+' página(s). O reconhecimento não valida os valores.';panel.append(timing);}
+      form.querySelector('.receipt-status')?.remove();$('#receiptProducts,#casaReceiptLines',form)?.before(panel);
+    }
     if(kind==='category'){
       const names=['merchant','receiptDate','receiptTotal','account'],group=document.createElement('div');group.className='receipt-review-basics';
       const first=$('[name=merchant]',form)?.closest('label');if(first){first.before(group);for(const name of names){const label=$('[name='+name+']',form)?.closest('label');if(label)group.append(label);}}

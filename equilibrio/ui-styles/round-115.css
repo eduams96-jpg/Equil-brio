@@ -1,0 +1,128 @@
+/* @order 44000 */
+#plansHub #unifiedPlans.u-plans-approved{display:grid!important;grid-template-columns:minmax(0,1.48fr) minmax(0,1fr)!important;gap:28px 30px!important;align-items:start;background:transparent}
+/* @order 44001 */
+#plansHub #unifiedPlans>.u-head,#plansHub #unifiedPlans>.u-plan-tools,#plansHub #unifiedPlans>.u-decision-pane,#plansHub #unifiedPlans>.u-plan-context,#plansHub #unifiedPlans>.u-plan-options{grid-column:1/-1!important;grid-row:auto!important;min-width:0}
+/* @order 44002 */
+#plansHub #unifiedPlans>.u-head{margin:0!important;display:flex!important;align-items:center;justify-content:space-between;gap:24px}
+/* @order 44003 */
+#plansHub #unifiedPlans>.u-head h2{font-size:32px!important;margin:0 0 10px!important;letter-spacing:-.6px}
+/* @order 44004 */
+#plansHub #unifiedPlans>.u-head p{font-size:14px;line-height:1.7;color:var(--muted)}
+/* @order 44005 */
+#plansHub #unifiedPlans .u-plan-tools{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding-bottom:24px;border-bottom:1px solid var(--line)}
+/* @order 44006 */
+#plansHub #unifiedPlans .u-plan-tools small{margin-left:auto;color:var(--muted);font-size:12px}
+/* @order 44007 */
+#plansHub #unifiedPlans>.u-plans-list{grid-column:1!important;grid-row:auto!important;padding:0!important;background:transparent!important;box-shadow:none!important;border:0!important;min-width:0}
+/* @order 44008 */
+#plansHub #unifiedPlans .u-plan-list-heading{display:flex;justify-content:space-between;align-items:center;gap:18px;margin:0 0 18px}
+/* @order 44009 */
+#plansHub #unifiedPlans .u-plan-list-heading h3{font-size:19px!important;margin:0!important}
+/* @order 44010 */
+#plansHub #unifiedPlans .u-plan-list-heading small{font-size:12px;color:var(--muted);font-weight:400;margin-left:10px}
+/* @order 44011 */
+#plansHub #unifiedPlans .u-plans-list>.u-filter-bar{border-bottom:1px solid var(--line);padding-bottom:14px;margin:0;gap:6px;justify-content:flex-start}
+/* @order 44012 */
+#plansHub #unifiedPlans .u-plans-list>.u-filter-bar button{background:transparent;border:0;font-size:13px!important;padding:9px 13px!important}
+/* @order 44013 */
+#plansHub #unifiedPlans .u-plans-list>.u-filter-bar button[aria-pressed=true]{background:color-mix(in srgb,var(--blue) 16%,var(--paper))}
+/* @order 44014 */
+#plansHub #unifiedPlans .u-table{table-layout:fixed;width:100%;border:0!important}
+/* @order 44015 */
+#plansHub #unifiedPlans .u-table th{font-size:10px!important;letter-spacing:.7px;text-transform:uppercase;color:var(--muted);background:transparent!important;padding:16px 14px!important}
+/* @order 44016 */
+#plansHub #unifiedPlans .u-table th:first-child{width:44%}
+/* @order 44017 */
+#plansHub #unifiedPlans .u-table td{padding:20px 14px!important;border:0!important;border-bottom:1px solid var(--line)!important;font-size:15px!important;vertical-align:middle;overflow-wrap:anywhere}
+/* @order 44018 */
+#plansHub #unifiedPlans .u-table td small{font-size:11px!important;font-weight:400;color:var(--muted);line-height:1.6;margin-top:7px}
+/* @order 44019 */
+#plansHub #unifiedPlans .u-table .u-record-button{font-size:14px!important;line-height:1.5;white-space:normal;overflow-wrap:anywhere}
+/* @order 44020 */
+#plansHub #unifiedPlans .u-table tr.is-selected{background:color-mix(in srgb,var(--blue) 14%,var(--paper));box-shadow:inset 3px 0 var(--blue)}
+/* @order 44021 */
+#plansHub #unifiedPlans .u-table-scroll{border:0;background:transparent}
+/* @order 44022 */
+#plansHub #unifiedPlans .u-plan-inspector{grid-column:2!important;grid-row:auto!important;padding:0 0 0 30px!important;border:0!important;border-left:1px solid var(--line)!important;background:transparent!important;border-radius:0!important;min-width:0}
+/* @order 44023 */
+#plansHub #unifiedPlans .u-plan-eyebrow{font-size:11px!important;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin:0 0 12px!important}
+/* @order 44024 */
+#plansHub #unifiedPlans .u-plan-inspector>.u-head{display:flex;align-items:start;justify-content:space-between;gap:18px;margin:0!important}
+/* @order 44025 */
+#plansHub #unifiedPlans .u-plan-inspector>.u-head h2{font-size:25px!important;margin:0 0 10px!important;line-height:1.4;overflow-wrap:anywhere}
+/* @order 44026 */
+#plansHub #unifiedPlans .u-plan-inspector>.u-head p{font-size:12px;color:var(--muted)}
+/* @order 44027 */
+#plansHub #unifiedPlans .u-plan-current{font-size:33px!important;font-weight:650;margin:28px 0 16px!important;line-height:1.4}
+/* @order 44028 */
+#plansHub #unifiedPlans .u-plan-current small{font-size:12px;color:var(--muted);font-weight:400}
+/* @order 44029 */
+#plansHub #unifiedPlans .u-plan-values{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;padding:24px 0;margin:24px 0!important;border-block:1px solid var(--line);background:transparent}
+/* @order 44030 */
+#plansHub #unifiedPlans .u-plan-values>div{padding:0!important;background:transparent!important;border:0!important;border-radius:0!important;min-width:0}
+/* @order 44031 */
+#plansHub #unifiedPlans .u-plan-values small{display:block;font-size:12px!important;color:var(--muted);margin-bottom:9px}
+/* @order 44032 */
+#plansHub #unifiedPlans .u-plan-values b{font-size:16px!important;white-space:normal}
+/* @order 44033 */
+#plansHub #unifiedPlans .u-plan-inspector .u-actions{gap:10px;flex-wrap:wrap}
+/* @order 44034 */
+#plansHub #unifiedPlans .u-plan-note{font-size:12px;line-height:1.8;color:var(--muted);border-left:2px solid var(--blue);padding-left:12px;margin-top:24px}
+/* @order 44035 */
+#plansHub #unifiedPlans .u-plan-context{display:grid!important;grid-template-columns:1.18fr .9fr 1.12fr!important;gap:24px;border:0!important;border-top:1px solid var(--line)!important;border-radius:0!important;padding:26px 0 0!important;background:transparent!important;box-shadow:none!important;margin:0!important}
+/* @order 44036 */
+#plansHub #unifiedPlans .u-plan-context>section{min-width:0;padding-right:22px;border-right:1px solid var(--line)}
+/* @order 44037 */
+#plansHub #unifiedPlans .u-plan-context>section:last-child{border:0;padding-right:0}
+/* @order 44038 */
+#plansHub #unifiedPlans .u-plan-context>section>h3{font-size:18px!important;margin:0 0 12px!important}
+/* @order 44039 */
+#plansHub #unifiedPlans .u-plan-context>section>p{font-size:12px!important;line-height:1.7;color:var(--muted);margin-bottom:20px!important}
+/* @order 44040 */
+#plansHub #unifiedPlans .u-plan-context .panel{border:0!important;border-top:1px solid var(--line)!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;padding:18px 0!important;margin:0!important}
+/* @order 44041 */
+#plansHub #unifiedPlans .u-plan-context .panel h2,#plansHub #unifiedPlans .u-plan-context .panel h3{font-size:15px!important;margin:0 0 12px!important}
+/* @order 44042 */
+#plansHub #unifiedPlans .u-plan-context .panel p{font-size:12px!important;line-height:1.7;color:var(--muted)}
+/* @order 44043 */
+#plansHub #unifiedPlans .u-plan-context .planning-line,#plansHub #unifiedPlans .u-plan-context .attention-row{display:flex;flex-wrap:wrap;align-items:start;gap:10px;padding:16px 0;border:0;border-bottom:1px solid var(--line);min-width:0}
+/* @order 44044 */
+#plansHub #unifiedPlans .u-plan-context .planning-line>div,#plansHub #unifiedPlans .u-plan-context .attention-row>div{flex:1 1 160px;min-width:0}
+/* @order 44045 */
+#plansHub #unifiedPlans .u-plan-context .planning-line b,#plansHub #unifiedPlans .u-plan-context .attention-row b{font-size:13px!important;line-height:1.6;overflow-wrap:anywhere}
+/* @order 44046 */
+#plansHub #unifiedPlans .u-plan-context button{font-size:12px!important;white-space:normal;padding:8px 11px!important;max-width:100%}
+/* @order 44047 */
+#plansHub #unifiedPlans .u-plan-context .row-actions{display:flex;flex-wrap:wrap;gap:8px}
+/* @order 44048 */
+#plansHub #unifiedPlans .u-plan-context .decision-panel-intro{display:flex;flex-direction:column;gap:12px;align-items:start}
+/* @order 44049 */
+#plansHub #unifiedPlans .u-plan-options{padding:22px 0;border-top:1px solid var(--line);background:transparent}
+/* @order 44050 */
+#plansHub #unifiedPlans .u-plan-options>h3{font-size:15px!important;margin:0 0 14px}
+/* @order 44051 */
+#plansHub #unifiedPlans .u-decision-pane{padding:24px!important;border:1px solid var(--line);border-radius:12px;background:var(--paper);min-width:0}
+/* @order 44052 */
+#plansHub #unifiedPlans .u-plan-tool-close{display:flex;justify-content:flex-end;margin-bottom:14px}
+/* @order 44053 */
+#plansHub #unifiedPlans .u-decision-pane #decisionsHub{padding:0!important;margin:0!important}
+/* @order 44054 */
+#plansHub #unifiedPlans .u-plan-empty{padding:24px 14px;color:var(--muted);font-size:14px}
+/* @order 44055 */
+#plansHub #unifiedPlans .u-decision-pane[hidden],#plansHub #unifiedPlans .u-plan-legacy[hidden],#plansHub #unifiedPlans #decisionsHub [hidden]{display:none!important}
+/* @order 44056 */
+@media(max-width:1100px){#plansHub #unifiedPlans.u-plans-approved{grid-template-columns:minmax(0,1fr)!important}#plansHub #unifiedPlans>.u-plan-inspector,#plansHub #unifiedPlans>.u-plans-list{grid-column:1!important}#plansHub #unifiedPlans .u-plan-inspector{padding:24px 0!important;border-left:0!important;border-top:1px solid var(--line)!important}#plansHub #unifiedPlans .u-plan-context{grid-template-columns:minmax(0,1fr)!important}#plansHub #unifiedPlans .u-plan-context>section{padding:0!important;border-right:0!important}#plansHub #unifiedPlans>.u-head{flex-wrap:wrap}}
+/* @order 44057 */
+@media(max-width:600px){#plansHub #unifiedPlans .u-plan-tools button{flex:1 1 140px}#plansHub #unifiedPlans .u-plan-tools small{margin:0}#plansHub #unifiedPlans .u-plan-values{grid-template-columns:minmax(0,1fr)}#plansHub #unifiedPlans .u-plan-current{font-size:29px!important}#plansHub #unifiedPlans .u-table{min-width:0!important}#plansHub #unifiedPlans .u-table th,#plansHub #unifiedPlans .u-table td{padding:14px 8px!important;font-size:12px!important}#plansHub #unifiedPlans .u-table th:first-child{width:40%}#plansHub #unifiedPlans .u-plan-list-heading{flex-wrap:wrap}#plansHub #unifiedPlans .u-plan-context{gap:28px}#plansHub #unifiedPlans .u-plan-inspector>.u-head{flex-wrap:wrap}}
+/* @order 44058 */
+#plansHub #unifiedPlans .u-plans-list .u-record-button{color:inherit!important;background:transparent!important;border:0!important;padding:0!important;font-weight:650}
+/* @order 44059 */
+#plansHub #unifiedPlans .u-plan-comparison{grid-column:1/-1!important;min-width:0;border-top:1px solid var(--line);padding-top:24px}
+/* @order 44060 */
+#plansHub #unifiedPlans .u-plan-comparison>.panel{border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;padding:0!important}
+/* @order 44061 */
+#plansHub #unifiedPlans .u-plan-comparison .planning-table{overflow:auto;max-width:100%}
+/* @order 44062 */
+#plansHub #unifiedPlans .u-plan-context .attention-row,#plansHub #unifiedPlans .u-plan-context .complete-content{background:transparent!important;box-shadow:none!important;border-radius:0!important}
+/* @order 44063 */
+#plansHub #unifiedPlans .u-plan-context [hidden]{display:none!important}

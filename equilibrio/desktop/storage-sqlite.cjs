@@ -358,6 +358,7 @@ function createSqliteStorage(userDataDir) {
   }
 
   function writeSpace(storageKey, ledgerRaw) {
+    const bridgeOwnTransaction = !db.isTransaction;
     const key = String(storageKey || '').trim();
     if (!key) throw new Error('Chave do Espaço Financeiro em falta.');
     const ledger = ledgerRaw && typeof ledgerRaw === 'object' && !Array.isArray(ledgerRaw)
@@ -366,7 +367,7 @@ function createSqliteStorage(userDataDir) {
     if (!ledger) throw new Error('Dados do Espaço Financeiro inválidos.');
     require('../casa-model.js').validate(ledger);
 
-    db.exec('BEGIN IMMEDIATE');
+    if(bridgeOwnTransaction) db.exec('BEGIN IMMEDIATE');
     try {
     let space = db.prepare('SELECT id,name FROM spaces WHERE storage_key = ?').get(key);
     if (!space?.id) {
@@ -421,7 +422,7 @@ function createSqliteStorage(userDataDir) {
       setMetaStmt.run('last_space_write_at', now);
       setMetaStmt.run('last_entity_write_at', now);
       setMetaStmt.run('last_write_at', now);
-      db.exec('COMMIT');
+      if(bridgeOwnTransaction) db.exec('COMMIT');
       return {
         ok: true,
         spaceId: space.id,
@@ -435,7 +436,7 @@ function createSqliteStorage(userDataDir) {
         },
       };
     } catch (error) {
-      try { db.exec('ROLLBACK'); } catch {}
+      try { if(bridgeOwnTransaction) db.exec('ROLLBACK'); } catch {}
       throw error;
     }
   }
@@ -780,6 +781,7 @@ function createSqliteStorage(userDataDir) {
 
   return {
     dbPath,
+    bridgeDatabase: db, // Isolated sync candidate: shares one SQLite transaction.
     legacyPath,
     readState,
     writeState,

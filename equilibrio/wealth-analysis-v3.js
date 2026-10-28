@@ -20,7 +20,6 @@
     header?.querySelector("h2")?.replaceChildren("O teu património, num só lugar.");
     header?.querySelector("p")?.replaceChildren("O que tens, o que deves e como evoluiu — numa única vista.");
     header?.querySelector(":scope > div")?.insertAdjacentHTML("afterbegin", '<span class="wa-v3-eyebrow">PATRIMÓNIO</span>');
-    header?.insertAdjacentHTML("beforeend", '<div class="wa-v3-head-actions"><button type="button" class="wa-v3-button main" data-wa-route="wealthMoneyHub">Abrir inventário</button></div>');
     const overview = document.createElement("div");
     overview.id = "wealthV3Overview";
     overview.className = "wa-v3-overview wealth-v3-overview";
@@ -42,7 +41,6 @@
     header?.querySelector("h2")?.replaceChildren("O teu dinheiro, com contexto.");
     header?.querySelector("p")?.replaceChildren("Tendências, revisão mensal e fecho no mesmo lugar.");
     header?.querySelector(":scope > div")?.insertAdjacentHTML("afterbegin", '<span class="wa-v3-eyebrow">ANÁLISES</span>');
-    header?.insertAdjacentHTML("beforeend", '<div class="wa-v3-head-actions"><button type="button" class="wa-v3-button" data-wa-action="export-report">Exportar relatório</button><button type="button" class="wa-v3-button main" data-wa-route="reports">Preparar fecho <span aria-hidden="true">→</span></button></div>');
     const overview = document.createElement("div");
     overview.id = "analysisV3Overview";
     overview.className = "wa-v3-overview analysis-v3-overview";

@@ -1,40 +1,27 @@
-(function(){
- 'use strict';
- let active=null,timer=0,recovering=false,failed=false;
- const native=window.financasDesktop;
- const storageKey=space=>'equilibrioDraft:'+space;
- function read(space){const v=native?.isDesktop?native.readDraft(space):JSON.parse(localStorage.getItem(storageKey(space))||'null');if(v?.error)throw Error(v.error);return v?ProductivityFinance.validateDraft(v):null;}
- function remove(space){const result=native?.isDesktop?native.removeDraft(space):(localStorage.removeItem(storageKey(space)),true);if(result?.error)throw Error(result.error);}
- function fields(){return [...document.querySelectorAll('#modalContent [name]')].filter(el=>['INPUT','SELECT','TEXTAREA'].includes(el.tagName)&&el.type!=='file'&&el.type!=='password').map(el=>({name:el.name,value:el.value,checked:el.checked===true}));}
- function flush(){clearTimeout(timer);if(!active||recovering||!document.getElementById('modal').open||!FormSession.status().dirty)return;
-  try{const value=ProductivityFinance.validateDraft({format:1,space:active.space,kind:active.kind,recordId:active.id,savedAt:new Date().toISOString(),fields:fields(),payload:active.capture()});const result=native?.isDesktop?native.writeDraft(active.space,value):(localStorage.setItem(storageKey(active.space),JSON.stringify(value)),true);if(result?.error)throw Error(result.error);failed=false;status('Rascunho guardado neste espaço.');return true;}catch(e){if(!failed)notice('Não foi possível guardar o rascunho: '+e.message,true);failed=true;status('Rascunho não guardado. Mantém o formulário aberto.');return false;}}
- function status(text){const el=document.getElementById('draftStatus');if(el)el.textContent=text;}
- function begin(kind,capture){active={kind,capture,space:key,id:crypto.randomUUID()};const el=document.createElement('p');el.id='draftStatus';el.className='muted';el.setAttribute('role','status');el.textContent='Rascunho local; ainda não altera saldos.';document.getElementById('modalContent').append(el);}
- function suspend(){flush();active=null;clearTimeout(timer);}
- function complete(token){try{if(token)remove(token.space);}catch(e){notice('A operação foi guardada, mas não foi possível retirar o rascunho antigo. Confere o registo antes de o recuperar.',true);}if(active===token)active=null;}
- function restoreFields(value){for(const f of value.fields){const el=[...document.querySelectorAll('#modalContent [name]')].find(e=>e.name===f.name);if(!el||el.type==='file')continue;el.value=f.value;if(el.type==='checkbox'||el.type==='radio')el.checked=f.checked;}
-  // Category dependencies must be rebuilt before restoring the saved children.
-  document.querySelector('#modalContent [name=category]')?.dispatchEvent(new Event('change',{bubbles:true}));
-  for(const f of value.fields){const el=[...document.querySelectorAll('#modalContent [name]')].find(e=>e.name===f.name);if(el&&el.type!=='file') {el.value=f.value;if(el.type==='checkbox'||el.type==='radio')el.checked=f.checked;}}
- }
- function recover(){try{const value=read(key);if(!value)return notice('Não há rascunho neste espaço.');if(document.getElementById('modal').open&&!FormSession.canLeave())return;if(value.recordId&&(data.transactions.some(t=>String(t.id)===value.recordId||t.importDraftId===value.recordId)||data.pendingImports.some(t=>t.importDraftId===value.recordId)||data.casa?.purchases.some(p=>p.id===value.recordId))){complete({space:key});return notice('Este rascunho já foi confirmado. O registo existente foi preservado.');}recovering=true;
-  if(value.kind==='mmex')throw Error('Este rascunho pertence ao importador retirado. Podes descartá-lo; os movimentos já guardados mantêm-se.');
-  if(value.kind==='movement'){const id=value.payload.id;if(id&&!data.transactions.some(t=>String(t.id)===String(id)))throw Error('O movimento do rascunho já não existe.');if(id&&JSON.stringify(data.transactions.find(t=>String(t.id)===String(id)))!==value.payload.base&&!confirm('O movimento mudou depois deste rascunho. Recuperar os campos para rever antes de guardar?'))return;transactionForm(id);restoreFields(value);document.getElementById('modal').movementDraft?.restore(value.payload.split);}
-  else if(value.kind==='csv'){openImportWizard(value.payload.text,value.payload.filename);restoreFields(value);document.querySelector('#modalContent [name=mode]')?.dispatchEvent(new Event('change',{bubbles:true}));restoreFields(value);document.querySelector('#modalContent select')?.dispatchEvent(new Event('change',{bubbles:true}));}
-  else if(value.kind==='importReview'){if(JSON.stringify(data.pendingImports)!==value.payload.base)throw Error('O lote mudou desde este rascunho. Revê os movimentos atuais antes de importar.');navigate('review');for(const f of value.fields){const split=f.name.indexOf(':'),kind=f.name.slice(0,split),id=f.name.slice(split+1),attr=({check:'data-import-check',category:'data-import-category',beneficiary:'data-import-beneficiary'})[kind];const el=[...document.querySelectorAll('['+attr+']')].find(el=>el.getAttribute(attr)===id);if(el){if(kind==='check'&&!el.disabled)el.checked=f.checked;else if(kind!=='check')el.value=f.value;el.dispatchEvent(new Event(kind==='check'?'change':'input',{bubbles:true}));}}updateImportSelection();return notice('Seleção e campos da revisão recuperados. Confirma o lote antes de importar.');}
-  else if(value.kind==='receipt'){const draft=structuredClone(value.payload.draft);draft.items=value.payload.items;let context;if(value.payload.context){const c=value.payload.context,values=new FormData();c.values.forEach(([n,v])=>values.append(n,v));const transaction=c.id?data.transactions.find(t=>String(t.id)===String(c.id)):null;if(c.id&&!transaction)throw Error('O movimento original já não existe.');context={values,transaction,splitDraft:c.splitDraft};}ReceiptUI.review(draft,value.payload.attachment,context);restoreFields(value);document.querySelector('#modalContent [name=receiptTotal]')?.dispatchEvent(new Event('input',{bubbles:true}));}
-  else if(value.kind==='casaReceipt'){CasaUI.reviewReceiptInCasa(value.payload.draft);restoreFields(value);document.querySelectorAll('[data-receipt-stock],[data-receipt-product]').forEach(el=>el.dispatchEvent(new Event('change',{bubbles:true})));restoreFields(value);document.querySelector('[name=casaReceiptTarget]')?.dispatchEvent(new Event('change',{bubbles:true}));document.querySelector('[name=casaReceiptTotal]')?.dispatchEvent(new Event('input',{bubbles:true}));}
-  if(active&&value.recordId)active.id=value.recordId;
-  document.querySelectorAll('[name=receiptConfirmed],[name=casaReceiptConfirmed]').forEach(el=>el.checked=false);
-  status('Rascunho recuperado. Confirma os campos antes de guardar.');
- }catch(e){notice(e.message,true);}finally{recovering=false;}}
- document.getElementById('modalContent').addEventListener('input',()=>{clearTimeout(timer);timer=setTimeout(flush,350);});
- document.getElementById('modalContent').addEventListener('change',()=>{clearTimeout(timer);timer=setTimeout(flush,150);});
- let reviewTimer=0;
- function saveReview(){if(recovering||document.getElementById('modal').open||!data.pendingImports.length)return;try{const fields=[];for(const [kind,attr]of [['check','data-import-check'],['category','data-import-category'],['beneficiary','data-import-beneficiary']])for(const el of document.querySelectorAll('['+attr+']'))fields.push({name:kind+':'+el.getAttribute(attr),value:el.value||'',checked:el.checked===true});if(!fields.length)return;const value=ProductivityFinance.validateDraft({format:1,space:key,kind:'importReview',recordId:crypto.randomUUID(),savedAt:new Date().toISOString(),fields,payload:{base:JSON.stringify(data.pendingImports)}});const result=native?.isDesktop?native.writeDraft(key,value):(localStorage.setItem(storageKey(key),JSON.stringify(value)),true);if(result?.error)throw Error(result.error);}catch(e){notice('Revisão não guardada como rascunho: '+e.message,true);}}
- for(const event of ['input','change'])document.addEventListener(event,e=>{if(e.target.matches('[data-import-check],[data-import-category],[data-import-beneficiary]')){clearTimeout(reviewTimer);const space=key;reviewTimer=setTimeout(()=>{if(key===space)saveReview();},350);}});
- document.getElementById('modal').addEventListener('close',()=>{if(!document.getElementById('modal').open){active=null;clearTimeout(timer);}});
- window.addEventListener('pagehide',flush);window.addEventListener('beforeunload',flush);document.addEventListener('visibilitychange',()=>{if(document.hidden)flush();});
- const button=document.createElement('button');button.type='button';button.id='recoverFormDraft';button.className='secondary';button.textContent='Recuperar rascunho';button.onclick=recover;document.querySelector('#transactions .movement-create-actions')?.append(button);
- window.DraftUI={begin,suspend,flush,saveReview,token:()=>active,complete,recover,discard:()=>{if(active)complete(active);}};
+/* Rascunhos automáticos desativados a pedido do utilizador (v1.0.9).
+ * Mantém a interface completa de window.DraftUI como no-op seguro para que
+ * todos os formulários, modais e o fecho da aplicação funcionem sem erros. */
+(function () {
+  'use strict';
+  const noop = () => {};
+  const removeBtn = () => {
+    const btn = document.getElementById('recoverFormDraft');
+    if (btn) btn.remove();
+  };
+  removeBtn();
+  window.DraftUI = Object.freeze({
+    enabled: false,
+    begin: noop,
+    suspend: noop,
+    flush: () => true,
+    saveReview: noop,
+    token: () => null,
+    complete: noop,
+    recover: noop,
+    discard: noop,
+    observeModal: noop,
+    clear: noop,
+    refresh: async () => {},
+    restore: async () => {},
+  });
 })();

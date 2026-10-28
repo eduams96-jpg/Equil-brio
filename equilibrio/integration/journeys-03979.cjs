@@ -26,7 +26,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
   const before=await page.evaluate(()=>JSON.stringify(data));const monthBefore=await page.evaluate(()=>month);
   const search=async(query,kind)=>{
    await page.locator('#inlineGlobalQuery').fill(query);
-   const results=page.locator('#inlineGlobalResults .search-result').filter({hasText:kind});assert.ok(await results.count(),kind+' missing');await results.first().click();
+   const results=page.locator('#inlineGlobalResults .search-result').filter({hasText:kind});await results.first().waitFor({state:'visible',timeout:5000});assert.ok(await results.count(),kind+' missing');await results.first().click();
   };
   await search('Cartão refeição','Conta');assert.match(await page.locator('.u-inspector').innerText(),/Cartão refeição/);
   await page.locator('#unifiedInventorySearch').fill('nenhum');await search('Viatura especial','Bem');assert.match(await page.locator('.u-inspector').innerText(),/Viatura especial/);

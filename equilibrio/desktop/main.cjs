@@ -70,10 +70,12 @@ const gotSingleInstanceLock = app.requestSingleInstanceLock();
 let sqliteStorage = null;
 let dataService = null;
 let sqliteInitError = null;
+let mobileRuntime = null;
 try {
   if (gotSingleInstanceLock) {
     sqliteStorage = createSqliteStorage(persistentUserData);
     dataService = createDataService(sqliteStorage);
+    mobileRuntime = require('./mobile-sync-runtime.cjs').createMobileRuntime(sqliteStorage,persistentUserData,{safeStorage:require('electron').safeStorage,onChange:spaceId=>{if(mainWindow&&!mainWindow.isDestroyed())mainWindow.webContents.send('equilibrio:mobile:changed',spaceId);}});
   }
 } catch (error) {
   sqliteInitError = error;
@@ -207,6 +209,7 @@ function writePersistentStorageSync(raw) {
 
 
 async function replacePersistentStorage(raw) {
+  mobileRuntime?.guardReplacement();
   const clean = sanitizeStorageMap(raw);
   if (sqliteStorage) sqliteStorage.writeState(clean);
   await writeJsonRecoveryMirror(clean);
@@ -219,6 +222,7 @@ async function replacePersistentStorage(raw) {
 }
 
 function replacePersistentStorageSync(raw) {
+  mobileRuntime?.guardReplacement();
   let sqliteCommitted = false;
   try {
     const clean = sanitizeStorageMap(raw);
@@ -445,7 +449,7 @@ function createWindow() {
     (async () => {
       let closeWindow = true;
       try {
-        const state = await mainWindow.webContents.executeJavaScript('({...window.FormSession?.status(),recoverable:Boolean(window.DraftUI?.token())})');
+        const state = await mainWindow.webContents.executeJavaScript('({...(typeof window.FormSession?.status==="function"?window.FormSession.status():{}),recoverable:Boolean(typeof window.DraftUI?.token==="function"?window.DraftUI.token():false)})');
         if (state.busy) {
           closeWindow = false;
           await dialog.showMessageBox(mainWindow, { type:'info', title:'Operação em curso', message:'Aguarda a conclusão da operação antes de fechar.', buttons:['Voltar à aplicação'] });
@@ -495,6 +499,20 @@ trustedIpc.on('financas:build-info', (event) => {
 for(const operation of ['read','write','remove'])trustedIpc.on('financas:draft:'+operation,(event,raw)=>{
   try{const store=draftStore(app.getPath('userData'));event.returnValue=operation==='write'?store.write(raw?.space,raw?.value):store[operation](raw);}
   catch(error){event.returnValue={error:error.message};}
+});
+trustedIpc.handle('equilibrio:mobile:action', async (_event,input={})=>{
+ if(!mobileRuntime)throw Error('A ligação não está disponível.');
+ if(['generate','certificate'].includes(input.type)){
+  const result=await mobileRuntime.action({type:input.type,host:input.host,port:input.port});const chosen=await dialog.showSaveDialog(mainWindow,{title:'Guardar certificado público para o Android',defaultPath:'Equilibrio-PC.cer',filters:[{name:'Certificado público',extensions:['cer']}]});if(!chosen.canceled){await fs.writeFile(chosen.filePath,result.caCert,'utf8');}return mobileRuntime.status();
+ }
+ if(input.type==='configure'){
+  const cert=await dialog.showOpenDialog(mainWindow,{title:'Certificado HTTPS deste PC',properties:['openFile'],filters:[{name:'Certificado PEM',extensions:['pem','crt']}]});if(cert.canceled)return mobileRuntime.status();
+  const key=await dialog.showOpenDialog(mainWindow,{title:'Chave privada do certificado',properties:['openFile'],filters:[{name:'Chave PEM',extensions:['pem','key']}]});if(key.canceled)return mobileRuntime.status();
+  const read=async file=>{const st=await fs.stat(file);if(!st.isFile()||st.size>1024*1024)throw Error('Ficheiro de certificado inválido.');return fs.readFile(file,'utf8');};
+  return mobileRuntime.action({type:'configure',host:input.host,port:input.port,cert:await read(cert.filePaths[0]),key:await read(key.filePaths[0])});
+ }
+ if(!['status','start','stop','approve','revoke'].includes(input.type))throw Error('Ação indisponível.');
+ return mobileRuntime.action(input);
 });
 trustedIpc.on('financas:storage:bootstrap', (event) => {
   event.returnValue = readPersistentStorageSync();
@@ -910,6 +928,8 @@ app.on('activate', () => {
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
 });
+let mobileQuitReady=false;
+app.on('before-quit', event=>{if(mobileRuntime&&!mobileQuitReady){event.preventDefault();mobileRuntime.close().finally(()=>{mobileQuitReady=true;app.quit();});}});
 app.on('will-quit', () => {
   if (sqliteStorage) { try { sqliteStorage.close(); } catch {} }
   if (localServer) {

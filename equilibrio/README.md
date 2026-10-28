@@ -1,3 +1,27 @@
+# Windows 1.0.10
+
+Revisão de avisos, interface, catálogo e prendas. Consultar DESKTOP-v1.0.10.md e AUDITORIA-v1.0.10.md.
+
+# Windows 1.0.8
+
+Preparação local de fotografias e revisão de faturas. Consultar DESKTOP-v1.0.8.md.
+
+# Windows 1.0.7
+
+Piloto opcional de associação entre Compras e Movimentos. Consultar DESKTOP-v1.0.7.md.
+
+# Windows 1.0.6
+
+Prendas, organização e correções. Consultar DESKTOP-v1.0.6.md.
+
+# Windows 1.0.3
+
+Correções e organização da Casa, subscrições, património e definições. Consultar DESKTOP-v1.0.3.md. Atualização por .fpupdate.
+
+# Atualização Windows 1.0.2
+
+Agenda anual corrigida, frequência «De dois em dois meses» e escolha de espaço em tema escuro. Aplicar o .fpupdate em Definições → Backup e Atualização; não é necessário reinstalar. Ver DESKTOP-v1.0.2.md. O instalador1.0.0 abaixo continua a servir para uma instalação inicial.
+
 # Equilíbrio 1.0
 
 Aplicação desktop de finanças pessoais e organização da Casa para Windows de 64 bits. SQLite é a fonte de verdade; os dados ficam fora da instalação, no perfil habitual do utilizador.

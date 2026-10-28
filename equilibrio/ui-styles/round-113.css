@@ -1,0 +1,116 @@
+/* @order 42000 */
+#noticesHub .notices-workbench{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(320px,1fr);gap:24px;align-items:start}
+/* @order 42001 */
+#noticesHub .notices-master{display:grid;gap:0;min-width:0;max-height:620px;overflow:auto;align-content:start}
+/* @order 42002 */
+#noticesHub .notice-list-item{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:7px 16px;text-align:left;padding:16px;border:0;border-bottom:1px solid var(--line);border-radius:0;background:transparent;color:var(--ink);min-width:0;width:100%;height:auto}
+/* @order 42003 */
+#noticesHub .notice-list-item.is-selected{background:color-mix(in srgb,var(--blue,#70c6ac) 12%,var(--paper))!important;box-shadow:inset 3px 0 var(--blue,#70c6ac)!important}
+/* @order 42004 */
+#noticesHub .notice-list-title{font-size:14px;font-weight:650;line-height:1.45;overflow-wrap:anywhere;min-width:0}
+/* @order 42005 */
+#noticesHub .notice-list-item small{font-size:12px;color:var(--muted);line-height:1.5;overflow-wrap:anywhere}
+/* @order 42006 */
+#noticesHub .notices-detail{min-width:0;position:sticky;top:100px}
+/* @order 42007 */
+#noticesHub .notices-detail .notice-card{grid-template-columns:40px minmax(0,1fr)!important;align-items:start!important;padding:20px!important;gap:16px!important;box-shadow:none}
+/* @order 42008 */
+#noticesHub .notices-detail .notice-card-icon{width:40px;height:40px;font-size:19px}
+/* @order 42009 */
+#noticesHub .notices-detail .notice-card-actions{grid-column:1/-1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;width:100%;padding-top:16px;border-top:1px solid var(--line)}
+/* @order 42010 */
+#noticesHub .notice-card-actions button{white-space:normal!important;min-width:0!important;width:100%;font-size:13px;line-height:1.4;height:auto;min-height:38px;justify-content:center}
+/* @order 42011 */
+#noticesHub .notices-kpi-card{padding:14px 20px!important;min-height:0!important}
+/* @order 42012 */
+#noticesHub .notices-sources-explainer{margin-top:24px}
+/* @order 42013 */
+#subscriptionsManagerDialog[open]{display:flex!important;flex-direction:column;height:min(860px,calc(100dvh - 32px));max-height:calc(100dvh - 32px)!important;overflow:hidden!important}
+/* @order 42014 */
+#subscriptionsManagerDialog .plan-manager-head{flex:0 0 auto}
+/* @order 42015 */
+#subscriptionsManagerDialog .u-sub-detail>*{flex-shrink:0;min-width:0}
+/* @order 42016 */
+#subscriptionsManagerDialog .u-sub-history-scroll{max-height:260px;overflow:auto;min-height:0}
+/* @order 42017 */
+#subscriptionsManagerDialog .u-sub-history-section h4{margin:0!important}
+/* @order 42018 */
+#casaPurchases .casa-purchases-toolbar{display:flex;justify-content:flex-start!important;align-items:flex-end!important;flex-wrap:wrap;gap:12px;width:100%;margin:0 0 20px!important}
+/* @order 42019 */
+#casaPurchases .casa-purchase-search{flex:0 1 440px!important;min-width:min(240px,100%);max-width:100%;margin:0!important}
+/* @order 42020 */
+.context-section-title{margin:0 0 22px;font-size:18px;line-height:1.4;font-weight:650;color:var(--ink)}
+/* @order 42021 */
+#plansHub .ex-detail{padding:24px;border:1px solid var(--line);border-radius:14px;margin-top:24px}
+/* @order 42022 */
+#plansHub .decisions-secondary-grid>.panel{background:var(--paper);border:1px solid var(--line)!important;border-radius:12px;padding:20px!important}
+/* @order 42023 */
+#plansHub .u-plan-legacy>#plansHubSections{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+/* @order 42024 */
+#plansHub .u-plan-legacy [data-plan-detail]{display:block;min-width:0;padding:20px!important;border:1px solid var(--line)!important;border-radius:12px!important;background:var(--paper)}
+/* @order 42025 */
+#wealthMoneyHub .inventory-diagnostic-head{display:block;padding:8px 0 18px}
+/* @order 42026 */
+#wealthMoneyHub .inventory-diagnostic-head h3{display:none}
+/* @order 42027 */
+#wealthMoneyHub .u-inventory-legacy>.inventory-diagnostic-nav{padding-bottom:16px;border-bottom:1px solid var(--line)}
+/* @order 42028 */
+#wealthMoneyHub .reconciliation-diagnostics-details{margin-top:24px;padding:20px;border:1px solid var(--line);border-radius:12px}
+/* @order 42029 */
+:is(#casaProducts,#casaStores,#casaPrices) .desk-workspace{grid-template-columns:minmax(0,1.25fr) minmax(340px,1fr)!important;gap:24px!important;align-items:start}
+/* @order 42030 */
+:is(#casaProducts,#casaStores,#casaPrices) .desk-inspector{padding:24px!important;min-width:0;overflow:visible!important}
+/* @order 42031 */
+:is(#casaProducts,#casaStores,#casaPrices) .desk-inspector-heading{padding:0 0 20px!important;margin:0 0 20px;border-bottom:1px solid var(--line)}
+/* @order 42032 */
+:is(#casaProducts,#casaStores,#casaPrices) .desk-inspector-heading h3{font-size:23px!important;line-height:1.4!important;margin:8px 0 0!important;overflow-wrap:anywhere}
+/* @order 42033 */
+:is(#casaProducts,#casaStores,#casaPrices) .desk-owned-content .casa-product-card,:is(#casaProducts,#casaStores) .desk-owned-content .casa-store-card{padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important;border-radius:0!important;min-height:0!important}
+/* @order 42034 */
+#casaProducts .desk-owned-content .product-title-button{font-size:13px!important;font-weight:500!important;color:var(--blue,#70c6ac);padding:10px 0!important;text-decoration:underline}
+/* @order 42035 */
+#casaProducts .desk-owned-content p:empty{display:none}
+/* @order 42036 */
+#casaProducts .catalog-offer{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;padding:16px;border:1px solid var(--line);border-radius:10px;align-items:start;min-width:0}
+/* @order 42037 */
+#casaProducts .catalog-offer>div{display:grid;gap:6px;min-width:0;overflow-wrap:anywhere}
+/* @order 42038 */
+#casaProducts .catalog-offer small{font-size:12px;color:var(--muted);line-height:1.5}
+/* @order 42039 */
+#casaProducts .catalog-offer.is-missing b{color:var(--warn,#daac53);font-size:13px}
+/* @order 42040 */
+#casaProducts .catalog-best{font-size:11px;color:var(--blue,#70c6ac);align-self:center}
+/* @order 42041 */
+:is(#casaProducts,#casaStores,#casaPrices) .desk-inspector .casa-actions{display:flex;gap:10px!important;flex-wrap:wrap;justify-content:flex-start;padding-top:18px;border-top:1px solid var(--line)}
+/* @order 42042 */
+#casaPrices .desk-owned-content .casa-card-grid{display:grid;grid-template-columns:minmax(0,1fr)!important;gap:18px}
+/* @order 42043 */
+#casaPrices .desk-owned-content .casa-product-card{padding-bottom:18px!important;border-bottom:1px solid var(--line)!important}
+/* @order 42044 */
+#casaStores .desk-supplement{margin-top:24px;padding-top:20px;border-top:1px solid var(--line)}
+/* @order 42045 */
+@media(max-width:1000px){#noticesHub .notices-workbench,:is(#casaProducts,#casaStores,#casaPrices) .desk-workspace{grid-template-columns:minmax(0,1fr)!important}#noticesHub .notices-detail{position:static}#noticesHub .notices-master{max-height:400px}#plansHub .u-plan-legacy>#plansHubSections{grid-template-columns:minmax(0,1fr)}}
+/* @order 42046 */
+@media(max-width:500px){#noticesHub .notice-list-item{grid-template-columns:minmax(0,1fr)}#noticesHub .notices-detail .notice-card{padding:14px!important}#noticesHub .notice-card-actions{grid-template-columns:minmax(0,1fr)!important}#casaProducts .catalog-offer{grid-template-columns:minmax(0,1fr)}#subscriptionsManagerDialog .u-sub-detail{padding:18px!important}}
+/* @order 42047 */
+#noticesHub .notices-hero-head{padding:0 0 12px!important;margin:0!important;min-height:0}
+/* @order 42048 */
+#noticesHub .notices-hero-head h2{display:block!important;font-size:28px!important;line-height:1.3;margin:0!important}
+/* @order 42049 */
+#noticesHub .notices-hero-head>div:first-child{display:block!important}
+
+/* @order 42050 */
+#wealthMoneyHub .u-inventory-grid{grid-template-areas:'list detail' 'history detail';align-items:start}
+/* @order 42051 */
+#wealthMoneyHub .u-inventory-grid>.u-inventory-list{grid-area:list}
+/* @order 42052 */
+#wealthMoneyHub .u-inventory-grid>.u-inspector{grid-area:detail}
+/* @order 42053 */
+#wealthMoneyHub .u-inventory-grid>.u-inventory-legacy{grid-area:history;margin:0!important;padding:20px!important;min-width:0}
+/* @order 42054 */
+#wealthMoneyHub .u-inventory-legacy>h2{margin:0 0 12px;font-size:19px}
+/* @order 42055 */
+@media(max-width:1000px){#wealthMoneyHub .u-inventory-grid{grid-template-areas:'list' 'detail' 'history'}}
+
+/* @order 42056 */
+body[data-theme=dark] #casaProducts .product-title-button,body[data-theme=dark] #casaProducts .catalog-best{color:#8cdec8!important}

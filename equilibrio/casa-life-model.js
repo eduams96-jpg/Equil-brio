@@ -53,7 +53,8 @@
  });}
  function syncPackaging(c,lot){const complete=typeof module==='object'&&module.exports?require('./casa-complete-model.js'):root.CasaComplete;complete?.syncPackaging(c,lot);}
  function policy(d,id,minimum,target){return base().change(d,draft=>{const p=draft.casa.catalog.find(p=>p.id===id);if(!p)throw Error('Produto não encontrado.');p.minimum=minimum;p.target=target;});}
- function prices(d,id){const c=base().state(d),p=c.catalog.find(p=>p.id===id);if(!p)throw Error('Produto não encontrado.');return Object.entries(p.offers).filter(([sid])=>c.stores.some(s=>s.id===sid&&!s.archived)).map(([storeId,o])=>({storeId,...o,per:o.price/o.packageQty})).sort((a,b)=>a.per-b.per);}
+ function prices(d,id){const c=base().state(d),p=c.catalog.find(p=>p.id===id);if(!p)throw Error('Produto não encontrado.');return Object.entries(p.offers).filter(([sid,o])=>c.stores.some(s=>s.id===sid&&!s.archived)&&Number(o?.price)>0).map(([storeId,o])=>({storeId,...o,per:o.price/o.packageQty})).sort((a,b)=>a.per-b.per);}
+ function missingPriceOffers(d,id){const c=base().state(d),p=c.catalog.find(p=>p.id===id);if(!p)return [];return Object.entries(p.offers||{}).filter(([sid,o])=>c.stores.some(s=>s.id===sid&&!s.archived)&&!(Number(o?.price)>0)).map(([storeId,o])=>({storeId,storeName:c.stores.find(s=>s.id===storeId)?.name||storeId,...o}));}
  function pending(c,id){return c.shopping.filter(s=>s.catalogId===id).reduce((sum,s)=>sum+units(s.requestedQty),0)/1000;}
  function suggestions(d){const c=base().state(d);return c.catalog.filter(p=>!p.archived&&p.minimum!==undefined&&available(c,p.id)<=p.minimum).map(p=>({catalogId:p.id,qty:Math.max(0,q(p.target-available(c,p.id)-pending(c,p.id)))})).filter(x=>x.qty>0);}
  function queueNeeds(d,needs){return base().change(d,(draft,F)=>{
@@ -82,6 +83,6 @@
   return [...missing].map(([catalogId,n])=>({catalogId,qty:Math.max(0,q(n/1000-pending(c,catalogId)))})).filter(n=>n.qty>0);
  }
 
- const api={validate,remaining,available,lot,record,policy,prices,pending,suggestions,queueNeeds,replenish,saveRecipe,plan,requirements,cookQuote,cook,planNeeds};
+ const api={validate,remaining,available,lot,record,policy,prices,missingPriceOffers,pending,suggestions,queueNeeds,replenish,saveRecipe,plan,requirements,cookQuote,cook,planNeeds};
  if(typeof module==='object'&&module.exports)module.exports=api;else root.CasaLife=Object.freeze(api);
 })(globalThis);

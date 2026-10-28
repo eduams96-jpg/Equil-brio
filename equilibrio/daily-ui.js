@@ -472,6 +472,7 @@
     });
     const empty = document.getElementById("dataInboxEmpty");
     if (empty) empty.hidden = visible !== 0;
+    window.UnifiedWorkspaceUI?.enhanceInbox?.();
     document.querySelectorAll("[data-inbox-filter]").forEach((button) =>
       button.classList.toggle("active", button.dataset.inboxFilter === inboxKindFilter),
     );
@@ -578,6 +579,7 @@
         '<div class="data-inbox-table"><div class="data-inbox-th"><span></span><span>Data</span><span>Descrição</span><span>Valor</span><span>Fonte</span><span>Estado</span><span>Sugestão</span><span>Ações</span></div><div id="dataInboxTableBody">' + rows + '</div><div id="dataInboxEmpty" class="data-table-empty" hidden>Nenhum item corresponde aos filtros escolhidos.</div></div></div></div>' +
       '<details class="data-deferred data-deferred-archive"><summary><span class="deferred-archive-icon" aria-hidden="true">↶</span><span class="data-deferred-copy"><b>Adiados e dispensados</b><small>' + esc(deferredCountLabel) + '</small></span><span class="data-deferred-count">' + deferred.length + '</span></summary><div class="deferred-archive-content">' + deferredHtml + '</div></details>';
     wireInboxView();
+    window.UnifiedWorkspaceUI?.enhanceInbox?.();
   }
   function render() {
     const inbox = Q.reviewInbox(data, month);
@@ -946,7 +948,7 @@
     const dayRows=host.querySelector('#agendaRows');dayRows.hidden=agendaLayout==='list';const sidebar=document.querySelector('.planner-agenda-sidebar');sidebar.querySelector('#agendaRows')?.remove();sidebar.prepend(dayRows);dayRows.classList.add('panel');
     let facts=document.querySelector('#agendaMonthFacts');if(!facts){facts=document.createElement('div');facts.id='agendaMonthFacts';}
     const metrics=document.querySelector('#agendaSummary');if(metrics)metrics.prepend(facts);
-    facts.innerHTML='<article class="panel approved-metric"><span>Por pagar</span><strong class="amount">'+eur(r.outgoing)+'</strong></article><article class="panel approved-metric"><span>Já registado</span><strong class="amount">'+eur(r.registered)+'</strong></article>';
+    facts.innerHTML='<article class="panel approved-metric"><span>Despesas por pagar</span><strong class="amount">'+eur(r.outgoing)+'</strong></article><article class="panel approved-metric"><span>Despesas registadas</span><strong class="amount">'+eur(r.registered)+'</strong></article>';
     let services=document.querySelector('#agendaMonthServices');if(!services){services=document.createElement('article');services.id='agendaMonthServices';services.className='panel';document.querySelector('.planner-agenda-grid').after(services);}
     const subscriptions=ExperienceFinance.agenda(data,schedule({includeCompletedGenerated:true}),month,'all').rows.filter(p=>p.source==='subscription'||p.subscriptionId);services.innerHTML='<div class="approved-card-heading"><h3>Subscrições do mês</h3><button type="button" class="secondary" id="agendaManageServices">Gerir subscrições</button></div><div class="table-wrap"><table><thead><tr><th>Serviço</th><th>Valor</th><th>Data de débito</th><th>Estado</th></tr></thead><tbody>'+subscriptions.slice(0,100).map(p=>'<tr><td><span class="provider-name">'+ProviderIcons.html(data.subscriptions.find(s=>s.id===p.subscriptionId)?.name||p.description)+esc(p.description)+'</span></td><td class="amount">'+eur(p.amount)+'</td><td>'+dateLabel(p.date)+'</td><td><span class="approved-state '+(done(p)?'confirmed':'pending')+'">'+(done(p)?'Registada':p.date<today?'Em atraso':'Prevista')+'</span></td></tr>').join('')+'</tbody></table></div>'+(!subscriptions.length?'<p class="empty-state">Sem cobranças com este filtro.</p>':'')+(subscriptions.length>100?'<p>Mostradas 100 de '+subscriptions.length+' cobranças. Usa a vista Lista para consultar as restantes.</p>':'');
     document.querySelector('#agendaManageServices').onclick=()=>PlanningManagerUI.openSubscriptions();window.UnifiedWorkspaceUI?.refreshAgenda();

@@ -309,6 +309,22 @@
     ]) for (const item of d[list] || []) add(kind, item.id, item.name || item.category, item.type || "", route);
     for (const p of d.casa?.purchases || []) add("Compra Casa", p.id, p.store,
       p.date, "casaPurchases", [p.receiptText || "", ...p.items.map(i => [i.name, i.sourceName, i.category].join(" "))].join(" "));
+    for (const e of d.practical?.equipment || []) {
+      add("Equipamento", e.id, e.name, [e.notes, e.warranty ? "Garantia " + e.warranty : ""].filter(Boolean).join(" "), "casaEquipment", [e.document?.name || "", e.document?.text || ""].join(" "));
+      if (e.document) add("Comprovativo", e.id, e.document.name, e.name + (e.purchaseDate ? " " + e.purchaseDate : ""), "documentsHub", e.document.text || "");
+    }
+    for (const r of d.practical?.routines || [])
+      add("Rotina", r.id, r.name, r.nextDate || "", "casaEquipment", [r.notes || "", ...(r.checklist || []).map(c => c.text)].join(" "));
+    for (const v of d.practical?.vehicles || []) {
+      add("Veículo", v.id, v.name, [v.plate, v.brandModel].filter(Boolean).join(" "), "casaVehicles", [v.notes || "", ...(v.maintenance || []).map(m => m.description), ...(v.documents || []).map(doc => [doc.title, doc.name, doc.text].join(" "))].join(" "));
+      for (const doc of v.documents || []) add("Comprovativo", doc.id, doc.title || doc.name, v.name + " " + (doc.date || ""), "documentsHub", [doc.name, doc.text || ""].join(" "));
+    }
+    for (const h of d.practical?.housing || []) {
+      add("Habitação", h.id, h.name, [h.address, h.reference].filter(Boolean).join(" "), "casaHousing", [h.notes || "", ...(h.documents || []).map(doc => [doc.title, doc.name, doc.text].join(" "))].join(" "));
+      for (const doc of h.documents || []) add("Comprovativo", doc.id, doc.title || doc.name, h.name + " " + (doc.date || ""), "documentsHub", [doc.name, doc.text || ""].join(" "));
+    }
+    for (const u of d.casa?.utilityReadings || [])
+      add("Consumo", u.id, ({ water: "Água", electricity: "Eletricidade", gas: "Gás" }[u.utility] || u.utility) + " · " + u.reading + " " + u.unit, u.date, "casaConsumos", [u.meterLabel || "", u.note || ""].join(" "));
     // Intercalar os tipos mantém resultados relevantes visíveis dentro do limite.
     const matches = [], lists = [...groups.values()];
     for (let i = 0; matches.length < 100 && lists.some(xs => i < xs.length); i++)

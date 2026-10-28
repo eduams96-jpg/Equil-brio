@@ -18,7 +18,7 @@
  function agenda(d,items,m,status='all'){
   const rows=items.filter(p=>p.date?.startsWith(m)),done=p=>p.agendaCompleted||p.source==='completed';
   const selected=rows.filter(p=>status==='all'||status==='completed'&&done(p)||status==='open'&&!done(p)||status==='overdue'&&!done(p)&&p.date<F.today());
-  return{rows:selected,open:rows.filter(p=>!done(p)),completed:rows.filter(done),outgoing:F.money(rows.filter(p=>!done(p)&&p.type!=='income').reduce((n,p)=>n+Number(p.amount||0),0)),registered:F.money(rows.filter(p=>done(p)&&p.type!=='income').reduce((n,p)=>n+Number(p.amount||0),0))};
+  return{rows:selected,open:rows.filter(p=>!done(p)),completed:rows.filter(done),outgoing:F.money(rows.filter(p=>!done(p)&&p.type==='expense').reduce((n,p)=>n+Number(p.amount||0),0)),registered:F.money(rows.filter(p=>done(p)&&p.type==='expense').reduce((n,p)=>n+Number(p.amount||0),0))};
  }
  const api={shift,analysis,agenda};root.ExperienceFinance=api;if(typeof module==='object')module.exports=api;
 })(typeof globalThis!=='undefined'?globalThis:this);

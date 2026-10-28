@@ -233,7 +233,7 @@
       panel(
         "1. O que mais pesou",
         (categoryTotals.length ? '<div class="review-category-top">' + categoryTotals.slice(0, 5).map(([name, value]) => `<div><span>${esc(name)}</span><b>${eur(value)}</b><small>${totals.expense ? Math.round((value / totals.expense) * 100) : 0}% das despesas</small></div>`).join("") + '</div>' : '<p>Ainda não existem despesas neste mês.</p>') +
-          b("Ver análises", "life-navigate", "insights"),
+          b("Ver análises", "life-navigate", "reports"),
       ) +
       panel(
         "2. Resolver pendências",

@@ -85,7 +85,7 @@ test('Ed25519: rollback restaura a versão anterior após corrupção do staging
   const baseResolved = path.resolve(base);
   const tempRoot = path.resolve(os.tmpdir()) + path.sep;
   if (!baseResolved.startsWith(tempRoot)) throw new Error('Pasta de teste fora da área temporária.');
-  t.after(() => fs.rmSync(baseResolved, { recursive: true, force: true }));
+  t.after(() => fs.rmSync(baseResolved, { recursive: true, force: true, maxRetries: 30, retryDelay: 100 }));
   const appPath = path.join(baseResolved, 'app');
   const userDataPath = path.join(baseResolved, 'data');
   fs.mkdirSync(path.join(appPath, 'desktop'), { recursive: true });

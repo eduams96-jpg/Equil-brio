@@ -385,21 +385,25 @@
           <div class="welcome-spaces" role="radiogroup" aria-label="Espaços financeiros">
             ${spaces.map((space, index) => `<label class="welcome-space"><input type="radio" name="welcomeSpace" value="${esc(space.id)}" ${space.id === active || (!active && index === 0) ? "checked" : ""}><span class="welcome-avatar" aria-hidden="true">${esc(String(space.name || "E").charAt(0).toUpperCase())}</span><span class="welcome-space-copy"><strong>${esc(space.name)}</strong><small>${space.id === active ? "Espaço aberto agora" : "Dados separados"}</small></span><span class="welcome-selected" aria-hidden="true">✓</span></label>`).join("")}
           </div>
-          <label class="welcome-privacy"><input id="welcomeHideValues" type="checkbox" ${document.body.classList.contains("private-values")?"checked":""}><span>Entrar com os valores ocultos</span></label><div class="welcome-actions"><button type="button" class="primary" id="welcomeContinue">Entrar no espaço <span aria-hidden="true">→</span></button><button type="button" class="secondary" id="welcomeCreate">+ Criar espaço</button></div>
+          <label class="welcome-privacy"><input id="welcomeShowTips" type="checkbox" ${data.practical?.entryTips?"checked":""}><span>Mostrar dicas ao entrar neste espaço</span></label><label class="welcome-privacy"><input id="welcomeHideValues" type="checkbox" ${document.body.classList.contains("private-values")?"checked":""}><span>Entrar com os valores ocultos</span></label><div class="welcome-actions"><button type="button" class="primary" id="welcomeContinue">Entrar no espaço <span aria-hidden="true">→</span></button><button type="button" class="secondary" id="welcomeCreate">+ Criar espaço</button></div>
           ${!window.equilibrioStartup?.awaitingChoice && (setupAvailable() || readProgress()) ? `<button type="button" class="welcome-configure" id="welcomeStartSetup">${readProgress() ? "Retomar primeira configuração" : "Preparar os meus dados e importar extrato"}</button>` : ""}
           ${window.equilibrioStartup?.awaitingChoice ? "" : `<button type="button" class="welcome-configure" id="welcomeConfigure">${data.isDemo ? "Configurar os meus dados reais" : "Gerir os espaços nas Definições"}</button>`}
           <p class="welcome-preference">Escolhe o espaço ao iniciar. Os dados só são apresentados depois de entrares.</p>
         </div>
       </div>`;
     dialog.querySelector("#welcomeClose")?.addEventListener("click", close);
+    for(const radio of dialog.querySelectorAll('[name=welcomeSpace]'))radio.addEventListener('change',()=>{const selected=LifeUI.readSpace(radio.value);dialog.querySelector('#welcomeShowTips').checked=selected?.practical?.entryTips===true;});
     dialog.querySelector("#welcomeContinue").onclick = () => {
       const selected = dialog.querySelector('[name="welcomeSpace"]:checked')?.value;
       try {
         if (!selected || !window.LifeUI.spaces().some(space => space.id === selected)) throw Error("Escolhe um espaço financeiro válido.");
         if (selected !== currentSpace()) window.LifeUI.switchSpace(selected);
         const hide=dialog.querySelector("#welcomeHideValues").checked;if(hide!==document.body.classList.contains("private-values"))document.getElementById("privacyToggle").click();
+        const tips=dialog.querySelector('#welcomeShowTips').checked;
+        if(tips!==(data.practical?.entryTips===true)){const saved=commit(()=>{data.practical=PracticalFinance.state(data);data.practical.entryTips=tips;},'Preferência de dicas guardada.');if(saved===false)return;}
         startupEntryAuthorized = true;
         close();
+        if(tips)EntryTipsUI.start();
       } catch (error) { notice(error.message || "Não foi possível abrir o espaço.", true); }
     };
     dialog.querySelector("#welcomeCreate").onclick = () => {

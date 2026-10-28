@@ -237,7 +237,7 @@
 /* @order 8221 */
 #subscriptionsManagerDialog .plan-manager-head { display:flex;align-items:center;gap:16px;padding:22px 26px; }
 /* @order 8222 */
-#subscriptionsManagerDialog .plan-manager-head>div { flex:1; }
+#subscriptionsManagerDialog .plan-manager-head>div:not(.u-sub-head-filters) { flex:1; }
 /* @order 8223 */
 #subscriptionsManagerDialog .plan-manager-body { padding:0; }
 /* @order 8224 */

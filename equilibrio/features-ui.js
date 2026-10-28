@@ -6,6 +6,7 @@
     freq = {
       weekly: "Semanal",
       monthly: "Mensal",
+      bimonthly: "De dois em dois meses",
       quarterly: "Trimestral",
       yearly: "Anual",
     };
@@ -560,7 +561,8 @@
           if (f.has("linkHistory")) {
             const from = f.get("historyFrom");
             if (!F.validDate(from) || from > F.today()) throw Error("Escolhe uma data válida para procurar o histórico.");
-            if (from < next.start) next.start = (next.frequency || "monthly") === "weekly" ? from : F.dateAt(from.slice(0, 7), next.day);
+            const selectedDates = data.transactions.filter(t => selectedHistoryIds.includes(String(t.id))).map(t => t.date).filter(F.validDate).sort();
+            if (selectedDates.length && selectedDates[0] < next.start) next.start = F.recurringHistoryStart(next, selectedDates[0]);
           }
           data.recurring.push(next);
           if (f.has("linkHistory")) {
@@ -579,6 +581,8 @@
         ? "Estás a editar a série. As ocorrências já registadas mantêm-se no histórico; para antecipar ou adiar apenas um mês usa “Ajustar ocorrência” diretamente na Agenda."
         : "Para despesas variáveis podes usar uma estimativa fixa ou a média dos últimos meses. A Agenda mostra o previsto e, ao confirmar, podes substituir pelo valor real. O histórico real alimenta as previsões seguintes.",
     );
+    const recurringStart = document.querySelector('#modal [name="start"]'), recurringDay = document.querySelector('#modal [name="day"]');
+    recurringStart?.addEventListener('change', () => { if (F.validDate(recurringStart.value) && recurringDay) recurringDay.value = Number(recurringStart.value.slice(8)); });
     bindCategorySplits(r || {type:salaryPreset ? 'income' : 'expense',amount:0,category:'Outros'});
     const recurringCategory = document.querySelector("#modal [name=category]"),
       recurringSubcategory = document.querySelector("#modal [name=subcategory]"),
@@ -1414,7 +1418,7 @@
   function managerDialog(id,title,hint) {
     const dialog=document.createElement('dialog');dialog.id=id;dialog.className='plan-manager-dialog practical-manager';
     dialog.setAttribute('aria-labelledby',id+'Title');
-    dialog.innerHTML='<div class="plan-manager-shell"><header class="plan-manager-head"><div><h2 id="'+id+'Title">'+title+'</h2><p>'+hint+'</p></div><button type="button" class="plan-manager-close" aria-label="Fechar '+title.toLowerCase()+'">×</button></header><div class="plan-manager-body"></div></div>';
+    dialog.innerHTML='<div class="plan-manager-shell"><header class="plan-manager-head"><div><h2 id="'+id+'Title">'+title+'</h2><p>'+hint+'</p></div><button type="button" class="plan-manager-close manager-close-light" aria-label="Fechar '+title.toLowerCase()+'">×</button></header><div class="plan-manager-body"></div></div>';
     dialog.querySelector('button').onclick=()=>dialog.close();document.body.append(dialog);return dialog;
   }
   const subscriptionsManager=managerDialog('subscriptionsManagerDialog','Gerir subscrições','Serviços, cobranças e utilização. Edita cada serviço através do menu ⋯.');
@@ -1423,7 +1427,7 @@
   historyManager.querySelector('.plan-manager-body').append(document.getElementById('activity'));
   function openSubscriptionsManager(){mountUnifiedSections();if(!subscriptionsManager.open)subscriptionsManager.showModal();}
   function openHistoryManager(){window.FeatureUI.renderRecovery();if(!historyManager.open)historyManager.showModal();}
-  window.PlanningManagerUI=Object.freeze({openSubscriptions:openSubscriptionsManager,openHistory:openHistoryManager});
+  window.PlanningManagerUI=Object.freeze({openSubscriptions:openSubscriptionsManager,openHistory:openHistoryManager,openPlan:openPlanManager});
   const historyButton=document.createElement('button');historyButton.type='button';historyButton.id='openMovementHistory';historyButton.className='secondary';historyButton.textContent='Histórico e recuperação';historyButton.onclick=openHistoryManager;
   document.querySelector('#transactions .movement-create-actions')?.append(historyButton);
   // A lista mensal fecha a página, depois do contexto das subscrições.
@@ -1657,7 +1661,7 @@
     for (const [id] of planDetails) {
       const detail = plansHub.querySelector('[data-plan-detail="' + id + '"]');
       const count = id === "goals" ? (data.goals || []).length : id === "budgets" ? (data.budgets || []).length : (data.reserves || []).length;
-      detail.querySelector("summary b").textContent = id === "goals" ? `Objetivos · ${count}` : id === "budgets" ? `Orçamentos · ${count}` : `Reservas · ${count}`;
+      detail.querySelector("summary b, .context-section-title b").textContent = id === "goals" ? `Objetivos · ${count}` : id === "budgets" ? `Orçamentos · ${count}` : `Reservas · ${count}`;
     }
   }
   let renderingOverview = false;
@@ -2244,46 +2248,57 @@
     }).catch(() => { if (revision === folderRevision) { status = "Não foi possível recuperar a pasta guardada. Escolhe a pasta para retomar."; show(); } });
   }
   const historyPanel = document.createElement("section");
-  historyPanel.className = "panel";
+  historyPanel.className = "panel reconciliation-history-panel";
   historyPanel.id = "reconciliationHistory";
   $("#accounts").append(historyPanel);
   const prior = window.PremiumUI.render;
   window.PremiumUI.render = () => {
     prior();
+    const list = (data.reconciliations || []).slice().reverse();
+    const matchCount = list.filter((r) => !r.difference).length;
+    const diffCount = list.length - matchCount;
     historyPanel.innerHTML =
-      "<h2>Conferências de extrato</h2><p>Registos preservados no momento da conferência. Alterações posteriores podem mudar o saldo reconstruído.</p>" +
-      data.reconciliations
-        .slice()
-        .reverse()
-        .map((r) => {
-          let current;
-          try {
-            current = FinancePlus.balanceAt(data, r.accountId, r.date);
-          } catch {}
-          return (
-            '<div class="attention-row"><div><b>' +
-            esc(r.accountName) +
-            " · " +
-            dateLabel(r.date) +
-            "</b><p>Extrato: " +
-            eur(r.actual) +
-            " · Calculado na conferência: " +
-            eur(r.expected) +
-            " · Diferença: " +
-            eur(r.difference) +
-            "</p><p>" +
-            (r.adjusted
-              ? "Ajuste criado"
-              : r.difference
-                ? "Diferença registada sem ajuste"
-                : "Saldos coincidentes") +
-            (current !== undefined
-              ? " · Diferença atual: " + eur(F.money(r.actual - current))
-              : " · Conta indisponível") +
-            "</p></div></div>"
-          );
-        })
-        .join("");
+      '<div class="u-head reconciliation-head">' +
+        '<div><p class="eyebrow">HISTÓRICO DE AUDITORIA</p><h2>Conferências de extrato</h2>' +
+        '<p>Registos preservados no momento da conferência bancária. Alterações posteriores mostram a eventual diferença face ao saldo reconstruído.</p></div>' +
+        '<div class="reconciliation-summary-pills">' +
+          '<span class="reconcile-pill"><b>' + list.length + '</b> conferência(s)</span>' +
+          '<span class="reconcile-pill is-ok"><b>' + matchCount + '</b> coincidente(s)</span>' +
+          (diffCount ? '<span class="reconcile-pill is-warn"><b>' + diffCount + '</b> com diferença</span>' : '') +
+        '</div>' +
+      '</div>' +
+      (list.length
+        ? '<div class="u-table-scroll"><table class="u-table reconciliation-history-table"><thead><tr><th>Conta e data</th><th>Saldo no extrato</th><th>Calculado na conferência</th><th>Diferença na data</th><th>Estado atual</th></tr></thead><tbody>' +
+          list
+            .map((r) => {
+              let current;
+              try {
+                current = FinancePlus.balanceAt(data, r.accountId, r.date);
+              } catch {}
+              const curDiff = current !== undefined ? F.money(r.actual - current) : null;
+              const statusBadge = r.adjusted
+                ? '<span class="reconcile-badge is-adjusted">Ajuste criado</span>'
+                : r.difference
+                  ? '<span class="reconcile-badge is-warn">Diferença sem ajuste</span>'
+                  : '<span class="reconcile-badge is-ok">Saldos coincidentes</span>';
+              return (
+                '<tr class="reconciliation-history-row">' +
+                  '<td><b>' + esc(r.accountName) + '</b><br><small class="muted">' + dateLabel(r.date) + '</small></td>' +
+                  '<td class="amount"><b>' + eur(r.actual) + '</b></td>' +
+                  '<td class="amount">' + eur(r.expected) + '</td>' +
+                  '<td class="amount ' + (r.difference ? 'negative' : '') + '">' + eur(r.difference) + '</td>' +
+                  '<td><div class="reconcile-state-cell">' + statusBadge +
+                    '<small class="muted">' +
+                      (curDiff !== null
+                        ? (curDiff === 0 ? 'Saldo reconstruído coincide (0,00 €)' : 'Diferença atual: ' + eur(curDiff))
+                        : 'Conta indisponível') +
+                    '</small></div></td>' +
+                '</tr>'
+              );
+            })
+            .join("") +
+          '</tbody></table></div>'
+        : '<div class="reconciliation-empty"><p class="muted">Ainda não existem conferências de extrato registadas neste espaço financeiro.</p></div>');
   };
   if (!window.equilibrioStartup?.awaitingChoice) window.PremiumUI.render();
 })();

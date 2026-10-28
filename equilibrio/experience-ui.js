@@ -23,7 +23,7 @@
    inputs.append(sim.querySelector('.simulator-fields'),sim.querySelector('.simulator-actions'));columns.append(inputs,sim.querySelector('#simulationResult'));sim.append(columns);
    const action=document.createElement('button');action.type='button';action.className='secondary';action.dataset.exCommit='true';action.textContent='Transformar em compromisso…';inputs.append(action);
   }
-  const grid=host.querySelector('.decisions-secondary-grid');if(grid&&!grid.closest('details')){const d=document.createElement('details');d.className='ex-detail';d.innerHTML='<summary>Cenários guardados, despesas sazonais e decisões anteriores</summary>';grid.before(d);d.append(grid);}
+  const grid=host.querySelector('.decisions-secondary-grid');if(grid&&!grid.closest('.ex-detail')){const d=document.createElement('section');d.className='ex-detail';d.innerHTML='<h3 class="context-section-title">Cenários guardados, despesas sazonais e decisões anteriores</h3>';grid.before(d);d.append(grid);}
  }
  function review(){
   const host=document.querySelector('#weeklyHub');if(!host)return;

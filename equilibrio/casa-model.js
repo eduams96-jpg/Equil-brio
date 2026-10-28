@@ -25,6 +25,12 @@
       return;
     }
     const c = state(d), F = finance();
+    const pilot=typeof module==='object'&&module.exports?require('./casa-finance-pilot-model.js'):root.CasaFinancePilot;
+    if((d.casa.financeLinks!==undefined||d.casa.financePilotEnabled!==undefined)&&!pilot)throw Error("Falta o módulo do piloto Casa.");
+    pilot?.validate(d);
+    const dossiers=typeof module==='object'&&module.exports?require('./dossiers-model.js'):root.DossiersFinance;
+    if(d.casa.utilityReadings!==undefined&&!dossiers)throw Error("Falta o módulo de consumos da Casa.");
+    dossiers?.validate(d);
     const productsById=new Map(c.catalog.map(p=>[p.id,p])), storesById=new Map(c.stores.map(s=>[s.id,s])), purchasesById=new Map(c.purchases.map(p=>[p.id,p])), transactionsById=new Map((d.transactions||[]).map(t=>[t.id,t]));
     if (!d.casa || typeof d.casa!=='object' || Array.isArray(d.casa) || ![1,2,3,4].includes(d.casa.version) || !Array.isArray(d.casa.purchases) || !Array.isArray(d.casa.shopping) || !['purchases','shopping','catalog','stores','stock'].every(k=>Array.isArray(c[k]))) throw Error('Dados Casa inválidos ou de uma versão não suportada.');
     for (const rows of [c.purchases, c.shopping,c.catalog,c.stores,c.stock]) {
@@ -41,7 +47,8 @@
     }
     for(const p of c.catalog){
       if(!validUnit(p.unit)||typeof p.category!=='string'||p.category.length>400||!p.offers||typeof p.offers!=='object'||Array.isArray(p.offers))throw Error('Produto inválido.');
-      for(const [storeId,o] of Object.entries(p.offers))if(!storesById.has(storeId)||!o||!quantity(o.packageQty)||!Number.isFinite(o.price)||o.price<=0||F.money(o.price)!==o.price||!Number.isSafeInteger(F.cents(o.price)))throw Error('Embalagem ou preço de supermercado inválido.');
+      for(const o of Object.values(p.offers))if(o?.url!==undefined)productUrl(o.url);
+      for(const [storeId,o] of Object.entries(p.offers))if(!storesById.has(storeId)||!o||!quantity(o.packageQty)||!Number.isFinite(o.price)||o.price<0||F.money(o.price)!==o.price||!Number.isSafeInteger(F.cents(o.price)))throw Error('Embalagem ou preço de supermercado inválido.');
     }
     for (const p of c.purchases) {
       if(p.preservedPayment!==undefined){
@@ -186,7 +193,7 @@
           throw Error('A quantidade ou o preço do artigo excede o limite permitido.');
         const previous = product.offers[store.id];
         if (!previous || previous.price !== price || previous.packageQty !== packageQty) {
-          product.offers[store.id] = {packageQty,price,date:input.date};
+          product.offers[store.id] = {...previous,packageQty,price,date:input.date};
           c.priceHistory.push({id:F.id(),catalogId:product.id,storeId:store.id,packageQty,price,date:input.date,source:'fatura confirmada'});
         }
         items.push({name,category:productCategory,catalogId:product.id,unit,requestedQty:qty,packages,packageQty,qty,price,total,...(raw.sourceName?{sourceName:raw.sourceName}:{})});
@@ -263,21 +270,188 @@
     for(const row of rows){
       if(!row||typeof row!=="object"||typeof row.storeName!=="string")throw Error("Preços por supermercado inválidos.");
       const name=String(row.storeName||'').trim(),key=nameKey(name);
-      if(!name||name.length>160||seen.has(key)||!quantity(row.packageQty)||!Number.isFinite(row.price)||row.price<=0||F.money(row.price)!==row.price||!Number.isSafeInteger(F.cents(row.price)))throw Error('Confirma loja, quantidade e preço; não repitas supermercados.');
+      const pkgQty=(row.packageQty===''||row.packageQty===null||row.packageQty===undefined)?1:Number(row.packageQty);
+      const price=(row.price===''||row.price===null||row.price===undefined)?0:Number(row.price);
+      if(!name||name.length>160||seen.has(key)||!quantity(pkgQty)||!Number.isFinite(price)||price<0||F.money(price)!==price||!Number.isSafeInteger(F.cents(price)))throw Error('Confirma loja, quantidade e preço; não repitas supermercados.');
       seen.add(key);let store=draft.casa.stores.find(s=>nameKey(s.name)===key);
       if(store?.archived)throw Error('O supermercado '+name+' está arquivado. Reativa-o em Supermercados.');
       if(!store){store={id:F.id(),name,archived:false};draft.casa.stores.push(store);}
-      const old=product.offers[store.id];if(old&&old.packageQty===row.packageQty&&old.price===row.price)continue;
-      product.offers[store.id]={packageQty:row.packageQty,price:row.price,date:F.today()};
-      draft.casa.priceHistory.push({id:F.id(),catalogId:id,storeId:store.id,packageQty:row.packageQty,price:row.price,date:F.today(),source:'manual'});
+      writeOffer(draft,F,product,store.id,{...row,packageQty:pkgQty,price});
     }
     return id;
   });}
+  function writeOffer(draft,F,product,storeId,input){
+    const pkgQty=(input.packageQty===''||input.packageQty===null||input.packageQty===undefined)?(product.offers[storeId]?.packageQty||1):Number(input.packageQty);
+    const numPrice=(input.price===''||input.price===null||input.price===undefined)?0:Number(input.price);
+    const old=product.offers[storeId],url=productUrl(input.url??old?.url),priceChanged=!old||old.packageQty!==pkgQty||old.price!==numPrice;
+    product.offers[storeId]={...old,packageQty:pkgQty,price:numPrice,date:priceChanged?F.today():old.date,url};
+    if(priceChanged&&numPrice>0)draft.casa.priceHistory.push({id:F.id(),catalogId:product.id,storeId,packageQty:pkgQty,price:numPrice,date:F.today(),source:'manual'});
+  }
+  function parseUnitSpec(raw, fallbackUnit = 'un') {
+    const str = String(raw ?? '').replace(/\u00a0|\u202f/g,' ').trim();
+    if (!str) return { qty: 1, unit: validUnit(fallbackUnit) ? fallbackUnit : 'un' };
+    const pack=str.match(/^([0-9]+)\s*[x×]\s*(.+)$/i);
+    if(pack){const count=Number(pack[1]),item=parseUnitSpec(pack[2],fallbackUnit),qty=Math.round(count*item.qty*1000)/1000;if(!Number.isSafeInteger(count)||count<1||!quantity(qty))throw Error('Confirma o número de embalagens e a quantidade.');return{qty,unit:item.unit};}
+    const m = str.match(/^([0-9]+(?:[.,][0-9]+)?)\s*([a-zA-ZÀ-ÿ]+)?$/);
+    if(!m)throw Error('Indica uma embalagem válida, por exemplo 750 ml ou 1 kg.');
+    const qty = Math.round(Number(m[1].replace(',', '.')) * 1000) / 1000;
+    const rawU = String(m[2] || fallbackUnit || 'un').trim();
+    const uLower = rawU.toLowerCase();
+    const unitMap = {
+      u: 'un', un: 'un', unid: 'un', unidade: 'un', unidades: 'un',
+      kg: 'kg', quilo: 'kg', quilos: 'kg',
+      g: 'g', gr: 'g', grama: 'g', gramas: 'g',
+      l: 'L', lt: 'L', litro: 'L', litros: 'L',
+      ml: 'ml', mililitro: 'ml', mililitros: 'ml',
+      cl: 'cl', centilitro: 'cl', centilitros: 'cl',
+      pack: 'pack', packs: 'pack',
+      caixa: 'caixa', caixas: 'caixa',
+      garrafa: 'garrafa', garrafas: 'garrafa',
+      lata: 'lata', latas: 'lata',
+      frasco: 'frasco', frascos: 'frasco',
+      saco: 'saco', sacos: 'saco',
+      dose: 'dose', doses: 'dose',
+      rolo: 'rolo', rolos: 'rolo',
+      par: 'par', pares: 'par',
+      m: 'm', metro: 'm', metros: 'm'
+    };
+    const unit=unitMap[uLower]||(validUnit(rawU)?rawU:null);if(!unit||!quantity(qty))throw Error('Confirma a unidade e a quantidade da embalagem.');
+    return {qty,unit};
+  }
+  function convertCompatibleQty(qty, fromUnit, toUnit) {
+    if (fromUnit === toUnit) return qty;
+    const scale={L:['volume',1000],cl:['volume',10],ml:['volume',1],kg:['mass',1000],g:['mass',1]};
+    if(scale[fromUnit]&&scale[toUnit]&&scale[fromUnit][0]===scale[toUnit][0])return Math.round(qty*scale[fromUnit][1]/scale[toUnit][1]*1000)/1000;
+    if (fromUnit === 'L' && toUnit === 'ml') return Math.round(qty * 1000 * 1000) / 1000;
+    if (fromUnit === 'ml' && toUnit === 'L') return Math.round((qty / 1000) * 1000) / 1000;
+    if (fromUnit === 'cl' && toUnit === 'ml') return Math.round(qty * 10 * 1000) / 1000;
+    if (fromUnit === 'ml' && toUnit === 'cl') return Math.round((qty / 10) * 1000) / 1000;
+    if (fromUnit === 'kg' && toUnit === 'g') return Math.round(qty * 1000 * 1000) / 1000;
+    if (fromUnit === 'g' && toUnit === 'kg') return Math.round((qty / 1000) * 1000) / 1000;
+    return null;
+  }
+  function parseMoneyValue(raw){
+    if(raw===null||raw===undefined||String(raw).trim()==='')return 0;
+    let clean=String(raw).trim().replace(/€|EUR/gi,'').replace(/\s/g,'');if(clean.includes(','))clean=clean.replace(/\./g,'').replace(',','.');
+    if(!/^[0-9]+(?:\.[0-9]+)?$/.test(clean)||!Number.isFinite(Number(clean)))throw Error('Preço inválido na tabela.');return Math.round(Number(clean)*100)/100;
+  }
+  function importCatalogTable(d, rawRows, options = {}) {
+    if (!Array.isArray(rawRows) || !rawRows.length || rawRows.length>5000) throw Error('Indica pelo menos uma linha de produto para importar.');
+    return change(d, (draft, F) => {
+      const groups = new Map();
+      for (const raw of rawRows) {
+        if (!raw || typeof raw !== 'object') continue;
+        const name = String(raw.name || raw.product || raw.produto || '').trim();
+        if (!name || /^produto$/i.test(name)) continue;
+        const key = nameKey(name);
+        if (!groups.has(key)) groups.set(key, { name, rows: [] });
+        groups.get(key).rows.push(raw);
+      }
+      if (!groups.size) throw Error('Nenhum produto válido encontrado na tabela.');
+      let productsCreated = 0, productsUpdated = 0, storesCreated = 0, offersSaved = 0, missingPriceCount = 0, stockLotsUpdated = 0;
+
+      for (const [, group] of groups) {
+        const parsedRows = group.rows.map(r => {
+          let spec;
+          try{spec=r.packageQty!==undefined&&r.unit!==undefined?parseUnitSpec(String(r.packageQty)+' '+String(r.unit)):parseUnitSpec(r.unitQty??r.qtd??r.packageQty??'1 un',r.unit||'un');}
+          catch(error){throw Error((r.rowNumber?'Linha '+r.rowNumber+' · ':'')+group.name+' · embalagem «'+String(r.unitQty??r.qtd??r.packageQty??'')+'»: '+error.message);}
+          let safeUrl = '';
+          safeUrl=productUrl(r.url||r.brandUrl||r.link||'');
+          const price = F.money(parseMoneyValue(r.price ?? r.unitPrice ?? r.preco ?? 0));
+          const stockCount = Number(String(r.stock ?? '').replace(',', '.').trim());
+          if(!Number.isFinite(stockCount)||stockCount<0)throw Error('Stock inválido em '+group.name+'.');
+          return {
+            category: F.categoryPath(String(r.category || r.categoria || '').trim()),
+            brand: String(r.brand || r.marca || '').trim(),
+            storeName: String(r.storeName || r.store || r.supermercado || '').trim(),
+            qty: spec.qty,
+            unit: spec.unit,
+            price,
+            url: safeUrl,
+            stock: Number.isFinite(stockCount) && stockCount > 0 ? stockCount : 0
+          };
+        });
+
+        let existing = draft.casa.catalog.find(p => nameKey(p.name) === nameKey(group.name));
+        const unitsInGroup = new Set(parsedRows.map(r => r.unit));
+        let targetUnit = existing?.unit || parsedRows[0].unit || 'un';
+        if (!existing) {
+          if (unitsInGroup.has('ml') && unitsInGroup.has('L')) targetUnit = 'ml';
+          if (unitsInGroup.has('g') && unitsInGroup.has('kg')) targetUnit = 'g';
+        }
+        const primaryCat = parsedRows.find(r => r.category)?.category || existing?.category || '';
+        const brands = [...new Set(parsedRows.map(r => r.brand).filter(Boolean))];
+        const primaryBrand = brands.join(' / ').slice(0, 160) || existing?.brand || '';
+        const primaryUrl = parsedRows.find(r => r.url)?.url || existing?.url || '';
+
+        const prodId = writeProduct(draft, F, {
+          id: existing?.id,
+          name: existing?.name || group.name,
+          category: primaryCat,
+          brand: primaryBrand,
+          url: existing?.url||'',
+          unit: targetUnit,
+          barcode: existing?.barcode || '',
+          notes: existing?.notes || '',
+          archived: false
+        });
+        if (existing) productsUpdated++; else productsCreated++;
+        const product = draft.casa.catalog.find(p => p.id === prodId);
+
+        let maxStockUnits = 0;
+        for (const r of parsedRows) {
+          const convQty = convertCompatibleQty(r.qty, r.unit, product.unit);
+          if(!quantity(convQty))throw Error('Unidades incompatíveis em '+group.name+'. Confirma as embalagens antes de importar.');
+          const pkgQty=convQty;
+          if (r.storeName) {
+            const sKey = nameKey(r.storeName);
+            let store = draft.casa.stores.find(s => nameKey(s.name) === sKey);
+            if (!store) {
+              store = { id: F.id(), name: r.storeName.slice(0, 160), archived: false };
+              draft.casa.stores.push(store);
+              storesCreated++;
+            } else if (store.archived) {
+              store.archived = false;
+            }
+            writeOffer(draft, F, product, store.id, {
+              packageQty: pkgQty,
+              price: r.price,
+              url: r.url || product.offers[store.id]?.url || ''
+            });
+            offersSaved++;
+            if (!(r.price > 0)) missingPriceCount++;
+          }
+          if (r.stock > 0) {
+            const stockInProdUnit = Math.round(r.stock * pkgQty * 1000) / 1000;
+            maxStockUnits=Math.round((maxStockUnits+stockInProdUnit)*1000)/1000;
+          }
+        }
+
+        if (options.applyStock !== false && maxStockUnits > 0 && quantity(maxStockUnits)) {
+          const hasLots = draft.casa.stock.some(l => l.catalogId === product.id);
+          if (!hasLots) {
+            draft.casa.stock.push({
+              id: F.id(),
+              catalogId: product.id,
+              unit: product.unit,
+              qty: maxStockUnits,
+              origin: 'manual',
+              location: 'Despensa',
+              expiry: '',
+              opened: false
+            });
+            stockLotsUpdated++;
+          }
+        }
+      }
+      return { productsCreated, productsUpdated, storesCreated, offersSaved, missingPriceCount, stockLotsUpdated };
+    });
+  }
+
   function setOffer(d,productId,storeId,input){return change(d,(draft,F)=>{
     const p=draft.casa.catalog.find(p=>p.id===productId),s=draft.casa.stores.find(s=>s.id===storeId);
     if(!p||p.archived||!s||s.archived)throw Error('Escolhe produto e supermercado ativos.');
-    p.offers[storeId]={packageQty:input.packageQty,price:input.price,date:F.today()};
-    draft.casa.priceHistory.push({id:F.id(),catalogId:productId,storeId,packageQty:input.packageQty,price:input.price,date:F.today(),source:'manual'});
+    writeOffer(draft,F,p,storeId,input);
   });}
   function queueProduct(d,input){return change(d,(draft,F)=>{
     const p=draft.casa.catalog.find(p=>p.id===input.catalogId),s=draft.casa.stores.find(s=>s.id===input.storeId);
@@ -350,7 +524,41 @@
     if(oldTotal!==p.total){p.corrections=p.corrections||[];p.corrections.push({date:F.today(),from:oldTotal,to:p.total});}
   });}
   function categoryPaths(d){const paths=new Set();for(const p of state(d).catalog){const parts=finance().categoryParts(p.category);for(let i=1;i<=parts.length;i++)paths.add(finance().categoryPath(parts.slice(0,i)));}return [...paths].sort((a,b)=>a.localeCompare(b,'pt'));}
-  const api = {productUrl,stockUnits,validatePreservedAttachment,categoryPaths,state,validate,addPurchase,addReceiptPurchase,link,removePurchase,shopping,saveStore,saveProduct,saveProductOffers,setOffer,queueProduct,quote,checkout,change,attachMovement,correctPurchase};
+  function delimitedTable(text){
+    const first=String(text||'').split(/\r?\n/).find(l=>l.trim())||'',sep=first.includes('\t')?'\t':first.includes(';')?';':',';
+    const rows=[];let values=[],value='',quoted=false,line=1,start=1;
+    const cell=()=>{values.push(value.trim());value='';};
+    for(let i=0;i<String(text||'').length;i++){const ch=text[i];if(ch==='"'){if(quoted&&text[i+1]==='"'){value+='"';i++;}else if(quoted||value==='')quoted=!quoted;else value+=ch;}else if(ch===sep&&!quoted)cell();else if((ch==='\n'||ch==='\r')&&!quoted){if(ch==='\r'&&text[i+1]==='\n')i++;cell();rows.push({values,rowNumber:start});values=[];line++;start=line;}else{value+=ch;if(ch==='\n')line++;}}
+    if(quoted)throw Error('A tabela tem aspas por fechar. Volta a copiar as células completas.');
+    if(value||values.length){cell();rows.push({values,rowNumber:start});}return rows;
+  }
+  function catalogTableRows(records){
+    const norm=v=>String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');
+    const aliases={name:['produto','nomeproduto','nome'],category:['categoria','category'],unitQty:['qtdunitaria','quantidadeunitaria','embalagem','qtd','quantidade','unitqty'],brand:['marca','brand'],storeName:['supermercado','loja','store'],price:['precoun','precounitario','preco','price'],stock:['stock','estoque'],url:['url','link','ligacao']};
+    const identify=values=>Object.fromEntries(Object.entries(aliases).map(([field,names])=>[field,values.findIndex(v=>names.includes(norm(v)))]));
+    let columns=null;const result=[];
+    for(const [index,record]of records.entries()){
+      const values=record.values||[],headers=identify(values);
+      if(headers.name>=0&&(headers.unitQty>=0||headers.category>=0||headers.storeName>=0)){columns=headers;continue;}
+      if(!values.some(v=>String(v??'').trim()))continue;
+      if(!columns){const offset=values.findIndex(v=>String(v??'').trim());columns=Object.fromEntries(['name','category','unitQty','brand','storeName','price','stock','url'].map((k,i)=>[k,i+offset]));}
+      const get=field=>columns[field]>=0?String(values[columns[field]]??'').trim():'';
+      if(!get('name'))continue;
+      const urls=record.urls||[],url=get('url')||urls[columns.brand]||urls[columns.name]||'';
+      const brand=get('brand'),inline=brand.match(/https?:\/\/[^\s]+/i);
+      result.push({name:get('name'),category:get('category'),unitQty:get('unitQty'),brand:brand.replace(/https?:\/\/[^\s]+/gi,'').trim(),storeName:get('storeName'),price:get('price')||'0',stock:get('stock')||'0',url:url||(inline?inline[0]:''),rowNumber:record.rowNumber||index+1});
+    }return result;
+  }
+  function catalogVariants(rows){
+    const groups=new Map(),labels=new Map(),brandPacks=new Set(),split=new Set(),linkVariants=new Map();
+    const pack=r=>{try{const p=parseUnitSpec(r.unitQty??'1 un'),unit=({L:'ml',cl:'ml',kg:'g'})[p.unit]||p.unit;return convertCompatibleQty(p.qty,p.unit,unit)+'|'+unit;}catch(error){throw Error((r.rowNumber?'Linha '+r.rowNumber+' · ':'')+r.name+' · embalagem «'+String(r.unitQty??'')+'»: '+error.message);}};
+    for(const r of rows){const base=nameKey(r.name),store=nameKey(r.storeName||''),pk=pack(r);if(!groups.has(base))groups.set(base,[]);groups.get(base).push({r,store,pk});if(!labels.has(base+'|'+pk))labels.set(base+'|'+pk,String(r.unitQty||'Embalagem por indicar').trim());}
+    for(const [base,items]of groups){if(new Set(items.map(x=>x.pk.split('|').at(-1))).size>1)split.add(base);const stores=new Map();for(const item of items){const matches=stores.get(item.store)||[];for(const old of matches){if(old.pk!==item.pk)split.add(base);else if(nameKey(old.r.brand||'')!==nameKey(item.r.brand||'')){split.add(base);brandPacks.add(base+'|'+item.pk);}else if(old.r.url&&item.r.url&&productUrl(old.r.url)!==productUrl(item.r.url)){split.add(base);linkVariants.set(base+'|'+item.pk+'|'+item.store,true);}}matches.push(item);stores.set(item.store,matches);}}
+    const code=url=>{const normalized=productUrl(url),tail=new URL(normalized).pathname.split('/').filter(Boolean).at(-1)||'',number=tail.match(/(\d{4,})(?:\.[a-z]+)?$/i);if(number)return number[1];let hash=2166136261;for(const ch of normalized)hash=Math.imul(hash^ch.charCodeAt(0),16777619);return(hash>>>0).toString(36).toUpperCase();};
+    let changed=0;const prepared=rows.map(r=>{const base=nameKey(r.name);if(!split.has(base))return{...r};changed++;const pk=pack(r),brand=brandPacks.has(base+'|'+pk)?' · '+String(r.brand||'Sem marca').trim():'',variant=linkVariants.has(base+'|'+pk+'|'+nameKey(r.storeName||''))&&r.url?' · '+r.storeName+' · Oferta '+code(r.url):'';return{...r,name:r.name+' · '+labels.get(base+'|'+pk)+brand+variant};});
+    return{rows:prepared,separatedRows:changed,separatedNames:split.size};
+  }
+  const api = {catalogVariants,delimitedTable,catalogTableRows,productUrl,stockUnits,parseUnitSpec,convertCompatibleQty,importCatalogTable,validatePreservedAttachment,categoryPaths,state,validate,addPurchase,addReceiptPurchase,link,removePurchase,shopping,saveStore,saveProduct,saveProductOffers,setOffer,queueProduct,quote,checkout,change,attachMovement,correctPurchase};
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.CasaFinance = Object.freeze(api);
 })(typeof globalThis === 'object' ? globalThis : this);

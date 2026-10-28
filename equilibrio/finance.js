@@ -339,7 +339,7 @@
         throw Error("Existe uma recorrência inválida.");
       if (
         r.frequency &&
-        !["weekly", "monthly", "quarterly", "yearly"].includes(r.frequency)
+        !["weekly", "monthly", "bimonthly", "quarterly", "yearly"].includes(r.frequency)
       )
         throw Error("Frequência inválida.");
       if (r.end && (!validDate(r.end) || r.end < r.start))
@@ -360,6 +360,13 @@
     const practical = typeof module === "object" && module.exports ? require("./practical-model.js") : root.PracticalFinance;
     if (d.practical && !practical) throw Error("Falta o módulo dos dados práticos.");
     practical?.validate(d);
+    const gifts = typeof module === "object" && module.exports ? require("./gifts-model.js") : root.GiftFinance;
+    if(d.practical?.gifts!==undefined&&!gifts)throw Error("Falta o módulo das prendas.");
+    gifts?.validate(d);
+    const dossiers = typeof module === "object" && module.exports ? require("./dossiers-model.js") : root.DossiersFinance;
+    if ((d.practical?.routines !== undefined || d.practical?.vehicles !== undefined || d.practical?.housing !== undefined || d.casa?.utilityReadings !== undefined) && !dossiers)
+      throw Error("Falta o módulo de dossiês, rotinas e consumos.");
+    dossiers?.validate(d);
     root.ReceiptFinance?.validate(d);
     if (d.casa !== undefined || d.transactions.some(t => ['Casa integrado','Casa reembolso'].includes(t.source))) {
       const casa = typeof module === 'object' && module.exports ? require('./casa-model.js') : root.CasaFinance;
@@ -1006,7 +1013,7 @@
           for (let day = 1 + offset; day <= new Date(+month.slice(0, 4), +month.slice(5), 0).getDate(); day += 7) nominalDates.push(dateAt(month, day));
         } else {
           const diff = (+month.slice(0, 4) - +r.start.slice(0, 4)) * 12 + (+month.slice(5) - +r.start.slice(5, 7));
-          const step = frequency === "yearly" ? 12 : frequency === "quarterly" ? 3 : 1;
+          const step = recurringIntervalMonths(frequency);
           if (diff >= 0 && diff % step === 0) nominalDates.push(dateAt(month, r.day));
         }
         const originalDates = new Set(nominalDates);
@@ -1434,6 +1441,23 @@
     return { transactions, errors };
   }
 
+  function recurringIntervalMonths(frequency) {
+    return frequency === "yearly" ? 12 : frequency === "quarterly" ? 3 : frequency === "bimonthly" ? 2 : 1;
+  }
+  function recurringHistoryStart(rule, from) {
+    if (!rule || !validDate(rule.start) || !validDate(from)) throw Error("Data inicial do histórico inválida.");
+    if (from >= rule.start) return rule.start;
+    if ((rule.frequency || "monthly") === "weekly") {
+      const start = new Date(rule.start + "T12:00:00Z"), lower = new Date(from + "T12:00:00Z");
+      start.setUTCDate(start.getUTCDate() - Math.ceil((start - lower) / (7 * 86400000)) * 7);
+      return start.toISOString().slice(0, 10);
+    }
+    const anchor = Number(rule.start.slice(0, 4)) * 12 + Number(rule.start.slice(5, 7)) - 1;
+    const lower = Number(from.slice(0, 4)) * 12 + Number(from.slice(5, 7)) - 1;
+    const step = recurringIntervalMonths(rule.frequency), aligned = anchor - Math.ceil((anchor - lower) / step) * step;
+    const month = String(Math.floor(aligned / 12)) + "-" + String(aligned % 12 + 1).padStart(2, "0");
+    return dateAt(month, rule.day);
+  }
   function recurringOccurrenceDates(rule, from = rule?.start, to = today()) {
     if (!rule || !validDate(rule.start)) return [];
     const lower = validDate(from) && from > rule.start ? from : rule.start;
@@ -1453,7 +1477,7 @@
       }
       return out;
     }
-    const step = frequency === "yearly" ? 12 : frequency === "quarterly" ? 3 : 1;
+    const step = recurringIntervalMonths(frequency);
     const [sy, sm] = rule.start.slice(0, 7).split("-").map(Number);
     const [ly, lm] = lower.slice(0, 7).split("-").map(Number);
     const [uy, um] = upper.slice(0, 7).split("-").map(Number);
@@ -1759,6 +1783,8 @@
 
 
     prepareImport,
+    recurringIntervalMonths,
+    recurringHistoryStart,
     recurringOccurrenceDates,
     validateSplits,
     noteTone,

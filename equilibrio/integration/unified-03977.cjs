@@ -7,10 +7,10 @@ console.log('Errors',errors);assert.deepEqual(errors,[]);
 const before=await page.evaluate(()=>JSON.stringify(data));for(const v of ['weeklyHub','plansHub','planner','wealth','wealthMoneyHub','dataHub','settings']){await page.evaluate(v=>navigate(v),v);await page.screenshot({path:path.join(out,v+'.png'),fullPage:true});console.log(v,await page.locator('#'+v).innerText().then(s=>s.slice(0,100)));}
 assert.equal(await page.evaluate(()=>JSON.stringify(data)),before,'Presentation modified data');assert.deepEqual(errors,[]);
 await page.evaluate(()=>navigate('wealthMoneyHub'));await page.locator('[data-u-wealth="account:saving"] td').nth(1).click();assert.equal(await page.locator('.u-inspector .desk-inspector-heading h3').innerText(),'Poupança');await page.evaluate(()=>render());assert.equal(await page.locator('.u-inspector .desk-inspector-heading h3').innerText(),'Poupança');
-await page.evaluate(()=>navigate('plansHub'));await page.locator('[data-u-plan-kind=reserve]').click();assert.equal(await page.locator('[data-u-plan]').count(),1);assert.match(await page.locator('#unifiedPlanDetail').innerText(),/Fundo de emergência/);await page.locator('[data-u-plan-kind=all]').click();await page.locator('#simAmount').fill('250');await page.locator('#runSimulation').click();assert.match(await page.locator('#simulationResult').innerText(),/90 dias/);
+await page.evaluate(()=>navigate('plansHub'));await page.locator('[data-u-plan-kind=reserve]').click();assert.equal(await page.locator('[data-u-plan]').count(),1);assert.match(await page.locator('#unifiedPlanDetail').innerText(),/Fundo de emergência/);await page.locator('[data-u-plan-kind=all]').click();await page.locator('#toggleDecisionWorkbench').click();await page.locator('#simAmount').fill('250');await page.locator('#runSimulation').click();assert.match(await page.locator('#simulationResult').innerText(),/90 dias/);
 await page.evaluate(()=>navigate('planner'));assert.equal(await page.locator('.planner-agenda-sidebar #agendaMonthServices').count(),1);await page.locator('#agendaManageServices').click();assert.equal(await page.locator('#unifiedSubscriptions').count(),1);await page.locator('[data-u-sub]').last().locator('td').nth(1).click();await page.screenshot({path:path.join(out,'subscriptions.png')});await page.locator('#subscriptionsManagerDialog .plan-manager-close').click();
 await page.evaluate(()=>navigate('review'));assert.equal(await page.evaluate(()=>view),'dataHub');assert.equal(await page.locator('[data-u-task=imports]').getAttribute('aria-current'),'page');await page.locator('.u-import-inspector [data-import-category]').fill('Alimentação');await page.locator('[data-u-import=import2] .u-record-button').click();await page.locator('[data-u-import=import1] .u-record-button').click();assert.equal(await page.locator('.u-import-inspector [data-import-category]').inputValue(),'Alimentação');await page.screenshot({path:path.join(out,'imports.png'),fullPage:true});
-await page.evaluate(()=>navigate('settings'));await page.locator('[data-u-settings=icons]').click();assert.equal(await page.locator('#unifiedSettings #providerIconSettings').count(),1);await page.screenshot({path:path.join(out,'icons.png'),fullPage:true});
+await page.evaluate(()=>navigate('settings'));await page.locator('[data-u-settings=appearance]').click();assert.equal(await page.locator('#unifiedSettings #providerIconSettings').count(),1);await page.screenshot({path:path.join(out,'icons.png'),fullPage:true});
 
 // Drafts survive global renders, task switches and unrelated writes; only selected rows post.
 await page.evaluate(()=>navigate('review'));
@@ -46,12 +46,13 @@ for(const theme of ['light','dark'])for(const width of [390,768,1024,1440,1920])
 }
 await page.setViewportSize({width:1440,height:1000});
 await page.evaluate(()=>navigate('settings'));
-for(const topic of ['general','categories','icons','backup']){
- await page.locator('[data-u-settings='+topic+']').click();assert.ok((await page.locator('.u-settings-content').innerText()).trim().length>10,topic+' missing settings');
+for(const topic of ['general','appearance','backup','guides']){
+ await page.locator('[data-u-settings='+topic+']').click();assert.ok((await page.locator('#unifiedSettings').innerText()).trim().length>10,topic+' missing settings');
 }
 await page.locator('#unifiedSettings [data-u-settings=backup]').click();assert.equal(await page.locator('#unifiedSettings #backupSettings').isVisible(),true);
 await page.evaluate(()=>navigate('dataHub'));
 for(const task of ['inbox','imports','quality','rules','documents']){
+ if(task==='quality')await page.locator('[data-u-task=inbox]').click();
  await page.locator('[data-u-task='+task+']').click();assert.ok((await page.locator('#unifiedData .u-task-content').innerText()).trim().length>0,task+' missing controls');
 }
 await page.evaluate(()=>navigate('accounts'));assert.equal(await page.locator('[data-reconcile-account=bank]').isVisible(),true);

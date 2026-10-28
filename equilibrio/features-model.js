@@ -623,7 +623,7 @@
     for (const r of d.recurring.filter(
       (r) => r.active && r.type === "expense",
     )) {
-      const multiplier = { weekly: 52, monthly: 12, quarterly: 4, yearly: 1 }[
+      const multiplier = { weekly: 52, monthly: 12, bimonthly: 6, quarterly: 4, yearly: 1 }[
         r.frequency || "monthly"
       ];
       const paid = d.transactions

@@ -688,7 +688,7 @@ function summaryRenderDonut(total) {
   const empty = total < 0 ? "Reembolsos líquidos neste mês; sem categorias com despesa líquida positiva." : F.expenseEntries(data, month).length ? "Sem categorias com despesa líquida positiva neste mês." : "Sem despesas nem reembolsos neste mês.";
   legend.innerHTML = rows.length ? rows.map((r, i) => `<div class="summary-legend-row"><span title="${esc(r.category)}"><i style="--legend-color:${colors[i % colors.length]}"></i><em>${esc(r.category)}</em></span><b>${actual ? Math.round((r.amount / actual) * 100) : 0}%</b></div>`).join("") : `<p class="summary-empty">${empty}</p>`;
   const explanation = $("#summaryExpenseExplanation");
-  if (explanation) explanation.textContent = `Percentagens sobre categorias com despesa líquida positiva: ${eur(actual)}.` + (adjustments < 0 ? ` Categorias positivas ${eur(actual)} + ajustes negativos (${eur(adjustments)}) = total líquido ${eur(total)}. Ver cálculo das despesas para o detalhe dos reembolsos.` : "");
+  if(explanation){explanation.textContent=adjustments<0?`Reembolsos e ajustes negativos: ${eur(adjustments)}. As categorias somam ${eur(actual)}; total líquido: ${eur(total)}.`:'';explanation.hidden=adjustments>=0;}
 }
 function summaryAccountGlyph(account, index) {
   const n = String(account?.name || "").toLocaleLowerCase("pt-PT");
@@ -1294,9 +1294,9 @@ function scheduleRows(items, options = {}) {
           actions = button("Registar", "settle-" + p.source, p.id, "link-button");
         }
         if (!planner) {
-          return `<div class="transaction-item agenda-commitment-row${completed ? " agenda-completed-row" : ""}${p.occurrenceAdjusted ? " agenda-adjusted-row" : ""}"><div class="agenda-commitment-title"><b>${esc(p.description)}</b><small>${esc(state)}${p.occurrenceNote ? ` · ${esc(p.occurrenceNote)}` : ""}</small></div><span class="agenda-commitment-date">${dateLabel(p.date)}</span><span class="agenda-commitment-category">${esc(p.category || "—")}</span><span class="agenda-commitment-account">${esc(p.account || "—")}</span><span class="amount ${p.type} agenda-commitment-value">${p.type === "income" ? "+" : "−"}${eur(p.amount)}</span><div class="row-actions agenda-commitment-actions">${actions}</div></div>`;
+          return `<div class="transaction-item agenda-commitment-row${completed ? " agenda-completed-row" : ""}${p.occurrenceAdjusted ? " agenda-adjusted-row" : ""}"><div class="agenda-commitment-title"><b>${esc(p.description)}</b><small>${esc(state)}${p.occurrenceNote ? ` · ${esc(p.occurrenceNote)}` : ""}</small></div><span class="agenda-commitment-date">${dateLabel(p.date)}</span><span class="agenda-commitment-category">${esc(p.category || "—")}</span><span class="agenda-commitment-account">${esc(p.account || "—")}</span><span class="amount ${p.type} agenda-commitment-value">${p.type === "transfer" ? "↔ " : p.type === "income" ? "+" : "−"}${eur(p.amount)}</span><div class="row-actions agenda-commitment-actions">${actions}</div></div>`;
         }
-        const statusLabel = completed ? (p.type === "income" ? "Recebido" : "Pago") : overdue ? "Em atraso" : p.type === "income" ? "A receber" : "A pagar";
+        const statusLabel = p.type === "transfer" ? (completed ? "Transferido" : overdue ? "Em atraso" : "A transferir") : completed ? (p.type === "income" ? "Recebido" : "Pago") : overdue ? "Em atraso" : p.type === "income" ? "A receber" : "A pagar";
         const statusTone = completed ? "done" : overdue ? "late" : "planned";
         const note = completed && p.actualDate && p.actualDate !== p.date
           ? `${p.actualDate < p.date ? "Registado antecipadamente" : "Registado"} em ${dateLabel(p.actualDate)}`
@@ -1309,7 +1309,7 @@ function scheduleRows(items, options = {}) {
           <div class="agenda31-date"><span>${dateLabel(p.date)}</span>${!completed ? `<small>${overdue ? "Vencido" : "Previsto"}</small>` : ""}</div>
           <span class="agenda31-category">${esc(p.category || "—")}</span>
           <span class="agenda31-account">${esc(p.account || "—")}</span>
-          <span class="amount ${p.type} agenda31-value">${p.type === "income" ? "+" : "−"}${eur(p.amount)}</span>
+          <span class="amount ${p.type} agenda31-value">${p.type === "transfer" ? "↔ " : p.type === "income" ? "+" : "−"}${eur(p.amount)}</span>
           <div class="agenda31-actions"><details class="row-menu agenda31-menu"><summary aria-label="Ações de ${esc(p.description)}">•••</summary><div>${actions}</div></details></div>
         </div>`;
       })
@@ -1339,10 +1339,10 @@ function renderPlanning() {
   if (plannerInsights) {
     const overdue = openItems.filter((x) => x.date < F.today());
     const next30 = schedule().filter((x) => x.source !== 'completed' && x.date >= F.today() && x.date <= FinancePlus.dayAdd(F.today(), 30));
-    const largest = [...openItems.filter((x) => x.type !== "income")].sort((a, b) => (+b.amount || 0) - (+a.amount || 0))[0];
+    const largest = [...openItems.filter((x) => x.type === "expense")].sort((a, b) => (+b.amount || 0) - (+a.amount || 0))[0];
     plannerInsights.innerHTML = [
       `<button type="button" class="planner-insight-row ${overdue.length ? "is-danger" : "is-ok"}" data-planner-insight="overdue"><span aria-hidden="true">□</span><span><b>${overdue.length ? `${overdue.length} pagamento${overdue.length === 1 ? "" : "s"} em atraso` : "Sem pagamentos em atraso"}</b><small>${overdue.length ? "Regulariza os pagamentos para evitar encargos." : "A agenda não tem compromissos vencidos por registar."}</small></span><i>›</i></button>`,
-      `<button type="button" class="planner-insight-row" data-planner-insight="upcoming"><span aria-hidden="true">□</span><span><b>${next30.length} pagamento${next30.length === 1 ? "" : "s"} nos próximos 30 dias</b><small>Total de ${eur(sum(next30.filter((x) => x.type !== "income"), (x) => x.amount))}</small></span><i>›</i></button>`,
+      `<button type="button" class="planner-insight-row" data-planner-insight="upcoming"><span aria-hidden="true">□</span><span><b>${next30.length} pagamento${next30.length === 1 ? "" : "s"} nos próximos 30 dias</b><small>Total de ${eur(sum(next30.filter((x) => x.type === "expense"), (x) => x.amount))}</small></span><i>›</i></button>`,
       largest ? `<button type="button" class="planner-insight-row" data-planner-insight="largest"><span aria-hidden="true">▥</span><span><b>Maior despesa</b><small>${esc(largest.description)} (${eur(largest.amount)})</small></span><i>›</i></button>` : "",
     ].join("");
 
@@ -1906,7 +1906,7 @@ function form(title, fields, action, help = "", submit = "Guardar") {
   window.DraftUI?.suspend();
   formRevision++;
   $('#modalForm .close').disabled = false;
-  $("#modal").classList.remove("import-dialog", "transaction-editor", "receipt-review-dialog", "financial-detail-dialog", "balance-variation-dialog");
+  $("#modal").classList.remove("import-dialog", "transaction-editor", "receipt-review-dialog", "financial-detail-dialog", "balance-variation-dialog", "receipt-image-dialog");
   $("#modalForm").classList.remove("receipt-assisted-review");
   const formSpace = key;
   const returnView = view;

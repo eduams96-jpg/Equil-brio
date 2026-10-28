@@ -36,6 +36,8 @@
     if (soon.length) rows.push({ tone: 'info', title: `${soon.length} lote${soon.length === 1 ? '' : 's'} a vencer nos próximos 7 dias`, text: 'Podes priorizar estes produtos nas refeições.', view: 'casaStock' });
     const restock = L.suggestions(data);
     if (restock.length) rows.push({ tone: 'info', title: `${restock.length} produto${restock.length === 1 ? '' : 's'} abaixo do nível de reposição`, text: 'A sugestão já desconta o que está pendente na lista.', view: 'casaStock' });
+    const warranties=(data.practical?.equipment||[]).filter(e=>PracticalFinance.equipmentWarranty(e,today).status==='soon');
+    if(warranties.length)rows.push({tone:'info',title:`${warranties.length} garantia${warranties.length===1?'':'s'} a terminar`,text:'Confere os equipamentos com garantia a terminar nos próximos 30 dias.',view:'casaEquipment'});
     return rows;
   }
 
@@ -61,11 +63,11 @@
     const hasCasaContent = Boolean(c.purchases.length || c.shopping.length || c.catalog.length || c.stores.length || c.stock.length || c.recipes.length || c.plans.length || c.imports.length);
 
     const essentialLots=c.stock.filter(l=>l.expiry&&l.expiry<=addDays(today,7)&&L.remaining(c,l)>0).sort((a,b)=>a.expiry.localeCompare(b.expiry));
-    const maintenance=(data.practical?.equipment||[]).filter(e=>e.planStatus!=="completed"&&e.date<=addDays(today,30));
+    const maintenance=(data.practical?.equipment||[]).filter(e=>e.planStatus!=="completed"&&Finance.validDate(e.date)&&e.date<=addDays(today,30));
     host.innerHTML = `
       <div class="section-head casa-home-head">
         <div><span class="casa-home-kicker">O teu dia-a-dia</span><h2>Hoje em casa</h2><p>Compras, lista, despensa e refeições num só lugar.</p></div>
-        <div class="casa-actions"><button type="button" id="casaHomeCreateProduct" class="primary">+ Criar produto</button>${button('Lista de compras','casaShopping')}</div>
+        <div class="casa-actions"><button type="button" id="casaHomeCreateProduct" class="primary">+ Criar produto</button></div>
       </div>
       <div class="ex-casa-priorities"><article class="panel"><h3>Comprar</h3><strong>${pending} na lista</strong><p>${L.suggestions(data).length} produtos a repor. Confirma o stock antes de comprar.</p>${button("Preparar lista","casaShopping")}</article><article class="panel"><h3>Usar primeiro</h3><strong>${essentialLots.length} lotes a rever</strong><p>${essentialLots.slice(0,3).map(l=>esc(c.catalog.find(p=>p.id===l.catalogId)?.name||"Produto")+" · "+dateLabel(l.expiry)).join("<br>")||"Sem validades próximas com stock."}</p>${button("Ver despensa","casaStock")}</article><article class="panel"><h3>Manutenções a rever</h3><strong>${maintenance.length} nos próximos 30 dias ou em atraso</strong><p>${maintenance.slice(0,3).map(e=>esc(e.name)+" · "+dateLabel(e.date)).join("<br>")||"Sem planos próximos."}</p>${button("Ver equipamentos","casaEquipment")}</article></div>
       ${!hasCasaContent ? `<article class="casa-home-start">

@@ -17,7 +17,7 @@ const baselineVersion=JSON.parse(fs.readFileSync(path.join(baseline,'package.jso
 if(U.compareVersions(baselineVersion,pkg.version)>=0)throw Error(`A baseline (${baselineVersion}) tem de ser anterior à versão de destino (${pkg.version}).`);
 const maximum=process.argv[4]||baselineVersion;
 if(U.compareVersions(maximum,baselineVersion)<0||U.compareVersions(maximum,pkg.version)>=0)throw Error('Intervalo de atualização inválido.');
-const candidates=[...new Set([...pkg.build.files.filter(f=>!f.includes('*')), 'package-lock.json', 'INICIAR-DESKTOP.bat', 'README.md', 'ARQUITETURA.md', 'ATUALIZACOES.md', 'ROADMAP.md', `DESKTOP-v${pkg.version}.md`, `AUDITORIA-v${pkg.version}.md`, `REVISAO-CASA-E-LAYOUTS-v${pkg.version}.md`, `PROPOSTAS-VISUAIS-v${pkg.version}.md`])].sort();
+const candidates=[...new Set([...pkg.build.files.flatMap(f=>f.includes('*')?fs.globSync(f,{cwd:root}).filter(p=>fs.statSync(path.join(root,p)).isFile()).map(p=>p.split(path.sep).join('/')):[f]), 'package-lock.json', 'INICIAR-DESKTOP.bat', 'README.md', 'ARQUITETURA.md', 'ATUALIZACOES.md', 'ROADMAP.md', `DESKTOP-v${pkg.version}.md`, `AUDITORIA-v${pkg.version}.md`, `REVISAO-CASA-E-LAYOUTS-v${pkg.version}.md`, `PROPOSTAS-VISUAIS-v${pkg.version}.md`])].sort();
 const files=[];
 for(const file of candidates){
  if(!fs.existsSync(path.join(root,file)))continue;
