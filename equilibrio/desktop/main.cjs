@@ -511,7 +511,19 @@ trustedIpc.handle('equilibrio:mobile:action', async (_event,input={})=>{
   const read=async file=>{const st=await fs.stat(file);if(!st.isFile()||st.size>1024*1024)throw Error('Ficheiro de certificado inválido.');return fs.readFile(file,'utf8');};
   return mobileRuntime.action({type:'configure',host:input.host,port:input.port,cert:await read(cert.filePaths[0]),key:await read(key.filePaths[0])});
  }
- if(!['status','start','stop','approve','revoke'].includes(input.type))throw Error('Ação indisponível.');
+ if(input.type==='clientConnect'&&!input.ca){
+  const chosen=await dialog.showOpenDialog(mainWindow,{title:'Certificado público do PC central',properties:['openFile'],filters:[{name:'Certificado público',extensions:['cer','crt','pem']}]});
+  if(chosen.canceled)return mobileRuntime.status();
+  const stat=await fs.stat(chosen.filePaths[0]);if(!stat.isFile()||stat.size>1048576)throw Error('Certificado público inválido.');
+  input={...input,ca:new crypto.X509Certificate(await fs.readFile(chosen.filePaths[0])).toString()};
+ }
+ if(input.type==='clientBackup'){
+  const state=await mobileRuntime.action(input),content=JSON.stringify(state,null,2);
+  const chosen=await dialog.showSaveDialog(mainWindow,{title:'Guardar cópia anterior à partilha',defaultPath:'Equilibrio-antes-da-partilha.json',filters:[{name:'Cópia JSON',extensions:['json']}]});
+  if(!chosen.canceled)await writeVerifiedAtomic(chosen.filePath,content);
+  return mobileRuntime.status();
+ }
+ if(!['status','start','stop','approve','revoke','clientConnect','clientResume','clientSync','clientResolve','clientDetach'].includes(input.type))throw Error('Ação indisponível.');
  return mobileRuntime.action(input);
 });
 trustedIpc.on('financas:storage:bootstrap', (event) => {

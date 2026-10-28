@@ -52,6 +52,6 @@ function category(form){const parts=['category','subcategory','categoryDetail','
 function payload(form){
  if(!/^\d+(?:[.,]\d{1,2})?$/.test(form.amount.trim()))throw Error('Indica um valor com até duas casas decimais.');
  const value={id:form.id,type:form.type,amountCents:Math.round(Number(form.amount.replace(',','.'))*100),description:form.description.trim(),accountId:form.accountId,targetId:form.targetId,category:form.type==='transfer'?'Transferências':category(form),date:form.date,note:form.note,beneficiary:form.beneficiary,noteColor:form.noteColor,expenseNature:form.expenseNature,tags:P.copy(form.tags||[])};
- if(value.note.length>1000||value.beneficiary.length>200||!COLORS.includes(value.noteColor))throw Error('Nota, estabelecimento ou cor inválidos.');return value;
+ if(value.note.length>1000||value.beneficiary.length>160||!COLORS.includes(value.noteColor))throw Error('Nota, estabelecimento ou cor inválidos.');return value;
 }
 module.exports={SerialAdapter,Drafts,create,valid,staleReason,consume,categoryParts,category,payload,COLORS,same};

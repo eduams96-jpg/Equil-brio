@@ -56,9 +56,10 @@ function apply(ledger,command,payload){
  if(transfer){t.targetAccount=ledger.accounts.find(a=>a.id===payload.targetId).name;t.targetDate=payload.date;}
  // Optional desktop fields are carried explicitly and retained by older clients.
  for(const key of ['note','beneficiary','noteColor','expenseNature'])if(Object.hasOwn(payload,key)){
-  const limit=key==='note'?1000:key==='beneficiary'?200:32;
+  const limit=key==='note'?1000:key==='beneficiary'?160:32;
   if(typeof payload[key]!=='string'||payload[key].length>limit)throw Error('Campo adicional inválido: '+key);
-  t[key]=payload[key];
+  // Automatic colour is absent in the native ledger; never store an empty string.
+  t[key]=key==='noteColor'&&payload[key]===''?undefined:payload[key];
  }
  if(Object.hasOwn(payload,'tags')){if(!Array.isArray(payload.tags)||payload.tags.length>20||payload.tags.some(x=>typeof x!=='string'||x.length>80))throw Error('Etiquetas inválidas.');t.tags=copy(payload.tags);}
  if(t.noteColor&&!['default','green','blue','purple','orange','red'].includes(t.noteColor))throw Error('Cor da nota indisponível neste ensaio.');
@@ -104,11 +105,17 @@ function prepare(state,command,payload){
 }
 function local(bootstrap,deviceId){return {format:1,serverId:bootstrap.serverId,epoch:bootstrap.epoch,spaceId:bootstrap.spaceId,deviceId,confirmed:copy(bootstrap.snapshot),outbox:[],hidden:false};}
 function offlineFixture(deviceId=id()){const ledger=fixture();return local({serverId:'unpaired',epoch:'unpaired',spaceId:'casa',snapshot:{ledger,revisions:revisions(ledger),cursor:0}},deviceId);}
+function compactReceipts(state){
+ const needed=new Map();
+ for(const row of state.outbox||[])for(const [key,value] of Object.entries(row.operation?.readSet||{}))if(value&&typeof value==='object'&&value.fromOperation){if(!needed.has(value.fromOperation))needed.set(value.fromOperation,new Set());needed.get(value.fromOperation).add(key);}
+ for(const row of state.outbox||[]){const old=row.receipt?.snapshot;if(!old)continue;const revisions={};const keys=new Set([...(needed.get(row.operation.operationId)||[]),...(row.receipt.changedKeys||Object.keys(old.revisions||{}))]);for(const key of keys)revisions[key]=old.revisions?.[key]||0;row.receipt.snapshot={cursor:old.cursor,revisions};}
+ return state;
+}
 function applyReceipt(state,receipt){
  const row=state.outbox.find(x=>x.operation.operationId===receipt.operationId);if(!row)throw Error('Recibo sem operação local.');
  if(receipt.epoch!==state.epoch)throw Error('Geração incompatível.');
  if(receipt.snapshot&&receipt.snapshot.cursor>=state.confirmed.cursor)state.confirmed=copy(receipt.snapshot);
- row.status=receipt.status==='accepted'?'acknowledged':receipt.status==='conflict'?'conflict':receipt.status==='dependency-blocked'?'blocked':'rejected';row.receipt=copy(receipt);
+ row.status=receipt.status==='accepted'?'acknowledged':receipt.status==='conflict'?'conflict':receipt.status==='dependency-blocked'?'blocked':'rejected';row.receipt=copy(receipt);compactReceipts(state);
 }
 function effectiveReadSet(state,operation){
  return Object.fromEntries(Object.entries(operation.readSet).map(([key,value])=>{
@@ -125,4 +132,4 @@ function view(state){
  const derived={confirmed:state.confirmed,outbox:state.outbox.filter(row=>['pending','sending'].includes(row.status)).map(row=>({...row,operation:{...row.operation,readSet:effectiveReadSet(state,row.operation)}}))};
  return projected(derived);
 }
-module.exports={Finance,copy,id,safeId,fixture,revisions,requirements,apply,prepare,local,offlineFixture,applyReceipt,effectiveReadSet,view};
+module.exports={compactReceipts,Finance,copy,id,safeId,fixture,revisions,requirements,apply,prepare,local,offlineFixture,applyReceipt,effectiveReadSet,view};

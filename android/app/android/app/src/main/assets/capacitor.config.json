@@ -1,0 +1,12 @@
+{
+	"appId": "pt.equilibrio.mobile",
+	"appName": "Equilíbrio",
+	"webDir": "www",
+	"loggingBehavior": "none",
+	"android": {
+		"allowMixedContent": false
+	},
+	"server": {
+		"androidScheme": "https"
+	}
+}

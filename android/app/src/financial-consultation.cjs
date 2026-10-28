@@ -1,0 +1,5 @@
+'use strict';
+const F=require('../../../equilibrio/finance.js'),Plus=require('../../../equilibrio/features-model.js');
+function movement(t){return {splits:(t.splits||[]).map(s=>({category:s.category,amountCents:F.cents(s.amount)})),links:[t.pendingId?'Pagamento de compromisso':null,t.debtId?'Pagamento de crédito':null,t.installmentPaymentId?'Pagamento de prestação':null,t.refundOf?'Reembolso associado':null,t.recurringRuleId?'Recorrência':null,t.subscriptionId?'Subscrição':null].filter(Boolean),targetDate:t.targetDate||t.date,pendingTransfer:t.type==='transfer'&&t.transferStatus==='pending'};}
+function debts(ledger,month){if(!F.validDate(month+'-01'))throw Error('Mês inválido.');const d=structuredClone(ledger),forecast=Plus.forecast(d,31,month+'-01');return {debts:d.debts.map(x=>({...x,balanceCents:F.cents(x.balance),paymentCents:F.cents(x.payment||0)})),estimates:forecast.events.filter(e=>e.source==='Prestação estimada'&&e.date.startsWith(month)),plans:d.installmentPlans.map(p=>({...p,payments:p.payments.map(x=>({...x,remainingCents:F.cents(F.money(x.amount-x.paid))}))}))};}
+module.exports={movement,debts};

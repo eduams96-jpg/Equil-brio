@@ -1,3 +1,13 @@
+# Equilíbrio Windows 1.0.15 — candidata de partilha privada
+
+Mantém as funcionalidades e visuais aprovados. Definições → Backup e Atualização → Partilha entre dispositivos permite usar este PC como central ou ligar um espaço deste Windows a outro PC. Trocar alterações em Sincronizar agora. Funciona enquanto o programa central estiver aberto, com HTTPS e certificado autorizado; não abrir a base SQLite por pasta de rede.
+
+A associação substitui apenas o espaço local escolhido e guarda uma cópia anterior. Conflitos entre espaços completos exigem escolha explícita. A versão local e, quando necessário, a central ficam recuperáveis antes da substituição. As cópias anteriores podem ser guardadas em ficheiro no mesmo quadro. Os outros espaços locais mantêm-se.
+
+Atualização Windows por .fpupdate; instalador completo para Programas (x86). Dados guardados separadamente em AppData. Esta candidata ainda exige o piloto nos equipamentos reais.
+
+---
+
 # Windows 1.0.10
 
 Revisão de avisos, interface, catálogo e prendas. Consultar DESKTOP-v1.0.10.md e AUDITORIA-v1.0.10.md.

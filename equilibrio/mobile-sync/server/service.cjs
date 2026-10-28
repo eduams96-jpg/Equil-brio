@@ -14,7 +14,7 @@ function createService(file,options={}){
  const pairing=createPairing(store,options);
  function provision(deviceId,grants=['casa']){if(!P.safeId(deviceId))throw Error('Invalid device');const token=crypto.randomBytes(32).toString('hex');store.transact(s=>{s.devices[deviceId]={hash:hash(token),grants,revoked:false};});return token;}
  function revoke(deviceId){store.transact(s=>{s.devices[deviceId].revoked=true;});}
- function rotateEpoch(){store.transact(s=>{s.generations??=[];s.generations.push({epoch:s.epoch,rotatedAt:new Date().toISOString(),spaces:P.copy(s.spaces)});s.epoch=P.id();s.pairings={};for(const space of Object.values(s.spaces)){space.cursor=0;space.events=[];space.receipts={};space.revisions=P.revisions(space.ledger);}});}
+ function rotateEpoch(){store.transact(s=>{s.generations??=[];s.generations.push({epoch:s.epoch,rotatedAt:new Date().toISOString(),spaces:store.archiveSpaces?store.archiveSpaces(s.spaces):P.copy(s.spaces)});s.epoch=P.id();s.pairings={};for(const space of Object.values(s.spaces)){space.cursor=0;space.events=[];space.receipts={};space.revisions=P.revisions(space.ledger);}});}
  function authorize(req,state,spaceId){const bearer=req.headers.authorization||'';if(!bearer.startsWith('Bearer '))throw Object.assign(Error('Dispositivo não autorizado.'),{http:401});const value=hash(bearer.slice(7));const entry=Object.entries(state.devices).find(([,d])=>!d.revoked&&crypto.timingSafeEqual(Buffer.from(d.hash),Buffer.from(value)));if(!entry)throw Object.assign(Error('Dispositivo não autorizado.'),{http:401});if(spaceId&&!entry[1].grants.includes(spaceId))throw Object.assign(Error('Sem acesso a este espaço.'),{http:403});return entry[0];}
  function execute(op,deviceId){return store.transact(state=>{
   if(op.protocolVersion!==1)return {status:'upgrade-required',epoch:state.epoch};
@@ -55,25 +55,36 @@ function createService(file,options={}){
   result.snapshot=snapshot(space);
   space.receipts[op.operationId]={deviceId,fingerprint,entityId:op.payload?.id,command:op.command,result:P.copy(result)};return result;
  });}
- async function body(req){let length=0,parts=[];for await(const part of req){length+=part.length;if(length>262144)throw Object.assign(Error('Pedido demasiado grande.'),{http:413});parts.push(part);}try{return JSON.parse(Buffer.concat(parts).toString('utf8'));}catch{throw Object.assign(Error('JSON inválido.'),{http:400});}}
+ async function body(req,max=262144){let length=0,parts=[];for await(const part of req){length+=part.length;if(length>max)throw Object.assign(Error('Pedido demasiado grande.'),{http:413});parts.push(part);}try{return JSON.parse(Buffer.concat(parts).toString('utf8'));}catch{throw Object.assign(Error('JSON inválido.'),{http:400});}}
  const requestHandler=async(req,res)=>{
   const send=(code,value)=>{res.writeHead(code,{'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'});res.end(JSON.stringify(value));};
   try{
    if(req.headers.origin)throw Object.assign(Error('Pedidos de navegador não suportados neste ensaio.'),{http:403});
    const url=new URL(req.url,'http://127.0.0.1');if(options.refresh)options.refresh();const state=store.read().state;
-   if(req.method==='GET'&&url.pathname==='/api/v1/info')return send(200,{protocolVersion:1,serverId:state.serverId,epoch:state.epoch,prototype:true,capabilities:options.contractVersion===2?Compat.capabilities:{contract:1,commands:['movement.add','movement.update','movement.delete','transfer.add','transfer.update'],fields:[],fullLedger:false}});
+   if(req.method==='GET'&&url.pathname==='/api/v1/info')return send(200,{protocolVersion:1,serverId:state.serverId,epoch:state.epoch,prototype:true,desktopSharing:1,capabilities:options.contractVersion===2?Compat.capabilities:{contract:1,commands:['movement.add','movement.update','movement.delete','transfer.add','transfer.update'],fields:[],fullLedger:false}});
    if(req.method==='POST'&&url.pathname==='/api/v1/pair/claim')return send(200,pairing.claim(await body(req)));
-   const match=/^\/api\/v1\/spaces\/([a-zA-Z0-9-]+)(?:\/(bootstrap|operations|changes)(?:\/([a-zA-Z0-9-]+))?)?$/.exec(url.pathname);
+   const match=/^\/api\/v1\/spaces\/([a-zA-Z0-9-]+)(?:\/(bootstrap|operations|changes|desktop-sync)(?:\/([a-zA-Z0-9-]+))?)?$/.exec(url.pathname);
    const spaceId=match?.[1],deviceId=authorize(req,state,spaceId);
    if(req.method==='GET'&&url.pathname==='/api/v1/identity')return send(200,{deviceId,serverId:state.serverId,epoch:state.epoch,grants:[...state.devices[deviceId].grants]});
    if(req.method==='GET'&&url.pathname==='/api/v1/spaces')return send(200,{spaces:state.devices[deviceId].grants});
    if(!match||!state.spaces[spaceId]||options.isAvailable&&!options.isAvailable(spaceId))return send(404,{status:'not-found'});
    const space=state.spaces[spaceId];
+   if(req.method==='POST'&&match[2]==='desktop-sync'&&!match[3]){
+    const op=await body(req,96*1024*1024);
+    if(!op||typeof op!=='object'||Array.isArray(op))return send(400,{status:'rejected'});
+    const authorized=authorize(req,store.read().state,spaceId);
+    if(options.refresh)options.refresh();
+    const result=require('./desktop-snapshot.cjs').executeDesktopSnapshot(store,op,authorized,spaceId,{applyLedger:options.applyLedger});
+    if(result.status==='accepted'&&options.onChange){try{options.onChange(spaceId);}catch{}}
+    if(loseResponseFor===op.operationId&&result.status==='accepted'){if(!persistentResponseLoss)loseResponseFor=null;req.socket.destroy();return;}
+    return send(200,result);
+   }
    if(req.method==='GET'&&match[2]==='bootstrap')return send(200,{serverId:state.serverId,epoch:state.epoch,spaceId,snapshot:snapshot(space)});
    if(req.method==='GET'&&match[2]==='operations'&&match[3]){const r=space.receipts[match[3]];if(!r||r.deviceId!==deviceId)return send(404,{status:'not-found'});return send(200,r.result);}
    if(req.method==='POST'&&match[2]==='operations'&&!match[3]){
     const op=await body(req);
     if(!op||typeof op!=='object'||Array.isArray(op))return send(400,{status:'rejected',code:'invalid-envelope'});
+    if(options.refresh)options.refresh();
     // Recheck permissions after reading the request body; revocation can occur meanwhile.
     authorize(req,store.read().state,spaceId);
     if(op.spaceId!==spaceId)return send(400,{status:'rejected',code:'space-mismatch'});

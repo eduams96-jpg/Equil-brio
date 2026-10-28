@@ -1,0 +1,17 @@
+{
+  "name": "equilibrio-android",
+  "version": "0.9.0-rc.4",
+  "private": true,
+  "scripts": {
+    "build": "node scripts/build.cjs",
+    "android:sync": "npm run build && cap sync android"
+  },
+  "dependencies": {
+    "@capacitor/core": "8.5.3",
+    "@capacitor/android": "8.5.3"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "8.5.3",
+    "esbuild": "0.25.10"
+  }
+}

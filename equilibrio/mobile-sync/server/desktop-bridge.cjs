@@ -24,7 +24,7 @@ function createDesktopBridge(profile,options={}){
    const before=space.ledger,keys=new Set(['months','categories','accounts','commitments','house',...Object.keys(P.revisions(before)),...Object.keys(P.revisions(l)),...['catalog','stock','shopping'].flatMap(k=>[...(before.casa?.[k]||[]),...(l.casa?.[k]||[])].map(x=>'house:'+x.id))]);for(const key of keys)space.revisions[key]=(space.revisions[key]||0)+1;space.ledger=P.copy(l);space.cursor++;space.events.push({sequence:space.cursor,source:'windows',snapshot:{ledger:P.copy(l),revisions:P.copy(space.revisions),cursor:space.cursor}});
   }});
  };
- const applyLedger=(id,before,after)=>{const actual=validateLedger(desktop.readSpace(id).data);if(!same(actual,before))throw Error('O programa Windows mudou durante a operação. Reabre antes de guardar.');const row=desktop.listSpaces().find(s=>s.id===id);desktop.writeSpace(row.storageKey||row.key||('equilibrioData'+(id==='main'?'':':'+id)),after);};
+ const applyLedger=(id,before,after)=>{const actual=validateLedger(desktop.readSpace(id).data);if(!same(actual,before))throw Error('O programa Windows mudou durante a operação. Reabre antes de guardar.');const row=desktop.listSpaces().find(s=>s.id===id);const db=desktop.bridgeDatabase;db.exec('SAVEPOINT bridge_ledger_write');try{desktop.writeSpace(row.storageKey||row.key||('equilibrioData'+(id==='main'?'':':'+id)),after);db.exec('RELEASE bridge_ledger_write');}catch(e){db.exec('ROLLBACK TO bridge_ledger_write; RELEASE bridge_ledger_write');throw e;}};
 
  const service=createService(desktop.dbPath,{...options,contractVersion:2,store,refresh,isAvailable:id=>desktop.listSpaces().some(row=>row.id===id),applyLedger});if(options.recovered===true)service.rotateEpoch();
 
