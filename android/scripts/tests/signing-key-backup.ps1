@@ -32,6 +32,10 @@ try{
  $options=@{SourceKey=$source;SourcePassword=$sourcePassword;BackupPassword=$backupPassword;ExpectedFingerprint=$fingerprint;Destination=$destination;ProjectRoot=$protected;Keytool=$keytool}
  $result=Export-EquilibrioSigningBackup @options
  Check 'Export re-encrypts a synthetic private key and preserves the original' {if(!$result.verified -or (Get-FileHash -LiteralPath $source -Algorithm SHA256).Hash -ne $before){throw 'Export failure'}}
+ $volumeRoot=[IO.Path]::GetPathRoot($root)
+ Check 'Drive root remains absolute rather than becoming a drive-relative path' {$resolved=Assert-EquilibrioBackupDestination -Destination $volumeRoot -ProjectRoot $protected -SourceKey $source;if($resolved -cne $volumeRoot){throw 'Drive root changed'}}
+ Check 'A drive-relative destination is refused' {Refuses {Assert-EquilibrioBackupDestination -Destination $volumeRoot.TrimEnd('\') -ProjectRoot $protected -SourceKey $source}}
+ Check 'A protected whole-volume root blocks its descendants' {Refuses {Assert-EquilibrioBackupDestination -Destination $destination -ProjectRoot $volumeRoot -SourceKey $source}}
  $aliasText=Tool -Arguments @('-list','-alias','equilibrio','-keystore',(Join-Path $result.backupFolder 'equilibrio-mobile.p12'),'-storepass:env','QA_KEY_PASS') -Password $backupPlain
  Check 'Gradle signing alias equilibrio is preserved' {if(!$aliasText){throw 'Alias missing'}}
  Check 'Portable password verifies actual private-key signing and certificate' {$proof=Test-EquilibrioSigningBackup -BackupFolder $result.backupFolder -Password $backupPassword -ExpectedFingerprint $fingerprint;if(!$proof.privateKeyVerified -or $proof.requiresOriginalWindows){throw 'Proof failed'}}

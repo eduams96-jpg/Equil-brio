@@ -28,7 +28,7 @@ A chave existente pode ser fornecida por EQUILIBRIO_MOBILE_KEYSTORE e EQUILIBRIO
 
 Preparação/verificação portátil: [recuperação da assinatura](../RECUPERACAO-DA-ASSINATURA.md), usando PowerShell 7.2 ou superior e scripts/backup-signing-key.ps1. A ferramenta foi ensaiada com chave sintética; a exportação real e a confirmação noutro PC continuam pendentes.
 
-Ensaio independente da ferramenta, apenas com chave fictícia: `pwsh -NoProfile -File android/scripts/tests/signing-key-backup.ps1 -JavaHome 'CAMINHO_DO_JDK_21'`. Inclui 14 verificações e remove os ficheiros temporários. Não lê nem exporta a chave da app.
+Ensaio independente da ferramenta, apenas com chave fictícia: `pwsh -NoProfile -File android/scripts/tests/signing-key-backup.ps1 -JavaHome 'CAMINHO_DO_JDK_21'`. Inclui 17 verificações e remove os ficheiros temporários. Não lê nem exporta a chave da app.
 
 ## Resultados e limites
 

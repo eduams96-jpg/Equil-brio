@@ -4,10 +4,12 @@ Set-StrictMode -Version Latest
 function Assert-EquilibrioBackupDestination {
  param([string]$Destination,[string]$ProjectRoot,[string]$SourceKey)
  if(![IO.Path]::IsPathFullyQualified($Destination) -or ![IO.Directory]::Exists($Destination)){throw 'Escolhe uma pasta existente com caminho absoluto.'}
- $dest=[IO.Path]::GetFullPath($Destination).TrimEnd('\','/')
+ $dest=[IO.Path]::TrimEndingDirectorySeparator([IO.Path]::GetFullPath($Destination))
  foreach($blocked in @($ProjectRoot,[IO.Path]::GetDirectoryName([IO.Path]::GetFullPath($SourceKey)))){
-  $folder=[IO.Path]::GetFullPath($blocked).TrimEnd('\','/')
-  if($dest.Equals($folder,[StringComparison]::OrdinalIgnoreCase) -or $dest.StartsWith($folder+[IO.Path]::DirectorySeparatorChar,[StringComparison]::OrdinalIgnoreCase)){throw 'O destino deve ficar fora do projeto e do cofre original.'}
+  $folder=[IO.Path]::TrimEndingDirectorySeparator([IO.Path]::GetFullPath($blocked))
+  $prefix=$folder
+  if(!$prefix.EndsWith([IO.Path]::DirectorySeparatorChar)){$prefix+=[IO.Path]::DirectorySeparatorChar}
+  if($dest.Equals($folder,[StringComparison]::OrdinalIgnoreCase) -or $dest.StartsWith($prefix,[StringComparison]::OrdinalIgnoreCase)){throw 'O destino deve ficar fora do projeto e do cofre original.'}
  }
  for($item=[IO.DirectoryInfo]::new($dest);$null -ne $item;$item=$item.Parent){
   if($item.Attributes -band [IO.FileAttributes]::ReparsePoint){throw 'Escolhe um destino direto, sem atalhos de pasta ou ligações.'}
