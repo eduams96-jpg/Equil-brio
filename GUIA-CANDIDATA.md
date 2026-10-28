@@ -34,6 +34,8 @@ Os ensaios locais cobrem interrupção, repetição, conflito, revogação, gera
 
 ## Encerramento definitivo
 
-Guardar fora deste PC a chave Android PKCS#12 e uma palavra-passe recuperável, por meios protegidos e separados. DPAPI depende deste Windows/utilizador. A Direção prepara a exportação quando existir destino externo; não foi inventada uma localização nem exportado um segredo para o projeto.
+Guardar fora deste PC a chave Android PKCS#12 e uma palavra-passe recuperável, por meios protegidos e separados. DPAPI depende deste Windows/utilizador. A ferramenta de exportação/verificação está preparada em android/scripts/backup-signing-key.ps1, com instruções em RECUPERACAO-DA-ASSINATURA.md. Foi validada com chave fictícia; a chave real não foi exportada nem foi escolhido um destino por iniciativa.
+
+O guião único dos equipamentos reais está em PILOTO-FINAL.md. A ficha local editável fica em coordenacao/relatorios/PILOTO-PROPRIETARIO/RESULTADOS.md; os casos físicos começam por testar.
 
 Continuam identificados: 16 embalagens por indicar no Excel e testes futuros com faturas/PDFs reais. Ler Fatura mantém revisão humana. Preços automáticos, novas funcionalidades de IA e publicação em loja ficam fora deste fecho.

@@ -23,6 +23,8 @@ Windows **1.0.15** e Android **RC4** preparados; guia único em GUIA-CANDIDATA.m
 
 O ponto de partida abaixo é histórico. Não reiniciar estas etapas a partir das versões antigas. O fecho definitivo continua condicionado ao piloto e à chave recuperável fora do PC.
 
+Preparação complementar FECHO-002: exportação/verificação portátil da assinatura testada com chave sintética em 14 verificações; guião PILOTO-FINAL.md e ficha local prontos. Instruções em RECUPERACAO-DA-ASSINATURA.md. Não houve exportação da chave real, instalação nos equipamentos do proprietário ou alteração dos pacotes Windows/Android. A execução real continua pendente do destino/palavra-passe escolhidos e dos aparelhos.
+
 ## 0. Ponto de partida confirmado
 
 - Windows 1.0.14: funcionalidades e visuais aprovados integrados, baseline completa e atualização entregues; código publicado no GitHub privado.

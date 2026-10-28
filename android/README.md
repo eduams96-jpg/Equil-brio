@@ -26,6 +26,10 @@ O script prepara recursos e executa assembleRelease e lintRelease. Resultado: ap
 
 A chave existente pode ser fornecida por EQUILIBRIO_MOBILE_KEYSTORE e EQUILIBRIO_MOBILE_KEY_PASSWORD, ou pelo cofre local protegido do Windows. Nunca gerar outra chave para atualizar esta identidade. Não colocar palavras-passe em argumentos, logs ou Git. Uma cópia externa recuperável precisa do PKCS#12 e de uma palavra-passe independente deste Windows; password.dpapi sozinho não é portátil.
 
+Preparação/verificação portátil: [recuperação da assinatura](../RECUPERACAO-DA-ASSINATURA.md), usando PowerShell 7.2 ou superior e scripts/backup-signing-key.ps1. A ferramenta foi ensaiada com chave sintética; a exportação real e a confirmação noutro PC continuam pendentes.
+
+Ensaio independente da ferramenta, apenas com chave fictícia: `pwsh -NoProfile -File android/scripts/tests/signing-key-backup.ps1 -JavaHome 'CAMINHO_DO_JDK_21'`. Inclui 14 verificações e remove os ficheiros temporários. Não lê nem exporta a chave da app.
+
 ## Resultados e limites
 
 194 testes de lógica/compatibilidade; compilação release e lint com zero erros e 18 avisos; assinatura igual à RC3. Emulador não substitui telefone real. Backup móvel limitado a 8 MiB de estado em claro; a repetição do ledger no histórico foi eliminada. Bases com muitos anexos precisam de confirmação no piloto; não apagar dados para contornar limites.
