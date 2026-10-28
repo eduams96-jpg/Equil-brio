@@ -174,4 +174,4 @@ Estas ideias não impedem o encerramento. No final, serão entregues apenas como
 
 ## Referências
 
-Estado: coordenacao/ESTADO.md. Passagem: coordenacao/PASSAGEM-DE-CONTEXTO.md. Proposta de partilha: coordenacao/PROPOSTA-DADOS-PARTILHADOS.md. Último ensaio Android: coordenacao/relatorios/ANDROID-024/RELATORIO.md. Relatório Windows: coordenacao/relatorios/WIN-115/RELATORIO.md.
+Estado: coordenacao/ESTADO.md. Passagem: coordenacao/PASSAGEM-DE-CONTEXTO.md. Relatório técnico atual: coordenacao/relatorios/FECHO-001/RELATORIO.md. Guia da candidata e piloto: GUIA-CANDIDATA.md. Proposta de partilha: coordenacao/PROPOSTA-DADOS-PARTILHADOS.md. ANDROID-024 e WIN-115 são referências históricas do ponto de partida.
