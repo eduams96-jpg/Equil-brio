@@ -1,12 +1,14 @@
 # Equilíbrio
 
-Fonte Windows **1.0.15** em `equilibrio/`; Android **0.9.0-rc.4** em `android/`. SQLite mantém os dados locais. Candidatas preparadas para o piloto; a homologação nos equipamentos reais ainda está pendente.
+Fonte Windows **1.0.16** em `equilibrio/`; Android **0.9.0-rc.4** em `android/`. SQLite mantém os dados locais. A homologação nos equipamentos reais ainda está pendente.
 
-[Roadmap único](ROADMAP-ATUAL.md) · [Guia da candidata](GUIA-CANDIDATA.md) · [Android](android/README.md)
+**Para retomar o projeto: [RETOMAR.md](RETOMAR.md).**
 
-[Ficha do piloto físico](PILOTO-FINAL.md) · [Cópia recuperável da assinatura Android](RECUPERACAO-DA-ASSINATURA.md)
+[Mapa das pastas](PASTAS-DO-PROJETO.md) · [Android](android/README.md) · [Ficha do piloto físico](PILOTO-FINAL.md) · [Cópia recuperável da assinatura Android](RECUPERACAO-DA-ASSINATURA.md)
 
-A entrega local `entrega-v1.0.15/` reúne instalador Windows, atualização .fpupdate, APK assinado e hashes. O atualizador aceita **1.0.11 a 1.0.14** diretamente. A instalação inicial mantém `C:/Program Files (x86)/Equilibrio`; os dados ficam fora da instalação, em `%APPDATA%/Financas Pessoais`. Baselines e entregas anteriores foram preservadas.
+Guias e roadmaps anteriores: `historico/documentacao/` (GUIA-CANDIDATA.md tem as instruções da partilha privada; ROADMAP-ATUAL.md o roteiro de fecho da 1.0.15).
+
+A entrega local `entrega-v1.0.16/` tem a atualização .fpupdate atual, que aceita **1.0.14 e 1.0.15** diretamente. O instalador inicial e o APK assinado continuam em `entrega-v1.0.15/`. A instalação inicial mantém `C:/Program Files (x86)/Equilibrio`; os dados ficam fora da instalação, em `%APPDATA%/Financas Pessoais`. Baselines e entregas anteriores foram preservadas.
 
 Um PC central com o programa aberto pode partilhar um espaço com outros PCs e Android. Os clientes trabalham offline e sincronizam por ação explícita. Não abrir o mesmo SQLite numa pasta de rede. Associação e HTTPS são obrigatórios; conflitos não substituem silenciosamente o trabalho local. Sincronização não substitui cópias de segurança.
 

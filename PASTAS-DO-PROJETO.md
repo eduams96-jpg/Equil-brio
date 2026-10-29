@@ -1,12 +1,14 @@
 # Pastas do Equilíbrio
 
-- equilibrio/: fonte Windows 1.0.15 e regras únicas da partilha/Android.
+- RETOMAR.md: estado atual e próximos passos — ponto de entrada.
+- equilibrio/: fonte Windows 1.0.16 e regras únicas da partilha/Android.
 - android/: fonte canónica Android RC4, projeto nativo, testes e compilação documentada.
-- entrega-v1.0.15/: instalador, .fpupdate, APK assinado, instruções e hashes atuais.
-- historico/baselines/: fontes e recursos preservados por versão, incluindo 1.0.15.
-- historico/organizacao/: arquivos de preservação e candidata interna retirada, identificada para não instalar.
-- coordenacao/relatorios/FECHO-001/: relatório, validação, publicação e manifesto de limpeza desta ronda.
-- work/: guiões e evidência de desenvolvimento; temporários desta ronda são limpos por inventário.
+- entrega-v1.0.16/: atualização .fpupdate atual (aceita 1.0.14 e 1.0.15), hash, instruções e validação.
+- entrega-v1.0.15/: instalador Windows inicial e APK Android assinado RC4 (ainda atuais).
+- historico/entregas/: entregas anteriores (até 1.0.14), conservadas.
+- historico/documentacao/: guias e roadmaps antigos (GUIA-CANDIDATA, ROADMAP-ATUAL, README-PROJETO, GUIA-CHATS).
+- historico/baselines/: fontes preservadas por versão, incluindo 1.0.16 (base da próxima atualização).
+- coordenacao/: estado e relatórios das rondas anteriores.
+- work/: guiões e evidência de desenvolvimento.
 - sources/ e perfis/: material e dados pessoais preservados, fora da limpeza e do GitHub.
-
-Entregas e baselines antigas conservadas. Não presumir a versão da instalação habitual a partir das fontes: os ensaios não a modificaram. A chave Android fica fora do projeto e do Git; a sua guarda externa continua pendente. README.md, ROADMAP-ATUAL.md e GUIA-CANDIDATA.md são os pontos de entrada atuais.
+- PILOTO-FINAL.md e RECUPERACAO-DA-ASSINATURA.md: tarefas pendentes do proprietário.
