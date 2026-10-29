@@ -1,3 +1,7 @@
+# 1.0.16 — Correções Casa e Planeamento
+
+Corrige guardar produtos editados, categorias duplicadas nos produtos, botões da lista de compras e sugestões de categoria dos movimentos; avisos deixam de ser recalculados em cada página. Ajustes em Agenda, Subscrições, Resumo, Catálogo, Prendas, Habitação, Veículos e Equipamentos. Atualização direta desde 1.0.14 e 1.0.15.
+
 # 1.0.0 — Primeira versão estável
 
 Instalador Windows para Programas (x86), atalhos Equilíbrio e preservação do perfil existente. Atualização .fpupdate com elevação quando o destino está protegido e recuperação antes da abertura dos dados. Link opcional HTTP/HTTPS na ficha de produto Casa. Atualização desde 0.41.10; versões futuras mantêm o mesmo método. Publicação privada no GitHub autorizada pelo proprietário.
