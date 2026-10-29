@@ -59,8 +59,8 @@
       host.querySelectorAll('[data-casa-toggle]').forEach(b=>b.onchange=()=>commit(()=>C.shopping(data,'toggle',{id:b.dataset.casaToggle})));
       host.querySelectorAll('[data-shop-edit]').forEach(b=>b.onclick=()=>editItem(b.dataset.shopEdit));
       host.querySelectorAll('[data-shop-move]').forEach(b=>b.onclick=()=>moveItem(b.dataset.shopMove));
-      host.querySelectorAll('[data-shop-link]').forEach(b=>b.onclick=()=>CasaCatalogUI.queueForm(b.dataset.shopLink));
-      host.querySelectorAll('[data-shop-quantity]').forEach(b=>b.onclick=()=>CasaCatalogUI.queueForm(b.dataset.shopQuantity));
+      host.querySelectorAll('[data-shop-link]').forEach(b=>b.onclick=()=>CasaCatalogUI.queueProductForm(b.dataset.shopLink));
+      host.querySelectorAll('[data-shop-quantity]').forEach(b=>b.onclick=()=>CasaCatalogUI.adjustShoppingItem(b.dataset.shopQuantity));
       host.querySelectorAll('[data-shop-missing]').forEach(b=>b.onclick=()=>{const row=state().shopping.find(r=>r.id===b.dataset.shopMissing);commit(()=>E.updateShopping(data,row.id,{notFound:!row.notFound}));});
       host.querySelectorAll('[data-casa-remove]').forEach(b=>b.onclick=()=>commit(()=>C.shopping(data,'remove',{id:b.dataset.casaRemove})));
     };
@@ -69,7 +69,7 @@
     $('#casaShopSearch').oninput=e=>{search=e.target.value;paint();};
     $('#casaStoreMode').onclick=()=>{inStore=!inStore;render();};
     $('#casaCheckout').onclick=()=>CasaCatalogUI.checkoutForm(done.map(r=>r.id));
-    if(!inStore){$('#casaQueueProduct').onclick=()=>CasaCatalogUI.queueForm();$('#casaCompare').onclick=()=>CasaDailyUI.compareForm();$('#casaSavedLists').onclick=()=>CasaDailyUI.listsForm();
+    if(!inStore){$('#casaQueueProduct').onclick=()=>CasaCatalogUI.queueProductForm();$('#casaCompare').onclick=()=>CasaDailyUI.compareForm();$('#casaSavedLists').onclick=()=>CasaDailyUI.listsForm();
       $('#casaShoppingForm').onsubmit=e=>{e.preventDefault();const name=$('#casaQuickItem').value,qty=$('#casaQuickQty').value;commit(()=>{C.shopping(data,'add',{name,qty});if(store)E.updateShopping(data,data.casa.shopping.at(-1).id,{storeId:store});});};}
     paint();
   }
