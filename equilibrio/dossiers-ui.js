@@ -118,11 +118,14 @@
     dossiers: '🏠',
   };
 
+  // Os avisos só mudam quando os dados (commit) ou o dia mudam; navegar não os recalcula.
+  let noticesCache = null;
   function getCachedNotices(opts) {
-    if (!opts && window.InterfaceUI?.modelCache) {
-      return window.InterfaceUI.modelCache('dossiers-notices-default', () => D.notices(data));
-    }
-    return D.notices(data, opts);
+    if (opts) return D.notices(data, opts);
+    const stamp = { data, revision: window.equilibrioDataRevision || 0, day: F.today() };
+    if (noticesCache && noticesCache.data === stamp.data && noticesCache.revision === stamp.revision && noticesCache.day === stamp.day) return noticesCache.value;
+    noticesCache = { ...stamp, value: D.notices(data) };
+    return noticesCache.value;
   }
 
   function updateTopNoticesBadge() {

@@ -249,6 +249,7 @@ function notice(text, error = false) {
   if (!error) notice.timer = setTimeout(() => (host.hidden = true), 4200);
 }
 function commit(fn, message = "Alterações guardadas.") {
+  window.equilibrioDataRevision = (window.equilibrioDataRevision || 0) + 1;
   let durablySaved = false;
   const before = structuredClone(data);
   try {

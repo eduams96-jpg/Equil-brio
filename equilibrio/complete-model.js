@@ -370,13 +370,13 @@
       });
   }
   // Referências atuais, incluindo módulos opcionais; não reescreve o histórico de auditoria.
-  function categoryReferences(d) {
+  function categoryReferences(d, includeCasa = true) {
     const refs = [];
     const add = (row, field = "category") => { if (row && typeof row[field] === "string" && row[field]) refs.push({row, field}); };
     for (const list of ["transactions", "pendingImports", "budgets", "envelopes", "rules", "recurring", "pendingPayments", "annualPlans", "subscriptions", "receiptRules"])
       for (const row of d[list] || []) { add(row); for (const part of [...(row.splits || []), ...(row.receiptItems || [])]) add(part); }
-    for (const row of d.casa?.catalog || []) { add(row); for (const field of Object.keys(row.storeCategories || {})) add(row.storeCategories, field); }
-    for (const purchase of d.casa?.purchases || []) for (const item of purchase.items || []) add(item);
+    if (includeCasa) for (const row of d.casa?.catalog || []) { add(row); for (const field of Object.keys(row.storeCategories || {})) add(row.storeCategories, field); }
+    if (includeCasa) for (const purchase of d.casa?.purchases || []) for (const item of purchase.items || []) add(item);
     for (const row of [...(d.practical?.rules || []), ...(d.practical?.corrections || []), ...(d.practical?.autonomy?.essentials || [])]) add(row);
     for (const statement of d.statements || []) for (const row of statement.rows || []) { add(row.source); for (const part of [...(row.source?.splits || []), ...(row.source?.receiptItems || [])]) add(part); }
     return refs;
@@ -420,7 +420,8 @@
         for (const s of [...(r.splits || []), ...(r.receiptItems || [])])
           if (s.category) names.add(s.category);
       }
-    for (const ref of categoryReferences(d)) names.add(ref.row[ref.field]);
+    // As categorias dos produtos da Casa são do catálogo, não dos movimentos.
+    for (const ref of categoryReferences(d, false)) names.add(ref.row[ref.field]);
     for (const name of [...names]) {
       const parts = F.categoryParts(name);
       for (let level = 1; level < parts.length; level++)
