@@ -351,6 +351,7 @@
         !optDate(h.condominiumDate) ||
         !text(h.assetId ?? "", 100) ||
         (h.assetId && !assetIds.has(String(h.assetId))) ||
+        (h.propertyValue !== undefined && !(Number.isFinite(h.propertyValue) && h.propertyValue >= 0)) ||
         !Array.isArray(h.equipmentIds) ||
         h.equipmentIds.length > 100 ||
         h.equipmentIds.some((id) => !validId(id) || !eqIds.has(String(id))) ||
@@ -1217,6 +1218,7 @@
         imiDate: String(input.imiDate ?? existing?.imiDate ?? "").trim(),
         condominiumDate: String(input.condominiumDate ?? existing?.condominiumDate ?? "").trim(),
         assetId,
+        propertyValue: F().money(Math.max(0, Number(input.propertyValue ?? existing?.propertyValue ?? 0) || 0)),
         equipmentIds,
         routineIds,
         transactionIds,
@@ -1278,7 +1280,7 @@
     const h = housing(d).find((x) => String(x.id) === String(housingId));
     if (!h) throw Error("Dossier da habitação inexistente.");
     const asset = h.assetId ? (d.assets || []).find((a) => String(a.id) === String(h.assetId)) : null;
-    const assetValue = asset && root.LifeFinance?.assetValue ? root.LifeFinance.assetValue(asset) : 0;
+    const assetValue = asset && root.LifeFinance?.assetValue ? root.LifeFinance.assetValue(asset) : F().money(h.propertyValue || 0);
 
     const eqSummaries = h.equipmentIds
       .map((id) => ((d.practical?.equipment || []).some((e) => String(e.id) === String(id)) ? equipmentCosts(d, id) : null))
@@ -1307,7 +1309,7 @@
       housingId: h.id,
       name: h.name,
       kindLabel: HOUSING_KINDS[h.kind] || h.kind,
-      assetName: asset?.name || "",
+      assetName: asset?.name || (h.propertyValue ? h.name : ""),
       assetValue,
       equipmentCount: eqSummaries.length,
       equipmentTotal,

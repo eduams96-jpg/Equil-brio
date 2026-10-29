@@ -364,11 +364,11 @@
               `</div>` +
               (r.notes ? `<p>${esc(r.notes)}</p>` : '') +
               (r.checklist?.length
-                ? `<div class="routine-checklist" aria-label="Lista de verificação">` +
+                ? `<details class="routine-checklist-details"><summary>Lista de verificação (${r.checklist.filter(c => c.done).length}/${r.checklist.length})</summary><div class="routine-checklist" aria-label="Lista de verificação">` +
                     r.checklist.map(c =>
                       `<label class="checkbox"><input type="checkbox" data-routine-check="${esc(r.id)}" data-check-id="${esc(c.id)}" ${c.done ? 'checked' : ''}> ${esc(c.label)}</label>`
                     ).join('') +
-                  `</div>`
+                  `</div></details>`
                 : '') +
               `<div class="row-actions">` +
                 btn('Concluir e avançar data', 'routine-complete', r.id, '', 'primary') +
@@ -667,7 +667,7 @@
             `<div class="u-metrics">` +
               `<article class="panel u-metric"><div><span>Quilometragem atual</span><strong id="vehicleCurrentKm">${summary.currentKm.toLocaleString('pt-PT')} km</strong></div></article>` +
               `<article class="panel u-metric"><div><span>Custo total acumulado</span><strong class="amount" id="vehicleTotalCost">${eur(summary.totalEffectiveCost)}</strong><small>Sem duplicação financeira</small></div></article>` +
-              `<article class="panel u-metric"><div><span>Abastecimentos / consumo</span><strong class="amount" id="vehicleFuelCost">${eur(summary.fuelCost)}</strong><small>${summary.averageConsumptionPer100Km !== null ? `${summary.averageConsumptionPer100Km} ${esc(summary.consumptionUnit)}` : 'Média após 2 abastecimentos com km'}</small></div></article>` +
+              ((selected.fuelings || []).length ? `<article class="panel u-metric"><div><span>Abastecimentos / consumo</span><strong class="amount" id="vehicleFuelCost">${eur(summary.fuelCost)}</strong><small>${summary.averageConsumptionPer100Km !== null ? `${summary.averageConsumptionPer100Km} ${esc(summary.consumptionUnit)}` : 'Média após 2 abastecimentos com km'}</small></div></article>` : '') +
               `<article class="panel u-metric"><div><span>Manutenção acumulada</span><strong class="amount" id="vehicleMaintCost">${eur(summary.maintenanceCost)}</strong></div></article>` +
             `</div>` +
             `<section class="panel vehicle-overview-panel">` +
@@ -677,7 +677,6 @@
                 `<div class="u-actions">` +
                   btn('Editar veículo', 'vehicle-form', selected.id) +
                   btn('+ Quilometragem', 'vehicle-mileage-form', selected.id) +
-                  btn('+ Abastecimento', 'vehicle-fueling-form', selected.id) +
                   btn('+ Manutenção', 'vehicle-maintenance-form', selected.id) +
                   btn('+ Documento PDF', 'vehicle-document-form', selected.id) +
                   btn('Eliminar veículo', 'vehicle-remove', selected.id) +
@@ -702,7 +701,7 @@
                     `</tbody></table></div>`
                   : `<p class="practical-empty">Sem manutenções registadas neste veículo.</p>`) +
               `</section>` +
-              `<section class="panel">` +
+              ((selected.fuelings || []).length ? `<section class="panel">` +
                 `<h3>Abastecimentos e carregamentos (${(selected.fuelings || []).length})</h3>` +
                 ((selected.fuelings || []).length
                   ? `<div class="u-table-scroll"><table class="u-table"><thead><tr><th>Data</th><th>Quantidade</th><th>Total</th><th>Km</th><th>Movimento</th><th></th></tr></thead><tbody>` +
@@ -711,7 +710,7 @@
                       ).join('') +
                     `</tbody></table></div>`
                   : `<p class="practical-empty">Sem abastecimentos registados.</p>`) +
-              `</section>` +
+              `</section>` : '') +
               `<section class="panel">` +
                 `<h3>Registo de quilometragem (${(selected.mileageLog || []).length})</h3>` +
                 ((selected.mileageLog || []).length
@@ -840,7 +839,14 @@
   function vehicleMaintenanceForm(vehicleId) {
     const v = D.vehicles(data).find(x => String(x.id) === String(vehicleId));
     if (!v) return;
-    const expenses = [['', 'Sem movimento associado (apenas registo na ficha)'], ...data.transactions.filter(t => t.type === 'expense').slice(-300).reverse().map(t => [t.id, `${dateLabel(t.date)} · ${t.description} · ${eur(t.amount)}`])];
+    const plain = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    const own = [v.name, v.plate, v.makeModel].map(plain).flatMap(x => x.split(/\s+/)).filter(x => x.length > 2);
+    const related = /transporte|automove|automovel|carro|veiculo|viatura|oficina|revisao|pneu|inspec|\bipo\b|mecanic|garagem|travo|bateria|oleo|lavagem/;
+    const fuel = /combust|gasolin|gasoleo|diesel|abastec|carregamento|\bpasse\b|metro|comboio|autocarro|\buber\b|\bbolt\b|taxi|portagem|estacionamento/;
+    const relevant = t => { const text = plain([t.category, t.description, t.beneficiary].join(' ')); return !fuel.test(text) && (related.test(text) || own.some(w => text.includes(w))); };
+    const linked = new Set((v.maintenance || []).map(m => String(m.transactionId || '')).filter(Boolean));
+    const candidates = data.transactions.filter(t => t.type === 'expense' && !linked.has(String(t.id)) && relevant(t)).slice(-100).reverse();
+    const expenses = [['', candidates.length ? 'Sem movimento associado (apenas registo na ficha)' : 'Sem despesas de veículo encontradas (apenas registo na ficha)'], ...candidates.map(t => [t.id, `${dateLabel(t.date)} · ${t.description} · ${eur(t.amount)}`])];
     form(
       'Registar manutenção · ' + v.name,
       field('Descrição da intervenção', 'mDesc', '', 'text', 'required maxlength="240"') +
@@ -848,7 +854,7 @@
         select('Tipo', 'mKind', Object.entries(D.VEHICLE_MAINT_KINDS), 'revision') +
         number('Custo (€)', 'mCost', 0) +
         field('Quilometragem (km, opcional)', 'mKm', v.currentKm || '', 'number', 'min="0" max="5000000" step="1"') +
-        select('Despesa existente em Movimentos (opcional)', 'mTx', expenses, '') +
+        select('Despesa do veículo em Movimentos (opcional)', 'mTx', expenses, '') +
         field('Nota (opcional)', 'mNote', '', 'text', 'maxlength="500"'),
       f => commit(() => {
         D.addVehicleMaintenance(data, vehicleId, {
@@ -949,10 +955,8 @@
       (summary
         ? `<div class="housing-dossier" id="housingDossierView">` +
             `<div class="u-metrics">` +
-              `<article class="panel u-metric"><div><span>Valor patrimonial ligado</span><strong class="amount" id="housingAssetValue">${summary.assetName ? eur(summary.assetValue) : 'Não associado'}</strong></div></article>` +
-              `<article class="panel u-metric"><div><span>Custo acumulado de equipamentos</span><strong class="amount" id="housingEquipCost">${eur(summary.equipmentTotal)}</strong></div></article>` +
-              `<article class="panel u-metric"><div><span>Despesas diretas associadas</span><strong class="amount" id="housingDirectCost">${eur(summary.directExpensesTotal)}</strong></div></article>` +
-              `<article class="panel u-metric"><div><span>Total consolidado (sem duplicação)</span><strong class="amount" id="housingCombinedCost">${eur(summary.accumulatedTotal)}</strong></div></article>` +
+              `<article class="panel u-metric"><div><span>Valor patrimonial</span><strong class="amount" id="housingAssetValue">${summary.assetName ? eur(summary.assetValue) : 'Por indicar'}</strong><small>${summary.assetName ? '' : 'Indica-o em «Editar dossier».'}</small></div></article>` +
+              (summary.accumulatedTotal ? `<article class="panel u-metric"><div><span>Custos associados</span><strong class="amount" id="housingCombinedCost">${eur(summary.accumulatedTotal)}</strong></div></article>` : '') +
             `</div>` +
             `<section class="panel housing-overview-panel">` +
               `<div class="u-head">` +
@@ -968,7 +972,6 @@
                 `<div><dt>Seguro da habitação</dt><dd>${selected.insuranceDate ? dateLabel(selected.insuranceDate) : 'Não indicado'}</dd></div>` +
                 `<div><dt>Condomínio / assembleia</dt><dd>${selected.condominiumDate ? dateLabel(selected.condominiumDate) : 'Não indicado'}</dd></div>` +
                 `<div><dt>IMI / Imposto</dt><dd>${selected.imiDate ? dateLabel(selected.imiDate) : 'Não indicado'}</dd></div>` +
-                `<div><dt>Certificado energético</dt><dd>${selected.energyCertificate ? `${esc(selected.energyCertificate)}${selected.energyValidUntil ? ` (até ${dateLabel(selected.energyValidUntil)})` : ''}` : (selected.energyValidUntil ? dateLabel(selected.energyValidUntil) : 'Não indicado')}</dd></div>` +
               `</dl>` +
               (selected.notes ? `<p>${esc(selected.notes)}</p>` : '') +
             `</section>` +
@@ -992,7 +995,7 @@
                     `</div>`
                   : `<p class="practical-empty">Guarda aqui escrituras, contratos, apólices de seguro, atas de condomínio, certificados e comprovativos de IMI em PDF.</p>`) +
               `</section>` +
-              `<section class="panel">` +
+              (summary.equipmentSummaries.length || summary.linkedRoutines.length ? `<section class="panel">` +
                 `<h3>Equipamentos e rotinas associados</h3>` +
                 `<h4>Equipamentos (${summary.equipmentSummaries.length})</h4>` +
                 (summary.equipmentSummaries.length
@@ -1003,8 +1006,8 @@
                   ? `<ul>${summary.linkedRoutines.map(r => `<li><b>${esc(r.title)}</b> · Próxima: ${dateLabel(r.nextDate)}</li>`).join('')}</ul>`
                   : `<p class="practical-empty">Sem rotinas associadas.</p>`) +
                 `<div class="row-actions">${btn('Abrir Equipamentos e Rotinas', 'open-equipment-page')}</div>` +
-              `</section>` +
-              `<section class="panel">` +
+              `</section>` : '') +
+              (summary.linkedTransactions.length ? `<section class="panel">` +
                 `<h3>Movimentos financeiros associados (${summary.linkedTransactions.length})</h3>` +
                 (summary.linkedTransactions.length
                   ? `<div class="u-table-scroll"><table class="u-table"><thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Valor</th></tr></thead><tbody>` +
@@ -1013,7 +1016,7 @@
                       ).join('') +
                     `</tbody></table></div>`
                   : `<p class="practical-empty">Sem movimentos associados diretamente a este dossier.</p>`) +
-              `</section>` +
+              `</section>` : '') +
             `</div>` +
           `</div>`
         : `<p class="empty-state">Cria o dossier da habitação para centralizar documentos PDF, prazos de seguros/IMI/condomínio e ligações a equipamentos, rotinas, património e despesas.</p>`);
@@ -1037,21 +1040,10 @@
         field('Tipologia (opcional)', 'hTypology', h.typology || '', 'text', 'maxlength="60"') +
         field('Morada / nota de localização (opcional)', 'hAddress', h.addressNote || '', 'text', 'maxlength="240"') +
         field('Fração / artigo matricial / referência (opcional)', 'hRef', h.taxId || '', 'text', 'maxlength="80"') +
-        select('Bem em Património (opcional)', 'hAssetId', assets, h.assetId || '') +
-        field('Classe energética (opcional)', 'hEnergyCert', h.energyCertificate || '', 'text', 'maxlength="40"') +
-        field('Validade do certificado energético (opcional)', 'hEnergyUntil', h.energyValidUntil || '', 'date') +
+        field('Valor patrimonial (€; opcional)', 'hPropertyValue', h.propertyValue || '', 'number', 'min="0" step="0.01" placeholder="Ex.: 180000"') +
         field('Renovação do seguro da habitação (opcional)', 'hInsurance', h.insuranceDate || '', 'date') +
         field('Próxima data de condomínio / assembleia (opcional)', 'hCondo', h.condominiumDate || '', 'date') +
         field('Prazo de IMI / imposto (opcional)', 'hTax', h.imiDate || '', 'date') +
-        (equipList.length
-          ? `<fieldset><legend>Equipamentos associados</legend>${equipList.map(e => `<label class="checkbox"><input type="checkbox" name="hEquip" value="${esc(e.id)}" ${(h.equipmentIds || []).includes(String(e.id)) ? 'checked' : ''}> ${esc(e.name)}</label>`).join('')}</fieldset>`
-          : '') +
-        (routineList.length
-          ? `<fieldset><legend>Rotinas domésticas associadas</legend>${routineList.map(r => `<label class="checkbox"><input type="checkbox" name="hRoutine" value="${esc(r.id)}" ${(h.routineIds || []).includes(String(r.id)) ? 'checked' : ''}> ${esc(r.title)}</label>`).join('')}</fieldset>`
-          : '') +
-        (expenses.length
-          ? `<fieldset><legend>Despesas associadas (opcional)</legend><div class="dossier-tx-check-list">${expenses.slice(0, 40).map(t => `<label class="checkbox"><input type="checkbox" name="hTx" value="${esc(t.id)}" ${(h.transactionIds || []).includes(String(t.id)) ? 'checked' : ''}> ${dateLabel(t.date)} · ${esc(t.description)} · ${eur(t.amount)}</label>`).join('')}</div></fieldset>`
-          : '') +
         field('Notas', 'hNotes', h.notes || '', 'text', 'maxlength="2000"'),
       f => commit(() => {
         const saved = D.saveHousing(data, {
@@ -1061,15 +1053,10 @@
           typology: f.get('hTypology'),
           addressNote: f.get('hAddress'),
           taxId: f.get('hRef'),
-          assetId: f.get('hAssetId'),
-          energyCertificate: f.get('hEnergyCert'),
-          energyValidUntil: f.get('hEnergyUntil'),
+          propertyValue: Number(f.get('hPropertyValue') || 0),
           insuranceDate: f.get('hInsurance'),
           condominiumDate: f.get('hCondo'),
           imiDate: f.get('hTax'),
-          equipmentIds: f.getAll('hEquip'),
-          routineIds: f.getAll('hRoutine'),
-          transactionIds: f.getAll('hTx'),
           notes: f.get('hNotes'),
         });
         uiState().housingId = saved.id;
