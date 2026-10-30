@@ -1,3 +1,7 @@
+# 1.0.17 — Layout em cartões e catálogo sem categorias
+
+Agenda com cartão do dia à altura do calendário e menu de ações visível. Planos e decisões, Inventário, Habitação, Veículos e Rotinas em cartões. Catálogo com menor preço destacado, filtro Ativos/Arquivados, eliminar produtos e sem categorias. Ecrã inicial mais compacto e Revisão sem a Revisão semanal. Atualização desde 1.0.16.
+
 # 1.0.16 — Correções Casa e Planeamento
 
 Corrige guardar produtos editados, categorias duplicadas nos produtos, botões da lista de compras e sugestões de categoria dos movimentos; avisos deixam de ser recalculados em cada página. Ajustes em Agenda, Subscrições, Resumo, Catálogo, Prendas, Habitação, Veículos e Equipamentos. Atualização direta desde 1.0.14 e 1.0.15.
