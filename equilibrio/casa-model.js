@@ -264,6 +264,10 @@
     if(old)Object.assign(old,product);else draft.casa.catalog.push(product);return product.id;
   }
   function saveProduct(d,input){return change(d,(draft,F)=>writeProduct(draft,F,input));}
+  // Os produtos deixaram de ter categoria: esta limpeza retira as antigas (geral e por loja) de uma vez.
+  function clearProductCategories(d){return change(d,draft=>{let count=0;for(const p of draft.casa.catalog){const byStore=p.storeCategories&&Object.keys(p.storeCategories).length;if(!p.category&&!byStore)continue;p.category='';if(p.storeCategories)p.storeCategories={};count++;}return count;});}
+  // Eliminar só é possível sem histórico; com compras, stock, receitas ou consumos o produto deve ser arquivado.
+  function removeProduct(d,id){return change(d,draft=>{const c=draft.casa;if(!c.catalog.some(p=>p.id===id))throw Error('Produto não encontrado.');if(c.purchases.some(r=>r.items.some(i=>i.catalogId===id))||c.stock.some(l=>l.catalogId===id)||c.recipes.some(r=>r.ingredients.some(i=>i.catalogId===id))||(c.legacyActivity||[]).some(e=>e.catalogId===id))throw Error('Este produto já tem compras, stock, receitas ou consumos registados. Arquiva-o para manter o histórico.');c.catalog=c.catalog.filter(p=>p.id!==id);c.priceHistory=(c.priceHistory||[]).filter(h=>h.catalogId!==id);c.shopping=c.shopping.filter(i=>i.catalogId!==id);for(const list of c.lists||[])list.items=list.items.filter(i=>i.catalogId!==id);c.lists=(c.lists||[]).filter(list=>list.items.length);});}
   function saveProductOffers(d,input,rows){return change(d,(draft,F)=>{
     if(!Array.isArray(rows)||rows.length>500)throw Error('Preços por supermercado inválidos.');
     const id=writeProduct(draft,F,input),product=draft.casa.catalog.find(p=>p.id===id),seen=new Set();
@@ -558,7 +562,7 @@
     let changed=0;const prepared=rows.map(r=>{const base=nameKey(r.name);if(!split.has(base))return{...r};changed++;const pk=pack(r),brand=brandPacks.has(base+'|'+pk)?' · '+String(r.brand||'Sem marca').trim():'',variant=linkVariants.has(base+'|'+pk+'|'+nameKey(r.storeName||''))&&r.url?' · '+r.storeName+' · Oferta '+code(r.url):'';return{...r,name:r.name+' · '+labels.get(base+'|'+pk)+brand+variant};});
     return{rows:prepared,separatedRows:changed,separatedNames:split.size};
   }
-  const api = {catalogVariants,delimitedTable,catalogTableRows,productUrl,stockUnits,parseUnitSpec,convertCompatibleQty,importCatalogTable,validatePreservedAttachment,categoryPaths,state,validate,addPurchase,addReceiptPurchase,link,removePurchase,shopping,saveStore,saveProduct,saveProductOffers,setOffer,queueProduct,quote,checkout,change,attachMovement,correctPurchase};
+  const api = {catalogVariants,delimitedTable,catalogTableRows,productUrl,stockUnits,parseUnitSpec,convertCompatibleQty,importCatalogTable,validatePreservedAttachment,categoryPaths,state,validate,addPurchase,addReceiptPurchase,link,removePurchase,shopping,saveStore,saveProduct,removeProduct,clearProductCategories,saveProductOffers,setOffer,queueProduct,quote,checkout,change,attachMovement,correctPurchase};
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.CasaFinance = Object.freeze(api);
 })(typeof globalThis === 'object' ? globalThis : this);

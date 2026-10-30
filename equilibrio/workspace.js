@@ -392,6 +392,43 @@ document.addEventListener('keydown', event => {
     menu.querySelector('summary').focus();
   }
 });
+// O menu da Agenda abre por cima da página: o cartão do dia tem scroll próprio e cortava as opções.
+const agendaMenuPortals = new Map();
+function closeAgendaMenuPortal(menu) {
+  const list = agendaMenuPortals.get(menu);
+  if (!list) return;
+  agendaMenuPortals.delete(menu);
+  list.classList.remove('agenda31-menu-portal');
+  list.removeAttribute('style');
+  menu.append(list);
+}
+document.addEventListener('toggle', event => {
+  const menu = event.target;
+  if (!(menu instanceof HTMLDetailsElement) || !menu.matches('.agenda31-menu')) return;
+  if (!menu.open) return closeAgendaMenuPortal(menu);
+  for (const other of document.querySelectorAll('.agenda31-menu[open]')) if (other !== menu) other.open = false;
+  const list = menu.querySelector(':scope>div');
+  if (!list) return;
+  const anchor = menu.querySelector('summary').getBoundingClientRect();
+  agendaMenuPortals.set(menu, list);
+  list.classList.add('agenda31-menu-portal');
+  document.body.append(list);
+  list.style.right = Math.max(8, innerWidth - anchor.right) + 'px';
+  list.style.top = anchor.bottom + 6 + 'px';
+  const box = list.getBoundingClientRect();
+  if (box.bottom > innerHeight - 8) list.style.top = Math.max(8, anchor.top - 6 - box.height) + 'px';
+}, true);
+document.addEventListener('click', event => {
+  for (const menu of document.querySelectorAll('.agenda31-menu[open]')) {
+    if (!menu.querySelector('summary').contains(event.target)) menu.open = false;
+  }
+  setTimeout(() => {
+    for (const [menu, list] of agendaMenuPortals) if (!menu.isConnected) { agendaMenuPortals.delete(menu); list.remove(); }
+  });
+});
+addEventListener('scroll', () => {
+  for (const menu of document.querySelectorAll('.agenda31-menu[open]')) menu.open = false;
+}, true);
 function compactTransactionActions(t) {
   const fragment = document.createElement('template');
   fragment.innerHTML = window.FeatureUI?.transactionActions(t) || '';

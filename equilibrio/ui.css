@@ -20842,3 +20842,213 @@ body[data-current-view="casaGifts"] #mainContent>header{display:none!important}
 #practicalRoutinesSection .routine-card .row-actions button{min-height:30px;padding:4px 10px;font-size:12px}
 #practicalRoutinesSection .routine-card details>summary{cursor:pointer;color:var(--muted)}
 @media(max-width:600px){#casaEquipment .equipment-history-row{grid-template-columns:1fr auto}#casaEquipment .equipment-history-row b{grid-column:1/-1;grid-row:1}}
+#welcomeDialog .welcome-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:16px 0}
+#welcomeDialog .welcome-options .welcome-privacy{margin:0!important;justify-content:flex-start;gap:8px!important;font-size:12.5px!important;line-height:1.3;padding:9px 11px;border:1px solid var(--line);border-radius:10px;cursor:pointer}
+#welcomeDialog .welcome-options .welcome-privacy input{width:16px!important;height:16px!important;min-height:16px!important;flex:0 0 16px}
+@media(max-width:520px){#welcomeDialog .welcome-options{grid-template-columns:1fr}}
+@media(min-width:1051px){#planner .planner-agenda-grid:has(.ex-calendar){align-items:stretch!important}#planner .planner-agenda-grid:has(.ex-calendar)>.planner-agenda-sidebar{display:flex!important;flex-direction:column!important;align-self:stretch!important;height:auto!important;position:static!important;grid-template-rows:none!important;gap:16px!important}#planner .planner-agenda-grid:has(.ex-calendar)>.planner-agenda-sidebar>#agendaRows{flex:3 1 0!important;min-height:260px!important;max-height:none!important;overflow-y:auto!important;overflow-x:hidden!important;scrollbar-gutter:stable}#planner .planner-agenda-grid:has(.ex-calendar)>.planner-agenda-sidebar>#agendaMonthServices{flex:2 1 0!important;min-height:220px!important;max-height:none!important;display:flex!important;flex-direction:column!important;overflow:hidden!important}#planner .planner-agenda-grid:has(.ex-calendar)>.planner-agenda-sidebar>#agendaMonthServices>.table-wrap{flex:1 1 auto;min-height:0;max-height:none!important;overflow-y:auto!important}#planner .planner-agenda-grid:has(.ex-calendar)>.planner-agenda-sidebar>#agendaMonthServices>.u-services-total{margin-top:auto}}
+#agendaRows .agenda31-menu[open]>div{box-shadow:0 12px 32px rgba(0,0,0,.28)}
+.agenda31-menu-portal{position:fixed;z-index:1000;display:grid;gap:4px;min-width:190px;padding:7px;border:1px solid var(--line);border-radius:9px;background:var(--paper);box-shadow:0 14px 32px rgba(0,0,0,.28)}
+.agenda31-menu-portal :is(button,.link-button,.secondary){width:100%;justify-content:flex-start;text-align:left;min-height:29px;padding:5px 8px;border-radius:6px;white-space:nowrap}
+#plansHub #unifiedPlans.u-plans-grid :is(.u-plans-list,#unifiedPlanDetail,.u-plan-context>section,.u-plan-comparison,.u-plan-options){background:var(--paper)!important;border:1px solid var(--line)!important;border-radius:16px!important;padding:20px 22px!important;box-shadow:none!important;margin:0!important;min-width:0}
+#plansHub #unifiedPlans.u-plans-grid{gap:18px!important;align-items:start}
+#plansHub #unifiedPlans.u-plans-grid #unifiedPlanDetail{position:sticky;top:88px}
+#plansHub #unifiedPlans.u-plans-grid .u-plans-list .u-table-scroll{border:1px solid var(--line);border-radius:12px;overflow:hidden}
+#plansHub #unifiedPlans.u-plans-grid .u-plan-context{grid-column:1/-1;display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:18px!important;padding:0!important;border:0!important;background:none!important;align-items:stretch}
+#plansHub #unifiedPlans.u-plans-grid .u-plan-context>section{display:flex!important;flex-direction:column;gap:0}
+#plansHub #unifiedPlans.u-plans-grid .u-plan-context>section>h3{font-size:17px!important;margin:0 0 4px!important;padding:0!important;border:0!important}
+#plansHub #unifiedPlans.u-plans-grid .u-plan-context>section>p{font-size:13px!important;color:var(--muted)!important;margin:0 0 12px!important}
+#plansHub #unifiedPlans.u-plans-grid .u-plan-context>section>.panel{background:none!important;border:0!important;border-top:1px solid var(--line)!important;border-radius:0!important;box-shadow:none!important;padding:14px 0 4px!important;margin:0!important}
+#plansHub #unifiedPlans.u-plans-grid .u-plan-context>section>.panel :is(h2,h3,.section-head h3){font-size:14.5px!important;margin:0 0 6px!important}
+#plansHub #unifiedPlans.u-plans-grid .u-plan-context .decision-panel-intro,#plansHub #unifiedPlans.u-plans-grid .u-plan-comparison .decision-panel-intro{display:flex!important;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:0 0 8px!important;padding:0!important;border:0!important}
+#plansHub #unifiedPlans.u-plans-grid :is(.u-plan-context,.u-plan-comparison) .decision-panel-intro p{flex:1 1 180px;margin:0!important;font-size:12.5px!important;color:var(--muted)!important;line-height:1.45}
+#plansHub #unifiedPlans.u-plans-grid :is(.u-plan-context,.u-plan-comparison) .decision-panel-intro button{min-height:32px!important;padding:5px 12px!important;font-size:12.5px!important}
+#plansHub #unifiedPlans.u-plans-grid .u-plan-context .decision-empty{margin:4px 0 0!important;padding:12px 14px!important;border:1px dashed var(--line)!important;border-radius:10px!important;font-size:12.5px!important;color:var(--muted)!important;background:color-mix(in srgb,var(--paper) 94%,var(--ink) 3%)!important}
+#plansHub #unifiedPlans.u-plans-grid .u-plan-comparison{grid-column:1/-1}
+#plansHub #unifiedPlans.u-plans-grid .u-plan-comparison>.panel{background:none!important;border:0!important;padding:0!important;margin:0!important;box-shadow:none!important}
+#plansHub #unifiedPlans.u-plans-grid .u-plan-comparison>.panel>h3{font-size:17px!important;margin:0 0 4px!important}
+#plansHub #unifiedPlans.u-plans-grid .u-plan-comparison .context-section-title{font-size:14px!important;margin:10px 0 8px!important;color:var(--muted)}
+#plansHub #unifiedPlans.u-plans-grid .u-plan-options{grid-column:1/-1;display:flex!important;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+#plansHub #unifiedPlans.u-plans-grid .u-plan-options>h3{margin:0!important;font-size:16px!important}
+#plansHub #unifiedPlans.u-plans-grid .u-plan-options .u-actions{margin:0!important;display:flex;gap:8px;flex-wrap:wrap}
+@media(max-width:1100px){#plansHub #unifiedPlans.u-plans-grid .u-plan-context{grid-template-columns:1fr!important}#plansHub #unifiedPlans.u-plans-grid #unifiedPlanDetail{position:static}}
+#plansHub #unifiedPlans.u-plans-grid .decision-panel-intro{flex-direction:row!important;min-height:0!important;height:auto!important;text-align:left!important;align-items:center!important;justify-content:space-between!important}
+#plansHub #unifiedPlans.u-plans-grid :is(.u-plan-context>section>.panel,.u-plan-comparison>.panel){min-height:0!important;height:auto!important;display:block!important;text-align:left!important}
+#plansHub #unifiedPlans.u-plans-grid .decision-panel-intro>p{text-align:left!important}
+#plansHub #unifiedPlans.u-plans-grid .u-plan-context>section>.panel:first-of-type{border-top:0!important;padding-top:4px!important}
+#plansHub #unifiedPlans.u-plans-grid .u-plans-list>.u-filter-bar button{border:1px solid var(--line)!important;border-radius:999px!important;padding:6px 14px!important;min-height:32px!important}
+#wealthMoneyHub #unifiedInventory .u-inventory-summary{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin:4px 0 18px}
+#wealthMoneyHub #unifiedInventory .u-inventory-kpi{--kind:#3f8f7a;display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-height:0;padding:14px 16px!important;border:1px solid var(--line)!important;border-left:4px solid var(--kind)!important;border-radius:14px!important;background:var(--paper)!important;color:var(--ink)!important;text-align:left;cursor:pointer;box-shadow:none!important}
+#wealthMoneyHub #unifiedInventory .u-inventory-kpi>span{font-size:12.5px;color:var(--muted);font-weight:600}
+#wealthMoneyHub #unifiedInventory .u-inventory-kpi strong{font-size:21px;line-height:1.2}
+#wealthMoneyHub #unifiedInventory .u-inventory-kpi small{font-size:12px;color:var(--muted)}
+#wealthMoneyHub #unifiedInventory .u-inventory-kpi.active{background:color-mix(in srgb,var(--kind) 12%,var(--paper))!important;border-color:color-mix(in srgb,var(--kind) 45%,var(--line))!important;border-left-color:var(--kind)!important}
+#wealthMoneyHub #unifiedInventory :is(.u-inventory-kpi,tr)[data-kind=all]{--kind:#4a7fa8}
+#wealthMoneyHub #unifiedInventory :is(.u-inventory-kpi,tr)[data-kind=account]{--kind:#3f8f7a}
+#wealthMoneyHub #unifiedInventory :is(.u-inventory-kpi,tr)[data-kind=debt]{--kind:#d0605e}
+#wealthMoneyHub #unifiedInventory :is(.u-inventory-kpi,tr)[data-kind=asset]{--kind:#c58a2b}
+#wealthMoneyHub #unifiedInventory :is(.u-inventory-kpi,tr)[data-kind=investment]{--kind:#7c64c4}
+#wealthMoneyHub #unifiedInventory .u-inventory-grid{display:grid!important;grid-template-columns:minmax(0,1.65fr) minmax(320px,1fr)!important;gap:18px!important;align-items:start!important}
+#wealthMoneyHub #unifiedInventory .u-inventory-list{grid-column:1!important;padding:18px 20px!important;border-radius:16px!important}
+#wealthMoneyHub #unifiedInventory .u-inventory-list .u-filter-bar{display:flex!important;flex-wrap:wrap;gap:8px!important;align-items:center;margin:0 0 12px!important;padding:0!important;border:0!important}
+#wealthMoneyHub #unifiedInventory .u-inventory-list .u-filter-bar input{flex:1 1 220px;min-height:38px!important}
+#wealthMoneyHub #unifiedInventory .u-inventory-list .u-filter-bar button{border-radius:999px!important;min-height:34px!important;padding:6px 14px!important}
+#wealthMoneyHub #unifiedInventory .u-inventory-list .u-table-scroll{border:1px solid var(--line);border-radius:12px;max-height:560px;overflow:auto}
+#wealthMoneyHub #unifiedInventory .u-inventory-list tbody tr{box-shadow:inset 3px 0 var(--kind,#3f8f7a)}
+#wealthMoneyHub #unifiedInventory .u-inventory-list tbody tr.is-selected{background:color-mix(in srgb,var(--kind,#3f8f7a) 12%,var(--paper))!important}
+#wealthMoneyHub #unifiedInventory .u-inventory-list td small{display:flex;align-items:center;gap:6px;margin-top:3px;color:var(--muted)}
+#wealthMoneyHub #unifiedInventory .u-kind-pill{font-style:normal;font-size:10.5px;font-weight:700;letter-spacing:.02em;padding:1px 7px;border-radius:999px;color:var(--kind,#3f8f7a);background:color-mix(in srgb,var(--kind,#3f8f7a) 14%,transparent)}
+#wealthMoneyHub #unifiedInventory .u-status-pill{display:inline-block;font-size:11.5px;padding:2px 9px;border-radius:999px;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+#wealthMoneyHub #unifiedInventory .u-status-pill:is([data-status=Conferida],[data-status=Liquidado]){color:#2f8a6c;border-color:color-mix(in srgb,#2f8a6c 40%,transparent);background:color-mix(in srgb,#2f8a6c 10%,transparent)}
+#wealthMoneyHub #unifiedInventory .u-status-pill:is([data-status="Por conferir"],[data-status="Em dívida"]){color:#b8792a;border-color:color-mix(in srgb,#b8792a 40%,transparent);background:color-mix(in srgb,#b8792a 10%,transparent)}
+#wealthMoneyHub #unifiedInventory .u-muted{color:var(--muted)}
+#wealthMoneyHub #unifiedInventory .u-inventory-list>footer{font-size:12px;color:var(--muted);padding:10px 2px 0!important;border:0!important}
+#wealthMoneyHub #unifiedInventory .u-inspector{grid-column:2!important;grid-row:1!important;position:sticky!important;top:88px!important;max-height:calc(100vh - 110px);overflow-y:auto;padding:20px 22px!important;border-radius:16px!important}
+#wealthMoneyHub #unifiedInventory .u-inventory-detail dl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:12px 0!important}
+#wealthMoneyHub #unifiedInventory .u-inventory-detail dl>div{display:block!important;padding:10px 12px;border:1px solid var(--line);border-radius:10px;margin:0!important}
+#wealthMoneyHub #unifiedInventory .u-inventory-detail dt{font-size:11.5px;color:var(--muted);margin:0 0 3px}
+#wealthMoneyHub #unifiedInventory .u-inventory-detail dd{margin:0;font-weight:650;font-size:13.5px}
+#wealthMoneyHub #unifiedInventory .u-inventory-detail .u-actions{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 14px}
+#wealthMoneyHub #unifiedInventory .u-inventory-detail .u-actions .danger{color:#c95a58!important;margin-left:auto}
+#wealthMoneyHub #unifiedInventory .u-inventory-detail h4{margin:14px 0 8px!important;font-size:14px;padding-top:12px;border-top:1px solid var(--line)}
+#wealthMoneyHub #unifiedInventory .u-inventory-detail .u-table td{padding:7px 4px!important;font-size:12.5px}
+#wealthMoneyHub #unifiedInventory .u-inventory-detail .u-table td button{border:0!important;background:none!important;padding:0!important;min-height:0!important;font-size:12.5px!important;text-align:left;color:var(--ink)!important}
+#wealthMoneyHub #unifiedInventory details.u-inventory-legacy{grid-column:1/-1!important;grid-row:auto!important;display:block!important;margin:0!important;padding:0 20px!important;border:1px solid var(--line)!important;border-radius:16px!important;background:var(--paper)!important}
+#wealthMoneyHub #unifiedInventory details.u-inventory-legacy>summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 0}
+#wealthMoneyHub #unifiedInventory details.u-inventory-legacy>summary::-webkit-details-marker{display:none}
+#wealthMoneyHub #unifiedInventory details.u-inventory-legacy>summary::after{content:"\203A";font-size:22px;line-height:1;color:var(--muted);transform:rotate(90deg);transition:transform .15s}
+#wealthMoneyHub #unifiedInventory details.u-inventory-legacy[open]>summary::after{transform:rotate(-90deg)}
+#wealthMoneyHub #unifiedInventory details.u-inventory-legacy>summary span{display:flex;flex-direction:column;gap:3px}
+#wealthMoneyHub #unifiedInventory details.u-inventory-legacy>summary b{font-size:16px}
+#wealthMoneyHub #unifiedInventory details.u-inventory-legacy>summary small{font-size:12.5px;color:var(--muted);font-weight:400}
+#wealthMoneyHub #unifiedInventory details.u-inventory-legacy[open]{padding-bottom:20px!important}
+#wealthMoneyHub #unifiedInventory details.u-inventory-legacy .inventory-diagnostic-nav{display:flex;flex-wrap:wrap;gap:8px;padding:0 0 14px!important;margin:0 0 16px!important;border-bottom:1px solid var(--line)}
+#wealthMoneyHub #unifiedInventory details.u-inventory-legacy .inventory-diagnostic-nav button{border-radius:999px!important}
+#wealthMoneyHub #unifiedInventory details.u-inventory-legacy #accountsGrid{display:none!important}
+#wealthMoneyHub #unifiedInventory details.u-inventory-legacy :is(#accounts,#debts,#wealthHoldingsHub){display:flex!important;flex-direction:column;gap:16px}
+#wealthMoneyHub #unifiedInventory details.u-inventory-legacy :is(#accounts,#debts,#wealthHoldingsHub)[hidden]{display:none!important}
+#wealthMoneyHub #unifiedInventory details.u-inventory-legacy #accounts>#reconciliationCenter{grid-column:1/-1}
+#wealthMoneyHub #unifiedInventory details.u-inventory-legacy #accounts>:is(.panel,section){margin:0!important;border-radius:14px!important}
+@media(max-width:1100px){#wealthMoneyHub #unifiedInventory .u-inventory-summary{grid-template-columns:repeat(3,minmax(0,1fr))}#wealthMoneyHub #unifiedInventory .u-inventory-grid{grid-template-columns:1fr!important}#wealthMoneyHub #unifiedInventory .u-inspector{grid-column:1!important;grid-row:auto!important;position:static!important;max-height:none}#wealthMoneyHub #unifiedInventory details.u-inventory-legacy #accounts{grid-template-columns:1fr}}
+@media(max-width:600px){#wealthMoneyHub #unifiedInventory .u-inventory-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}
+#wealthMoneyHub #unifiedInventory .u-inventory-kpi strong.amount{font-size:20px!important;font-weight:700!important;color:var(--ink)!important}
+#wealthMoneyHub #unifiedInventory .u-inventory-list td.amount{white-space:nowrap!important;font-weight:650}
+#wealthMoneyHub #unifiedInventory .u-inventory-list th{white-space:nowrap}
+:is(#casaVehicles,#casaHousing) .dossier2-head{display:flex!important;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin:0 0 16px!important}
+:is(#casaVehicles,#casaHousing) .dossier2-head h2{margin:0 0 4px!important}
+:is(#casaVehicles,#casaHousing) .dossier2-head p{margin:0!important;color:var(--muted)}
+:is(#casaVehicles,#casaHousing) .dossier2-selector{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 16px!important}
+:is(#casaVehicles,#casaHousing) .dossier2-selector button{border-radius:999px!important}
+:is(#casaVehicles,#casaHousing) .dossier2{display:flex;flex-direction:column;gap:18px}
+:is(#casaVehicles,#casaHousing) .dossier2-hero{margin:0!important;padding:22px 24px!important;border:1px solid var(--line)!important;border-radius:18px!important;background:var(--paper)!important;display:flex;flex-direction:column;gap:18px}
+:is(#casaVehicles,#casaHousing) .dossier2-title{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+:is(#casaVehicles,#casaHousing) .dossier2-title>div:nth-child(2){flex:1 1 260px;min-width:0}
+:is(#casaVehicles,#casaHousing) .dossier2-title h3{margin:0 0 4px!important;font-size:22px!important;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+:is(#casaVehicles,#casaHousing) .dossier2-title p{margin:0!important;color:var(--muted);font-size:13.5px}
+:is(#casaVehicles,#casaHousing) .dossier2-avatar{width:52px;height:52px;flex:0 0 52px;display:grid;place-items:center;font-size:26px;border-radius:14px;background:color-mix(in srgb,var(--accent,#2f8a6c) 14%,var(--paper))}
+:is(#casaVehicles,#casaHousing) .dossier2-plate{font-size:12.5px;font-weight:700;letter-spacing:.06em;padding:3px 9px;border-radius:6px;border:1px solid var(--line);background:color-mix(in srgb,var(--paper) 90%,var(--ink) 5%)}
+:is(#casaVehicles,#casaHousing) .dossier2-actions{display:flex;flex-wrap:wrap;gap:8px}
+:is(#casaVehicles,#casaHousing) .dossier2-facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+:is(#casaVehicles,#casaHousing) .dossier2-facts.is-dates{padding-top:16px;border-top:1px solid var(--line)}
+:is(#casaVehicles,#casaHousing) .dossier2-fact{display:flex;flex-direction:column;gap:3px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:color-mix(in srgb,var(--paper) 94%,var(--ink) 3%);min-width:0}
+:is(#casaVehicles,#casaHousing) .dossier2-fact>span{font-size:12px;color:var(--muted);font-weight:600}
+:is(#casaVehicles,#casaHousing) .dossier2-fact>strong{font-size:18px!important;line-height:1.25;color:var(--ink)}
+:is(#casaVehicles,#casaHousing) .dossier2-fact>small{font-size:12px;color:var(--muted)}
+:is(#casaVehicles,#casaHousing) .dossier2-facts.is-dates .dossier2-fact>strong{font-size:15px!important}
+:is(#casaVehicles,#casaHousing) .dossier2-fact.is-empty>strong{color:var(--muted);font-weight:500}
+:is(#casaVehicles,#casaHousing) .dossier2-fact.is-ok{box-shadow:inset 3px 0 #3f8f7a}
+:is(#casaVehicles,#casaHousing) .dossier2-fact.is-soon{box-shadow:inset 3px 0 #d39a35}
+:is(#casaVehicles,#casaHousing) .dossier2-fact.is-soon>small{color:#c58a2b;font-weight:600}
+:is(#casaVehicles,#casaHousing) .dossier2-fact.is-late{box-shadow:inset 3px 0 #d0605e}
+:is(#casaVehicles,#casaHousing) .dossier2-fact.is-late>small{color:#d0605e;font-weight:600}
+:is(#casaVehicles,#casaHousing) .dossier2-notes{margin:0!important;padding:12px 14px;border-radius:10px;background:color-mix(in srgb,var(--paper) 94%,var(--ink) 3%);font-size:13px;color:var(--muted)}
+:is(#casaVehicles,#casaHousing) .dossier2-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;align-items:start}
+:is(#casaVehicles,#casaHousing) .dossier2-card{margin:0!important;padding:18px 20px!important;border:1px solid var(--line)!important;border-radius:16px!important;background:var(--paper)!important;min-width:0}
+:is(#casaVehicles,#casaHousing) .dossier2-card.is-wide{grid-column:1/-1}
+:is(#casaVehicles,#casaHousing) .dossier2-card>header{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 12px}
+:is(#casaVehicles,#casaHousing) .dossier2-card>header h3{margin:0!important;font-size:16px!important;display:flex;align-items:center;gap:8px}
+:is(#casaVehicles,#casaHousing) .dossier2-card :is(h3,h4) small{font-size:11.5px;font-weight:700;color:var(--muted);padding:1px 8px;border-radius:999px;border:1px solid var(--line)}
+:is(#casaVehicles,#casaHousing) .dossier2-card>header button{min-height:32px!important;padding:5px 12px!important;font-size:12.5px!important}
+:is(#casaVehicles,#casaHousing) .dossier2-card h4{margin:12px 0 6px!important;font-size:13.5px;display:flex;align-items:center;gap:8px}
+:is(#casaVehicles,#casaHousing) .dossier2-card .u-table-scroll{border:1px solid var(--line);border-radius:12px;max-height:360px;overflow:auto}
+:is(#casaVehicles,#casaHousing) .dossier2-card .u-table td button{min-height:28px!important;padding:3px 10px!important;font-size:12px!important}
+:is(#casaVehicles,#casaHousing) .dossier2-empty{margin:0!important;padding:16px;border:1px dashed var(--line);border-radius:12px;color:var(--muted);font-size:13px;text-align:center}
+:is(#casaVehicles,#casaHousing) .dossier2-docs{display:flex;flex-direction:column;gap:8px}
+:is(#casaVehicles,#casaHousing) .dossier2-doc{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--line);border-radius:12px}
+:is(#casaVehicles,#casaHousing) .dossier2-doc-icon{width:38px;height:44px;display:grid;place-items:center;border-radius:7px;font-size:10px;font-weight:800;color:#d0605e;background:color-mix(in srgb,#d0605e 12%,var(--paper))}
+:is(#casaVehicles,#casaHousing) .dossier2-doc b{font-size:13.5px}
+:is(#casaVehicles,#casaHousing) .dossier2-doc small{display:block;margin-top:2px;font-size:12px;color:var(--muted)}
+:is(#casaVehicles,#casaHousing) .dossier2-doc .row-actions{display:flex;gap:6px;margin:0!important}
+:is(#casaVehicles,#casaHousing) .dossier2-doc .row-actions button{min-height:28px!important;padding:3px 10px!important;font-size:12px!important}
+:is(#casaVehicles,#casaHousing) .dossier2-list{list-style:none;margin:0!important;padding:0!important;display:flex;flex-direction:column}
+:is(#casaVehicles,#casaHousing) .dossier2-list li{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-top:1px solid var(--line);font-size:13px}
+:is(#casaVehicles,#casaHousing) .dossier2-list li span{color:var(--muted);white-space:nowrap}
+:is(#casaVehicles,#casaHousing) .dossier2-danger{display:flex;justify-content:flex-end}
+:is(#casaVehicles,#casaHousing) .dossier2-danger button{color:#c95a58!important;border-color:color-mix(in srgb,#c95a58 35%,var(--line))!important;min-height:34px!important;font-size:12.5px!important}
+@media(max-width:900px){:is(#casaVehicles,#casaHousing) .dossier2-grid{grid-template-columns:1fr}:is(#casaVehicles,#casaHousing) .dossier2-doc{grid-template-columns:auto minmax(0,1fr)}:is(#casaVehicles,#casaHousing) .dossier2-doc .row-actions{grid-column:1/-1;justify-content:flex-end}}
+#practicalRoutinesSection .routines-head{display:flex!important;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px!important}
+#practicalRoutinesSection .routines-head .u-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+#practicalRoutinesSection .routine-count{font-size:12px;font-weight:600;color:var(--muted);padding:4px 10px;border-radius:999px;border:1px solid var(--line)}
+#practicalRoutinesSection .routine-count.is-late{color:#d0605e;border-color:color-mix(in srgb,#d0605e 40%,var(--line));background:color-mix(in srgb,#d0605e 9%,transparent)}
+#practicalRoutinesSection .routines-grid{display:grid!important;grid-template-columns:repeat(auto-fill,minmax(270px,1fr))!important;gap:14px!important}
+#practicalRoutinesSection .routine-card{--tone:#3f8f7a;display:flex!important;flex-direction:column;gap:10px!important;margin:0!important;padding:16px!important;border:1px solid var(--line)!important;border-top:3px solid var(--tone)!important;border-radius:14px!important;background:var(--paper)!important}
+#practicalRoutinesSection .routine-card.is-soon{--tone:#d39a35}
+#practicalRoutinesSection .routine-card.is-late{--tone:#d0605e}
+#practicalRoutinesSection .routine-card-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+#practicalRoutinesSection .routine-status{font-size:11.5px;font-weight:700;color:var(--tone);background:color-mix(in srgb,var(--tone) 12%,transparent);padding:2px 9px;border-radius:999px}
+#practicalRoutinesSection .routine-freq{font-size:11.5px;color:var(--muted)}
+#practicalRoutinesSection .routine-card .routine-card-head{display:flex!important;flex-direction:column;gap:2px!important}
+#practicalRoutinesSection .routine-card .routine-card-head h4{margin:0!important;font-size:15.5px!important;line-height:1.3}
+#practicalRoutinesSection .routine-card .routine-card-head p{margin:0!important;font-size:12.5px!important;color:var(--muted)}
+#practicalRoutinesSection .routine-dates{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0!important}
+#practicalRoutinesSection .routine-dates>div{padding:8px 10px;border-radius:10px;background:color-mix(in srgb,var(--paper) 93%,var(--ink) 4%);margin:0!important}
+#practicalRoutinesSection .routine-dates dt{font-size:11px;color:var(--muted)}
+#practicalRoutinesSection .routine-dates dd{margin:0;font-weight:700;font-size:13.5px}
+#practicalRoutinesSection .routine-notes{margin:0!important;font-size:12.5px!important;color:var(--muted)}
+#practicalRoutinesSection .routine-checklist-details>summary{display:grid!important;grid-template-columns:1fr auto;align-items:center;gap:4px 8px;cursor:pointer;font-size:12.5px;color:var(--ink)!important;list-style:none}
+#practicalRoutinesSection .routine-checklist-details>summary::-webkit-details-marker{display:none}
+#practicalRoutinesSection .routine-progress{grid-column:1/-1;display:block;height:5px;border-radius:999px;background:color-mix(in srgb,var(--line) 80%,transparent);overflow:hidden}
+#practicalRoutinesSection .routine-progress em{display:block;height:100%;background:var(--tone);border-radius:inherit}
+#practicalRoutinesSection .routine-checklist{display:flex;flex-direction:column;gap:4px;padding-top:8px;font-size:12.5px}
+#practicalRoutinesSection .routine-card .row-actions{display:flex!important;gap:6px!important;margin:auto 0 0!important;flex-wrap:nowrap}
+#practicalRoutinesSection .routine-card .row-actions button{min-height:32px!important;padding:5px 12px!important;font-size:12.5px!important}
+#practicalRoutinesSection .routine-card .row-actions .primary{flex:1}
+#practicalRoutinesSection .routine-card .row-actions .danger{color:#c95a58!important}
+#practicalRoutinesSection .routine-history{border-top:1px solid var(--line);padding-top:8px}
+#practicalRoutinesSection .routine-history>summary{cursor:pointer;font-size:12px;color:var(--muted)}
+#practicalRoutinesSection .routine-history p{margin:6px 0 0!important;font-size:12px;color:var(--muted)}
+#casaProducts .casa-catalog-filters{display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap;margin:0 0 14px}
+#casaProducts .casa-catalog-filters .casa-catalog-category{margin:0!important}
+#casaProducts .casa-catalog-status{display:flex;gap:6px;flex-wrap:wrap}
+#casaProducts .casa-catalog-status button{border-radius:999px!important;min-height:36px!important;padding:6px 14px!important}
+#casaProducts .casa-catalog-status button small{font-size:11px;font-weight:700;color:var(--muted);margin-left:4px}
+#casaProducts .casa-catalog-status button.active{background:color-mix(in srgb,var(--accent,#2f8a6c) 14%,var(--paper))!important;border-color:color-mix(in srgb,var(--accent,#2f8a6c) 45%,var(--line))!important}
+#casaProducts .casa-product-card .casa-card-meta{display:inline-flex;align-self:flex-start;font-size:11.5px;font-weight:600;color:var(--muted);padding:3px 10px;border-radius:999px;background:color-mix(in srgb,var(--paper) 90%,var(--ink) 5%)}
+#casaProducts .casa-product-card.is-archived .casa-card-meta{color:#b8792a;background:color-mix(in srgb,#b8792a 12%,transparent)}
+#casaProducts .casa-product-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:12px 0!important}
+#casaProducts .casa-product-facts>div{padding:9px 12px;border:1px solid var(--line);border-radius:10px;margin:0!important;min-width:0}
+#casaProducts .casa-product-facts dt{font-size:11px;color:var(--muted);margin:0 0 2px}
+#casaProducts .casa-product-facts dd{margin:0;font-size:13.5px;font-weight:650;overflow-wrap:anywhere}
+#casaProducts .casa-product-notes{margin:0 0 10px!important;font-size:12.5px;color:var(--muted)}
+#casaProducts .casa-offers-title{margin:6px 0 8px!important;font-size:13px;color:var(--muted);font-weight:600}
+#casaProducts .casa-offers{display:flex!important;flex-direction:column;gap:8px!important}
+#casaProducts .casa-offers .catalog-offer{position:relative;display:grid!important;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;align-items:center;margin:0!important;padding:10px 12px!important;border:1px solid var(--line)!important;border-radius:12px!important;background:var(--paper)!important}
+#casaProducts .casa-offers .catalog-offer:has(.catalog-best){border-color:color-mix(in srgb,#2f8a6c 55%,var(--line))!important;background:color-mix(in srgb,#2f8a6c 9%,var(--paper))!important}
+#casaProducts .casa-offers .catalog-offer>div{display:flex;flex-direction:column;gap:2px;min-width:0}
+#casaProducts .casa-offers .catalog-offer>div:nth-child(2){align-items:flex-end;text-align:right}
+#casaProducts .casa-offers .catalog-offer small{font-size:11.5px;color:var(--muted)}
+#casaProducts .casa-offers .catalog-best{grid-column:1/-1;justify-self:start;font-size:11px;font-weight:700;color:#2f8a6c;background:color-mix(in srgb,#2f8a6c 14%,transparent);padding:1px 8px;border-radius:999px}
+#casaProducts .casa-offers .catalog-offer.is-missing{border-style:dashed!important}
+#casaProducts .casa-offers .catalog-offer>button{grid-column:1/-1;justify-self:start;min-height:28px!important;padding:3px 10px!important;font-size:12px!important}
+#casaProducts .casa-product-card .casa-actions{display:flex!important;flex-wrap:wrap;gap:6px!important;margin-top:14px!important;padding-top:12px;border-top:1px solid var(--line)}
+#casaProducts .casa-product-card .casa-actions button{min-height:32px!important;padding:5px 12px!important;font-size:12.5px!important}
+#casaProducts .casa-product-card .casa-actions .danger{color:#c95a58!important;margin-left:auto;order:99}
+#casaPrices .casa-price-card.is-best{border-color:color-mix(in srgb,#2f8a6c 55%,var(--line))!important;background:color-mix(in srgb,#2f8a6c 9%,var(--paper))!important}
+#casaPrices .casa-connection.is-best{color:#2f8a6c!important;background:color-mix(in srgb,#2f8a6c 15%,transparent)!important;border-color:color-mix(in srgb,#2f8a6c 45%,transparent)!important;font-weight:700}
+#casaPrices .casa-connection.is-best::before{content:"\2605";margin-right:4px}
+#casaPrices .casa-connection.is-other{color:#b8792a!important;background:color-mix(in srgb,#b8792a 12%,transparent)!important;border-color:color-mix(in srgb,#b8792a 40%,transparent)!important}
+#modal .casa-product-form>.product-identity{grid-column:1/-1!important;display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 16px;align-items:end}
+#modal .casa-product-form>.product-identity>:is(h3,.product-legacy-link){grid-column:1/-1}
+@media(max-width:700px){#modal .casa-product-form>.product-identity{grid-template-columns:1fr}}
+#casaProducts .casa-legacy-categories{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:0 0 14px;padding:10px 14px;border:1px dashed var(--line);border-radius:12px;font-size:13px;color:var(--muted)}
+#casaProducts .casa-legacy-categories button{min-height:32px!important;padding:5px 12px!important;font-size:12.5px!important}

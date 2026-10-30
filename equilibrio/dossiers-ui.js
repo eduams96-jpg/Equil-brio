@@ -345,43 +345,52 @@
       routinesSec.className = 'panel practical-routines-section';
       host.append(routinesSec);
     }
-    const routines = D.routines(data);
     const today = F.today();
+    const dueDays = r => Math.round((Date.parse(r.nextDate + 'T12:00:00Z') - Date.parse(today + 'T12:00:00Z')) / 86400000);
+    const routines = D.routines(data).slice().sort((x, y) => String(x.nextDate).localeCompare(String(y.nextDate)));
+    const lateCount = routines.filter(r => dueDays(r) < 0).length, weekCount = routines.filter(r => dueDays(r) >= 0 && dueDays(r) <= 7).length;
     routinesSec.innerHTML =
-      `<div class="u-head">` +
+      `<div class="u-head routines-head">` +
         `<div><h3>Rotinas domésticas e manutenção preventiva</h3>` +
         `<p>Tarefas periódicas com lista de verificação e histórico de conclusão.</p></div>` +
-        `<div class="u-actions">${btn('+ Nova rotina', 'routine-form', '', '', 'primary')}</div>` +
+        `<div class="u-actions">` +
+          (routines.length ? `<span class="routine-count${lateCount ? ' is-late' : ''}">${lateCount} em atraso</span><span class="routine-count">${weekCount} nos próximos 7 dias</span>` : '') +
+          btn('+ Nova rotina', 'routine-form', '', '', 'primary') +
+        `</div>` +
       `</div>` +
       (routines.length
         ? `<div class="routines-grid">${routines.map(r => {
             const equip = equipList.find(e => String(e.id) === String(r.equipmentId));
-            const days = Math.round((Date.parse(r.nextDate + 'T12:00:00Z') - Date.parse(today + 'T12:00:00Z')) / 86400000);
-            const statusText = days < 0 ? `Em atraso (${Math.abs(days)} dia(s))` : days === 0 ? 'Para hoje' : `Daqui a ${days} dia(s)`;
+            const days = dueDays(r);
+            const tone = days < 0 ? 'late' : days <= 7 ? 'soon' : 'ok';
+            const statusText = days < 0 ? `Em atraso · ${Math.abs(days)} dia(s)` : days === 0 ? 'Para hoje' : `Daqui a ${days} dia(s)`;
             const freqText = frequencyLabels[r.frequency] || r.frequency;
             const lastExec = (r.history || []).at(-1);
-            return `<article class="panel routine-card" data-routine-id="${esc(r.id)}">` +
+            const doneItems = (r.checklist || []).filter(c => c.done).length, totalItems = (r.checklist || []).length;
+            return `<article class="panel routine-card is-${tone}" data-routine-id="${esc(r.id)}">` +
+              `<div class="routine-card-top"><span class="routine-status">${esc(statusText)}</span><span class="routine-freq">${esc(freqText)}</span></div>` +
               `<div class="routine-card-head">` +
-                `<div><h4>${esc(r.title)}</h4><p>${esc(r.area || 'Geral')} · ${esc(freqText)} · Próxima data: <b>${dateLabel(r.nextDate)}</b> (${esc(statusText)})${equip ? ` · Equipamento: <b>${esc(equip.name)}</b>` : ''}</p></div>` +
-                (lastExec ? `<small>Última conclusão: ${dateLabel(lastExec.date)}</small>` : `<small>Ainda sem conclusões</small>`) +
+                `<h4>${esc(r.title)}</h4>` +
+                `<p>${esc(r.area || 'Geral')}${equip ? ` · ${esc(equip.name)}` : ''}</p>` +
               `</div>` +
-              (r.notes ? `<p>${esc(r.notes)}</p>` : '') +
-              (r.checklist?.length
-                ? `<details class="routine-checklist-details"><summary>Lista de verificação (${r.checklist.filter(c => c.done).length}/${r.checklist.length})</summary><div class="routine-checklist" aria-label="Lista de verificação">` +
+              `<dl class="routine-dates"><div><dt>Próxima</dt><dd>${dateLabel(r.nextDate)}</dd></div><div><dt>Última</dt><dd>${lastExec ? dateLabel(lastExec.date) : '—'}</dd></div></dl>` +
+              (r.notes ? `<p class="routine-notes">${esc(r.notes)}</p>` : '') +
+              (totalItems
+                ? `<details class="routine-checklist-details"><summary><span>Lista de verificação</span><b>${doneItems}/${totalItems}</b><i class="routine-progress"><em style="width:${Math.round(doneItems / totalItems * 100)}%"></em></i></summary><div class="routine-checklist" aria-label="Lista de verificação">` +
                     r.checklist.map(c =>
                       `<label class="checkbox"><input type="checkbox" data-routine-check="${esc(r.id)}" data-check-id="${esc(c.id)}" ${c.done ? 'checked' : ''}> ${esc(c.label)}</label>`
                     ).join('') +
                   `</div></details>`
                 : '') +
               `<div class="row-actions">` +
-                btn('Concluir e avançar data', 'routine-complete', r.id, '', 'primary') +
+                btn('Concluir', 'routine-complete', r.id, 'title="Concluir e avançar para a próxima data"', 'primary') +
                 btn('Editar', 'routine-form', r.id) +
-                btn('Eliminar', 'routine-remove', r.id) +
+                btn('Eliminar', 'routine-remove', r.id, '', 'secondary danger') +
               `</div>` +
-              `<details><summary>Histórico de execução (${(r.history || []).length})</summary>` +
+              `<details class="routine-history"><summary>Histórico (${(r.history || []).length})</summary>` +
                 ((r.history || []).length
                   ? (r.history || []).slice().reverse().map(h =>
-                      `<p>${dateLabel(h.date)} (próxima: ${dateLabel(h.nextDate)}) · Checklist: ${h.completedItems}/${h.totalItems}${h.note ? ' · ' + esc(h.note) : ''}</p>`
+                      `<p>${dateLabel(h.date)} · próxima ${dateLabel(h.nextDate)} · ${h.completedItems}/${h.totalItems}${h.note ? ' · ' + esc(h.note) : ''}</p>`
                     ).join('')
                   : `<p class="practical-empty">Ainda sem execuções registadas.</p>`) +
               `</details>` +
@@ -644,6 +653,28 @@
     other: 'Outro',
   };
 
+  // Fichas em cartões: cabeçalho com os factos principais e blocos lado a lado.
+  const dossierFact = (label, value, hint = '', attrs = '') =>
+    `<div class="dossier2-fact"><span>${esc(label)}</span><strong ${attrs}>${value}</strong>${hint ? `<small>${esc(hint)}</small>` : ''}</div>`;
+  const dossierDue = (label, date, km = '') => {
+    if (!date) return `<div class="dossier2-fact is-empty"><span>${esc(label)}</span><strong>${km ? esc(km) : 'Não indicada'}</strong></div>`;
+    const days = Math.round((new Date(date + 'T12:00:00') - new Date(F.today() + 'T12:00:00')) / 86400000);
+    const tone = days < 0 ? 'late' : days <= 30 ? 'soon' : 'ok';
+    const hint = days < 0 ? `Passou há ${-days} dia${days === -1 ? '' : 's'}` : days === 0 ? 'Hoje' : `Daqui a ${days} dia${days === 1 ? '' : 's'}`;
+    return `<div class="dossier2-fact is-${tone}"><span>${esc(label)}</span><strong>${dateLabel(date)}${km ? ` · ${esc(km)}` : ''}</strong><small>${hint}</small></div>`;
+  };
+  const dossierCard = (title, count, body, action = '', wide = false) =>
+    `<section class="panel dossier2-card${wide ? ' is-wide' : ''}"><header><h3>${esc(title)}${count === null ? '' : ` <small>${count}</small>`}</h3>${action}</header>${body}</section>`;
+  const dossierEmpty = text => `<p class="dossier2-empty">${esc(text)}</p>`;
+  const dossierDocs = (docs, prefix, removeAction, tag = null) => docs.length
+    ? `<div class="dossier2-docs">` + docs.map(doc =>
+        `<div class="dossier2-doc" data-${prefix}-doc="${esc(doc.id)}"><span class="dossier2-doc-icon" aria-hidden="true">PDF</span>` +
+          `<div><b>${esc(doc.title)}</b>${tag ? ` <span class="notice-area-tag">${esc(tag(doc))}</span>` : ''}` +
+          `<small>${esc(doc.document?.name || '')} · ${dateLabel(doc.date)}${doc.validUntil ? ` · Validade: ${dateLabel(doc.validUntil)}` : ''} · ${doc.document?.text ? 'Texto pesquisável' : doc.document?.ocrStatus === 'failed' ? 'Leitura automática indisponível' : 'Sem texto extraído'}</small></div>` +
+          `<div class="row-actions">${btn('Abrir', prefix + '-doc-open', doc.ownerId + ':' + doc.id)}${btn('Texto', prefix + '-doc-read', doc.ownerId + ':' + doc.id)}${btn('Remover', removeAction(doc), doc.removeId)}</div>` +
+        `</div>`).join('') + `</div>`
+    : '';
+
   function renderVehicles() {
     if (view !== 'casaVehicles') return;
     const s = uiState();
@@ -652,99 +683,66 @@
     s.vehicleId = selected?.id || '';
     const summary = selected ? D.vehicleSummary(data, selected.id) : null;
 
+    const docs = (selected?.documents || []).map(doc => ({ ...doc, ownerId: selected.id, removeId: `${selected.id}:documents:${doc.id}` }));
+    const table = (head, rows) => `<div class="u-table-scroll"><table class="u-table"><thead><tr>${head.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table></div>`;
     vehiclesHost.innerHTML =
-      `<div class="section-head">` +
-        `<div><p class="eyebrow">DOSSIÊ PRÁTICO E PATRIMÓNIO</p><h2>Ficha do veículo</h2>` +
-        `<p>Quilometragem, abastecimentos, manutenções, documentos PDF e custos agregados sem duplicar movimentos.</p></div>` +
+      `<div class="section-head dossier2-head">` +
+        `<div><h2>Veículos</h2><p>Quilometragem, manutenções, prazos e documentos de cada veículo.</p></div>` +
         `<div class="row-actions">${btn('Pesquisar nos PDFs', 'open-pdf-search', 'vehicle')}${btn('+ Novo veículo', 'vehicle-form', '', '', 'primary')}</div>` +
       `</div>` +
-      (list.length
-        ? `<div class="u-filter-bar vehicle-selector-bar">` +
+      (list.length > 1
+        ? `<div class="u-filter-bar dossier2-selector">` +
             list.map(v =>
               `<button type="button" class="secondary ${v.id === s.vehicleId ? 'active' : ''}" data-vehicle-select="${esc(v.id)}" aria-pressed="${v.id === s.vehicleId}">${esc(v.name)}${v.plate ? ` · ${esc(v.plate)}` : ''}</button>`
             ).join('') +
           `</div>`
         : '') +
       (summary
-        ? `<div class="vehicle-dossier" id="vehicleDossierView">` +
-            `<div class="u-metrics">` +
-              `<article class="panel u-metric"><div><span>Quilometragem atual</span><strong id="vehicleCurrentKm">${summary.currentKm.toLocaleString('pt-PT')} km</strong></div></article>` +
-              `<article class="panel u-metric"><div><span>Custo total acumulado</span><strong class="amount" id="vehicleTotalCost">${eur(summary.totalEffectiveCost)}</strong><small>Sem duplicação financeira</small></div></article>` +
-              ((selected.fuelings || []).length ? `<article class="panel u-metric"><div><span>Abastecimentos / consumo</span><strong class="amount" id="vehicleFuelCost">${eur(summary.fuelCost)}</strong><small>${summary.averageConsumptionPer100Km !== null ? `${summary.averageConsumptionPer100Km} ${esc(summary.consumptionUnit)}` : 'Média após 2 abastecimentos com km'}</small></div></article>` : '') +
-              `<article class="panel u-metric"><div><span>Manutenção acumulada</span><strong class="amount" id="vehicleMaintCost">${eur(summary.maintenanceCost)}</strong></div></article>` +
-            `</div>` +
-            `<section class="panel vehicle-overview-panel">` +
-              `<div class="u-head">` +
-                `<div><h3>${esc(selected.name)}${selected.plate ? ` · ${esc(selected.plate)}` : ''}</h3>` +
-                `<p>${esc(selected.makeModel || 'Marca/modelo por indicar')} · Combustível: ${esc(fuelLabels[selected.fuelType] || selected.fuelType)}${summary.assetName ? ` · Património: ${esc(summary.assetName)} (${eur(summary.assetValue)})` : ''}</p></div>` +
-                `<div class="u-actions">` +
-                  btn('Editar veículo', 'vehicle-form', selected.id) +
-                  btn('+ Quilometragem', 'vehicle-mileage-form', selected.id) +
-                  btn('+ Manutenção', 'vehicle-maintenance-form', selected.id) +
-                  btn('+ Documento PDF', 'vehicle-document-form', selected.id) +
-                  btn('Eliminar veículo', 'vehicle-remove', selected.id) +
-                `</div>` +
+        ? `<div class="dossier2" id="vehicleDossierView">` +
+            `<section class="panel dossier2-hero">` +
+              `<div class="dossier2-title"><span class="dossier2-avatar" aria-hidden="true">🚗</span>` +
+                `<div><h3>${esc(selected.name)}${selected.plate ? ` <span class="dossier2-plate">${esc(selected.plate)}</span>` : ''}</h3>` +
+                `<p>${esc([selected.makeModel || 'Marca/modelo por indicar', fuelLabels[selected.fuelType] || selected.fuelType, summary.assetName ? `Património: ${summary.assetName}` : ''].filter(Boolean).join(' · '))}</p></div>` +
+                `<div class="dossier2-actions">${btn('Editar', 'vehicle-form', selected.id)}${btn('+ Quilometragem', 'vehicle-mileage-form', selected.id)}${btn('+ Manutenção', 'vehicle-maintenance-form', selected.id, '', 'primary')}</div>` +
               `</div>` +
-              `<dl class="dossier-dates-grid">` +
-                `<div><dt>Inspeção (IPO)</dt><dd>${selected.nextInspectionDate ? dateLabel(selected.nextInspectionDate) : 'Não indicada'}</dd></div>` +
-                `<div><dt>Seguro</dt><dd>${selected.insuranceDate ? dateLabel(selected.insuranceDate) : 'Não indicado'}</dd></div>` +
-                `<div><dt>IUC / Imposto</dt><dd>${selected.iucDate ? dateLabel(selected.iucDate) : 'Não indicado'}</dd></div>` +
-                `<div><dt>Próxima revisão</dt><dd>${selected.nextMaintenanceDate ? dateLabel(selected.nextMaintenanceDate) : ''}${selected.nextMaintenanceKm ? ` · ${selected.nextMaintenanceKm.toLocaleString('pt-PT')} km` : (!selected.nextMaintenanceDate ? 'Não indicada' : '')}</dd></div>` +
-              `</dl>` +
-              (selected.notes ? `<p>${esc(selected.notes)}</p>` : '') +
+              `<div class="dossier2-facts">` +
+                dossierFact('Quilometragem atual', `${summary.currentKm.toLocaleString('pt-PT')} km`, '', 'id="vehicleCurrentKm"') +
+                dossierFact('Custo acumulado', eur(summary.totalEffectiveCost), 'Sem duplicar movimentos', 'class="amount" id="vehicleTotalCost"') +
+                dossierFact('Manutenção', eur(summary.maintenanceCost), '', 'class="amount" id="vehicleMaintCost"') +
+                ((selected.fuelings || []).length ? dossierFact('Abastecimentos', eur(summary.fuelCost), summary.averageConsumptionPer100Km !== null ? `${summary.averageConsumptionPer100Km} ${summary.consumptionUnit}` : '', 'class="amount" id="vehicleFuelCost"') : '') +
+                (summary.assetName ? dossierFact('Valor patrimonial', eur(summary.assetValue), '', 'class="amount"') : '') +
+              `</div>` +
+              `<div class="dossier2-facts is-dates">` +
+                dossierDue('Inspeção (IPO)', selected.nextInspectionDate) +
+                dossierDue('Seguro', selected.insuranceDate) +
+                dossierDue('IUC', selected.iucDate) +
+                dossierDue('Próxima revisão', selected.nextMaintenanceDate, selected.nextMaintenanceKm ? `${selected.nextMaintenanceKm.toLocaleString('pt-PT')} km` : '') +
+              `</div>` +
+              (selected.notes ? `<p class="dossier2-notes">${esc(selected.notes)}</p>` : '') +
             `</section>` +
-            `<div class="dossier-columns">` +
-              `<section class="panel">` +
-                `<h3>Manutenções e intervenções (${(selected.maintenance || []).length})</h3>` +
-                ((selected.maintenance || []).length
-                  ? `<div class="u-table-scroll"><table class="u-table"><thead><tr><th>Data</th><th>Descrição</th><th>Km</th><th>Custo</th><th>Movimento</th><th></th></tr></thead><tbody>` +
-                      selected.maintenance.slice().sort((a, b) => b.date.localeCompare(a.date)).map(m =>
-                        `<tr><td>${dateLabel(m.date)}</td><td>${esc(m.description)}</td><td>${m.km !== null && m.km !== undefined ? `${m.km.toLocaleString('pt-PT')} km` : '—'}</td><td class="amount">${eur(m.cost)}</td><td>${m.transactionId ? 'Associado' : 'Só na ficha'}</td><td>${btn('Remover', 'vehicle-sub-remove', `${selected.id}:maintenance:${m.id}`)}</td></tr>`
-                      ).join('') +
-                    `</tbody></table></div>`
-                  : `<p class="practical-empty">Sem manutenções registadas neste veículo.</p>`) +
-              `</section>` +
-              ((selected.fuelings || []).length ? `<section class="panel">` +
-                `<h3>Abastecimentos e carregamentos (${(selected.fuelings || []).length})</h3>` +
-                ((selected.fuelings || []).length
-                  ? `<div class="u-table-scroll"><table class="u-table"><thead><tr><th>Data</th><th>Quantidade</th><th>Total</th><th>Km</th><th>Movimento</th><th></th></tr></thead><tbody>` +
-                      selected.fuelings.slice().sort((a, b) => b.date.localeCompare(a.date)).map(f =>
-                        `<tr><td>${dateLabel(f.date)}</td><td>${f.quantity} ${esc(f.unit)}</td><td class="amount">${eur(f.cost)}</td><td>${f.km !== null && f.km !== undefined ? `${f.km.toLocaleString('pt-PT')} km` : '—'}</td><td>${f.transactionId ? 'Associado' : 'Só na ficha'}</td><td>${btn('Remover', 'vehicle-sub-remove', `${selected.id}:fuelings:${f.id}`)}</td></tr>`
-                      ).join('') +
-                    `</tbody></table></div>`
-                  : `<p class="practical-empty">Sem abastecimentos registados.</p>`) +
-              `</section>` : '') +
-              `<section class="panel">` +
-                `<h3>Registo de quilometragem (${(selected.mileageLog || []).length})</h3>` +
-                ((selected.mileageLog || []).length
-                  ? `<div class="u-table-scroll"><table class="u-table"><thead><tr><th>Data</th><th>Quilometragem</th><th>Nota</th><th></th></tr></thead><tbody>` +
-                      selected.mileageLog.slice().sort((a, b) => b.date.localeCompare(a.date)).map(m =>
-                        `<tr><td>${dateLabel(m.date)}</td><td><b>${m.km.toLocaleString('pt-PT')} km</b></td><td>${esc(m.note || '')}</td><td>${btn('Remover', 'vehicle-sub-remove', `${selected.id}:mileageLog:${m.id}`)}</td></tr>`
-                      ).join('') +
-                    `</tbody></table></div>`
-                  : `<p class="practical-empty">Sem registos autónomos de quilometragem.</p>`) +
-              `</section>` +
-              `<section class="panel">` +
-                `<h3>Documentos PDF do veículo (${(selected.documents || []).length})</h3>` +
-                ((selected.documents || []).length
-                  ? `<div class="dossier-docs-list">` +
-                      selected.documents.map(doc =>
-                        `<div class="dossier-doc-row" data-vehicle-doc="${esc(doc.id)}">` +
-                          `<div><b>${esc(doc.title)}</b> <small>(${esc(doc.document?.name || '')} · ${dateLabel(doc.date)})</small><br>` +
-                          `<small>${doc.document?.text ? `Texto pesquisável (${doc.document.ocrStatus === 'ocr' ? 'OCR' : 'extraído'})` : doc.document?.ocrStatus === 'failed' ? 'PDF preservado (leitura automática indisponível)' : 'Sem texto extraído'}</small></div>` +
-                          `<div class="row-actions">` +
-                            btn('Abrir PDF', 'vehicle-doc-open', `${selected.id}:${doc.id}`) +
-                            btn('Ler/rever texto', 'vehicle-doc-read', `${selected.id}:${doc.id}`) +
-                            btn('Remover', 'vehicle-sub-remove', `${selected.id}:documents:${doc.id}`) +
-                          `</div>` +
-                        `</div>`
-                      ).join('') +
-                    `</div>`
-                  : `<p class="practical-empty">Anexa apólice de seguro, comprovativo de inspeção, IUC ou faturas de oficina em PDF.</p>`) +
-              `</section>` +
+            `<div class="dossier2-grid">` +
+              dossierCard('Manutenções e intervenções', (selected.maintenance || []).length,
+                (selected.maintenance || []).length
+                  ? table(['Data', 'Descrição', 'Km', 'Custo', 'Movimento', ''], selected.maintenance.slice().sort((a, b) => b.date.localeCompare(a.date)).map(m =>
+                      `<tr><td>${dateLabel(m.date)}</td><td>${esc(m.description)}</td><td>${m.km !== null && m.km !== undefined ? `${m.km.toLocaleString('pt-PT')} km` : '—'}</td><td class="amount">${eur(m.cost)}</td><td>${m.transactionId ? 'Associado' : 'Só na ficha'}</td><td>${btn('Remover', 'vehicle-sub-remove', `${selected.id}:maintenance:${m.id}`)}</td></tr>`).join(''))
+                  : dossierEmpty('Sem manutenções registadas neste veículo.'),
+                btn('+ Manutenção', 'vehicle-maintenance-form', selected.id), true) +
+              dossierCard('Quilometragem', (selected.mileageLog || []).length,
+                (selected.mileageLog || []).length
+                  ? table(['Data', 'Km', 'Nota', ''], selected.mileageLog.slice().sort((a, b) => b.date.localeCompare(a.date)).map(m =>
+                      `<tr><td>${dateLabel(m.date)}</td><td><b>${m.km.toLocaleString('pt-PT')} km</b></td><td>${esc(m.note || '')}</td><td>${btn('Remover', 'vehicle-sub-remove', `${selected.id}:mileageLog:${m.id}`)}</td></tr>`).join(''))
+                  : dossierEmpty('Sem registos de quilometragem.'),
+                btn('+ Registo', 'vehicle-mileage-form', selected.id)) +
+              dossierCard('Documentos PDF', docs.length,
+                dossierDocs(docs, 'vehicle', () => 'vehicle-sub-remove') || dossierEmpty('Apólice de seguro, inspeção, IUC ou faturas de oficina.'),
+                btn('+ PDF', 'vehicle-document-form', selected.id)) +
+              ((selected.fuelings || []).length ? dossierCard('Abastecimentos e carregamentos', selected.fuelings.length,
+                table(['Data', 'Quantidade', 'Total', 'Km', 'Movimento', ''], selected.fuelings.slice().sort((a, b) => b.date.localeCompare(a.date)).map(f =>
+                  `<tr><td>${dateLabel(f.date)}</td><td>${f.quantity} ${esc(f.unit)}</td><td class="amount">${eur(f.cost)}</td><td>${f.km !== null && f.km !== undefined ? `${f.km.toLocaleString('pt-PT')} km` : '—'}</td><td>${f.transactionId ? 'Associado' : 'Só na ficha'}</td><td>${btn('Remover', 'vehicle-sub-remove', `${selected.id}:fuelings:${f.id}`)}</td></tr>`).join('')), '', true) : '') +
             `</div>` +
+            `<div class="dossier2-danger">${btn('Eliminar veículo', 'vehicle-remove', selected.id, '', 'secondary danger')}</div>` +
           `</div>`
-        : `<p class="empty-state">Adiciona um veículo para acompanhar quilometragem, revisões, inspeção, seguro, abastecimentos e documentos PDF.</p>`);
+        : `<p class="empty-state">Adiciona um veículo para acompanhar quilometragem, revisões, inspeção, seguro e documentos PDF.</p>`);
 
     for (const b of $$('[data-vehicle-select]', vehiclesHost)) {
       b.onclick = () => { s.vehicleId = b.dataset.vehicleSelect; renderVehicles(); };
@@ -942,87 +940,63 @@
     s.housingId = selected?.id || '';
     const summary = selected ? D.housingSummary(data, selected.id) : null;
 
+    const docs = (selected?.documents || []).map(doc => ({ ...doc, ownerId: selected.id, removeId: `${selected.id}:${doc.id}` }));
     housingHost.innerHTML =
-      `<div class="section-head">` +
-        `<div><p class="eyebrow">DOSSIÊ DOCUMENTAL E PATRIMÓNIO</p><h2>Dossier da habitação</h2>` +
-        `<p>Reúne informação da habitação, documentos PDF pesquisáveis e ligações a equipamentos, rotinas domésticas, património e movimentos.</p></div>` +
+      `<div class="section-head dossier2-head">` +
+        `<div><h2>Habitação</h2><p>Prazos, documentos e tudo o que está ligado à casa.</p></div>` +
         `<div class="row-actions">${btn('Pesquisar nos PDFs', 'open-pdf-search', 'housing')}${btn('+ Nova habitação', 'housing-form', '', '', 'primary')}</div>` +
       `</div>` +
-      (list.length
-        ? `<div class="u-filter-bar housing-selector-bar">` +
+      (list.length > 1
+        ? `<div class="u-filter-bar dossier2-selector">` +
             list.map(h =>
               `<button type="button" class="secondary ${h.id === s.housingId ? 'active' : ''}" data-housing-select="${esc(h.id)}" aria-pressed="${h.id === s.housingId}">${esc(h.name)}</button>`
             ).join('') +
           `</div>`
         : '') +
       (summary
-        ? `<div class="housing-dossier" id="housingDossierView">` +
-            `<div class="u-metrics">` +
-              `<article class="panel u-metric"><div><span>Valor patrimonial</span><strong class="amount" id="housingAssetValue">${summary.assetName ? eur(summary.assetValue) : 'Por indicar'}</strong><small>${summary.assetName ? '' : 'Indica-o em «Editar dossier».'}</small></div></article>` +
-              (summary.accumulatedTotal ? `<article class="panel u-metric"><div><span>Custos associados</span><strong class="amount" id="housingCombinedCost">${eur(summary.accumulatedTotal)}</strong></div></article>` : '') +
-            `</div>` +
-            `<section class="panel housing-overview-panel">` +
-              `<div class="u-head">` +
-                `<div><h3>${esc(selected.name)} · ${esc(summary.kindLabel)}</h3>` +
-                `<p>${esc([selected.typology, selected.addressNote, selected.taxId].filter(Boolean).join(' · ') || 'Morada/fração não indicada')}</p></div>` +
-                `<div class="u-actions">` +
-                  btn('Editar dossier', 'housing-form', selected.id) +
-                  btn('+ Anexar PDF ao dossier', 'housing-document-form', selected.id, '', 'primary') +
-                  btn('Eliminar dossier', 'housing-remove', selected.id) +
-                `</div>` +
+        ? `<div class="dossier2" id="housingDossierView">` +
+            `<section class="panel dossier2-hero">` +
+              `<div class="dossier2-title"><span class="dossier2-avatar" aria-hidden="true">🏠</span>` +
+                `<div><h3>${esc(selected.name)}</h3><p>${esc([summary.kindLabel, selected.typology, selected.addressNote, selected.taxId].filter(Boolean).join(' · '))}</p></div>` +
+                `<div class="dossier2-actions">${btn('Editar', 'housing-form', selected.id)}${btn('+ Anexar PDF', 'housing-document-form', selected.id, '', 'primary')}</div>` +
               `</div>` +
-              `<dl class="dossier-dates-grid">` +
-                `<div><dt>Seguro da habitação</dt><dd>${selected.insuranceDate ? dateLabel(selected.insuranceDate) : 'Não indicado'}</dd></div>` +
-                `<div><dt>Condomínio / assembleia</dt><dd>${selected.condominiumDate ? dateLabel(selected.condominiumDate) : 'Não indicado'}</dd></div>` +
-                `<div><dt>IMI / Imposto</dt><dd>${selected.imiDate ? dateLabel(selected.imiDate) : 'Não indicado'}</dd></div>` +
-              `</dl>` +
-              (selected.notes ? `<p>${esc(selected.notes)}</p>` : '') +
+              `<div class="dossier2-facts">` +
+                dossierFact('Valor patrimonial', summary.assetName ? eur(summary.assetValue) : 'Por indicar', summary.assetName ? '' : 'Indica-o em Editar', 'class="amount" id="housingAssetValue"') +
+                (summary.accumulatedTotal ? dossierFact('Custos associados', eur(summary.accumulatedTotal), '', 'class="amount" id="housingCombinedCost"') : '') +
+                dossierFact('Documentos', String(docs.length)) +
+                dossierFact('Equipamentos', String(summary.equipmentSummaries.length)) +
+              `</div>` +
+              `<div class="dossier2-facts is-dates">` +
+                dossierDue('Seguro da habitação', selected.insuranceDate) +
+                dossierDue('Condomínio / assembleia', selected.condominiumDate) +
+                dossierDue('IMI', selected.imiDate) +
+              `</div>` +
+              (selected.notes ? `<p class="dossier2-notes">${esc(selected.notes)}</p>` : '') +
             `</section>` +
-            `<div class="dossier-columns">` +
-              `<section class="panel">` +
-                `<h3>Documentos PDF da habitação (${(selected.documents || []).length})</h3>` +
-                ((selected.documents || []).length
-                  ? `<div class="dossier-docs-list">` +
-                      selected.documents.map(doc =>
-                        `<div class="dossier-doc-row" data-housing-doc="${esc(doc.id)}">` +
-                          `<div><b>${esc(doc.title)}</b> · <span class="notice-area-tag">${esc(housingDocCategories[doc.category] || doc.category)}</span><br>` +
-                          `<small>${esc(doc.document?.name || '')} · Data: ${dateLabel(doc.date)}${doc.validUntil ? ` · Validade: ${dateLabel(doc.validUntil)}` : ''}</small><br>` +
-                          `<small>${doc.document?.text ? `Texto pesquisável (${doc.document.ocrStatus === 'ocr' ? 'OCR' : 'extraído'})` : doc.document?.ocrStatus === 'failed' ? 'PDF preservado (leitura automática indisponível)' : 'Sem texto extraído'}</small></div>` +
-                          `<div class="row-actions">` +
-                            btn('Abrir PDF', 'housing-doc-open', `${selected.id}:${doc.id}`) +
-                            btn('Ler/rever texto', 'housing-doc-read', `${selected.id}:${doc.id}`) +
-                            btn('Remover', 'housing-doc-remove', `${selected.id}:${doc.id}`) +
-                          `</div>` +
-                        `</div>`
-                      ).join('') +
-                    `</div>`
-                  : `<p class="practical-empty">Guarda aqui escrituras, contratos, apólices de seguro, atas de condomínio, certificados e comprovativos de IMI em PDF.</p>`) +
-              `</section>` +
-              (summary.equipmentSummaries.length || summary.linkedRoutines.length ? `<section class="panel">` +
-                `<h3>Equipamentos e rotinas associados</h3>` +
-                `<h4>Equipamentos (${summary.equipmentSummaries.length})</h4>` +
+            `<div class="dossier2-grid">` +
+              dossierCard('Documentos PDF', docs.length,
+                dossierDocs(docs, 'housing', () => 'housing-doc-remove', doc => housingDocCategories[doc.category] || doc.category) || dossierEmpty('Escrituras, contratos, apólices, atas de condomínio, certificados e IMI.'),
+                btn('+ PDF', 'housing-document-form', selected.id), !(summary.equipmentSummaries.length || summary.linkedRoutines.length)) +
+              (summary.equipmentSummaries.length || summary.linkedRoutines.length ? dossierCard('Equipamentos e rotinas', null,
+                `<h4>Equipamentos <small>${summary.equipmentSummaries.length}</small></h4>` +
                 (summary.equipmentSummaries.length
-                  ? `<ul>${summary.equipmentSummaries.map(e => `<li><b>${esc(e.name)}</b> · Acumulado: ${eur(e.accumulatedTotal)}</li>`).join('')}</ul>`
-                  : `<p class="practical-empty">Sem equipamentos associados.</p>`) +
-                `<h4>Rotinas domésticas (${summary.linkedRoutines.length})</h4>` +
+                  ? `<ul class="dossier2-list">${summary.equipmentSummaries.map(e => `<li><b>${esc(e.name)}</b><span class="amount">${eur(e.accumulatedTotal)}</span></li>`).join('')}</ul>`
+                  : dossierEmpty('Sem equipamentos associados.')) +
+                `<h4>Rotinas domésticas <small>${summary.linkedRoutines.length}</small></h4>` +
                 (summary.linkedRoutines.length
-                  ? `<ul>${summary.linkedRoutines.map(r => `<li><b>${esc(r.title)}</b> · Próxima: ${dateLabel(r.nextDate)}</li>`).join('')}</ul>`
-                  : `<p class="practical-empty">Sem rotinas associadas.</p>`) +
-                `<div class="row-actions">${btn('Abrir Equipamentos e Rotinas', 'open-equipment-page')}</div>` +
-              `</section>` : '') +
-              (summary.linkedTransactions.length ? `<section class="panel">` +
-                `<h3>Movimentos financeiros associados (${summary.linkedTransactions.length})</h3>` +
-                (summary.linkedTransactions.length
-                  ? `<div class="u-table-scroll"><table class="u-table"><thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Valor</th></tr></thead><tbody>` +
-                      summary.linkedTransactions.map(t =>
-                        `<tr><td>${dateLabel(t.date)}</td><td>${esc(t.description)}</td><td>${esc(t.category || '')}</td><td class="amount">${eur(t.amount)}</td></tr>`
-                      ).join('') +
-                    `</tbody></table></div>`
-                  : `<p class="practical-empty">Sem movimentos associados diretamente a este dossier.</p>`) +
-              `</section>` : '') +
+                  ? `<ul class="dossier2-list">${summary.linkedRoutines.map(r => `<li><b>${esc(r.title)}</b><span>${dateLabel(r.nextDate)}</span></li>`).join('')}</ul>`
+                  : dossierEmpty('Sem rotinas associadas.')),
+                btn('Abrir equipamentos', 'open-equipment-page')) : '') +
+              (summary.linkedTransactions.length ? dossierCard('Movimentos associados', summary.linkedTransactions.length,
+                `<div class="u-table-scroll"><table class="u-table"><thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Valor</th></tr></thead><tbody>` +
+                  summary.linkedTransactions.map(t =>
+                    `<tr><td>${dateLabel(t.date)}</td><td>${esc(t.description)}</td><td>${esc(t.category || '')}</td><td class="amount">${eur(t.amount)}</td></tr>`
+                  ).join('') +
+                `</tbody></table></div>`, '', true) : '') +
             `</div>` +
+            `<div class="dossier2-danger">${btn('Eliminar dossier', 'housing-remove', selected.id, '', 'secondary danger')}</div>` +
           `</div>`
-        : `<p class="empty-state">Cria o dossier da habitação para centralizar documentos PDF, prazos de seguros/IMI/condomínio e ligações a equipamentos, rotinas, património e despesas.</p>`);
+        : `<p class="empty-state">Cria o dossier da habitação para centralizar documentos PDF, prazos de seguro, IMI e condomínio, equipamentos e despesas.</p>`);
 
     for (const b of $$('[data-housing-select]', housingHost)) {
       b.onclick = () => { s.housingId = b.dataset.housingSelect; renderHousing(); };

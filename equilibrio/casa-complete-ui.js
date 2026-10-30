@@ -13,7 +13,8 @@
     form('Categorias por supermercado',select('Supermercado','categoryStore',stores.map(s=>[s.id,s.name]))+field('Categoria / subcategoria','storeCategory',p.storeCategories?.[stores[0].id]||'','text','maxlength="160" placeholder="Ex.: Alimentação / Mercearia"'),v=>commit(()=>E.category(data,id,v.get('categoryStore'),v.get('storeCategory')),'Categoria guardada.'),'A categoria geral do produto mantém-se. Podes usar um caminho como “Alimentação / Mercearia” em cada loja.');
     $('[name=categoryStore]').onchange=e=>$('[name=storeCategory]').value=p.storeCategories?.[e.target.value]||'';
   }
-  function enhanceProducts(){document.querySelectorAll('[data-product-edit]').forEach(b=>{if($('[data-store-category]',b.parentElement))return;button('Categorias por loja',()=>categoryForm(b.dataset.productEdit),b.parentElement,'data-store-category');});}
+  // Sem «Categorias por loja»: a categoria escolhe-se ao registar cada compra.
+  function enhanceProducts(){}
   function compactProductActions(){
     document.querySelectorAll('#casaCatalogCards .casa-card-actions-more').forEach(details=>{const actions=details.parentElement;details.querySelectorAll('button').forEach(button=>actions.insertBefore(button,details));details.remove();});
   }

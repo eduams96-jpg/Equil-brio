@@ -66,3 +66,9 @@
 !/historico/baselines/baseline-0.41.2/practical-model.js
 !/historico/baselines/baseline-0.41.2/provider-icons.js
 !/historico/baselines/baseline-0.41.2/reports-model.js
+
+# Minimal historical reference needed by the Casa performance regression.
+!/historico/baselines/baseline-0.39.79/
+/historico/baselines/baseline-0.39.79/*
+!/historico/baselines/baseline-0.39.79/casa-model.js
+!/historico/baselines/baseline-0.39.79/casa-complete-model.js
