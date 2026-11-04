@@ -1,8 +1,8 @@
 {
   "name": "financas-pessoais-desktop",
-  "version": "1.0.19",
+  "version": "1.0.20",
   "private": true,
-  "description": "Equilíbrio v1.0.19 — Revisão, Casa, Dados, Avisos, Definições e Movimentos redesenhados",
+  "description": "Equilíbrio v1.0.20 — Revisão geral: espaçamentos, menus e tema claro",
   "main": "desktop/main.cjs",
   "scripts": {
     "test": "node --test tests/*.cjs",

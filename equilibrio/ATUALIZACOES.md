@@ -1,3 +1,7 @@
+# 1.0.20 — Revisão geral: espaçamentos, menus e tema claro
+
+Sem quadros colados nem molduras duplas em Revisão, Dados, Agenda, Avisos, Movimentos e Inventário. Menus suspensos fecham ao escolher ou clicar fora. Movimentos correto no tema claro. Casa sem botões duplicados e com filtros ativos realçados; Refeições sem receitas explica o que fazer. Atualização desde 1.0.19.
+
 # 1.0.19 — Revisão, Casa, Dados, Avisos, Definições e Movimentos redesenhados
 
 Revisão e análise com o fecho do mês em três passos e contas em cartões. Mês a mês com uma cor por categoria. Casa (Visão geral, Lista de compras, Compras, Despensa, Análises, Refeições, Receitas), Dados, Avisos e Definições com blocos de resumo, filtros em pílulas e cartões. Movimentos numa linha, com as ações secundárias no menu «•••». Atualização desde 1.0.18.
