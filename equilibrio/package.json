@@ -1,8 +1,8 @@
 {
   "name": "financas-pessoais-desktop",
-  "version": "1.0.17",
+  "version": "1.0.18",
   "private": true,
-  "description": "Equilíbrio v1.0.17 — Layout em cartões e catálogo sem categorias",
+  "description": "Equilíbrio v1.0.18 — Relatórios detalhados, catálogo e Agenda redesenhados, mais rápido",
   "main": "desktop/main.cjs",
   "scripts": {
     "test": "node --test tests/*.cjs",

@@ -1,3 +1,7 @@
+# 1.0.18 — Relatórios detalhados, catálogo e Agenda redesenhados, mais rápido
+
+Gravar fica mais rápido: a conferência do extrato só é recalculada com a página aberta e os compromissos futuros usam índices. Relatórios com Categorias e subcategorias, Mês a mês, Comparar anos, Onde gastas e Receitas (Visão anual igual). Agenda, Planos e decisões, Equipamentos, Produtos, Lojas e Preços (tabela editável) redesenhados. «Arrumar repetidas» junta categorias repetidas. Atualização desde 1.0.17.
+
 # 1.0.17 — Layout em cartões e catálogo sem categorias
 
 Agenda com cartão do dia à altura do calendário e menu de ações visível. Planos e decisões, Inventário, Habitação, Veículos e Rotinas em cartões. Catálogo com menor preço destacado, filtro Ativos/Arquivados, eliminar produtos e sem categorias. Ecrã inicial mais compacto e Revisão sem a Revisão semanal. Atualização desde 1.0.16.

@@ -1,30 +1,39 @@
 # Retomar o Equilíbrio
 
-Estado em 30/10/2026. Lê isto primeiro quando voltares a pegar no projeto.
+Estado em 04/11/2026. Lê isto primeiro quando voltares a pegar no projeto.
 
 ## Onde ficou
 
-- **Windows 1.0.17** pronto em `entrega-v1.0.17/` (atualização `.fpupdate`, hash e instruções). Aceita a instalação 1.0.16. Validado com instalação incremental e reposição automática numa cópia isolada.
-- **Instalado neste PC:** 1.0.16 (até instalares a 1.0.17).
+- **Windows 1.0.18** pronto em `entrega-v1.0.18/` (atualização `.fpupdate`, hash e instruções). Aceita a instalação 1.0.17. Validado com instalação incremental e reposição automática numa cópia isolada.
+- **Instalado neste PC:** 1.0.16 ou 1.0.17 — instalar primeiro a 1.0.17 (`entrega-v1.0.17/`) e depois a 1.0.18.
 - **Android:** RC4, sem alterações desde a 1.0.15 (`entrega-v1.0.15/`).
-- **Código:** tudo gravado no `main` (o ramo `correcoes-feedback-casa-planeamento` foi junto ao `main`). Não enviado para o GitHub.
-- **Testes:** 701 a passar (`npm test` em `equilibrio/`).
-- **`historico/`:** a pasta desapareceu do disco em 30/10/2026. Foram repostos do Git as baselines usadas nos testes e dois guias; a baseline 1.0.16 foi reconstruída do commit `15e4a48` (os 34 ficheiros da entrega 1.0.16 coincidem por hash). As entregas até 1.0.14 e a baseline 0.39.79 (só usada num benchmark de integração) perderam-se.
+- **Código:** tudo gravado no `main`. Não enviado para o GitHub.
+- **Testes:** 709 a passar (`npm test` em `equilibrio/`).
+- **`historico/`:** baselines 1.0.16, 1.0.17 e 1.0.18 em `historico/baselines/`. As entregas até 1.0.14 e a baseline 0.39.79 perderam-se em 30/10/2026.
 
 ## Próximos passos, por ordem
 
-1. **Instalar a 1.0.17.** Definições → Backup e Atualização: guardar cópia, escolher `entrega-v1.0.17/financas-pessoais-v1.0.17.fpupdate`, confirmar a versão depois de reiniciar. Rever no programa: Agenda (vista Calendário, menu «•••»), Planos e decisões, Património → Inventário, Casa → Equipamentos (Habitação, Veículos, Rotinas) e Gerir catálogo. No catálogo, carregar em «Retirar categorias» para limpar as categorias antigas dos produtos.
-2. **Ler Fatura** — adiado. Precisa de 2–3 faturas reais (talão de supermercado e um PDF de fornecedor) e da descrição do que deve ficar preenchido. Código: `equilibrio/receipt-reader.js` (OCR), `receipt-model.js` (`parse`), `receipt-ui.js` e `receipt-assistance-ui.js`.
-3. **Pendentes que dependem de ti** (da 1.0.15):
-   - Piloto físico da partilha entre os dois PCs e o telemóvel — guião em `PILOTO-FINAL.md`.
-   - Guardar fora deste PC a chave de assinatura Android e a palavra-passe — `RECUPERACAO-DA-ASSINATURA.md`. Sem isto, perder o PC impede atualizar a app Android por cima.
+1. **Instalar a 1.0.17 e depois a 1.0.18.** Definições → Backup e Atualização: guardar cópia, escolher o `.fpupdate`, confirmar a versão depois de reiniciar. Rever: Relatórios (novas análises), Agenda, Planos e decisões, Casa → Equipamentos e Gerir catálogo (Produtos, Lojas, tabela de Preços).
+2. **Arrumar categorias da conta Casa.** Gestão de categorias → «Arrumar repetidas»: 11 sugestões prováveis já marcadas; acrescentar à mão «Mercearia» → «Alimentação / Mercearias». Outras sugeridas ao utilizador: corrigir «Lanços»/«Cirúgica»/«Dispensa»/«Outros Despesas», Bagaço e Licor Beirão → Bebidas / Espirituosa, Saúde / Taxas Moderadoras → Cuidados de Saúde, Subscrições → Lazer / Subscrições. Também há lojas combinadas («Continente // LIDL…») a desfazer.
+3. **Consolidação visual (plano acordado, passos 2–4):** passar as restantes páginas para as peças comuns (blocos de resumo, cartões, filtros em pílula, menu «•••», estados vazios) — Compras, Despensa, Património, Definições —; tirar cada página já migrada dos scripts que a reescrevem (`workbench-ui.js`, `approved-visual-ui.js`, `features-ui.js`) e apagar as camadas de CSS antigas que deixam de se aplicar; depois simplificar a navegação (Decisões/Revisão/Análise duplicadas).
+4. **Desempenho, se ainda for lento:** os módulos `planning-ui`, `life-ui`, `daily-ui` e `features-ui` ainda desenham todas as suas secções em cada gravação. Medir com o painel do browser visível (escondido, as medições variam 3×).
+5. **Ler Fatura** — adiado. Precisa de 2–3 faturas reais e da descrição do que deve ficar preenchido. Código: `receipt-reader.js`, `receipt-model.js`, `receipt-ui.js`, `receipt-assistance-ui.js`.
+6. **Pendentes que dependem de ti** (da 1.0.15): piloto físico da partilha (`PILOTO-FINAL.md`); guardar fora deste PC a chave de assinatura Android (`RECUPERACAO-DA-ASSINATURA.md`).
+
+## O que foi feito na 1.0.18
+
+- Desempenho: conferência do extrato só desenhada com a página aberta e com índice único (`CompleteFinance.matchIndex`); `Finance.upcoming` indexado (~4×); memória de um desenho `Finance.renderCache` (aberta em `render`/`navigate`, limpa em `commit`).
+- Relatórios (`reports-ui.js`, `ReportAnalysis.detail`): Categorias com subcategorias, Mês a mês, Comparar anos, Onde gastas, Receitas, Contas.
+- Planos e decisões (`unified-workspace-ui.js`, raiz `#plansBoard`), Agenda (`daily-ui.js` `renderAgenda`), Equipamentos (`practical-ui.js`), Produtos/Lojas (`casa-catalog-ui.js`) e Preços com tabela editável (`casa-life-ui.js`). Estas páginas saíram das conversões em tabela do `workbench-ui.js`.
+- «Arrumar repetidas» (`CompleteFinance.categoryCleanupSuggestions`, `cleanupCategories`, `moveCategoryTree`; diálogo em `daily-ui.js`).
+- Estilos novos em `ui-styles/round-119.css`. Valores em `.sensitive-value` precisam de `font-size:inherit` dentro de números grandes.
 
 ## O que foi feito na 1.0.17
 
 - Ecrã inicial com as opções lado a lado; Revisão e análise sem a Revisão semanal.
 - Agenda: cartão do dia e Subscrições à altura do calendário, com scroll; o menu de ações abre por cima da página (`workspace.js`, portal `.agenda31-menu-portal`).
-- Em cartões: Planos e decisões, Inventário (totais por tipo, Apagar, conferências recolhidas), Habitação e Veículos (`dossiers-ui.js`, classes `dossier2-*`), Rotinas.
-- Catálogo: menor preço destacado, filtro Ativos/Arquivados/Todos, eliminar produtos sem histórico (`CasaFinance.removeProduct`), sem Limites, produtos sem categoria nem «Categorias por loja», limpeza das antigas (`CasaFinance.clearProductCategories`).
+- Em cartões: Planos e decisões, Inventário, Habitação e Veículos (`dossiers-ui.js`, classes `dossier2-*`), Rotinas.
+- Catálogo: menor preço destacado, filtros, eliminar produtos sem histórico, produtos sem categoria (`CasaFinance.clearProductCategories`).
 
 ## Como trabalhar no código
 
@@ -42,22 +51,22 @@ npm run styles:build
 npm run desktop
 ```
 
-- **CSS:** editar só `ui-styles/*.css` (cada regra precisa de um comentário `/* @order N */` único) e depois `npm run styles:build`; `ui.css` é gerado. As alterações da 1.0.17 estão em `ui-styles/round-118.css`. Um ficheiro novo em `ui-styles/` tem de ser acrescentado à lista em `tests/frontend-03953.cjs`.
+- **CSS:** editar só `ui-styles/*.css` (cada regra precisa de um comentário `/* @order N */` único) e depois `npm run styles:build`; `ui.css` é gerado. As alterações da 1.0.17 estão em `ui-styles/round-118.css` e as da 1.0.18 em `round-119.css`. Um ficheiro novo em `ui-styles/` tem de ser acrescentado à lista em `tests/frontend-03953.cjs`.
 - **Pré-visualização no browser:** `node serve.cjs` e abrir `http://localhost:4173` (modo demonstração, sem SQLite).
 - **Quebras de linha:** muitos ficheiros são CRLF. `sed -i` no Git Bash e `scripts/advance-version.cjs` convertem para LF e geram diffs gigantes — confirmar com `git diff --stat` antes de fazer commit.
 - **Armadilhas encontradas:** vários scripts movem e escondem elementos de outros scripts (`workbench-ui.js`, `approved-visual-ui.js`); seletores globais como `document.querySelectorAll('[data-...]')` apanham botões de outras páginas — limitar sempre ao formulário. Há regras antigas com `!important` e seletores fortes (ex.: `#plansHub #unifiedPlans>.u-plans-list`); as novas usam seletores igualmente específicos. Os painéis com `container-type` cortam menus absolutos e fixos.
 
 ## Gerar a próxima atualização
 
-1. `node scripts/advance-version.cjs 1.0.18 "Descrição"` (repor CRLF em `package.json`, `package-lock.json`, `desktop/version.cjs`).
-2. Criar `DESKTOP-v1.0.18.md` e uma entrada no topo de `ATUALIZACOES.md`; correr `node scripts/check.cjs` e `npm test`.
-3. Gerar a partir da versão instalada mais antiga a suportar (ex.: baseline 1.0.17, aceitando até 1.0.17):
+1. `node scripts/advance-version.cjs 1.0.19 "Descrição"` (repor CRLF em `package.json`, `package-lock.json`, `desktop/version.cjs`).
+2. Criar `DESKTOP-v1.0.19.md` e uma entrada no topo de `ATUALIZACOES.md`; correr `node scripts/check.cjs` e `npm test`.
+3. Gerar a partir da versão instalada mais antiga a suportar (ex.: baseline 1.0.18, aceitando até 1.0.18):
    ```bash
-   node scripts/package-release.cjs ../historico/baselines/baseline-1.0.17 ../entrega-v1.0.18 1.0.17
+   node scripts/package-release.cjs ../historico/baselines/baseline-1.0.18 ../entrega-v1.0.19 1.0.18
    ```
 4. Validar (instala numa cópia e testa a reposição):
    ```bash
-   ELECTRON_PATH="$PWD/node_modules/electron/dist/electron.exe" node integration/validate-incremental-package.cjs ../historico/baselines/baseline-1.0.17 ../entrega-v1.0.18
+   ELECTRON_PATH="$PWD/node_modules/electron/dist/electron.exe" node integration/validate-incremental-package.cjs ../historico/baselines/baseline-1.0.18 ../entrega-v1.0.19
    ```
 5. Guardar a baseline nova: `node scripts/advance-version.cjs --snapshot`.
 
