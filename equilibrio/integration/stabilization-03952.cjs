@@ -19,7 +19,7 @@ async function measure(browser,root){
   });
   assert.equal(result.ui.visibleRows,50);assert.ok(result.ui.medianMs<10000,'Render excede 10 segundos');
   await page.locator('[data-action="tx-page"][data-id="2"]').click();const first=await page.locator('.movement-table-row').first().getAttribute('data-transaction-id');
-  await page.locator(`.movement-table-row[data-transaction-id="${first}"] .movement-inline-actions [data-action="plan-receipt"]`).click();
+  await page.locator(`.movement-table-row[data-transaction-id="${first}"] .movement-more>summary`).click();await page.locator('.movement-menu-portal [data-action="plan-receipt"]').click();
   assert.equal(await page.locator('.tx-page-number[aria-current="page"]').innerText(),'2');
   await page.locator('#searchTransactions').fill('Movimento 1');await page.waitForTimeout(150);assert.ok(await page.locator('.movement-table-row').count()<=50);
   await page.evaluate(()=>{data=F.normalize(F.migrateLedgerCore(demoData()));render();navigate('dashboard');document.querySelector('#notice').hidden=true;window.scrollTo(0,0);});

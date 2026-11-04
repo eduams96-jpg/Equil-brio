@@ -982,8 +982,49 @@ function movementActionsHtml(t) {
   fragment.innerHTML = window.FeatureUI?.transactionActions(t) || "";
   for (const menu of fragment.content.querySelectorAll("details.row-menu")) menu.replaceWith(...menu.querySelector("div").childNodes);
   const visibleActions = fragment.innerHTML + button("Apagar", "delete-tx", t.id, "link-button danger");
-  return `<div class="movement-row-actions movement-row-actions-expanded">${edit}${receipt}<div class="movement-inline-actions">${visibleActions}</div></div><details class="movement-mobile-actions"><summary>Ações</summary><div class="movement-mobile-actions-list">${edit}${receipt}${visibleActions}</div></details>`;
+  return `<div class="movement-row-actions movement-row-actions-expanded">${edit}${receipt}<details class="movement-more"><summary class="movement-icon-action" aria-label="Mais ações · ${esc(t.description)}" title="Mais ações">•••</summary><div class="movement-inline-actions" role="menu">${visibleActions}</div></details></div><details class="movement-mobile-actions"><summary>Ações</summary><div class="movement-mobile-actions-list">${edit}${receipt}${visibleActions}</div></details>`;
 }
+// Menu «•••» das linhas de Movimentos: enquanto aberto, a lista passa para o <body> (a tabela tem scroll e
+// contentores que cortam menus absolutos/fixos); as ações continuam a ser tratadas pela delegação de [data-action].
+(() => {
+  let openMenu = null, openList = null;
+  const close = () => {
+    if (!openMenu) return;
+    const menu = openMenu, list = openList;
+    openMenu = openList = null;
+    list.classList.remove("movement-menu-portal");
+    list.style.top = list.style.left = "";
+    menu.append(list);
+    menu.open = false;
+  };
+  const place = () => {
+    if (!openMenu) return;
+    if (!openMenu.isConnected) return close();
+    const box = openMenu.querySelector("summary").getBoundingClientRect(), w = openList.offsetWidth, h = openList.offsetHeight;
+    openList.style.left = Math.max(8, Math.min(window.innerWidth - w - 8, box.right - w)) + "px";
+    openList.style.top = (box.bottom + 6 + h > window.innerHeight - 8 ? Math.max(8, box.top - h - 6) : box.bottom + 6) + "px";
+  };
+  document.addEventListener("toggle", (e) => {
+    const menu = e.target;
+    if (!(menu instanceof HTMLDetailsElement) || !menu.classList.contains("movement-more")) return;
+    if (!menu.open) { if (menu === openMenu) close(); return; }
+    close();
+    const list = menu.querySelector(".movement-inline-actions");
+    if (!list) return;
+    openMenu = menu; openList = list;
+    list.classList.add("movement-menu-portal");
+    document.body.append(list);
+    place();
+  }, true);
+  document.addEventListener("click", (e) => {
+    if (!openMenu || e.target.closest("details.movement-more") === openMenu && !e.target.closest(".movement-inline-actions")) return;
+    if (e.target.closest(".movement-menu-portal") && !e.target.closest("button")) return;
+    setTimeout(close, 0);
+  });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") close(); });
+  window.addEventListener("scroll", (e) => { if (openMenu && !openList.contains(e.target)) place(); }, true);
+  window.addEventListener("resize", () => place());
+})();
 
 function movementRenderHeaderAndKpis(periodRows = null) {
   const periodLabel = $("#movementsPeriodLabel");

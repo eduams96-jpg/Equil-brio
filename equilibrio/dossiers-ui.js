@@ -166,24 +166,25 @@
     const allActive = getCachedNotices()?.rows || [];
     const byAreaCount = areaId => areaId === 'all' ? allActive.length : allActive.filter(n => n.area === areaId).length;
     const selected=res.rows.find(n=>n.id===s.noticeSelected)||res.rows[0];s.noticeSelected=selected?.id||'';
-    const master=res.rows.map(n=>`<button type="button" class="notice-list-item ${n.id===s.noticeSelected?'is-selected':''}" data-notice-select="${esc(n.id)}" aria-pressed="${n.id===s.noticeSelected}"><span class="notice-list-title">${esc(n.title)}</span><strong class="amount">${n.amount!==null&&n.amount!==undefined?eur(n.amount):''}</strong><small>${n.date?dateLabel(n.date)+' · ':''}${esc(n.areaLabel)}</small><span class="notice-state-tag state-${esc(n.effectiveState)}">${esc(stateLabels[n.effectiveState]||n.effectiveState)}</span></button>`).join('');
-
+    const I = name => window.InterfaceUI?.icon ? InterfaceUI.icon(name) : '';
+    const master=res.rows.map(n=>`<button type="button" class="notice-list-item nt-row priority-${esc(n.priority)} ${n.id===s.noticeSelected?'is-selected':''}" data-notice-select="${esc(n.id)}" aria-pressed="${n.id===s.noticeSelected}"><span class="nt-row-icon" aria-hidden="true">${areaIcons[n.area]||'🔔'}</span><span class="notice-list-title">${esc(n.title)}</span><strong class="amount">${n.amount!==null&&n.amount!==undefined?eur(n.amount):''}</strong><small>${n.date?dateLabel(n.date)+' · ':''}${esc(n.areaLabel)}</small><span class="notice-state-tag state-${esc(n.effectiveState)}">${esc(stateLabels[n.effectiveState]||n.effectiveState)}</span></button>`).join('');
+    const kpi = (tone, icon, label, value, note, state, id) => `<button type="button" class="ch-tile nt-kpi is-${tone}${s.noticeState === state ? ' is-active' : ''}" data-notice-kpi="${state}"><span class="ch-tile-icon">${I(icon)}</span><div><span>${label}</span><strong id="${id}">${value}</strong><small>${note}</small></div></button>`;
+    const states = [['active', 'Ativos'], ['overdue', 'Em atraso'], ['snoozed', 'Adiados'], ['dismissed', 'Dispensados'], ['resolved', 'Concluídos'], ['all', 'Todos']];
 
     noticesHost.innerHTML =
-      `<div class="section-head notices-hero-head">` +
+      `<div class="section-head notices-hero-head nt-head">` +
         `<div>` +
-          `<h2>Centro de avisos geral</h2>` +
-
+          `<h2>Centro de avisos geral</h2><p>Pagamentos, garantias, validades, rotinas e datas da casa num só lugar.</p>` +
         `</div>` +
         `<div class="row-actions">` +
-          `<button type="button" class="secondary" data-notice-settings>Configurar avisos</button>` +
+          `<button type="button" class="secondary" data-notice-settings>${I('gear')}Configurar avisos</button>` +
         `</div>` +
       `</div>` +
-      `<div class="u-metrics notices-kpis">` +
-        `<article class="panel u-metric notices-kpi-card"><div><span>Avisos ativos</span><strong id="noticesActiveCount">${res.counts.active}</strong><small>Total a aguardar atenção</small></div></article>` +
-        `<article class="panel u-metric notices-kpi-card ${res.counts.high ? 'is-urgent' : ''}"><div><span>Prioridade alta / Atraso</span><strong id="noticesHighCount" class="${res.counts.high ? 'negative' : ''}">${res.counts.high}</strong><small>Vencidos ou muito próximos</small></div></article>` +
-        `<article class="panel u-metric notices-kpi-card"><div><span>Adiados</span><strong id="noticesSnoozedCount">${res.counts.snoozed}</strong><small>Temporariamente silenciados</small></div></article>` +
-        `<article class="panel u-metric notices-kpi-card"><div><span>Dispensados</span><strong id="noticesDismissedCount">${res.counts.dismissed}</strong><small>Arquivados sem alterar origem</small></div></article>` +
+      `<div class="u-metrics notices-kpis nt-kpis">` +
+        kpi('blue', 'bell', 'Avisos ativos', res.counts.active, 'Total a aguardar atenção', 'active', 'noticesActiveCount') +
+        kpi(res.counts.high ? 'red' : 'green', 'alert', 'Prioridade alta / Atraso', res.counts.high, 'Vencidos ou muito próximos', 'overdue', 'noticesHighCount') +
+        kpi('amber', 'clock', 'Adiados', res.counts.snoozed, 'Temporariamente silenciados', 'snoozed', 'noticesSnoozedCount') +
+        kpi('purple', 'check', 'Dispensados', res.counts.dismissed, 'Arquivados sem alterar origem', 'dismissed', 'noticesDismissedCount') +
       `</div>` +
       `<details class="panel notices-sources-explainer">` +
         `<summary><span><strong>Que dados alimentam o Centro de Avisos?</strong><small>Clica para ver todas as origens monitorizadas automaticamente neste espaço financeiro</small></span></summary>` +
@@ -195,13 +196,15 @@
           `<div class="notices-source-item"><strong>🚗🏠 Veículos e Habitação</strong><p>Datas de Inspeção (IPO), Seguro, IUC e Revisão em <em>Casa → Veículos</em>, bem como Seguros, IMI, Condomínio e Contratos em <em>Casa → Habitação</em>.</p></div>` +
         `</div>` +
       `</details>` +
-      `<section class="panel notices-toolbar">` +
-        `<div class="notices-filters">` +
+      `<section class="panel notices-toolbar nt-toolbar">` +
+        `<div class="cs-pills nt-areas" role="group" aria-label="Origem">${noticeAreas.map(([id, label]) => `<button type="button" class="${s.noticeArea === id ? 'active' : ''}" data-notice-area-pill="${id}" aria-pressed="${s.noticeArea === id}">${id === 'all' ? 'Todas' : (areaIcons[id] || '') + ' ' + esc(label)}<small>${byAreaCount(id)}</small></button>`).join('')}</div>` +
+        `<div class="nt-filter-row"><div class="cs-pills nt-states" role="group" aria-label="Estado">${states.map(([id, label]) => `<button type="button" class="${s.noticeState === id ? 'active' : ''}" data-notice-state-pill="${id}" aria-pressed="${s.noticeState === id}">${label}</button>`).join('')}</div>` +
+        `<div class="notices-filters nt-filters">` +
           select('Origem', 'noticeAreaFilter', noticeAreas, s.noticeArea, 'id="noticeAreaFilter"') +
           select('Prioridade', 'noticePriorityFilter', [['all', 'Todas as prioridades'], ['high', 'Alta'], ['medium', 'Média'], ['low', 'Baixa']], s.noticePriority, 'id="noticePriorityFilter"') +
           select('Estado', 'noticeStateFilter', [['active', 'Ativos'], ['overdue', 'Em atraso'], ['snoozed', 'Adiados'], ['dismissed', 'Dispensados'], ['resolved', 'Liquidados / Concluídos'], ['all', 'Todos']], s.noticeState, 'id="noticeStateFilter"') +
           field('Pesquisar aviso', 'noticeQueryInput', s.noticeQuery, 'search', 'id="noticeQueryInput" placeholder="Procurar água, seguro, veículo, equipamento…"') +
-        `</div>` +
+        `</div></div>` +
       `</section>` +
       `<section class="panel notices-list-panel" id="noticesListPanel"><div class="notices-workbench"><nav class="notices-master" aria-label="Lista de avisos">${master||'<p class="muted">Sem avisos neste filtro.</p>'}</nav><div class="notices-detail">` +
         (res.rows.length
@@ -241,6 +244,8 @@
     for (const pill of $$('[data-notice-area-pill]', noticesHost)) {
       pill.onclick = () => { s.noticeArea = pill.dataset.noticeAreaPill; renderNoticesHub(); };
     }
+    for (const pill of $$('[data-notice-state-pill]', noticesHost)) pill.onclick = () => { s.noticeState = pill.dataset.noticeStatePill; renderNoticesHub(); };
+    for (const tile of $$('[data-notice-kpi]', noticesHost)) tile.onclick = () => { s.noticeState = tile.dataset.noticeKpi; renderNoticesHub(); };
     $('#noticeAreaFilter', noticesHost).onchange = e => { s.noticeArea = e.target.value; renderNoticesHub(); };
     $('#noticePriorityFilter', noticesHost).onchange = e => { s.noticePriority = e.target.value; renderNoticesHub(); };
     $('#noticeStateFilter', noticesHost).onchange = e => { s.noticeState = e.target.value; renderNoticesHub(); };

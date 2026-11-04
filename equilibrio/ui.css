@@ -21566,3 +21566,653 @@ body[data-theme=dark] :is(#casaProducts,#casaStores) .cat-avatar{background:hsl(
 #planner .ag-day-total.positive{color:var(--green)}
 #planner .ex-weekday{border:0!important;background:transparent!important}
 :is(#plansBoard,#casaEquipment,#casaProducts,#casaStores,#casaPrices,#reportDesk,#planner) :is(strong,b,dd) .sensitive-value{font-size:inherit!important;font-weight:inherit!important;line-height:inherit!important;color:inherit}
+#reportDesk .r-trend-stack{display:grid;grid-template-columns:repeat(auto-fit,minmax(40px,1fr));gap:8px;height:190px;margin:10px 0 8px}
+#reportDesk .r-trend-stack button{display:grid;grid-template-rows:auto 1fr auto;gap:4px;background:transparent;border:0;padding:0;min-height:0;cursor:pointer;color:var(--ink)}
+#reportDesk .r-trend-stack button>b{font-size:10.5px;font-weight:600;color:var(--muted);text-align:center;white-space:nowrap}
+#reportDesk .r-trend-stack i{display:flex;align-items:flex-end;justify-content:center;min-height:0;border-radius:8px;background:var(--surface-soft)}
+#reportDesk .r-trend-stack i>span{display:flex;flex-direction:column-reverse;width:100%;max-width:46px;border-radius:7px;overflow:hidden;gap:1px}
+#reportDesk .r-trend-stack em{display:block;min-height:2px;opacity:.9}
+#reportDesk .r-trend-stack button:hover em{opacity:1}
+#reportDesk .r-trend-stack button:hover small{color:var(--ink)}
+#reportDesk .r-trend-stack small{font-size:11px;color:var(--muted);text-align:center;text-transform:capitalize}
+#reportDesk .r-trend-legend{list-style:none;display:flex;flex-wrap:wrap;gap:6px 16px;margin:4px 0 18px;padding:0;font-size:12px;color:var(--muted)}
+#reportDesk .r-trend-legend li{display:flex;align-items:center;gap:6px}
+#reportDesk .r-trend-legend i,#reportDesk .r-heat-dot{display:inline-block;width:10px;height:10px;border-radius:3px;flex:0 0 10px}
+#reportDesk .r-heat-dot{margin-right:8px;vertical-align:-1px}
+#reportDesk .r-heat-table .r-heat{background:color-mix(in srgb,var(--c,var(--blue)) calc(var(--heat)*100%),transparent)}
+#reportDesk .r-heat-table .r-heat:hover{outline-color:var(--c,var(--blue))}
+#weeklyHub.u-review.active{display:grid;gap:18px}
+#weeklyHub .rv-tabs{display:grid!important;grid-template-columns:repeat(2,minmax(0,280px));gap:10px!important;margin:0!important}
+#weeklyHub .rv-tabs button{display:flex!important;align-items:center;gap:12px;justify-content:flex-start!important;text-align:left;min-height:62px!important;padding:10px 16px!important;border-radius:14px!important;border:1px solid var(--line)!important;background:var(--paper)!important;color:var(--ink)!important}
+#weeklyHub .rv-tabs button>svg{flex:0 0 34px;width:34px;height:34px;padding:8px;border-radius:10px;background:var(--surface-soft);color:var(--muted)}
+#weeklyHub .rv-tabs button span{display:grid;gap:2px}
+#weeklyHub .rv-tabs button b{font-size:14px}
+#weeklyHub .rv-tabs button small{font-size:12px;color:var(--muted);font-weight:500}
+#weeklyHub .rv-tabs button.active{border-color:var(--blue)!important;box-shadow:0 0 0 1px var(--blue) inset;background:color-mix(in srgb,var(--blue) 7%,var(--paper))!important}
+#weeklyHub .rv-tabs button.active>svg{background:var(--blue);color:#fff}
+#weeklyHub .rv-hero{display:grid!important;grid-template-columns:minmax(320px,0.9fr) minmax(0,1.6fr);gap:16px;margin:0!important}
+#weeklyHub .rv-hero[hidden]{display:none!important}
+#weeklyHub .rv-progress{display:flex;gap:22px;align-items:center;padding:22px;border-radius:18px;border:1px solid var(--line);background:linear-gradient(135deg,color-mix(in srgb,var(--blue) 10%,var(--paper)),var(--paper))}
+#weeklyHub .rv-ring{--p:0;flex:0 0 104px;width:104px;height:104px;border-radius:50%;display:grid;place-content:center;text-align:center;background:radial-gradient(closest-side,var(--paper) 78%,transparent 79% 100%),conic-gradient(var(--blue) calc(var(--p)*1%),var(--surface-soft) 0)}
+#weeklyHub .rv-ring b{font-size:24px;line-height:1}
+#weeklyHub .rv-ring small{font-size:11px;color:var(--muted)}
+#weeklyHub .rv-progress-text{display:grid;gap:6px;min-width:0}
+#weeklyHub .rv-eyebrow{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:700}
+#weeklyHub .rv-progress-text h3{margin:0 0 4px;font-size:19px}
+#weeklyHub .rv-steps{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+#weeklyHub .rv-steps li{display:flex;gap:10px;align-items:center}
+#weeklyHub .rv-step-icon{display:grid;place-items:center;flex:0 0 28px;width:28px;height:28px;border-radius:50%;border:1px solid var(--line);color:var(--muted)}
+#weeklyHub .rv-step-icon svg{width:15px;height:15px}
+#weeklyHub .rv-steps li.is-done .rv-step-icon{background:var(--green);border-color:var(--green);color:#fff}
+#weeklyHub .rv-steps li div{display:grid;line-height:1.25}
+#weeklyHub .rv-steps b{font-size:13px}
+#weeklyHub .rv-steps small{font-size:12px;color:var(--muted)}
+#weeklyHub .rv-kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+#weeklyHub .rv-kpi{display:flex;gap:14px;align-items:center;padding:16px 18px;border-radius:16px;border:1px solid var(--line);background:var(--paper);min-width:0}
+#weeklyHub .rv-kpi-icon{display:grid;place-items:center;flex:0 0 40px;width:40px;height:40px;border-radius:12px;background:color-mix(in srgb,var(--blue) 14%,transparent);color:var(--blue)}
+#weeklyHub .rv-kpi-icon svg{width:20px;height:20px}
+#weeklyHub .rv-kpi.is-income .rv-kpi-icon{background:color-mix(in srgb,var(--green) 15%,transparent);color:var(--green)}
+#weeklyHub .rv-kpi.is-expense .rv-kpi-icon{background:color-mix(in srgb,var(--red) 14%,transparent);color:var(--red)}
+#weeklyHub .rv-kpi.is-warn .rv-kpi-icon{background:color-mix(in srgb,var(--orange) 16%,transparent);color:var(--orange)}
+#weeklyHub .rv-kpi.is-ok .rv-kpi-icon{background:color-mix(in srgb,var(--green) 15%,transparent);color:var(--green)}
+#weeklyHub .rv-kpi div{display:grid;gap:2px;min-width:0}
+#weeklyHub .rv-kpi span{font-size:12px;color:var(--muted)}
+#weeklyHub .rv-kpi strong{font-size:22px!important;font-weight:700!important;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#weeklyHub .rv-kpi.is-expense strong{color:var(--red)}
+#weeklyHub .rv-kpi small{font-size:11.5px;color:var(--muted)}
+#weeklyHub .rv-kpi strong .sensitive-value,#weeklyHub .rv-account strong .sensitive-value{font-size:inherit!important;font-weight:inherit!important;color:inherit}
+#weeklyHub .rv-grid{display:grid!important;grid-template-columns:minmax(0,1.55fr) minmax(300px,1fr)!important;gap:16px!important;align-items:start}
+#weeklyHub .rv-grid[hidden]{display:none!important}
+#weeklyHub .rv-grid>.panel{margin:0!important;padding:22px!important;border-radius:18px!important}
+#weeklyHub .rv-accounts{grid-row:span 2}
+#weeklyHub .rv-accounts .u-head{margin:0 0 16px!important}
+#weeklyHub .rv-accounts .u-head h2{font-size:17px!important;margin:0 0 4px!important}
+#weeklyHub .rv-accounts .u-head p{font-size:12.5px;color:var(--muted);margin:0}
+#weeklyHub .rv-account-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+#weeklyHub .rv-account{display:grid;gap:12px;padding:14px;border-radius:14px;border:1px solid var(--line);background:var(--surface-soft)}
+#weeklyHub .rv-account.is-ok{border-color:color-mix(in srgb,var(--green) 45%,var(--line))}
+#weeklyHub .rv-account.is-bad{border-color:color-mix(in srgb,var(--red) 45%,var(--line))}
+#weeklyHub .rv-account header{display:flex;gap:10px;align-items:flex-start}
+#weeklyHub .rv-account header>div{display:grid;gap:2px;flex:1;min-width:0}
+#weeklyHub .rv-account header b{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#weeklyHub .rv-account header small{font-size:12px;color:var(--muted)}
+#weeklyHub .rv-account header small strong{color:var(--ink);font-weight:700}
+#weeklyHub .rv-account-icon{display:grid;place-items:center;flex:0 0 34px;width:34px;height:34px;border-radius:10px;background:var(--paper);color:var(--blue)}
+#weeklyHub .rv-account-icon svg{width:18px;height:18px}
+#weeklyHub .rv-pill{display:inline-flex;align-items:center;gap:4px;white-space:nowrap;padding:3px 9px;border-radius:99px;font-size:11px;font-weight:700}
+#weeklyHub .rv-pill svg{width:12px;height:12px}
+#weeklyHub .rv-pill.is-ok{background:color-mix(in srgb,var(--green) 16%,transparent);color:var(--green)}
+#weeklyHub .rv-pill.is-bad{background:color-mix(in srgb,var(--red) 15%,transparent);color:var(--red)}
+#weeklyHub .rv-pill.is-wait{background:color-mix(in srgb,var(--orange) 16%,transparent);color:var(--orange)}
+#weeklyHub .rv-account form{display:grid!important;grid-template-columns:minmax(0,1fr) auto;gap:8px;margin:0!important}
+#weeklyHub .rv-account form input{min-width:0;width:100%;min-height:38px;background:var(--paper)}
+#weeklyHub .rv-account form button{min-height:38px;padding:0 16px}
+#weeklyHub .rv-account form [role=status]{grid-column:1/-1;font-size:12px;color:var(--muted)}
+#weeklyHub .rv-account form [role=status]:empty{display:none}
+#weeklyHub .rv-account-static{margin:0;font-size:12.5px;color:var(--muted)}
+#weeklyHub .rv-diagnostic{margin-top:16px!important;padding:12px 14px!important;border-radius:12px!important;background:var(--surface-soft)!important;border:0!important;font-size:12.5px;color:var(--muted)}
+#weeklyHub .rv-diagnostic ul{margin:0;padding-left:18px;display:grid;gap:3px}
+#weeklyHub .rv-diagnostic svg{width:15px;height:15px;vertical-align:-3px;margin-right:6px;color:var(--green)}
+#weeklyHub .rv-panel-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px}
+#weeklyHub .rv-panel-head h3{margin:0!important;font-size:16px}
+#weeklyHub .rv-panel-head small{font-size:12px;color:var(--muted)}
+#weeklyHub .rv-count{display:inline-grid;place-items:center;min-width:26px;height:26px;padding:0 8px;border-radius:99px;background:color-mix(in srgb,var(--orange) 16%,transparent);color:var(--orange);font-weight:700;font-size:12.5px}
+#weeklyHub .rv-cat-stack{display:flex;height:12px;border-radius:99px;overflow:hidden;gap:2px;margin-bottom:14px}
+#weeklyHub .rv-cat-stack i{display:block;min-width:3px}
+#weeklyHub .rv-categories #unifiedReviewCategories{display:grid;gap:4px}
+#weeklyHub .rv-cat{display:grid!important;grid-template-columns:minmax(90px,1fr) minmax(60px,1.1fr) 36px auto!important;gap:10px!important;align-items:center;min-height:36px!important;padding:4px 8px!important;border-radius:10px!important;border:0!important;background:transparent!important;color:var(--ink)!important;font-weight:500!important;text-align:left}
+#weeklyHub .rv-cat:hover{background:var(--surface-soft)!important}
+#weeklyHub .rv-cat>span{display:flex;align-items:center;gap:8px;font-size:13px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#weeklyHub .rv-cat>span i{flex:0 0 10px;width:10px;height:10px;border-radius:3px;background:var(--c)}
+#weeklyHub .rv-cat>i{display:block;height:8px;border-radius:99px;background:var(--surface-soft);overflow:hidden}
+#weeklyHub .rv-cat>i em{display:block;height:100%;border-radius:99px;background:var(--c)}
+#weeklyHub .rv-cat>small{font-size:11.5px;color:var(--muted);text-align:right}
+#weeklyHub .rv-cat>b{font-size:13px;text-align:right}
+#weeklyHub .rv-pending-list{display:grid;gap:8px;margin-bottom:12px}
+#weeklyHub .rv-pending-row{display:grid!important;grid-template-columns:34px minmax(0,1fr) auto;gap:10px!important;align-items:center;padding:10px 12px!important;border-radius:12px;border:1px solid var(--line)!important;background:var(--surface-soft)}
+#weeklyHub .rv-pending-row>div{display:grid;gap:2px;min-width:0}
+#weeklyHub .rv-pending-row b{font-size:13px}
+#weeklyHub .rv-pending-row small{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#weeklyHub .rv-pending-row button{min-height:32px!important;padding:0 12px!important}
+#weeklyHub .rv-pending-icon{display:grid;place-items:center;width:34px;height:34px;border-radius:10px;background:color-mix(in srgb,var(--orange) 14%,transparent);color:var(--orange)}
+#weeklyHub .rv-pending-icon svg{width:17px;height:17px}
+#weeklyHub .rv-more{margin:0 0 10px;font-size:12px;color:var(--muted)}
+#weeklyHub .rv-empty{display:grid;justify-items:center;gap:4px;padding:22px 10px;text-align:center;color:var(--muted);font-size:13px}
+#weeklyHub .rv-empty svg{width:28px;height:28px;color:var(--green)}
+#weeklyHub .rv-empty b{color:var(--ink)}
+@media (max-width:1100px){#weeklyHub .rv-hero,#weeklyHub .rv-grid{grid-template-columns:1fr!important}#weeklyHub .rv-accounts{grid-row:auto}}
+@media (max-width:620px){#weeklyHub .rv-tabs{grid-template-columns:1fr}#weeklyHub .rv-kpis{grid-template-columns:1fr}#weeklyHub .rv-progress{flex-direction:column;align-items:flex-start}}
+#weeklyHub .rv-grid>.rv-pending{grid-column:2!important}
+#weeklyHub .rv-account header .rv-pill{justify-self:start;margin-top:4px}
+#weeklyHub .rv-account header b{white-space:normal}
+@media (max-width:1100px){#weeklyHub .rv-grid>.rv-pending{grid-column:auto!important}}
+#weeklyHub .u-review-extra:not([hidden]){display:block!important;margin:0!important;padding:0!important;background:transparent!important;border:0!important;box-shadow:none!important}
+#weeklyHub .u-review-topic{margin:0!important;padding:0!important;background:transparent!important;border:0!important;box-shadow:none!important}
+#weeklyHub .u-review-topic>h3{display:none!important}
+#weeklyHub .u-review-combined{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;gap:16px!important;align-items:start}
+#weeklyHub .u-review-combined>#insights{margin:0!important;padding:0!important;background:transparent!important;border:0!important;box-shadow:none!important;min-width:0}
+#weeklyHub .u-review-combined #analysisV3Overview{display:block!important;margin:0!important;padding:0!important}
+#weeklyHub #analysisComparisons{margin:0!important;padding:22px!important;border-radius:18px!important;background:var(--paper)!important;border:1px solid var(--line)!important;display:grid;gap:14px}
+#weeklyHub #analysisComparisons>.section-head{display:flex!important;justify-content:space-between;align-items:flex-end;gap:14px;flex-wrap:wrap;margin:0!important}
+#weeklyHub #analysisComparisons>.section-head h3{margin:0 0 4px!important;font-size:17px!important}
+#weeklyHub #analysisComparisons>.section-head p{margin:0!important;font-size:12.5px;color:var(--muted);text-transform:capitalize}
+#weeklyHub #analysisComparisons>.section-head label{display:grid;gap:4px;font-size:12px;color:var(--muted);min-width:220px}
+#weeklyHub #analysisComparisons>p{margin:0!important;font-size:12.5px;color:var(--muted);padding:10px 12px;border-radius:10px;background:var(--surface-soft)}
+#weeklyHub #analysisComparisons>h3{margin:6px 0 0!important;font-size:15px!important}
+#weeklyHub #analysisComparisons .ex-metrics{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:10px!important;margin:0!important}
+#weeklyHub #analysisComparisons .ex-metrics article{display:grid!important;align-content:start;gap:4px;padding:14px!important;border-radius:14px!important;background:var(--surface-soft)!important;border:0!important;border-top:3px solid var(--blue)!important;min-height:0!important}
+#weeklyHub #analysisComparisons .ex-metrics article:nth-child(2){border-top-color:#9b6bd3!important}
+#weeklyHub #analysisComparisons .ex-metrics article:nth-child(3){border-top-color:var(--orange)!important}
+#weeklyHub #analysisComparisons .ex-metrics span{font-size:12px!important;color:var(--muted)!important;line-height:1.3}
+#weeklyHub #analysisComparisons .ex-metrics strong{font-size:19px!important;line-height:1.2}
+#weeklyHub #analysisComparisons .ex-metrics small{font-size:11.5px;color:var(--muted)}
+#weeklyHub #analysisComparisons>.ex-list{display:grid!important;gap:6px!important;margin:0!important}
+#weeklyHub #analysisComparisons .ex-analysis-row{display:flex!important;justify-content:space-between;align-items:center;gap:12px;width:100%;min-height:54px!important;padding:8px 14px!important;border-radius:12px!important;border:1px solid var(--line)!important;background:transparent!important;color:var(--ink)!important;text-align:left}
+#weeklyHub #analysisComparisons .ex-analysis-row:hover{background:var(--surface-soft)!important}
+#weeklyHub #analysisComparisons .ex-analysis-row>span{display:grid;gap:2px;min-width:0}
+#weeklyHub #analysisComparisons .ex-analysis-row b{font-size:13.5px}
+#weeklyHub #analysisComparisons .ex-analysis-row small{font-size:12px;color:var(--muted)}
+#weeklyHub #analysisComparisons .ex-analysis-row>strong{flex:0 0 auto;padding:4px 10px;border-radius:99px;font-size:12.5px!important}
+#weeklyHub #analysisComparisons .ex-analysis-row>strong.positive{background:color-mix(in srgb,var(--green) 15%,transparent);color:var(--green)!important}
+#weeklyHub #analysisComparisons .ex-analysis-row>strong.negative{background:color-mix(in srgb,var(--red) 14%,transparent);color:var(--red)!important}
+#weeklyHub #analysisComparisons .ex-detail{margin:0!important;border-radius:12px!important;border:1px dashed var(--line)!important;background:transparent!important;padding:0 14px!important}
+#weeklyHub #analysisComparisons .ex-detail>summary{min-height:44px;display:flex;align-items:center;font-size:13px;font-weight:600;cursor:pointer}
+#weeklyHub #analysisComparisons .ex-detail[open]{padding-bottom:14px!important}
+#weeklyHub #analysisComparisons .ex-detail .attention-row{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid var(--line);font-size:12.5px}
+#weeklyHub .u-review-combined #reviewMonthHub{display:grid!important;gap:12px;padding:22px!important;border-radius:18px!important;background:var(--paper)!important;border:1px solid var(--line)!important;counter-reset:rvstep}
+#weeklyHub .u-review-combined #reviewMonthHub>h2{margin:0!important;font-size:17px!important}
+#weeklyHub .u-review-combined #reviewMonthHub>p{margin:-6px 0 0!important;font-size:12.5px;color:var(--muted)}
+#weeklyHub .u-review-combined #reviewMonthHub .review-month-kpis{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important;margin:0!important}
+#weeklyHub .u-review-combined #reviewMonthHub .review-month-kpis>div{display:grid;gap:3px;padding:14px!important;border-radius:14px!important;background:var(--surface-soft)!important;border:0!important;border-left:3px solid var(--blue)!important}
+#weeklyHub .u-review-combined #reviewMonthHub .review-month-kpis>div:nth-child(1){border-left-color:var(--green)!important}
+#weeklyHub .u-review-combined #reviewMonthHub .review-month-kpis>div:nth-child(2){border-left-color:var(--red)!important}
+#weeklyHub .u-review-combined #reviewMonthHub .review-month-kpis>div:nth-child(3){border-left-color:#9b6bd3!important}
+#weeklyHub .u-review-combined #reviewMonthHub .review-month-kpis>div:nth-child(4){border-left-color:var(--orange)!important}
+#weeklyHub .u-review-combined #reviewMonthHub .review-month-kpis span{font-size:11.5px!important;letter-spacing:0!important;text-transform:none!important;color:var(--muted)!important}
+#weeklyHub .u-review-combined #reviewMonthHub .review-month-kpis strong{font-size:20px!important;line-height:1.2}
+#weeklyHub .u-review-combined #reviewMonthHub .review-month-kpis small{font-size:11.5px;color:var(--muted)}
+#weeklyHub .u-review-combined #reviewMonthHub>.planning-panel{position:relative;margin:0!important;padding:14px 14px 14px 58px!important;border-radius:14px!important;border:1px solid var(--line)!important;background:transparent!important;box-shadow:none!important;display:grid;gap:10px;counter-increment:rvstep}
+#weeklyHub .u-review-combined #reviewMonthHub>.planning-panel::before{content:counter(rvstep);position:absolute;left:14px;top:13px;display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:color-mix(in srgb,var(--blue) 14%,transparent);color:var(--blue);font-weight:700;font-size:13px}
+#weeklyHub .u-review-combined #reviewMonthHub>.planning-panel h3{margin:4px 0 0!important;font-size:14.5px!important}
+#weeklyHub .u-review-combined #reviewMonthHub>.planning-panel>p{margin:0!important;font-size:12.5px;color:var(--muted)}
+#weeklyHub .u-review-combined #reviewMonthHub>.planning-panel>button{justify-self:start;display:inline-flex!important;align-items:center;justify-content:center;width:fit-content!important;min-height:36px!important;height:auto!important;padding:0 16px!important}
+#weeklyHub .u-review-combined #reviewMonthHub>.planning-panel:nth-of-type(3)>button{display:inline-flex;margin-right:6px}
+#weeklyHub .u-review-combined #reviewMonthHub .review-category-top{display:grid!important;gap:6px!important;grid-template-columns:1fr!important}
+#weeklyHub .u-review-combined #reviewMonthHub .review-category-top>div{display:grid!important;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;padding:8px 10px!important;border-radius:10px!important;background:var(--surface-soft)!important;border:0!important}
+#weeklyHub .u-review-combined #reviewMonthHub .review-category-top span{font-size:13px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#weeklyHub .u-review-combined #reviewMonthHub .review-category-top b{grid-row:span 2;align-self:center;font-size:13.5px}
+#weeklyHub .u-review-combined #reviewMonthHub .review-category-top small{font-size:11.5px;color:var(--muted)}
+#weeklyHub .u-review-combined #reviewMonthHub .review-finish-actions{display:flex!important;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+#weeklyHub .u-review-combined #reviewMonthHub #monthlyConclusion p{margin:0;padding:12px;border-radius:10px;background:var(--surface-soft);font-size:12.5px;color:var(--muted)}
+@media (max-width:1100px){#weeklyHub .u-review-combined{grid-template-columns:1fr!important}}
+@media (max-width:620px){#weeklyHub #analysisComparisons .ex-metrics,#weeklyHub .u-review-combined #reviewMonthHub .review-month-kpis{grid-template-columns:1fr!important}}
+#weeklyHub .u-review-combined #reviewMonthHub>.planning-panel .review-finish-actions button{width:auto!important;min-height:36px!important}
+#weeklyHub .u-review-combined :is(.review-month-kpis,.ex-metrics,.review-category-top) :is(strong,b) .sensitive-value{font-size:inherit!important;font-weight:inherit!important;line-height:inherit!important;color:inherit}
+#casaHome.active{display:grid!important;gap:18px}
+#casaHome .ch-head{margin:0!important}
+#casaHome .ch-head h2{font-size:26px!important;margin:2px 0 4px!important}
+#casaHome .ch-head p{margin:0;color:var(--muted);font-size:13.5px}
+#casaHome .ch-tiles{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:14px!important;margin:0!important}
+:is(#casaHome,#casaShopping,#casaPurchases,#casaStock,#casaAnalytics,#casaMeals,#casaRecipes,#dataHub,#noticesHub,#settings) .ch-tile{display:flex;gap:14px;align-items:flex-start;padding:18px;border-radius:16px;background:var(--paper);border:1px solid var(--line);min-width:0}
+:is(#casaHome,#casaShopping,#casaPurchases,#casaStock,#casaAnalytics,#casaMeals,#casaRecipes,#dataHub,#noticesHub,#settings) .ch-tile>div{display:grid;gap:3px;min-width:0;flex:1}
+:is(#casaHome,#casaShopping,#casaPurchases,#casaStock,#casaAnalytics,#casaMeals,#casaRecipes,#dataHub,#noticesHub,#settings) .ch-tile span{font-size:12px;color:var(--muted)}
+:is(#casaHome,#casaShopping,#casaPurchases,#casaStock,#casaAnalytics,#casaMeals,#casaRecipes,#dataHub,#noticesHub,#settings) .ch-tile strong{font-size:22px!important;font-weight:700!important;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+:is(#casaHome,#casaShopping,#casaPurchases,#casaStock,#casaAnalytics,#casaMeals,#casaRecipes,#dataHub,#noticesHub,#settings) .ch-tile small{font-size:12px;color:var(--muted)}
+:is(#casaHome,#casaShopping,#casaPurchases,#casaStock,#casaAnalytics,#casaMeals,#casaRecipes,#dataHub,#noticesHub,#settings) .ch-tile strong .sensitive-value{font-size:inherit!important;font-weight:inherit!important;color:inherit}
+:is(#casaHome,#casaShopping,#casaPurchases,#casaStock,#casaAnalytics,#casaMeals,#casaRecipes,#dataHub,#noticesHub,#settings) .ch-tile-icon{display:grid;place-items:center;flex:0 0 40px;width:40px;height:40px;border-radius:12px;background:color-mix(in srgb,var(--blue) 14%,transparent);color:var(--blue)}
+:is(#casaHome,#casaShopping,#casaPurchases,#casaStock,#casaAnalytics,#casaMeals,#casaRecipes,#dataHub,#noticesHub,#settings) .ch-tile-icon svg{width:20px;height:20px}
+:is(#casaHome,#casaShopping,#casaPurchases,#casaStock,#casaAnalytics,#casaMeals,#casaRecipes,#dataHub,#noticesHub,#settings) .is-green .ch-tile-icon{background:color-mix(in srgb,var(--green) 15%,transparent);color:var(--green)}
+:is(#casaHome,#casaShopping,#casaPurchases,#casaStock,#casaAnalytics,#casaMeals,#casaRecipes,#dataHub,#noticesHub,#settings) .is-amber .ch-tile-icon{background:color-mix(in srgb,var(--orange) 16%,transparent);color:var(--orange)}
+:is(#casaHome,#casaShopping,#casaPurchases,#casaStock,#casaAnalytics,#casaMeals,#casaRecipes,#dataHub,#noticesHub,#settings) .is-red .ch-tile-icon{background:color-mix(in srgb,var(--red) 14%,transparent);color:var(--red)}
+:is(#casaHome,#casaShopping,#casaPurchases,#casaStock,#casaAnalytics,#casaMeals,#casaRecipes,#dataHub,#noticesHub,#settings) .is-purple .ch-tile-icon{background:color-mix(in srgb,#9b6bd3 16%,transparent);color:#9b6bd3}
+#casaHome .ch-bar{height:6px!important;margin-top:6px;border-radius:99px;background:var(--surface-soft);overflow:hidden}
+#casaHome .ch-bar span{display:block;height:100%;border-radius:99px;background:var(--orange)}
+#casaHome .ch-priorities{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:14px!important;margin:0!important}
+#casaHome .ch-priority{display:grid;grid-template-rows:auto auto 1fr auto;gap:10px;padding:18px;border-radius:18px;border:1px solid var(--line);background:var(--paper);border-top:3px solid var(--blue);min-width:0}
+#casaHome .ch-priority.is-green{border-top-color:var(--green)}
+#casaHome .ch-priority.is-amber{border-top-color:var(--orange)}
+#casaHome .ch-priority.is-red{border-top-color:var(--red)}
+#casaHome .ch-priority header{display:flex;align-items:center;gap:10px}
+#casaHome .ch-priority header .ch-tile-icon{flex-basis:34px;width:34px;height:34px;border-radius:10px}
+#casaHome .ch-priority header .ch-tile-icon svg{width:18px;height:18px}
+#casaHome .ch-priority h3{margin:0;font-size:15px}
+#casaHome .ch-priority-count{display:flex;align-items:baseline;gap:8px}
+#casaHome .ch-priority-count strong{font-size:30px;line-height:1}
+#casaHome .ch-priority-count span{font-size:12.5px;color:var(--muted)}
+#casaHome .ch-priority ul{list-style:none;margin:0;padding:0;display:grid;gap:4px}
+#casaHome .ch-priority li{display:flex;justify-content:space-between;gap:8px;padding:6px 10px;border-radius:9px;background:var(--surface-soft);font-size:12.5px}
+#casaHome .ch-priority li small{color:var(--muted);white-space:nowrap}
+#casaHome .ch-priority p{margin:0;font-size:12.5px;color:var(--muted)}
+#casaHome .ch-priority>button{justify-self:start}
+#casaHome .ch-grid{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;gap:16px!important;margin:0!important}
+#casaHome .ch-panel{margin:0!important;padding:20px!important;border-radius:18px!important}
+#casaHome .ch-panel .panel-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:14px}
+#casaHome .ch-panel .panel-heading h3{margin:0 0 3px;font-size:16px}
+#casaHome .ch-panel .panel-heading p{margin:0;font-size:12.5px;color:var(--muted)}
+#casaHome .ch-count{display:inline-grid;place-items:center;min-width:26px;height:26px;border-radius:99px;background:color-mix(in srgb,var(--orange) 16%,transparent)!important;color:var(--orange)!important;font-weight:700}
+#casaHome .casa-home-issues{display:grid;gap:8px}
+#casaHome .ch-issue{display:grid!important;grid-template-columns:36px minmax(0,1fr) auto;gap:12px;align-items:center;width:100%;padding:10px 12px!important;border-radius:12px!important;border:1px solid var(--line)!important;background:var(--surface-soft)!important;color:var(--ink)!important;text-align:left}
+#casaHome .ch-issue>span:nth-child(2){display:grid;gap:2px;min-width:0}
+#casaHome .ch-issue b{font-size:13px}
+#casaHome .ch-issue small{font-size:12px;color:var(--muted)}
+#casaHome .ch-issue-icon{display:grid;place-items:center;width:36px;height:36px;border-radius:10px;background:color-mix(in srgb,var(--blue) 14%,transparent);color:var(--blue)}
+#casaHome .ch-issue-icon svg{width:18px;height:18px}
+#casaHome .ch-issue.danger .ch-issue-icon{background:color-mix(in srgb,var(--red) 14%,transparent);color:var(--red)}
+#casaHome .ch-week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;margin-bottom:14px}
+#casaHome .ch-day{display:grid!important;justify-items:center;gap:2px;padding:8px 2px!important;min-height:0!important;border-radius:12px!important;border:1px solid var(--line)!important;background:transparent!important;color:var(--ink)!important}
+#casaHome .ch-day small{font-size:11px;color:var(--muted);text-transform:capitalize}
+#casaHome .ch-day b{font-size:16px}
+#casaHome .ch-day span{font-size:11px;color:var(--muted)}
+#casaHome .ch-day.has-meals{background:color-mix(in srgb,var(--green) 10%,transparent)!important;border-color:color-mix(in srgb,var(--green) 40%,var(--line))!important}
+#casaHome .ch-day.has-meals span{color:var(--green);font-weight:700}
+#casaHome .ch-day.is-today{border-color:var(--blue)!important;box-shadow:inset 0 0 0 1px var(--blue)}
+#casaHome .ch-week-metrics{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:10px}
+#casaHome .ch-week-metrics div{display:grid;gap:2px;padding:10px;border-radius:12px;background:var(--surface-soft)}
+#casaHome .ch-week-metrics strong{font-size:20px}
+#casaHome .ch-week-metrics span{font-size:11.5px;color:var(--muted)}
+#casaHome .ch-purchases{display:grid!important;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
+#casaHome .ch-purchase{display:grid!important;grid-template-columns:38px minmax(0,1fr) auto;gap:10px;align-items:center;padding:12px!important;border-radius:14px!important;border:1px solid var(--line)!important;background:var(--surface-soft)!important;color:var(--ink)!important;text-align:left}
+#casaHome .ch-purchase>span:nth-child(2){display:grid;gap:2px;min-width:0}
+#casaHome .ch-store-badge{display:grid;place-items:center;width:38px;height:38px;border-radius:11px;background:var(--blue);color:#fff;font-weight:800}
+#casaHome .ch-empty{display:grid;justify-items:center;gap:4px;text-align:center;padding:24px 10px!important;border-radius:14px;border:1px dashed var(--line);background:transparent!important}
+#casaHome .ch-empty svg{width:28px;height:28px;color:var(--muted)}
+#casaHome .ch-empty p{margin:0;font-size:12.5px;color:var(--muted)}
+#casaHome .ch-shortcuts{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px}
+#casaHome .ch-shortcut{display:flex!important;align-items:center;gap:10px;justify-content:flex-start!important;padding:12px 14px!important;min-height:58px!important;border-radius:14px!important;border:1px solid var(--line)!important;background:var(--paper)!important;color:var(--ink)!important;text-align:left}
+#casaHome .ch-shortcut:hover{border-color:var(--blue)!important}
+#casaHome .ch-shortcut svg{flex:0 0 20px;width:20px;height:20px;color:var(--blue)}
+#casaHome .ch-shortcut span{display:grid;gap:1px;min-width:0}
+#casaHome .ch-shortcut b{font-size:13px}
+#casaHome .ch-shortcut small{font-size:11.5px;color:var(--muted)}
+@media (max-width:1100px){#casaHome .ch-tiles{grid-template-columns:repeat(2,minmax(0,1fr))!important}#casaHome .ch-priorities,#casaHome .ch-grid{grid-template-columns:1fr!important}}
+@media (max-width:560px){#casaHome .ch-tiles{grid-template-columns:1fr!important}}
+#casaHome .ch-priority header{justify-content:flex-start!important}
+#casaHome .ch-priority header h3{flex:1;text-align:left!important;margin:0!important}
+#casaShopping.active{display:grid!important;gap:16px}
+#casaShopping .cs-head{margin:0!important;display:flex!important;justify-content:space-between;align-items:flex-end;gap:14px;flex-wrap:wrap}
+#casaShopping .cs-head h2{font-size:26px!important;margin:0 0 4px!important}
+#casaShopping .cs-head p{margin:0;color:var(--muted);font-size:13.5px}
+#casaShopping .cs-head .casa-actions{display:flex;gap:8px;flex-wrap:wrap}
+#casaShopping .cs-head .casa-actions button{display:inline-flex;align-items:center;gap:7px}
+#casaShopping .cs-head .casa-actions svg{width:16px;height:16px}
+#casaShopping .cs-tiles{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:14px!important;margin:0!important;padding:0!important;background:transparent!important;border:0!important}
+#casaShopping .cs-progress{height:6px;margin-top:6px;border-radius:99px;background:var(--surface-soft);overflow:hidden}
+#casaShopping .cs-progress i{display:block;height:100%;border-radius:99px;background:var(--green)}
+#casaShopping .cs-add{display:grid!important;grid-template-columns:auto minmax(0,2fr) minmax(0,1fr) auto!important;gap:10px!important;align-items:center;margin:0!important;padding:10px 10px 10px 16px!important;border-radius:16px!important;border:1px solid var(--line)!important;background:var(--paper)!important}
+#casaShopping .cs-add label{display:block!important;margin:0!important}
+#casaShopping .cs-add input{width:100%;min-height:42px;border-radius:11px}
+#casaShopping .cs-add button{min-height:42px;padding:0 20px}
+#casaShopping .cs-add-icon{display:grid;place-items:center;width:32px;height:32px;border-radius:50%;background:color-mix(in srgb,var(--green) 16%,transparent);color:var(--green)}
+#casaShopping .cs-add-icon svg{width:18px;height:18px}
+#casaShopping .visually-hidden{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+#casaShopping .cs-toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+:is(#casaShopping,#casaPurchases,#casaStock,#casaRecipes,#casaMeals,#noticesHub,#dataHub,#settings) .cs-pills{display:flex;gap:6px;flex-wrap:wrap}
+:is(#casaShopping,#casaPurchases,#casaStock,#casaRecipes,#casaMeals,#noticesHub,#dataHub,#settings) .cs-pills button,#casaShopping .cs-stores button{display:inline-flex!important;align-items:center;gap:7px;min-height:34px!important;padding:6px 14px!important;border-radius:99px!important;border:1px solid var(--line)!important;background:transparent!important;color:var(--muted)!important;font-size:13px;font-weight:600;width:auto!important}
+:is(#casaShopping,#casaPurchases,#casaStock,#casaRecipes,#casaMeals,#noticesHub,#dataHub,#settings) .cs-pills button small,#casaShopping .cs-stores button small{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:99px;background:var(--surface-soft);font-size:11px}
+:is(#casaShopping,#casaPurchases,#casaStock,#casaRecipes,#casaMeals,#noticesHub,#dataHub,#settings) .cs-pills button.active,#casaShopping .cs-stores button.active{background:var(--blue)!important;border-color:var(--blue)!important;color:#fff!important}
+:is(#casaShopping,#casaPurchases,#casaStock,#casaRecipes,#casaMeals,#noticesHub,#dataHub,#settings) .cs-pills button.active small,#casaShopping .cs-stores button.active small{background:rgba(255,255,255,.22);color:#fff}
+:is(#casaShopping,#casaPurchases,#casaStock,#casaRecipes,#casaMeals,#noticesHub,#dataHub,#settings) .cs-search{position:relative;display:flex!important;align-items:center;flex:1 1 240px;margin:0!important;min-width:200px}
+:is(#casaShopping,#casaPurchases,#casaStock,#casaRecipes,#casaMeals,#noticesHub,#dataHub,#settings) .cs-search svg{position:absolute;left:12px;width:16px;height:16px;color:var(--muted);pointer-events:none}
+:is(#casaShopping,#casaPurchases,#casaStock,#casaRecipes,#casaMeals,#noticesHub,#dataHub,#settings) .cs-search input{width:100%;min-height:38px;padding-left:36px!important;border-radius:99px!important}
+#casaShopping .cs-more{position:relative}
+#casaShopping .cs-more>summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;min-height:38px;padding:0 14px;border-radius:10px;border:1px solid var(--line);font-size:13px;font-weight:600}
+#casaShopping .cs-more>summary::-webkit-details-marker{display:none}
+#casaShopping .cs-more>summary::after{content:'▾';margin-left:8px;font-size:11px;color:var(--muted)}
+#casaShopping .cs-more>div{position:absolute;right:0;top:calc(100% + 6px);z-index:30;display:grid;gap:4px;min-width:220px;padding:8px;border-radius:12px;background:var(--paper);border:1px solid var(--line);box-shadow:0 14px 34px rgba(15,30,40,.18)}
+#casaShopping .cs-more>div button{display:flex;align-items:center;gap:8px;justify-content:flex-start;border:0!important;background:transparent!important;min-height:36px;text-align:left}
+#casaShopping .cs-more>div button:hover{background:var(--surface-soft)!important}
+#casaShopping .cs-more svg{width:16px;height:16px;color:var(--blue)}
+#casaShopping .cs-stores{display:flex;gap:6px;flex-wrap:wrap}
+#casaShopping .cs-stores button i{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:6px;background:var(--surface-soft);font-style:normal;font-size:11px;font-weight:800;color:var(--ink)}
+#casaShopping .cs-stores button svg{width:15px;height:15px}
+#casaShopping .cs-stores button.active i{background:rgba(255,255,255,.25);color:#fff}
+#casaShopping .cs-groups{display:grid!important;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:14px;align-items:start}
+#casaShopping .cs-group{margin:0!important;padding:16px!important;border-radius:18px!important;border:1px solid var(--line)!important;background:var(--paper)!important;display:grid;gap:8px}
+#casaShopping .cs-group>h3{display:flex!important;justify-content:space-between;align-items:center;gap:10px;margin:0 0 4px!important;font-size:14px!important}
+#casaShopping .cs-group>h3 small{padding:2px 9px;border-radius:99px;background:var(--surface-soft);font-size:11.5px;color:var(--muted)}
+#casaShopping .cs-group .casa-shop-row{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;gap:4px 12px!important;align-items:center;margin:0!important;padding:10px 12px!important;border-radius:12px!important;border:1px solid var(--line)!important;background:var(--surface-soft)!important}
+#casaShopping .cs-group .casa-shop-row.is-done{opacity:.62}
+#casaShopping .cs-group .casa-shop-row.is-done b{text-decoration:line-through}
+#casaShopping .cs-group .casa-shop-check{display:flex!important;align-items:center;gap:12px;margin:0!important;min-width:0}
+#casaShopping .cs-group .casa-shop-check input{flex:0 0 22px;width:22px;height:22px;accent-color:var(--green);margin:0}
+#casaShopping .cs-group .casa-shop-check span{display:grid;gap:2px;min-width:0}
+#casaShopping .cs-group .casa-shop-check b{font-size:13.5px;overflow:hidden;text-overflow:ellipsis}
+#casaShopping .cs-group .casa-shop-check small{font-size:12px;color:var(--muted)}
+#casaShopping .cs-group .casa-shop-price{display:grid;justify-items:end;gap:1px;text-align:right}
+#casaShopping .cs-group .casa-shop-price strong{font-size:14px}
+#casaShopping .cs-group .casa-shop-price small{font-size:11px;color:var(--muted)}
+#casaShopping .cs-group .casa-shop-note{grid-column:1/-1;margin:0;font-size:12px;color:var(--muted)}
+#casaShopping .cs-group .casa-shop-row>.casa-actions{grid-column:1/-1;display:flex!important;gap:6px;flex-wrap:wrap;justify-content:flex-end;margin:0!important}
+#casaShopping .cs-group .casa-shop-row>.casa-actions>button{min-height:30px!important;padding:0 10px!important;font-size:12px}
+#casaShopping .cs-row-more{position:relative}
+#casaShopping .cs-row-more>summary{list-style:none;cursor:pointer;display:inline-grid;place-items:center;min-width:32px;min-height:30px;border-radius:9px;border:1px solid var(--line);font-size:13px;color:var(--muted)}
+#casaShopping .cs-row-more>summary::-webkit-details-marker{display:none}
+#casaShopping .cs-row-more>div{position:absolute;right:0;top:calc(100% + 4px);z-index:20;display:grid!important;gap:4px;min-width:200px;padding:8px;border-radius:12px;background:var(--paper);border:1px solid var(--line);box-shadow:0 14px 34px rgba(15,30,40,.18)}
+#casaShopping .cs-row-more>div button{justify-content:flex-start;border:0!important;background:transparent!important;text-align:left}
+#casaShopping .cs-row-more>div button:hover{background:var(--surface-soft)!important}
+#casaShopping .cs-empty{grid-column:1/-1;display:grid;justify-items:center;gap:6px;padding:40px 16px!important;text-align:center;border-radius:18px;border:1px dashed var(--line);background:transparent!important}
+#casaShopping .cs-empty svg{width:34px;height:34px;color:var(--muted)}
+#casaShopping .cs-empty p{margin:0;color:var(--muted);font-size:13px}
+#casaShopping .cs-note{display:flex;gap:8px;align-items:center;margin:0!important;font-size:12px;color:var(--muted)}
+#casaShopping .cs-note svg{width:15px;height:15px;flex:0 0 15px}
+#casaShopping>progress,#casaShopping>.casa-filter-bar{display:none!important}
+@media (max-width:900px){#casaShopping .cs-tiles{grid-template-columns:1fr!important}#casaShopping .cs-add{grid-template-columns:1fr!important}#casaShopping .cs-add-icon{display:none}#casaShopping .cs-groups{grid-template-columns:1fr}}
+#casaPurchases.active{display:grid!important;gap:16px}
+:is(#casaPurchases,#casaStock,#casaAnalytics,#casaMeals,#casaRecipes) .cp-head{margin:0!important;display:flex!important;justify-content:space-between;align-items:flex-end;gap:14px;flex-wrap:wrap}
+:is(#casaPurchases,#casaStock,#casaAnalytics,#casaMeals,#casaRecipes) .cp-head h2{font-size:26px!important;margin:0 0 4px!important}
+:is(#casaPurchases,#casaStock,#casaAnalytics,#casaMeals,#casaRecipes) .cp-head p{margin:0;color:var(--muted);font-size:13.5px}
+:is(#casaPurchases,#casaStock,#casaAnalytics,#casaMeals,#casaRecipes) .cp-head .casa-actions{display:flex;gap:8px;flex-wrap:wrap;margin:0!important}
+:is(#casaPurchases,#casaStock,#casaAnalytics,#casaMeals,#casaRecipes) .cp-head .casa-actions button,#casaPurchases .cp-empty-actions button{display:inline-flex;align-items:center;gap:7px}
+:is(#casaPurchases,#casaStock,#casaAnalytics,#casaMeals,#casaRecipes) .cp-head .casa-actions svg,#casaPurchases .cp-empty-actions svg{width:16px;height:16px}
+:is(#casaPurchases,#casaStock,#casaAnalytics,#casaMeals,#casaRecipes) .cp-tiles{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:14px!important;margin:0!important}
+#casaPurchases .cp-toolbar{display:flex!important;margin:0!important;max-width:560px}
+#casaPurchases .cp-list{display:grid;gap:22px}
+#casaPurchases .cp-month>h3{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin:0 0 10px;font-size:15px}
+#casaPurchases .cp-month>h3 small{font-size:12.5px;color:var(--muted);text-transform:none;font-weight:500}
+#casaPurchases .cp-grid{display:grid!important;grid-template-columns:repeat(auto-fill,minmax(340px,1fr))!important;gap:12px!important}
+#casaPurchases .cp-card{display:grid!important;grid-template-columns:44px minmax(0,1fr) auto!important;gap:6px 12px!important;align-items:center;padding:14px 16px!important;border-radius:16px!important;border:1px solid var(--line)!important;background:var(--paper)!important;min-height:0!important}
+#casaPurchases .cp-card:hover{border-color:color-mix(in srgb,var(--blue) 50%,var(--line))!important}
+#casaPurchases .cp-badge{display:grid;place-items:center;width:44px;height:44px;border-radius:13px;background:hsl(var(--h) 55% 45%);color:#fff;font-weight:800;font-size:17px}
+#casaPurchases .cp-main{display:grid;gap:2px;min-width:0}
+#casaPurchases .cp-main h3{margin:0!important;font-size:14.5px!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#casaPurchases .cp-main p{margin:0!important;font-size:12px;color:var(--muted)}
+#casaPurchases .cp-items{font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#casaPurchases .cp-side{display:grid;justify-items:end;gap:4px}
+#casaPurchases .cp-side strong{font-size:17px!important}
+#casaPurchases .cp-side .casa-connection{font-size:10.5px!important;padding:2px 8px;border-radius:99px;background:color-mix(in srgb,var(--green) 14%,transparent);color:var(--green);white-space:nowrap}
+#casaPurchases .cp-side .casa-connection.unlinked{background:var(--surface-soft);color:var(--muted)}
+#casaPurchases .cp-card>button{grid-column:2/-1;justify-self:end;min-height:30px!important;padding:0 12px!important;font-size:12px;width:auto!important;margin:0!important}
+#casaPurchases .cp-empty{display:grid;justify-items:center;gap:8px;padding:48px 20px!important;text-align:center;border-radius:18px;border:1px dashed var(--line);background:transparent!important}
+#casaPurchases .cp-empty>svg{width:38px;height:38px;color:var(--muted)}
+#casaPurchases .cp-empty p{margin:0;max-width:520px;color:var(--muted);font-size:13px}
+#casaPurchases .cp-empty-actions{display:flex;gap:8px;margin-top:6px}
+#casaPurchases .casa-more-purchases{justify-self:center}
+@media (max-width:1100px){:is(#casaPurchases,#casaStock,#casaAnalytics,#casaMeals,#casaRecipes) .cp-tiles{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+@media (max-width:560px){:is(#casaPurchases,#casaStock,#casaAnalytics,#casaMeals,#casaRecipes) .cp-tiles{grid-template-columns:1fr!important}#casaPurchases .cp-grid{grid-template-columns:1fr!important}}
+#casaPurchases .cp-month>h3 span::first-letter,#casaPurchases .cp-main p::first-letter{text-transform:uppercase}
+#casaStock.active{display:grid!important;gap:16px}
+#casaStock .ck-tiles{margin:0!important}
+#casaStock>.casa-filter-bar{display:flex!important;flex-wrap:wrap;gap:10px!important;align-items:center;margin:0!important;padding:0!important;background:transparent!important;border:0!important}
+#casaStock .casa-pantry-locations{display:flex!important;gap:6px;flex-wrap:wrap;flex-basis:100%;margin:0!important}
+#casaStock .casa-pantry-locations button{display:inline-flex!important;align-items:center;min-height:34px!important;padding:6px 14px!important;border-radius:99px!important;border:1px solid var(--line)!important;background:transparent!important;color:var(--muted)!important;font-size:13px;font-weight:600;width:auto!important}
+#casaStock .casa-pantry-locations button[aria-pressed=true]{background:var(--blue)!important;border-color:var(--blue)!important;color:#fff!important}
+#casaStock>.casa-filter-bar>label{display:grid;gap:4px;margin:0!important;font-size:12px;color:var(--muted)}
+#casaStock>.casa-filter-bar>label:has(#casaStockSearch){flex:1 1 320px}
+#casaStock #casaStockSearch{min-height:38px;border-radius:99px!important;padding-left:16px}
+#casaStock #casaStockFilter{min-height:38px;border-radius:10px}
+#casaStock .casa-stock-count{align-self:flex-end;padding:0 0 10px;font-size:12px;color:var(--muted)}
+#casaStock .ck-grid{display:grid!important;grid-template-columns:repeat(auto-fill,minmax(230px,1fr))!important;gap:12px!important;margin:0!important}
+#casaStock .ck-card{position:relative;display:grid!important;align-content:start;gap:10px!important;padding:16px 16px 12px!important;border-radius:16px!important;border:1px solid var(--line)!important;background:var(--paper)!important;overflow:visible;border-left:4px solid var(--green)!important;min-height:0!important}
+#casaStock .ck-card.is-soon{border-left-color:var(--orange)!important}
+#casaStock .ck-card.is-expired{border-left-color:var(--red)!important}
+#casaStock .ck-card.is-open{border-left-color:#5b7fd6!important}
+#casaStock .ck-card.is-empty{opacity:.6}
+#casaStock .ck-card h3{margin:0!important;padding-right:84px;font-size:14.5px!important;line-height:1.3}
+#casaStock .ck-card .casa-pantry-quantity{display:flex;align-items:baseline;gap:5px;margin:0!important}
+#casaStock .ck-card .casa-pantry-quantity strong{font-size:26px!important;line-height:1}
+#casaStock .ck-card .casa-pantry-quantity span{font-size:13px;color:var(--muted)}
+#casaStock .ck-card .casa-pantry-facts{display:flex!important;flex-wrap:wrap;gap:6px;margin:0!important;padding:0!important;border:0!important}
+#casaStock .ck-card .casa-pantry-facts>div{display:flex!important;align-items:center;gap:5px;padding:3px 9px!important;border-radius:99px;background:var(--surface-soft);border:0!important;margin:0!important}
+#casaStock .ck-card .casa-pantry-facts dt{font-size:11px!important;color:var(--muted);margin:0!important}
+#casaStock .ck-card .casa-pantry-facts dt::after{content:':'}
+#casaStock .ck-card .casa-pantry-facts dd{margin:0!important;font-size:11.5px!important;font-weight:600}
+#casaStock .ck-card .casa-connection{position:absolute;top:14px;right:12px;margin:0!important;padding:3px 9px!important;border-radius:99px!important;font-size:11px!important;font-weight:700;background:color-mix(in srgb,var(--green) 15%,transparent)!important;color:var(--green)!important;border:0!important}
+#casaStock .ck-card.is-soon .casa-connection{background:color-mix(in srgb,var(--orange) 16%,transparent)!important;color:var(--orange)!important}
+#casaStock .ck-card.is-expired .casa-connection{background:color-mix(in srgb,var(--red) 15%,transparent)!important;color:var(--red)!important}
+#casaStock .ck-card.is-open .casa-connection{background:color-mix(in srgb,#5b7fd6 16%,transparent)!important;color:#7c95e0!important}
+#casaStock .ck-card .casa-pantry-main-actions{display:flex!important;gap:6px;margin:2px 0 0!important}
+#casaStock .ck-card .casa-pantry-main-actions button{flex:1;min-height:34px!important;padding:0 10px!important;font-size:12.5px}
+#casaStock .ck-card .casa-pantry-options{margin:0!important;border:0!important;background:transparent!important;padding:0!important}
+#casaStock .ck-card .casa-pantry-options>summary{font-size:12px;color:var(--muted);cursor:pointer;padding:4px 0}
+#casaStock .ck-card .casa-pantry-options .casa-actions{display:flex!important;flex-wrap:wrap;gap:6px;margin-top:6px!important}
+#casaStock .ck-card .casa-pantry-options .casa-actions button{min-height:30px!important;padding:0 10px!important;font-size:12px}
+#casaStock .ck-card>p{margin:0;font-size:11.5px;color:var(--muted)}
+#casaStock>h3,#casaStock>details{margin:6px 0 0!important}
+#casaStock .casa-empty{grid-column:1/-1;display:grid;justify-items:center;gap:6px;padding:40px 16px!important;text-align:center;border-radius:18px;border:1px dashed var(--line);background:transparent!important}
+#casaAnalytics.active{display:grid!important;gap:16px}
+#casaAnalytics .casa-analytics-actions{display:flex!important;align-items:flex-end;gap:8px;flex-wrap:wrap;margin:0!important}
+#casaAnalytics .casa-analytics-actions button{display:inline-flex;align-items:center;gap:7px}
+#casaAnalytics .casa-analytics-actions svg{width:16px;height:16px}
+#casaAnalytics .ca-progress{height:6px;margin-top:6px;border-radius:99px;background:var(--surface-soft);overflow:hidden}
+#casaAnalytics .ca-progress i{display:block;height:100%;border-radius:99px;background:var(--orange)}
+#casaAnalytics .ca-progress.is-over i{background:var(--red)}
+#casaAnalytics .ca-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+#casaAnalytics .ca-card{margin:0!important;padding:20px!important;border-radius:18px!important;min-width:0}
+#casaAnalytics .ca-card-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:14px}
+#casaAnalytics .ca-card-head h3{margin:0!important;font-size:15.5px}
+#casaAnalytics .ca-card-head small{font-size:12px;color:var(--muted)}
+#casaAnalytics .ca-chart{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;height:210px}
+#casaAnalytics .ca-col{display:grid;grid-template-rows:auto 1fr auto auto;gap:4px;min-height:0;text-align:center}
+#casaAnalytics .ca-col>b{font-size:11px;color:var(--muted);font-weight:600;white-space:nowrap}
+#casaAnalytics .ca-col>i{display:flex;align-items:flex-end;justify-content:center;min-height:0;border-radius:10px;background:var(--surface-soft)}
+#casaAnalytics .ca-col>i em{display:block;width:62%;min-height:3px;border-radius:8px 8px 3px 3px;background:#5b7fd6}
+#casaAnalytics .ca-col.is-current>i em{background:var(--green)}
+#casaAnalytics .ca-col.is-current>b{color:var(--ink)}
+#casaAnalytics .ca-col>small{font-size:12px;font-weight:700;text-transform:capitalize}
+#casaAnalytics .ca-col>span{font-size:10.5px;color:var(--muted)}
+#casaAnalytics .ca-stack{display:flex;height:12px;border-radius:99px;overflow:hidden;gap:2px;margin-bottom:14px}
+#casaAnalytics .ca-stack i{display:block;min-width:3px}
+#casaAnalytics .ca-bars{display:grid;gap:10px}
+#casaAnalytics .ca-bar{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;align-items:center}
+#casaAnalytics .ca-bar>span{display:flex;align-items:center;gap:8px;font-size:13px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#casaAnalytics .ca-bar>span i{flex:0 0 10px;width:10px;height:10px;border-radius:3px;background:var(--c)}
+#casaAnalytics .ca-bar>b{font-size:13px;text-align:right}
+#casaAnalytics .ca-bar>em{display:block;height:7px;border-radius:99px;background:var(--surface-soft);overflow:hidden}
+#casaAnalytics .ca-bar>em u{display:block;height:100%;border-radius:99px;background:var(--c);text-decoration:none}
+#casaAnalytics .ca-bar>small{font-size:11.5px;color:var(--muted);text-align:right}
+#casaAnalytics .ca-prices{display:grid;gap:6px;max-height:320px;overflow:auto}
+#casaAnalytics .ca-price{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 12px;border-radius:12px;background:var(--surface-soft)}
+#casaAnalytics .ca-price>span{display:grid;gap:2px;min-width:0}
+#casaAnalytics .ca-price b{font-size:13px}
+#casaAnalytics .ca-price small{font-size:11.5px;color:var(--muted)}
+#casaAnalytics .ca-price em{font-style:normal;font-weight:700;font-size:12px;padding:3px 9px;border-radius:99px;white-space:nowrap;background:var(--paper);color:var(--muted)}
+#casaAnalytics .ca-price em.is-up{background:color-mix(in srgb,var(--red) 14%,transparent);color:var(--red)}
+#casaAnalytics .ca-price em.is-down{background:color-mix(in srgb,var(--green) 15%,transparent);color:var(--green)}
+#casaAnalytics .ca-empty{display:grid;justify-items:center;gap:6px;padding:26px 10px;text-align:center;border-radius:14px;border:1px dashed var(--line)}
+#casaAnalytics .ca-empty svg{width:28px;height:28px;color:var(--muted)}
+#casaAnalytics .ca-empty p{margin:0;font-size:12.5px;color:var(--muted)}
+#casaAnalytics details.ca-card>summary{cursor:pointer;font-weight:600;font-size:14px}
+#casaAnalytics details.ca-card[open]>summary{margin-bottom:12px}
+#casaAnalytics .ca-note{display:flex;gap:8px;align-items:flex-start;margin:0!important;font-size:12px;color:var(--muted)}
+#casaAnalytics .ca-note svg{flex:0 0 15px;width:15px;height:15px;margin-top:1px}
+@media (max-width:1000px){#casaAnalytics .ca-grid{grid-template-columns:1fr}}
+#casaRecipes.active,#casaMeals.active{display:grid!important;gap:16px}
+#casaRecipes .cp-tiles,#casaMeals .cp-tiles{margin:0!important}
+#casaRecipes .cr-grid{display:grid!important;grid-template-columns:repeat(auto-fill,minmax(280px,1fr))!important;gap:14px!important;margin:0!important}
+#casaRecipes .cr-card{display:grid!important;align-content:start;gap:8px!important;padding:0 0 14px!important;border-radius:18px!important;border:1px solid var(--line)!important;background:var(--paper)!important;overflow:hidden;min-height:0!important}
+#casaRecipes .cr-card>*:not(.cr-band){margin-left:16px!important;margin-right:16px!important}
+#casaRecipes .cr-band{display:flex;justify-content:space-between;align-items:center;height:64px;padding:0 14px;background:linear-gradient(135deg,hsl(var(--h) 50% 42%),hsl(calc(var(--h) + 40) 55% 32%))}
+#casaRecipes .cr-band span{display:grid;place-items:center;width:38px;height:38px;border-radius:12px;background:rgba(255,255,255,.18);color:#fff}
+#casaRecipes .cr-band span svg{width:20px;height:20px}
+#casaRecipes .cr-band em{font-style:normal;font-size:11px;font-weight:700;padding:4px 10px;border-radius:99px;background:rgba(255,255,255,.92);color:#1d6b55}
+#casaRecipes .cr-card.is-missing .cr-band em{color:#a85a12}
+#casaRecipes .cr-card h3{margin-top:6px!important;margin-bottom:0!important;font-size:15.5px!important}
+#casaRecipes .cr-meta{margin-top:0!important;margin-bottom:0!important;font-size:12px;color:var(--muted)}
+#casaRecipes .cr-ingredients{list-style:none;display:flex;flex-wrap:wrap;gap:5px;padding:0!important}
+#casaRecipes .cr-ingredients li{padding:3px 9px;border-radius:99px;background:var(--surface-soft);font-size:11.5px}
+#casaRecipes .cr-ingredients li.is-missing{background:color-mix(in srgb,var(--orange) 16%,transparent);color:var(--orange)}
+#casaRecipes .casa-recipe-notes{font-size:12px;color:var(--muted)}
+#casaRecipes .casa-recipe-cost{font-size:12px!important;color:var(--muted)}
+#casaRecipes .cr-card .casa-actions{display:flex!important;gap:6px;flex-wrap:wrap}
+#casaRecipes .cr-card .casa-actions button{flex:1;min-height:34px!important;padding:0 10px!important;font-size:12.5px}
+:is(#casaRecipes,#casaMeals) .cr-empty{grid-column:1/-1;display:grid;justify-items:center;gap:6px;padding:44px 16px!important;text-align:center;border-radius:18px;border:1px dashed var(--line);background:transparent!important}
+:is(#casaRecipes,#casaMeals) .cr-empty svg{width:36px;height:36px;color:var(--muted)}
+:is(#casaRecipes,#casaMeals) .cr-empty p{margin:0;max-width:480px;color:var(--muted);font-size:13px}
+#casaMeals .cm-weekbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 12px;border-radius:16px;border:1px solid var(--line);background:var(--paper)}
+#casaMeals .cm-weekbar>div{display:grid;gap:1px;min-width:180px;padding:0 6px}
+#casaMeals .cm-weekbar>div b{font-size:15px}
+#casaMeals .cm-weekbar>div small{font-size:12px;color:var(--muted)}
+#casaMeals .cm-weekbar>button{min-height:36px!important;min-width:36px;padding:0 12px!important}
+#casaMeals .cm-weekbar label{display:flex!important;align-items:center;gap:8px;margin:0 0 0 auto!important;font-size:12px;color:var(--muted)}
+#casaMeals .cm-weekbar input{min-height:36px}
+#casaMeals .casa-meal-suggestion{margin:0!important;padding:12px 16px!important;border-radius:14px!important;border-left:4px solid var(--green)!important;font-size:13px}
+#casaMeals .cm-grid{display:grid!important;grid-template-columns:repeat(7,minmax(0,1fr))!important;gap:10px!important;margin:0!important}
+#casaMeals .cm-day{display:grid!important;align-content:start;gap:8px!important;padding:12px 10px!important;border-radius:16px!important;border:1px solid var(--line)!important;background:var(--paper)!important;min-height:0!important;min-width:0}
+#casaMeals .cm-day.is-today{border-color:var(--blue)!important;box-shadow:inset 0 0 0 1px var(--blue)}
+#casaMeals .cm-day.is-past{opacity:.75}
+#casaMeals .cm-day>h3{display:flex;justify-content:space-between;align-items:baseline;gap:6px;margin:0 0 2px!important;font-size:13px!important}
+#casaMeals .cm-day>h3 small{font-size:12px;font-weight:600;color:var(--muted);text-transform:capitalize;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#casaMeals .cm-day>h3 b{font-size:20px}
+#casaMeals .cm-day.is-today>h3 b{color:var(--blue)}
+#casaMeals .cm-slot{display:grid!important;gap:6px;margin:0!important;padding:10px!important;border-radius:12px!important;border:1px solid var(--line)!important;background:var(--surface-soft)!important}
+#casaMeals .cm-slot>b{font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+#casaMeals .cm-slot>p{display:grid;gap:1px;margin:0!important;font-size:12.5px;font-weight:600;line-height:1.3}
+#casaMeals .cm-slot>p small{font-weight:500;font-size:11px;color:var(--muted)}
+#casaMeals .cm-slot.is-planned{border-left:3px solid #5b7fd6!important}
+#casaMeals .cm-slot.is-done{border-left:3px solid var(--green)!important}
+#casaMeals .cm-slot.is-empty{background:transparent!important;border-style:dashed!important}
+#casaMeals .cm-add{min-height:30px!important;padding:0 8px!important;border:0!important;background:transparent!important;color:var(--blue)!important;font-size:12px;font-weight:700;justify-content:flex-start;text-align:left;width:100%}
+#casaMeals .cm-add:hover{text-decoration:underline}
+#casaMeals .cm-slot .casa-actions{display:flex!important;gap:4px;flex-wrap:wrap;margin:0!important}
+#casaMeals .cm-slot .casa-actions button{min-height:28px!important;padding:0 8px!important;font-size:11.5px;flex:1 1 auto}
+#casaMeals .cm-slot .casa-connection{justify-self:start;font-size:11px!important;padding:2px 8px;border-radius:99px;background:color-mix(in srgb,var(--green) 15%,transparent);color:var(--green)}
+#casaMeals .cm-needs{margin:0!important;padding:18px!important;border-radius:18px!important}
+#casaMeals .cm-needs-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}
+#casaMeals .cm-needs-head h3{margin:0!important;font-size:15px}
+#casaMeals .cm-chips{display:flex;flex-wrap:wrap;gap:6px}
+#casaMeals .cm-chips span{padding:4px 10px;border-radius:99px;background:color-mix(in srgb,var(--orange) 14%,transparent);color:var(--orange);font-size:12px;font-weight:600}
+@media (max-width:1250px){#casaMeals .cm-grid{grid-template-columns:repeat(4,minmax(0,1fr))!important}}
+@media (max-width:760px){#casaMeals .cm-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}#casaMeals .cm-weekbar label{margin-left:0!important}}
+@media (max-width:460px){#casaMeals .cm-grid{grid-template-columns:1fr!important}}
+#casaMeals .cm-grid .cm-slot{grid-template-columns:minmax(0,1fr)!important;grid-template-areas:none!important}
+#casaMeals .cm-grid .cm-slot>*{grid-column:1/-1!important;grid-row:auto!important}
+#casaMeals .cm-weekbar label{white-space:nowrap}
+#noticesHub.active{display:grid!important;gap:16px}
+#noticesHub .nt-head{margin:0!important;display:flex!important;justify-content:space-between;align-items:flex-end;gap:14px;flex-wrap:wrap}
+#noticesHub .nt-head h2{font-size:26px!important;margin:0 0 4px!important}
+#noticesHub .nt-head p{margin:0;color:var(--muted);font-size:13.5px}
+#noticesHub .nt-head button{display:inline-flex;align-items:center;gap:7px}
+#noticesHub .nt-head button svg{width:16px;height:16px}
+#noticesHub .nt-kpis{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:14px!important;margin:0!important}
+#noticesHub .nt-kpi{width:100%;text-align:left;cursor:pointer;color:var(--ink)!important;min-height:0!important;height:auto!important;justify-content:flex-start!important;font-weight:400}
+#noticesHub .nt-kpi:hover{border-color:color-mix(in srgb,var(--blue) 50%,var(--line))}
+#noticesHub .nt-kpi.is-active{border-color:var(--blue);box-shadow:inset 0 0 0 1px var(--blue)}
+#noticesHub .nt-kpi.is-red strong{color:var(--red)}
+#noticesHub .nt-toolbar{display:grid!important;gap:12px;margin:0!important;padding:14px 16px!important;border-radius:16px!important}
+#noticesHub .nt-filter-row{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;justify-content:space-between}
+#noticesHub .nt-filters{display:flex!important;gap:10px!important;align-items:flex-end;flex:1 1 380px;justify-content:flex-end;margin:0!important;grid-template-columns:none!important}
+#noticesHub .nt-filters label{display:grid;gap:4px;margin:0!important;font-size:12px;color:var(--muted);min-width:180px}
+#noticesHub .nt-filters label:has(#noticeAreaFilter),#noticesHub .nt-filters label:has(#noticeStateFilter){display:none!important}
+#noticesHub .nt-filters label:has(#noticeQueryInput){flex:1 1 260px;max-width:380px}
+#noticesHub .nt-filters input,#noticesHub .nt-filters select{min-height:38px}
+#noticesHub .nt-filters #noticeQueryInput{border-radius:99px!important;padding-left:16px}
+#noticesHub .nt-areas button{font-weight:600}
+#noticesHub .notices-list-panel{margin:0!important;padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important}
+#noticesHub .notices-workbench{display:grid!important;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr)!important;gap:16px!important;align-items:start}
+#noticesHub .notices-master{display:grid!important;gap:8px;max-height:640px;overflow:auto;padding:4px!important;border:0!important}
+#noticesHub .nt-row{position:relative;display:grid!important;grid-template-columns:38px minmax(0,1fr) auto!important;grid-template-areas:"icon title amount" "icon meta state"!important;gap:3px 12px!important;align-items:center;width:100%;padding:12px 14px 12px 16px!important;border-radius:14px!important;border:1px solid var(--line)!important;background:var(--paper)!important;color:var(--ink)!important;text-align:left;min-height:0!important;overflow:hidden}
+#noticesHub .nt-row::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:#5b7fd6}
+#noticesHub .nt-row.priority-high::before{background:var(--red)}
+#noticesHub .nt-row.priority-medium::before{background:var(--orange)}
+#noticesHub .nt-row.priority-low::before{background:var(--green)}
+#noticesHub .nt-row.is-selected{border-color:var(--blue)!important;box-shadow:inset 0 0 0 1px var(--blue);background:color-mix(in srgb,var(--blue) 6%,var(--paper))!important}
+#noticesHub .nt-row-icon{grid-area:icon;display:grid;place-items:center;width:38px;height:38px;border-radius:11px;background:var(--surface-soft);font-size:18px}
+#noticesHub .nt-row .notice-list-title{grid-area:title;font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#noticesHub .nt-row>strong{grid-area:amount;font-size:13.5px;text-align:right}
+#noticesHub .nt-row>small{grid-area:meta;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#noticesHub .nt-row .notice-state-tag{grid-area:state;justify-self:end;font-size:11px!important;padding:2px 9px!important;border-radius:99px!important}
+#noticesHub .notices-detail{position:sticky;top:12px}
+#noticesHub .notices-detail .notice-card{border-radius:18px!important;padding:20px!important}
+#noticesHub .notices-sources-explainer{order:9;margin:0!important;border-radius:16px!important}
+@media (max-width:1100px){#noticesHub .nt-kpis{grid-template-columns:repeat(2,minmax(0,1fr))!important}#noticesHub .notices-workbench{grid-template-columns:1fr!important}#noticesHub .notices-detail{position:static}}
+@media (max-width:560px){#noticesHub .nt-kpis{grid-template-columns:1fr!important}}
+#dataHub #unifiedData{display:grid!important;grid-template-columns:230px minmax(0,1fr)!important;grid-template-areas:"head head" "tiles tiles" "nav content"!important;gap:16px!important;align-items:start}
+#dataHub .dt-head{grid-area:head}
+#dataHub .dt-head h2{margin:0 0 4px;font-size:26px}
+#dataHub .dt-head p{margin:0;color:var(--muted);font-size:13.5px}
+#dataHub .dt-tiles{grid-area:tiles;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+#dataHub .dt-tile{width:100%;text-align:left;cursor:pointer;color:var(--ink)!important;min-height:0!important;height:auto!important;justify-content:flex-start!important;font-weight:400}
+#dataHub .dt-tile:hover{border-color:color-mix(in srgb,var(--blue) 50%,var(--line))}
+#dataHub .dt-tile.is-active{border-color:var(--blue);box-shadow:inset 0 0 0 1px var(--blue)}
+#dataHub #unifiedData>.u-task-nav{grid-area:nav;position:sticky;top:12px;margin:0!important;padding:14px!important;border-radius:18px!important}
+#dataHub #unifiedData>.u-task-nav>h2{display:none}
+#dataHub #unifiedData>.u-task-nav nav{display:grid;gap:4px}
+#dataHub #unifiedData>.u-task-nav nav button{display:grid!important;grid-template-columns:32px minmax(0,1fr) auto;gap:10px;align-items:center;min-height:46px!important;padding:6px 10px!important;border-radius:12px!important;border:0!important;background:transparent!important;color:var(--ink)!important;text-align:left;font-weight:600}
+#dataHub #unifiedData>.u-task-nav nav button svg{width:32px;height:32px;padding:7px;border-radius:10px;background:var(--surface-soft);color:var(--muted)}
+#dataHub #unifiedData>.u-task-nav nav button:hover{background:var(--surface-soft)!important}
+#dataHub #unifiedData>.u-task-nav nav button.active{background:color-mix(in srgb,var(--blue) 10%,transparent)!important}
+#dataHub #unifiedData>.u-task-nav nav button.active svg{background:var(--blue);color:#fff}
+#dataHub #unifiedData>.u-task-nav nav button b{display:inline-grid;place-items:center;min-width:24px;height:22px;padding:0 7px;border-radius:99px;background:color-mix(in srgb,var(--orange) 16%,transparent);color:var(--orange);font-size:11.5px}
+#dataHub #unifiedData>.u-task-content{grid-area:content;min-width:0}
+#dataHub #inboxHub .data-inbox-heading h2{font-size:19px!important}
+#dataHub #inboxHub .data-inbox-filterbar{display:flex!important;gap:6px!important;flex-wrap:wrap;border:0!important;padding:0!important;margin:10px 0 14px!important}
+#dataHub #inboxHub .data-filter-chip{display:inline-flex!important;align-items:center;gap:7px;min-height:34px!important;padding:6px 14px!important;border-radius:99px!important;border:1px solid var(--line)!important;background:transparent!important;color:var(--muted)!important;font-size:13px;font-weight:600}
+#dataHub #inboxHub .data-filter-chip span{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:99px;background:var(--surface-soft);font-size:11px}
+#dataHub #inboxHub .data-filter-chip.active{background:var(--blue)!important;border-color:var(--blue)!important;color:#fff!important}
+#dataHub #inboxHub .data-filter-chip.active span{background:rgba(255,255,255,.22);color:#fff}
+#dataHub #inboxHub .data-inbox-layout{gap:16px!important}
+#dataHub #inboxHub .data-inbox-toolbar{display:flex!important;flex-wrap:wrap;gap:10px!important;align-items:flex-end;margin-bottom:12px!important}
+#dataHub #inboxHub .data-inbox-toolbar #dataInboxSearch{border-radius:99px!important;min-height:38px}
+#dataHub #inboxHub #dataInboxTableBody{display:grid!important;gap:8px!important;max-height:640px;overflow:auto;padding:2px}
+#dataHub #inboxHub .data-inbox-tr{display:grid!important;grid-template-columns:minmax(0,1fr) auto auto!important;grid-template-areas:"desc value state" "desc actions actions"!important;gap:4px 12px!important;align-items:center;padding:12px 14px!important;border-radius:14px!important;border:1px solid var(--line)!important;background:var(--paper)!important;border-left:4px solid var(--orange)!important}
+#dataHub #inboxHub .data-inbox-tr[data-kind=duplicate]{border-left-color:var(--red)!important}
+#dataHub #inboxHub .data-inbox-tr[data-kind=uncategorized]{border-left-color:#5b7fd6!important}
+#dataHub #inboxHub .data-inbox-tr[data-kind=suspicious]{border-left-color:#9b6bd3!important}
+#dataHub #inboxHub .data-inbox-tr.is-selected{border-color:var(--blue)!important;box-shadow:inset 0 0 0 1px var(--blue);background:color-mix(in srgb,var(--blue) 6%,var(--paper))!important}
+#dataHub #inboxHub .data-inbox-tr>.data-inbox-select,#dataHub #inboxHub .data-inbox-tr>.data-inbox-date,#dataHub #inboxHub .data-inbox-tr>.data-inbox-source,#dataHub #inboxHub .data-inbox-tr>.data-inbox-suggestion{display:none!important}
+#dataHub #inboxHub .data-inbox-tr>.data-inbox-description{grid-area:desc;display:grid!important;gap:2px;min-width:0}
+#dataHub #inboxHub .data-inbox-tr .u-record-button{font-size:13.5px!important;font-weight:600!important;text-align:left;padding:0!important;min-height:0!important;border:0!important;background:transparent!important;color:var(--ink)!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#dataHub #inboxHub .data-inbox-tr .data-inbox-description>small,#dataHub #inboxHub .data-inbox-tr .data-inbox-inline-source{display:none!important}
+#dataHub #inboxHub .data-inbox-tr .u-inbox-summary{font-size:12px;color:var(--muted)}
+#dataHub #inboxHub .data-inbox-tr .data-inbox-inline-suggestion{justify-self:start;font-size:11px;padding:2px 8px;border-radius:99px;background:var(--surface-soft);color:var(--muted)}
+#dataHub #inboxHub .data-inbox-tr>.data-inbox-cell:nth-child(4){grid-area:value;text-align:right}
+#dataHub #inboxHub .data-inbox-tr>.data-inbox-cell:nth-child(6){grid-area:state;text-align:right}
+#dataHub #inboxHub .data-inbox-tr>.data-inbox-actions{grid-area:actions;display:flex!important;justify-content:flex-end;gap:6px;align-items:center}
+#dataHub #inboxHub .data-inbox-tr .data-state{font-size:11px!important;padding:2px 9px!important;border-radius:99px!important}
+#dataHub #inboxHub .data-inbox-tr .data-icon-button{min-height:30px!important;padding:0 12px!important;font-size:12px}
+#dataHub #inboxHub .u-inbox-inspector{position:sticky;top:12px;border-radius:18px!important;padding:20px!important}
+#dataHub #inboxHub .u-inbox-inspector .u-inbox-amount{font-size:28px!important;font-weight:700;margin:6px 0 12px!important}
+#dataHub #inboxHub .u-inbox-inspector .u-inbox-meta{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:12px;border-radius:12px;background:var(--surface-soft)}
+#dataHub #inboxHub .u-inbox-inspector .u-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+@media (max-width:1000px){#dataHub #unifiedData{grid-template-columns:1fr!important;grid-template-areas:"head" "tiles" "nav" "content"!important}#dataHub .dt-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}#dataHub #unifiedData>.u-task-nav{position:static}#dataHub #unifiedData>.u-task-nav nav{grid-template-columns:repeat(2,minmax(0,1fr))}}
+#dataHub #inboxHub .data-inbox-toolbar{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(150px,auto) minmax(150px,auto)!important;gap:10px!important;align-items:end!important}
+#dataHub #inboxHub .data-inbox-toolbar>label{display:grid!important;gap:4px;margin:0!important;font-size:12px;color:var(--muted);min-width:0;width:auto!important}
+#dataHub #inboxHub .data-inbox-toolbar>label.data-search-field{position:relative}
+#dataHub #inboxHub .data-inbox-toolbar input,#dataHub #inboxHub .data-inbox-toolbar select{width:100%!important;min-height:38px}
+@media (max-width:1250px){#dataHub #inboxHub .data-inbox-toolbar{grid-template-columns:1fr 1fr!important}#dataHub #inboxHub .data-inbox-toolbar>label.data-search-field{grid-column:1/-1}}
+#settings.u-settings #unifiedSettings.u-settings-workspace{display:grid!important;grid-template-columns:290px minmax(0,1fr)!important;gap:20px!important;align-items:start}
+#settings.u-settings #unifiedSettings.u-settings-workspace>.u-task-nav{position:sticky;top:12px;margin:0!important;padding:16px!important;border-radius:18px!important;background:var(--paper)!important;border:1px solid var(--line)!important;height:auto!important}
+#settings.u-settings #unifiedSettings.u-settings-workspace>.u-task-nav>h2{margin:4px 6px 14px!important;font-size:22px!important}
+#settings.u-settings #unifiedSettings.u-settings-workspace .u-settings-jumps{display:grid!important;gap:4px}
+#settings.u-settings #unifiedSettings.u-settings-workspace .st-nav{display:grid!important;grid-template-columns:36px minmax(0,1fr);gap:12px;align-items:center;width:100%;min-height:58px!important;padding:8px 10px!important;border-radius:12px!important;border:0!important;background:transparent!important;color:var(--ink)!important;text-align:left;justify-content:stretch!important}
+#settings.u-settings #unifiedSettings.u-settings-workspace .st-nav svg{width:36px;height:36px;padding:8px;border-radius:11px;background:var(--surface-soft);color:var(--muted)}
+#settings.u-settings #unifiedSettings.u-settings-workspace .st-nav span{display:grid;gap:2px;min-width:0}
+#settings.u-settings #unifiedSettings.u-settings-workspace .st-nav b{font-size:13.5px}
+#settings.u-settings #unifiedSettings.u-settings-workspace .st-nav small{font-size:11.5px;color:var(--muted);font-weight:500;line-height:1.3}
+#settings.u-settings #unifiedSettings.u-settings-workspace .st-nav:hover{background:var(--surface-soft)!important}
+#settings.u-settings #unifiedSettings.u-settings-workspace .st-nav[aria-current=page]{background:color-mix(in srgb,var(--blue) 10%,transparent)!important}
+#settings.u-settings #unifiedSettings.u-settings-workspace .st-nav[aria-current=page] svg{background:var(--blue);color:#fff}
+#settings.u-settings #unifiedSettings.u-settings-workspace .u-settings-content{min-width:0}
+#settings.u-settings #unifiedSettings.u-settings-workspace .settings-page-heading{margin:0 0 16px!important;padding:22px 24px!important;border-radius:18px;border:1px solid var(--line);background:linear-gradient(135deg,color-mix(in srgb,var(--blue) 12%,var(--paper)),var(--paper))}
+#settings.u-settings #unifiedSettings.u-settings-workspace .settings-page-heading h2{margin:4px 0 4px!important;font-size:24px!important}
+#settings.u-settings #unifiedSettings.u-settings-workspace .settings-page-heading p{margin:0!important;color:var(--muted)}
+#settings.u-settings #unifiedSettings.u-settings-workspace .settings-topic-cards{display:grid!important;gap:14px!important}
+#settings.u-settings #unifiedSettings.u-settings-workspace .settings-topic-cards>*{margin:0!important;padding:20px 22px!important;border-radius:18px!important;border:1px solid var(--line)!important;background:var(--paper)!important;box-shadow:none!important}
+#settings.u-settings #unifiedSettings.u-settings-workspace .settings-topic-cards>* h3{font-size:15.5px}
+#settings.u-settings #unifiedSettings.u-settings-workspace .settings-topic-cards>button{justify-self:start;padding:0 16px!important;min-height:40px!important}
+#settings.u-settings #unifiedSettings.u-settings-workspace .settings-presentation-rows{display:grid;gap:0}
+#settings.u-settings #unifiedSettings.u-settings-workspace .settings-presentation-rows .setting-row{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:14px 0;border-bottom:1px solid var(--line)}
+#settings.u-settings #unifiedSettings.u-settings-workspace .settings-presentation-rows .setting-row:last-child{border-bottom:0}
+#settings.u-settings #unifiedSettings.u-settings-workspace .settings-presentation-rows h3{margin:0 0 3px!important;font-size:14px!important}
+#settings.u-settings #unifiedSettings.u-settings-workspace .settings-presentation-rows p{margin:0!important;font-size:12.5px;color:var(--muted)}
+#settings.u-settings #unifiedSettings.u-settings-workspace .settings-segments{display:inline-flex;padding:3px;border-radius:12px;background:var(--surface-soft);gap:2px}
+#settings.u-settings #unifiedSettings.u-settings-workspace .settings-segments button{min-height:34px!important;padding:0 14px!important;border-radius:9px!important;border:0!important;background:transparent!important;color:var(--muted)!important;font-weight:600}
+#settings.u-settings #unifiedSettings.u-settings-workspace .settings-segments button[aria-pressed=true]{background:var(--paper)!important;color:var(--ink)!important;box-shadow:0 1px 4px rgba(0,0,0,.18)}
+#settings.u-settings #unifiedSettings.u-settings-workspace .u-actions{display:flex;gap:8px;flex-wrap:wrap}
+#settings #mobileSyncSettingsCard p{color:var(--muted);font-size:13px}
+@media (max-width:1000px){#settings.u-settings #unifiedSettings.u-settings-workspace{grid-template-columns:1fr!important}#settings.u-settings #unifiedSettings.u-settings-workspace>.u-task-nav{position:static}#settings.u-settings #unifiedSettings.u-settings-workspace .u-settings-jumps{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:560px){#settings.u-settings #unifiedSettings.u-settings-workspace .u-settings-jumps{grid-template-columns:1fr}#settings.u-settings #unifiedSettings.u-settings-workspace .settings-presentation-rows .setting-row{flex-direction:column;align-items:flex-start}}
+#settings.u-settings #unifiedSettings.u-settings-workspace .st-nav b{display:block!important;min-width:0!important;height:auto!important;padding:0!important;border-radius:0!important;background:transparent!important;color:var(--ink)!important;font-size:13.5px!important;text-align:left}
+#settings.u-settings #unifiedSettings.u-settings-workspace .st-nav>span{justify-items:start!important;text-align:left!important}
+#settings.u-settings #unifiedSettings.u-settings-workspace .st-nav>span>*{text-align:left!important;justify-self:start!important}
+#settings.u-settings #unifiedSettings.u-settings-workspace .settings-group-details>.settings-page-heading{padding:22px 24px!important;border-radius:18px!important;border:1px solid var(--line)!important;background:linear-gradient(135deg,color-mix(in srgb,var(--blue) 12%,var(--paper)),var(--paper))!important}
+body[data-current-view="transactions"] #transactions .movement-row-actions-expanded{display:flex!important;flex-wrap:nowrap!important;align-items:center!important;justify-content:flex-end!important;gap:4px!important;min-width:0!important}
+body[data-current-view="transactions"] #transactions .movement-more{position:static;margin:0;padding:0;border:0;background:transparent}
+body[data-current-view="transactions"] #transactions .movement-more>summary{list-style:none;cursor:pointer;display:inline-grid!important;place-items:center;width:32px;height:32px;padding:0!important;border-radius:9px;font-size:13px;letter-spacing:1px;color:var(--muted);user-select:none}
+body[data-current-view="transactions"] #transactions .movement-more>summary::-webkit-details-marker{display:none}
+body[data-current-view="transactions"] #transactions .movement-more[open]>summary{background:var(--surface-soft);color:var(--ink)}
+body[data-current-view="transactions"] #transactions .movement-more>.movement-inline-actions{display:none!important}
+body .movement-inline-actions.movement-menu-portal{position:fixed!important;z-index:400;display:grid!important;grid-template-columns:1fr!important;gap:2px!important;min-width:230px;max-width:280px;padding:6px!important;margin:0!important;border-radius:12px;border:1px solid var(--line);background:var(--paper);box-shadow:0 16px 38px rgba(10,25,35,.28);white-space:normal!important;flex:none!important}
+body .movement-inline-actions.movement-menu-portal :is(button,.link-button){display:flex!important;align-items:center;justify-content:flex-start!important;width:100%!important;max-width:none!important;min-height:36px!important;height:auto!important;padding:6px 12px!important;border:0!important;border-radius:8px!important;background:transparent!important;color:var(--ink)!important;font-size:13px!important;font-weight:500!important;text-align:left!important;text-decoration:none!important;white-space:nowrap!important;box-shadow:none!important}
+body .movement-inline-actions.movement-menu-portal :is(button,.link-button):is(:hover,:focus-visible){background:var(--surface-soft)!important}
+body .movement-inline-actions.movement-menu-portal .danger{margin-top:4px!important;border-top:1px solid var(--line)!important;border-radius:0 0 8px 8px!important;color:var(--red)!important}
