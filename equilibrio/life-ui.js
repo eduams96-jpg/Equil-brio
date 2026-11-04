@@ -13,8 +13,10 @@
       label +
       '</h2></div><div class="life-content"></div></div>';
     $("#mainContent").append(el);
+    // addPage pode mover .life-content para outra vista (ex.: Subscrições na Agenda).
+    const content = el.querySelector(".life-content");
     PremiumUI.addPage(area, id, label);
-    return el.querySelector(".life-content");
+    return content;
   }
   const subscriptions = page("subscriptionsHub", "Planeamento", "Subscrições"),
     quality = page("qualityHub", "Resumo", "Qualidade dos dados"),

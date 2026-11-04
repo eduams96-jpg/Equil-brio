@@ -19,5 +19,28 @@
   const income=months.reduce((n,m)=>n+F.cents(m.income),0)/100,expense=months.reduce((n,m)=>n+F.cents(m.expense),0)/100,saving=F.money(income-expense);
   return {year,period,account,start,end,asAt,accountName:selected?.name||'Todas as contas',income,expense,saving,rate:income>0?saving/income*100:null,months:months.map(m=>({...m,saving:F.money(m.income-m.expense)})),categories:[...categories.values()].sort((a,b)=>b.amount-a.amount||a.name.localeCompare(b.name,'pt')),accounts:[...accounts.values()],entries:entries.sort((a,b)=>(a.date===b.date?String(a.id).localeCompare(String(b.id)):a.date<b.date?1:-1))};
  }
- const api={analyse,ranges};root.ReportAnalysis=api;if(typeof module==='object')module.exports=api;
+ // Análises detalhadas sobre o mesmo resultado de analyse(): categorias com
+ // subcategorias, mês a mês, comparação com o mesmo período do ano anterior,
+ // onde gastas (descrições) e receitas. Não altera dados.
+ function detail(d,options={}){
+  const current=options.result||analyse(d,options),year=Number(current.year);let previous=null;
+  try{previous=analyse(d,{...options,year:String(year-1)});}catch{previous=null;}
+  const sum=(a,b)=>F.money(a+b),root=c=>F.categoryParts(c||'Outros')[0]||'Outros',sub=c=>F.categoryParts(c||'Outros').slice(1).join(' / ')||'(sem subcategoria)';
+  const expense=current.entries.filter(t=>t.entryKind==='expense'),income=current.entries.filter(t=>t.entryKind==='income'),prevExpense=(previous?.entries||[]).filter(t=>t.entryKind==='expense');
+  const months=current.months.map(m=>m.month),monthIndex=new Map(months.map((m,i)=>[m,i])),elapsed=Math.max(1,current.months.filter(m=>m.month<=F.today().slice(0,7)).length);
+  const prevByRoot=new Map(),prevBySub=new Map();for(const t of prevExpense){prevByRoot.set(root(t.category),sum(prevByRoot.get(root(t.category))||0,t.amount));const k=root(t.category)+'\u0000'+sub(t.category);prevBySub.set(k,sum(prevBySub.get(k)||0,t.amount));}
+  const tree=new Map();
+  for(const t of expense){const r=root(t.category),s=sub(t.category);if(!tree.has(r))tree.set(r,{name:r,amount:0,count:0,months:months.map(()=>0),children:new Map()});const node=tree.get(r);node.amount=sum(node.amount,t.amount);node.count++;const i=monthIndex.get(t.date.slice(0,7));if(i!==undefined)node.months[i]=sum(node.months[i],t.amount);if(!node.children.has(s))node.children.set(s,{name:s,path:s==='(sem subcategoria)'?r:r+' / '+s,amount:0,count:0});const child=node.children.get(s);child.amount=sum(child.amount,t.amount);child.count++;}
+  const total=current.expense||0,share=v=>total>0?v/total*100:0;
+  const categories=[...tree.values()].map(n=>({name:n.name,amount:n.amount,count:n.count,share:share(n.amount),average:F.money(n.amount/elapsed),months:n.months,previous:previous?(prevByRoot.get(n.name)||0):null,children:[...n.children.values()].map(c=>({...c,share:n.amount?c.amount/n.amount*100:0,previous:previous?(prevBySub.get(n.name+'\u0000'+c.name)||0):null})).sort((a,b)=>b.amount-a.amount||a.name.localeCompare(b.name,'pt'))})).sort((a,b)=>b.amount-a.amount||a.name.localeCompare(b.name,'pt'));
+  const compareNames=new Set([...prevByRoot.keys(),...tree.keys()]),comparison=previous?[...compareNames].map(name=>{const now=tree.get(name)?.amount||0,before=prevByRoot.get(name)||0;return{name,current:now,previous:before,delta:F.money(now-before),change:before>0?(now-before)/before*100:null};}).sort((a,b)=>Math.abs(b.delta)-Math.abs(a.delta)||a.name.localeCompare(b.name,'pt')):[];
+  const key=s=>String(s||'Sem descrição').toLocaleLowerCase('pt-PT').replace(/\d{2,}/g,'').replace(/[^\p{L}\s]/gu,' ').replace(/\s+/g,' ').trim()||'sem descrição',places=new Map();
+  for(const t of expense){const k=key(t.description);if(!places.has(k))places.set(k,{name:t.description||'Sem descrição',amount:0,ids:new Set(),last:'',categories:new Map()});const p=places.get(k);p.amount=sum(p.amount,t.amount);p.ids.add(String(t.id));p.count=p.ids.size;if(t.date>p.last)p.last=t.date;p.categories.set(root(t.category),(p.categories.get(root(t.category))||0)+1);}
+  const merchants=[...places.values()].map(p=>({name:p.name,amount:p.amount,count:p.count,average:F.money(p.amount/p.count),last:p.last,share:share(p.amount),category:[...p.categories].sort((a,b)=>b[1]-a[1])[0]?.[0]||''})).sort((a,b)=>b.amount-a.amount||b.count-a.count);
+  const incomeMap=new Map();for(const t of income){const name=F.categoryPath(t.category||'Receita');if(!incomeMap.has(name))incomeMap.set(name,{name,amount:0,count:0,months:months.map(()=>0)});const row=incomeMap.get(name);row.amount=sum(row.amount,t.amount);row.count++;const i=monthIndex.get(t.date.slice(0,7));if(i!==undefined)row.months[i]=sum(row.months[i],t.amount);}
+  const incomeRows=[...incomeMap.values()].map(r=>({...r,share:current.income>0?r.amount/current.income*100:0})).sort((a,b)=>b.amount-a.amount);
+  const biggest=expense.slice().sort((a,b)=>b.amount-a.amount).slice(0,10);
+  return{months,elapsed,categories,comparison,previous:previous?{year:previous.year,income:previous.income,expense:previous.expense,saving:previous.saving,monthsWithData:previous.months.filter(x=>x.income||x.expense).length,monthsCompared:previous.months.length}:null,merchants,income:incomeRows,biggest,averageExpense:F.money((current.expense||0)/elapsed),averageIncome:F.money((current.income||0)/elapsed)};
+ }
+ const api={analyse,detail,ranges};root.ReportAnalysis=api;if(typeof module==='object')module.exports=api;
 })(globalThis);

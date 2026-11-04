@@ -225,7 +225,8 @@
   }
   
   function render() {
-    $("#lifeOverview").hidden = true;
+    const lifeOverview = $("#lifeOverview");
+    if (lifeOverview) lifeOverview.hidden = true;
     const all = PlanningFinance.reviewInbox(data, month).active,
       indexedAttention = all.map((item, index) => ({ item, index })),
       missingReceipts = indexedAttention.filter(({ item }) => item.title === "Comprovativo em falta"),
@@ -1213,11 +1214,39 @@
     host.innerHTML =
       '<div class="category-directory-intro"><p>Organiza por categoria. Abre apenas o grupo que queres alterar.</p>' +
       button("+ Adicionar categoria", "category-create", "", "primary") +
+      '<button type="button" class="secondary" data-category-cleanup>Arrumar repetidas</button>' +
       '</div><div class="category-directory category-directory-grouped">' +
       families +
       '</div><details class="category-tools"><summary>Regras e operações avançadas</summary></details>';
     if (advanced) host.querySelector(".category-tools").append(advanced);
   }
+  function categoryCleanupForm() {
+    const suggestions = C.categoryCleanupSuggestions(data), names = C.categoryList(data).map((c) => c.name);
+    const row = (p, i) => `<label class="cleanup-row is-${p.strength}"><input type="checkbox" data-cleanup="${i}" ${p.strength === "strong" ? "checked" : ""}><span class="cleanup-from"><b>${esc(p.from)}</b><small>${p.fromUses} uso${p.fromUses === 1 ? "" : "s"}</small></span><span class="cleanup-arrow" aria-hidden="true">→</span><span class="cleanup-to"><input type="text" list="cleanupCategoryNames" value="${esc(p.to)}" data-cleanup-to="${i}" aria-label="Destino de ${esc(p.from)}"><small>${esc(p.reason)}</small></span></label>`;
+    const manual = (i) => `<div class="cleanup-row is-manual" data-cleanup-manual="${i}"><select data-manual-from aria-label="Categoria a mover"><option value="">Categoria a mover…</option>${names.map((n) => `<option>${esc(n)}</option>`).join("")}</select><span class="cleanup-arrow" aria-hidden="true">→</span><input type="text" list="cleanupCategoryNames" data-manual-to placeholder="Novo caminho, ex.: Alimentação / Mercearias" aria-label="Destino"><button type="button" class="secondary" data-manual-remove aria-label="Remover linha">×</button></div>`;
+    const strong = suggestions.filter((p) => p.strength === "strong").length;
+    form("Arrumar categorias",
+      `<div class="category-cleanup"><p>Junta categorias repetidas. Os movimentos, regras e orçamentos passam para o destino, com as subcategorias. Nada é apagado e o destino pode ser uma categoria nova.</p>` +
+      `<datalist id="cleanupCategoryNames">${names.map((n) => `<option value="${esc(n)}">`).join("")}</datalist>` +
+      (suggestions.length ? `<h3>Sugestões <small>${strong} prováveis${suggestions.length - strong ? " · " + (suggestions.length - strong) + " a confirmar (desmarcadas)" : ""}</small></h3><div class="cleanup-list">${suggestions.map(row).join("")}</div>` : `<p class="cleanup-none">Não encontrei repetições óbvias.</p>`) +
+      `<h3>Mover ou renomear à mão</h3><p class="muted">Escolhe uma categoria e escreve o caminho novo. Move também as subcategorias; se o destino já existir, junta-as.</p><div class="cleanup-list" id="cleanupManualRows">${manual(0)}</div><button type="button" class="secondary" id="cleanupAddManual">+ Outra mudança</button><p class="cleanup-summary" id="cleanupSummary" role="status"></p></div>`,
+      () => {
+        const host = document.getElementById("modalContent"), moves = [];
+        host.querySelectorAll("[data-cleanup]:checked").forEach((box) => { const i = Number(box.dataset.cleanup), to = host.querySelector(`[data-cleanup-to="${i}"]`).value.trim(); if (to) moves.push({ from: suggestions[i].from, to }); });
+        host.querySelectorAll("[data-cleanup-manual]").forEach((r) => { const from = r.querySelector("[data-manual-from]").value, to = r.querySelector("[data-manual-to]").value.trim(); if (from && to) moves.push({ from, to }); });
+        if (!moves.length) throw Error("Escolhe pelo menos uma alteração.");
+        return commit(() => { const n = C.cleanupCategories(data, moves); return n; }, moves.length + " alteração(ões) aplicada(s) às categorias.");
+      },
+      "Dica: faz primeiro uma cópia de segurança em Definições → Backup. Meses fechados têm de ser reabertos antes.", "Aplicar");
+    const host = document.getElementById("modalContent");
+    let n = 1;
+    const summary = () => { const checked = host.querySelectorAll("[data-cleanup]:checked").length, manualCount = [...host.querySelectorAll("[data-cleanup-manual]")].filter((r) => r.querySelector("[data-manual-from]").value && r.querySelector("[data-manual-to]").value.trim()).length; host.querySelector("#cleanupSummary").textContent = checked + manualCount ? `Vais aplicar ${checked + manualCount} alteração(ões).` : "Nenhuma alteração escolhida."; };
+    host.addEventListener("input", summary); host.addEventListener("change", summary);
+    host.querySelector("#cleanupAddManual").onclick = () => { host.querySelector("#cleanupManualRows").insertAdjacentHTML("beforeend", manual(n++)); };
+    host.addEventListener("click", (e) => { const b = e.target.closest("[data-manual-remove]"); if (b) { b.closest("[data-cleanup-manual]").remove(); summary(); } });
+    summary();
+  }
+  document.addEventListener("click", (e) => { if (e.target.closest("[data-category-cleanup]")) categoryCleanupForm(); });
   const previous = PremiumUI.render;
   PremiumUI.render = () => {
     previous();

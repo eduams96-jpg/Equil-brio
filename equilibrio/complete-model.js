@@ -555,6 +555,83 @@
     );
   }
 
+  // Arrumar categorias: sugere pares repetidos (plural, acentos, maiúsculas,
+  // a mesma subcategoria debaixo de categorias equivalentes) e move ramos
+  // inteiros. Nunca apaga movimentos; só troca a categoria nas referências.
+  function categoryKey(part) {
+    let s = String(part || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLocaleLowerCase("pt-PT").replace(/[^a-z0-9]+/g, " ").trim();
+    s = s.split(" ").map((w) => (w.length > 4 && /oes$/.test(w) ? w.slice(0, -3) + "ao" : w.length > 4 && /aes$/.test(w) ? w.slice(0, -3) + "ao" : w.length > 4 && /res$/.test(w) ? w.slice(0, -2) : w.length > 3 && /s$/.test(w) ? w.slice(0, -1) : w)).join(" ");
+    return s;
+  }
+  function categoryUsage(d) {
+    const own = new Map();
+    for (const ref of categoryReferences(d)) {
+      const name = F.categoryPath(ref.row[ref.field] || "");
+      if (name) own.set(name, (own.get(name) || 0) + 1);
+    }
+    return own;
+  }
+  function categoryCleanupSuggestions(d) {
+    const list = categoryList(d).filter((c) => !c.archived), own = categoryUsage(d);
+    const subtree = (name) => [...own].filter(([n]) => n === name || n.startsWith(name + " / ")).reduce((s, [, v]) => s + v, 0);
+    const info = list.map((c) => { const parts = F.categoryParts(c.name); return { name: c.name, parts, keys: parts.map(categoryKey), uses: subtree(c.name), own: own.get(c.name) || 0 }; });
+    const pairs = new Map();
+    const add = (a, b, strength, reason) => {
+      if (a.name === b.name || a.name.startsWith(b.name + " / ") || b.name.startsWith(a.name + " / ")) return;
+      // Destino: o mais usado; em empate, o caminho mais completo.
+      const [from, to] = a.uses > b.uses || (a.uses === b.uses && (a.parts.length > b.parts.length || (a.parts.length === b.parts.length && a.name.localeCompare(b.name, "pt") < 0))) ? [b, a] : [a, b];
+      const key = from.name + "\u0000" + to.name, old = pairs.get(key);
+      if (!old || (old.strength === "possible" && strength === "strong")) pairs.set(key, { from: from.name, to: to.name, fromUses: from.uses, toUses: to.uses, strength, reason });
+    };
+    for (let i = 0; i < info.length; i++)
+      for (let j = i + 1; j < info.length; j++) {
+        const a = info[i], b = info[j], la = a.keys.length, lb = b.keys.length;
+        const sameParent = la === lb && a.keys.slice(0, -1).join("/") === b.keys.slice(0, -1).join("/") && a.parts.slice(0, -1).join("/") === b.parts.slice(0, -1).join("/");
+        if (sameParent && a.keys[la - 1] === b.keys[lb - 1]) add(a, b, "strong", "Mesmo nome com diferenças de plural, acentos ou maiúsculas");
+        else if (la >= 2 && lb >= 2 && a.keys.slice(-2).join("/") === b.keys.slice(-2).join("/")) add(a, b, "strong", "A mesma subcategoria em dois sítios");
+        else if (la >= 2 && lb >= 2 && a.keys[0] === b.keys[0] && a.keys[la - 1] === b.keys[lb - 1] && Math.abs(la - lb) === 1) add(a, b, "strong", "Subcategoria repetida dentro de «" + a.parts[0] + "»");
+        else if (la >= 2 && lb >= 2 && a.keys[0] === b.keys[0] && a.keys[la - 1] === b.keys[lb - 1]) add(a, b, "possible", "Mesmo nome em ramos diferentes de «" + a.parts[0] + "» — confirma se é o mesmo");
+      }
+    // Um ramo mais curto já coberto por um par do ramo pai não precisa de aparecer.
+    const all = [...pairs.values()];
+    const covered = (p) => all.some((q) => q !== p && p.from.startsWith(q.from + " / ") && p.to === q.to + p.from.slice(q.from.length));
+    return all.filter((p) => !covered(p)).sort((a, b) => (a.strength === b.strength ? 0 : a.strength === "strong" ? -1 : 1) || a.from.localeCompare(b.from, "pt"));
+  }
+  function moveCategoryTree(d, from, to) {
+    from = F.categoryPath(from || ""); to = F.categoryPath(to || "");
+    if (!from || !to || from === to) throw Error("Indica duas categorias diferentes.");
+    if (to.startsWith(from + " / ")) throw Error("Não podes mover uma categoria para dentro dela própria.");
+    const names = categoryList(d).map((c) => c.name).filter((n) => n === from || n.startsWith(from + " / ")).sort((a, b) => b.length - a.length);
+    if (!names.length) throw Error("Categoria inexistente: " + from);
+    let moved = 0;
+    for (const name of names) {
+      const target = to + name.slice(from.length);
+      if (F.categoryParts(target).length > 4 || target.length > 120) throw Error("«" + target + "» ultrapassaria quatro níveis ou 120 caracteres.");
+      mergeCategory(d, name, target);
+      d.categoryCatalog = (d.categoryCatalog || []).filter((c) => !(c.deleted && c.name === target));
+      // Marca a origem como substituída para que as categorias de base não voltem a aparecer.
+      let entry = d.categoryCatalog.find((c) => c.name === target);
+      if (!entry) { entry = { id: F.id(), name: target }; d.categoryCatalog.push(entry); }
+      entry.replaces = [...new Set([...(entry.replaces || []), name])];
+      moved++;
+    }
+    return moved;
+  }
+  function cleanupCategories(d, moves) {
+    if (!Array.isArray(moves) || !moves.length) throw Error("Escolhe pelo menos uma alteração.");
+    const copy = structuredClone(d);
+    let done = 0;
+    for (const m of moves) {
+      const from = F.categoryPath(m.from || ""), to = F.categoryPath(m.to || "");
+      if (!from || from === to) continue;
+      if (!categoryList(copy).some((c) => c.name === from)) continue; // já foi movida com o ramo pai
+      done += moveCategoryTree(copy, from, to);
+    }
+    F.normalize(copy);
+    Object.assign(d, copy);
+    return done;
+  }
+
   function deleteCategory(d, name, replacement = "") {
     name = String(name || "").trim();
     if (!name || !categoryList(d).some((c) => c.name === name)) throw Error("Categoria inexistente.");
@@ -802,6 +879,9 @@
     payCard,
     annual,
     rulesPreview,
+    categoryCleanupSuggestions,
+    cleanupCategories,
+    moveCategoryTree,
     mergeCategory,
     categoryList,
     saveCategory,
