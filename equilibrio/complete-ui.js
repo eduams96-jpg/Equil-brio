@@ -139,21 +139,23 @@
       .forEach((el, i) => (el.value = filters[keys[i]] || ""));
     renderTransactions();
   }
-  function render() {
-    $("#savedViewsList").innerHTML = data.savedViews
-      .map(
-        (v) =>
-          btn(esc(v.name), "load-view", v.id) +
-          btn("Apagar vista", "remove-view", v.id),
-      )
-      .join("");
+  // A conferência do extrato só é desenhada com a página de importações aberta:
+  // com centenas de linhas por conferir, recalcular as correspondências em cada
+  // gravação tornava todo o programa lento. Ao abrir a página volta a ser desenhada.
+  let statementDirty = true;
+  const statementVisible = () => view === "review" || (view === "dataHub" && window.UnifiedWorkspaceUI?.dataTask?.() === "imports");
+  function renderStatements() {
+    statementDirty = false;
+    const index = C.matchIndex(data), memo = new Map();
+    const matchesFor = (row) => { if (!memo.has(row)) memo.set(row, C.candidateMatches(data, row, index)); return memo.get(row); };
+    const safeFor = (row) => C.safeCandidate(data, row, index, matchesFor(row));
     statementHost.innerHTML =
       "<p>Prepara o CSV no assistente. Depois, confere cada linha sem lançar novamente movimentos já existentes.</p>" +
       btn("Conferir linhas preparadas", "prepare-statement") +
       data.statements
         .map((s) => {
           const pending = s.rows.filter((r) => r.status === "pending");
-          const safeCount = pending.filter((r) => C.safeCandidate(data, r.source)).length;
+          const safeCount = pending.filter((r) => safeFor(r.source)).length;
           return (
             '<details open class="statement-review"><summary>' +
             esc(s.name) +
@@ -174,9 +176,9 @@
             s.rows
               .map((r) => {
                 const t = r.source,
-                  matches = C.candidateMatches(data, t),
+                  matches = matchesFor(t),
                   top = matches[0],
-                  safe = C.safeCandidate(data, t),
+                  safe = safeFor(t),
                   candidate = top?.transaction,
                   candidateHtml =
                     r.status === "pending" && candidate
@@ -242,6 +244,42 @@
           );
         })
         .join("");
+    statementHost.insertAdjacentHTML(
+      "beforeend",
+      data.statements
+        .map((s) =>
+          btn("Reabrir e reverter: " + esc(s.name), "undo-statement", s.id),
+        )
+        .join(""),
+    );
+    const impact = new Map();
+    for (const t of data.pendingImports)
+      impact.set(
+        t.account,
+        F.money(
+          (impact.get(t.account) || 0) +
+            (t.type === "income" ? t.amount : -t.amount),
+        ),
+      );
+    statementHost.insertAdjacentHTML(
+      "afterbegin",
+      '<p class="amount">Efeito se todas as linhas preparadas forem novas: ' +
+        [...impact].map(([a, n]) => esc(a) + ": " + eur(n)).join(" · ") +
+        "</p>",
+    );
+  }
+  const baseRenderReview = window.renderReview;
+  if (typeof baseRenderReview === "function") window.renderReview = function (...args) { const result = baseRenderReview.apply(this, args); if (statementDirty) renderStatements(); return result; };
+  function render() {
+    $("#savedViewsList").innerHTML = data.savedViews
+      .map(
+        (v) =>
+          btn(esc(v.name), "load-view", v.id) +
+          btn("Apagar vista", "remove-view", v.id),
+      )
+      .join("");
+    if (statementVisible()) renderStatements();
+    else statementDirty = true;
     cardHost.innerHTML =
       '<p>A compra é despesa no cartão. O pagamento à conta do cartão é transferência, sem repetir a despesa. As prestações repartem o pagamento dessa compra.</p><div class="decision-actions">' +
       btn("Novo cartão", "new-card") +
@@ -1079,14 +1117,6 @@
         if (e.key === "Enter") bar.click();
       };
     });
-    statementHost.insertAdjacentHTML(
-      "beforeend",
-      data.statements
-        .map((s) =>
-          btn("Reabrir e reverter: " + esc(s.name), "undo-statement", s.id),
-        )
-        .join(""),
-    );
     // O antigo bloco “Vencimentos de cartões” foi retirado juntamente com a
     // funcionalidade específica de cartões/compras parceladas. Os cenários
     // ficam dedicados apenas a estimativas guardadas.
@@ -1109,21 +1139,6 @@
             ),
           )
           .join(""),
-    );
-    const impact = new Map();
-    for (const t of data.pendingImports)
-      impact.set(
-        t.account,
-        F.money(
-          (impact.get(t.account) || 0) +
-            (t.type === "income" ? t.amount : -t.amount),
-        ),
-      );
-    statementHost.insertAdjacentHTML(
-      "afterbegin",
-      '<p class="amount">Efeito se todas as linhas preparadas forem novas: ' +
-        [...impact].map(([a, n]) => esc(a) + ": " + eur(n)).join(" · ") +
-        "</p>",
     );
     for (const [id, kind] of [
       ["incomeValue", "income"],

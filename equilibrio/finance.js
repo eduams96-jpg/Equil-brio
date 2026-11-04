@@ -915,13 +915,24 @@
       balance: money(d.accounts.reduce((s, a) => s + a.balance, 0)),
     };
   }
-  function upcoming(d, month, options = {}) {
+  function upcomingUncached(d, month, options = {}) {
     const includeCompleted = options === true || Boolean(options?.includeCompleted);
     const overridesOf = (owner) => Array.isArray(owner?.occurrenceOverrides)
       ? owner.occurrenceOverrides.filter((o) => o && validDate(o.originalDate) && validDate(o.date || o.originalDate))
       : [];
     const overrideFor = (owner, originalDate) => overridesOf(owner).find((o) => o.originalDate === originalDate) || null;
     const legacyMatched = new Set();
+    // Índices dos movimentos (pela ordem original) para não percorrer o livro
+    // inteiro por cada regra e ocorrência.
+    const txPosition = new Map(), txByMonth = new Map(), txByRule = new Map(), txBySubscription = new Map();
+    const bucket = (map, key, t) => { let list = map.get(key); if (!list) map.set(key, list = []); list.push(t); };
+    d.transactions.forEach((t, i) => {
+      txPosition.set(t, i);
+      bucket(txByMonth, String(t.date || "").slice(0, 7), t);
+      if (t.recurringRuleId !== undefined && t.recurringRuleId !== null) bucket(txByRule, String(t.recurringRuleId), t);
+      bucket(txBySubscription, String(t.subscriptionId || ""), t);
+    });
+    const inMonths = (months) => { const lists = [...months].map((m) => txByMonth.get(m) || []); return lists.length === 1 ? lists[0] : lists.flat().sort((a, b) => txPosition.get(a) - txPosition.get(b)); };
     const cleanText = (value) => String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLocaleLowerCase("pt-PT").replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
     const identityTokens = (value) => cleanText(value).split(" ").filter(Boolean).map((token) => token.length > 4 && token.endsWith("s") ? token.slice(0, -1) : token);
     const strongIdentityMatch = (ownerName, tx) => {
@@ -942,8 +953,8 @@
       const description = cleanText(owner.description || owner.name);
       const type = kind === "subscription" ? "expense" : owner.type;
       const months = new Set([originalDate.slice(0, 7), scheduledDate.slice(0, 7)]);
-      const candidates = d.transactions
-        .filter((t) => !legacyMatched.has(String(t.id)) && months.has(String(t.date || "").slice(0, 7)))
+      const candidates = inMonths(months)
+        .filter((t) => !legacyMatched.has(String(t.id)))
         .filter((t) => t.type === type && !t.debtId && !t.pendingId)
         .filter((t) => !owner.account || !t.account || t.account === owner.account)
         .filter((t) => {
@@ -976,7 +987,7 @@
       return match;
     };
     const postedRecurring = (rule, originalDate, scheduledDate, expectedAmount, estimated) => {
-      const exact = d.transactions.find((t) =>
+      const exact = (rule.legacyId ? d.transactions : txByRule.get(String(rule.id)) || []).find((t) =>
         (String(t.recurringRuleId) === String(rule.id) && t.recurringDate === originalDate) ||
         (rule.legacyId && (t.id === rule.legacyId || t.recurringParent === rule.legacyId) && (t.recurringDate || t.date) === originalDate)
       );
@@ -984,7 +995,7 @@
     };
     const postedSubscription = (subscription, originalDate, scheduledDate, expectedAmount) => {
       const occurrenceMonth = String(originalDate || scheduledDate || "").slice(0, 7);
-      const exact = d.transactions.find((t) => {
+      const exact = (txBySubscription.get(String(subscription.id)) || []).find((t) => {
         if (String(t.subscriptionId || "") !== String(subscription.id)) return false;
         if (t.recurringDate === originalDate || t.scheduledDate === originalDate || t.originalDueDate === originalDate) return true;
         const linkedMonth = String(t.recurringDate || t.scheduledDate || t.originalDueDate || t.date || "").slice(0, 7);
@@ -996,7 +1007,7 @@
       let amount = rule.amount, estimated = rule.valueMode === "estimated";
       if (estimated && rule.estimateMode === "average") {
         const n = Math.max(1, Math.min(24, +rule.averageMonths || 3));
-        const actuals = d.transactions
+        const actuals = (txByRule.get(String(rule.id)) || [])
           .filter((t) => String(t.recurringRuleId) === String(rule.id) && t.date < originalDate && Number.isFinite(+t.amount))
           .sort((a, b) => b.date.localeCompare(a.date)).slice(0, n);
         if (actuals.length) amount = money(actuals.reduce((sum, t) => sum + +t.amount, 0) / actuals.length);
@@ -1090,7 +1101,7 @@
       });
     return [...recurring, ...subscriptions].sort((a,b)=>a.date.localeCompare(b.date) || String(a.description || "").localeCompare(String(b.description || ""), "pt-PT"));
   }
-  function expenseEntries(d, prefix = "") {
+  function expenseEntriesUncached(d, prefix = "") {
     const result = [];
     let byId;
     for (const t of d.transactions) {
@@ -1738,6 +1749,31 @@
     result.rule.historyLinkedFrom = from;
     return result;
   }
+  // Memória de um único desenho do ecrã. A interface abre-a antes de desenhar e
+  // fecha-a no fim; gravar dados limpa-a. Fora desse intervalo não há memória,
+  // por isso nunca devolve resultados de dados antigos. Devolve cópias rasas para
+  // quem ordena ou altera as linhas não estragar a memória.
+  let renderMemo = null, renderMemoDepth = 0;
+  const renderCache = {
+    begin() { if (!renderMemoDepth++) renderMemo = { d: null, map: new Map() }; },
+    end() { if (renderMemoDepth > 0 && !--renderMemoDepth) renderMemo = null; },
+    clear() { if (renderMemo) renderMemo = { d: null, map: new Map() }; },
+    active: () => Boolean(renderMemo),
+  };
+  function remember(d, key, compute) {
+    if (!renderMemo) return compute();
+    if (renderMemo.d !== d) renderMemo = { d, map: new Map() };
+    let rows = renderMemo.map.get(key);
+    if (!rows) { rows = compute(); renderMemo.map.set(key, rows); }
+    return rows.map((row) => ({ ...row }));
+  }
+  function upcoming(d, month, options = {}) {
+    const includeCompleted = options === true || Boolean(options?.includeCompleted);
+    return remember(d, "upcoming|" + month + "|" + includeCompleted, () => upcomingUncached(d, month, options));
+  }
+  function expenseEntries(d, prefix = "") {
+    return remember(d, "expense|" + prefix, () => expenseEntriesUncached(d, prefix));
+  }
   const api = {
     cents,
     money,
@@ -1767,6 +1803,7 @@
     update,
     totals,
     upcoming,
+    renderCache,
     expenseEntries,
     parseAmount,
     csv,

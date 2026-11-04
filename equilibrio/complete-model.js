@@ -34,21 +34,36 @@
     const aa = F.importNormalize(a), bb = F.importNormalize(b);
     return !!aa && aa === bb;
   };
-  function candidateMatches(d, row) {
+  // Índice dos movimentos por conta, tipo e valor, e dos já associados a extratos.
+  // Construído uma vez por conferência; candidateMatches aceita-o para não repetir
+  // o varrimento completo do livro por cada linha do extrato.
+  function matchKey(account, type, amount) {
+    const cents = F.cents(amount);
+    return Number.isFinite(cents) ? String(account) + "\u0000" + String(type) + "\u0000" + cents : null;
+  }
+  function matchIndex(d) {
     const used = new Set(
       (d.statements || []).flatMap((s) =>
         (s.rows || [])
           .filter((r) => r.transactionId && ["linked", "added"].includes(r.status))
           .map((r) => String(r.transactionId)),
       ),
-    );
+    ), byKey = new Map();
+    for (const t of d.transactions || []) {
+      const k = matchKey(t.account, t.type, t.amount);
+      if (k === null) continue;
+      if (!byKey.has(k)) byKey.set(k, []);
+      byKey.get(k).push(t);
+    }
+    return { used, byKey };
+  }
+  function candidateMatches(d, row, index = matchIndex(d)) {
+    const used = index.used, k = matchKey(row?.account, row?.type, row?.amount);
+    if (k === null) return [];
     const rowEntity = entityText(row), rowDescription = String(row?.description || "").trim();
-    return (d.transactions || [])
+    return (index.byKey.get(k) || [])
       .filter((t) =>
         !used.has(String(t.id)) &&
-        t.account === row.account &&
-        t.type === row.type &&
-        F.cents(t.amount) === F.cents(row.amount) &&
         dayDistance(t.date, row.date) <= 7,
       )
       .map((transaction) => {
@@ -87,8 +102,8 @@
       })
       .sort((a, b) => b.score - a.score || a.distance - b.distance || String(a.transaction.date).localeCompare(String(b.transaction.date)));
   }
-  function safeCandidate(d, row) {
-    const matches = candidateMatches(d, row), top = matches[0], next = matches[1];
+  function safeCandidate(d, row, index, matches = candidateMatches(d, row, index)) {
+    const top = matches[0], next = matches[1];
     if (!top || top.confidence !== "high") return null;
     if (next && next.score >= top.score - 9) return null;
     return top;
@@ -867,6 +882,7 @@
     },
     signature,
     candidateMatches,
+    matchIndex,
     safeCandidate,
     candidates,
     linkSafeMatches,

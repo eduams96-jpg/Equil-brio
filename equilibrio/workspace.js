@@ -249,7 +249,7 @@ function notice(text, error = false) {
   if (!error) notice.timer = setTimeout(() => (host.hidden = true), 4200);
 }
 function commit(fn, message = "Alterações guardadas.") {
-  window.equilibrioDataRevision = (window.equilibrioDataRevision || 0) + 1;
+  F.renderCache?.clear(); window.equilibrioDataRevision = (window.equilibrioDataRevision || 0) + 1;
   let durablySaved = false;
   const before = structuredClone(data);
   try {
@@ -507,6 +507,7 @@ function closeMenu() {
 function navigate(v, skipEnhancement = false) {
   const ownsCaches = !activeRenderTotalsCache;
   window.InterfaceUI?.beginRender();
+  F.renderCache?.begin();
   if (ownsCaches) {
     activeRenderTotalsCache=new Map();activeRenderSpentCache=new Map();
     activeRenderScheduleCache=new Map();activeRenderScheduleTextCache=new Map();
@@ -514,7 +515,7 @@ function navigate(v, skipEnhancement = false) {
   try { return navigateCore(v, skipEnhancement); }
   finally {
     if (ownsCaches) { activeRenderTotalsCache=null;activeRenderSpentCache=null;activeRenderScheduleCache=null;activeRenderScheduleTextCache=null; }
-    window.InterfaceUI?.endRender();
+    F.renderCache?.end(); window.InterfaceUI?.endRender();
   }
 }
 function navigateCore(v, skipEnhancement = false) {
@@ -1809,7 +1810,7 @@ function renderVisibleCore(v) {
 }
 function render() {
   if (window.equilibrioStartup?.awaitingChoice) { window.equilibrioStartup.deferredRenders++; return; }
-  window.InterfaceUI?.beginRender();
+  window.InterfaceUI?.beginRender(); F.renderCache?.begin();
   // Caches estritamente limitadas a um ciclo de render: evitam repetir cálculos
   // pesados sem poder ficar desatualizadas entre alterações aos dados.
   activeRenderTotalsCache = new Map();
@@ -1844,7 +1845,7 @@ function render() {
     activeRenderSpentCache = null;
     activeRenderScheduleCache = null;
     activeRenderScheduleTextCache = null;
-    window.InterfaceUI?.endRender();
+    F.renderCache?.end(); window.InterfaceUI?.endRender();
   }
 }
 function field(label, name, value = "", type = "text", attrs = "") {
