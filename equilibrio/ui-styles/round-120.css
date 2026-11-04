@@ -1311,3 +1311,91 @@ body .movement-inline-actions.movement-menu-portal :is(button,.link-button){disp
 body .movement-inline-actions.movement-menu-portal :is(button,.link-button):is(:hover,:focus-visible){background:var(--surface-soft)!important}
 /* @order 46849 */
 body .movement-inline-actions.movement-menu-portal .danger{margin-top:4px!important;border-top:1px solid var(--line)!important;border-radius:0 0 8px 8px!important;color:var(--red)!important}
+/* ---- review-fixes ---- */
+/* @order 46850 */
+#planner .planner-agenda-head #addTransaction3{background:var(--blue)!important;border-color:var(--blue)!important;color:#fff!important}
+/* @order 46851 */
+#planner .planner-agenda-head #addTransaction3:hover{filter:brightness(1.08)}
+/* @order 46852 */
+#settings.u-settings #unifiedSettings.u-settings-workspace .settings-reset-panel>details{background:transparent!important;border:0!important;padding:0!important;margin:0!important}
+/* @order 46853 */
+#settings.u-settings #unifiedSettings.u-settings-workspace .settings-reset-panel>details>summary{padding:0!important;min-height:0!important;font-size:15.5px;font-weight:700;cursor:pointer}
+/* @order 46854 */
+#settings.u-settings #unifiedSettings.u-settings-workspace .settings-reset-panel>details>summary small{display:block;margin-top:4px;font-size:12.5px;font-weight:500;color:var(--muted)}
+/* @order 46855 */
+#settings.u-settings #unifiedSettings.u-settings-workspace .settings-reset-panel>details[open]>summary{margin-bottom:14px!important}
+/* @order 46856 */
+#casaMeals .cm-norecipes{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin:0!important;padding:14px 18px!important;border-radius:14px!important;border:1px dashed var(--line)!important;background:transparent!important}
+/* @order 46857 */
+#casaMeals .cm-norecipes p{margin:0;font-size:13px;color:var(--muted)}
+/* @order 46858 */
+#casaMeals .cm-norecipes b{display:block;color:var(--ink);font-size:14px;margin-bottom:2px}
+/* @order 46859 */
+#casaMeals .cm-slot.is-empty>.cm-empty-text{font-size:12px;color:var(--muted)}
+/* ---- spacing ---- */
+/* @order 46860 */
+#weeklyHub.u-review>.u-review-navigation,#weeklyHub.u-review>.rv-hero,#weeklyHub.u-review>.u-review-extra:not([hidden]){margin-bottom:18px!important}
+/* @order 46861 */
+#weeklyHub.u-review>.u-head{margin-bottom:18px!important}
+/* @order 46862 */
+#dataHub.u-data #unifiedData.u-task-grid{row-gap:16px!important;column-gap:18px!important}
+/* @order 46863 */
+#dataHub #inboxHub .data-inbox-heading{padding-bottom:14px!important;margin-bottom:4px!important;align-items:center!important}
+/* @order 46864 */
+#dataHub #inboxHub .data-search-field>span{display:none!important}
+/* @order 46865 */
+#dataHub #inboxHub #dataInboxTableBody{padding:2px 8px 2px 2px!important}
+/* @order 46866 */
+#dataHub #inboxHub .u-inbox-inspector .u-inbox-meta{margin:0 0 14px!important}
+/* @order 46867 */
+#planner .ag-calendar{padding:8px!important;border-radius:16px!important}
+/* @order 46868 */
+#noticesHub .notices-detail .notice-card-actions{padding-top:16px!important;margin-top:14px!important;gap:8px!important}
+/* @order 46869 */
+body[data-current-view="transactions"] #transactions .movements-workbench .movement-table-shell{border:0!important;box-shadow:none!important;border-radius:0!important;background:transparent!important}
+/* @order 46870 */
+body[data-current-view="transactions"] #transactions .movements-workbench .movement-filter-sidebar{padding-left:14px!important}
+/* @order 46871 */
+#wealthMoneyHub .u-inventory-list .u-table-scroll{border:0!important;border-radius:0!important;box-shadow:none!important;border-top:1px solid var(--line)!important}
+/* @order 46872 */
+#wealthMoneyHub .u-inspector.desk-inspector{position:static!important;height:auto!important;max-height:none!important;overflow:visible!important}
+/* ---- casa-polish ---- */
+/* @order 46873 */
+body:is([data-current-view="casaPurchases"],[data-current-view="casaShopping"],[data-current-view="casaStock"],[data-current-view="casaRecipes"],[data-current-view="casaMeals"]) #addTransaction{display:none!important}
+/* @order 46874 */
+#casaStock .casa-filter-bar .casa-pantry-locations button.secondary[aria-pressed="true"]{background:var(--blue)!important;border-color:var(--blue)!important;color:#fff!important}
+/* @order 46875 */
+body #mainContent #casaGifts [data-gift-view].secondary{display:inline-flex!important;align-items:center;min-height:36px!important;padding:6px 16px!important;border-radius:99px!important;border:1px solid var(--line)!important;background:transparent!important;color:var(--muted)!important;font-weight:600}
+/* @order 46876 */
+body #mainContent #casaGifts [data-gift-view].secondary[aria-pressed="true"]{background:var(--blue)!important;border-color:var(--blue)!important;color:#fff!important}
+/* @order 46877 */
+#settings.u-settings #unifiedSettings.u-settings-workspace .st-nav>span{display:flex!important;flex-direction:column!important;align-items:stretch!important;gap:2px}
+/* @order 46878 */
+#settings.u-settings #unifiedSettings.u-settings-workspace .st-nav>span>b,#settings.u-settings #unifiedSettings.u-settings-workspace .st-nav>span>small{width:100%!important;text-align:left!important;margin:0!important}
+/* ---- movements-light ---- */
+/* @order 46879 */
+body:not([data-theme="dark"]) .movements-dashboard{--movement-panel:var(--paper);--movement-panel-2:var(--paper);--movement-line:var(--line);--movement-line-strong:#c9d6de}
+/* @order 46880 */
+body:not([data-theme="dark"]) .movements-dashboard :is(.movement-kpi,.movements-workbench){--ink:#172b36;--muted:#596c77;--paper:#fff}
+/* @order 46881 */
+body:not([data-theme="dark"]) .movements-dashboard .movement-kpi{background:#fff!important;border-color:var(--line)!important;box-shadow:0 1px 2px rgba(20,40,50,.04)!important}
+/* @order 46882 */
+body:not([data-theme="dark"]) .movements-dashboard .movements-workbench{background:#fff!important;border-color:var(--line)!important;box-shadow:0 1px 2px rgba(20,40,50,.04)!important}
+/* @order 46883 */
+body:not([data-theme="dark"]) .movements-dashboard .movement-filter-sidebar{background:#f7f9fa!important}
+/* @order 46884 */
+body:not([data-theme="dark"]) .movements-dashboard .movement-kpi-income .movement-kpi-icon{color:#147c5a;background:rgba(20,124,90,.12)}
+/* @order 46885 */
+body:not([data-theme="dark"]) .movements-dashboard .movement-kpi-expense .movement-kpi-icon{color:#b4414e;background:rgba(180,65,78,.11)}
+/* @order 46886 */
+body:not([data-theme="dark"]) .movements-dashboard .movement-kpi-balance .movement-kpi-icon{color:#2d5f73;background:rgba(45,95,115,.1)}
+/* @order 46887 */
+body:not([data-theme="dark"]) .movements-dashboard .movement-kpi-review .movement-kpi-icon{color:#127a83;background:rgba(18,122,131,.11)}
+/* @order 46888 */
+.movements-dashboard .movement-table-header>:last-child .movement-column-resizer{display:none!important}
+/* @order 46889 */
+body:not([data-theme="dark"]) .movements-dashboard :is(.movement-date-cell,.movement-table-header,.movement-table-header span){color:#596c77!important}
+/* @order 46890 */
+body:not([data-theme="dark"]) .movements-dashboard .movement-icon-action{color:#596c77!important;border-color:var(--line)!important;background:#fff!important}
+/* @order 46891 */
+body:not([data-theme="dark"]) .movements-dashboard .movement-icon-action:hover{color:var(--blue)!important;border-color:var(--blue)!important}

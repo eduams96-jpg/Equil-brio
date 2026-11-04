@@ -22216,3 +22216,45 @@ body .movement-inline-actions.movement-menu-portal{position:fixed!important;z-in
 body .movement-inline-actions.movement-menu-portal :is(button,.link-button){display:flex!important;align-items:center;justify-content:flex-start!important;width:100%!important;max-width:none!important;min-height:36px!important;height:auto!important;padding:6px 12px!important;border:0!important;border-radius:8px!important;background:transparent!important;color:var(--ink)!important;font-size:13px!important;font-weight:500!important;text-align:left!important;text-decoration:none!important;white-space:nowrap!important;box-shadow:none!important}
 body .movement-inline-actions.movement-menu-portal :is(button,.link-button):is(:hover,:focus-visible){background:var(--surface-soft)!important}
 body .movement-inline-actions.movement-menu-portal .danger{margin-top:4px!important;border-top:1px solid var(--line)!important;border-radius:0 0 8px 8px!important;color:var(--red)!important}
+#planner .planner-agenda-head #addTransaction3{background:var(--blue)!important;border-color:var(--blue)!important;color:#fff!important}
+#planner .planner-agenda-head #addTransaction3:hover{filter:brightness(1.08)}
+#settings.u-settings #unifiedSettings.u-settings-workspace .settings-reset-panel>details{background:transparent!important;border:0!important;padding:0!important;margin:0!important}
+#settings.u-settings #unifiedSettings.u-settings-workspace .settings-reset-panel>details>summary{padding:0!important;min-height:0!important;font-size:15.5px;font-weight:700;cursor:pointer}
+#settings.u-settings #unifiedSettings.u-settings-workspace .settings-reset-panel>details>summary small{display:block;margin-top:4px;font-size:12.5px;font-weight:500;color:var(--muted)}
+#settings.u-settings #unifiedSettings.u-settings-workspace .settings-reset-panel>details[open]>summary{margin-bottom:14px!important}
+#casaMeals .cm-norecipes{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin:0!important;padding:14px 18px!important;border-radius:14px!important;border:1px dashed var(--line)!important;background:transparent!important}
+#casaMeals .cm-norecipes p{margin:0;font-size:13px;color:var(--muted)}
+#casaMeals .cm-norecipes b{display:block;color:var(--ink);font-size:14px;margin-bottom:2px}
+#casaMeals .cm-slot.is-empty>.cm-empty-text{font-size:12px;color:var(--muted)}
+#weeklyHub.u-review>.u-review-navigation,#weeklyHub.u-review>.rv-hero,#weeklyHub.u-review>.u-review-extra:not([hidden]){margin-bottom:18px!important}
+#weeklyHub.u-review>.u-head{margin-bottom:18px!important}
+#dataHub.u-data #unifiedData.u-task-grid{row-gap:16px!important;column-gap:18px!important}
+#dataHub #inboxHub .data-inbox-heading{padding-bottom:14px!important;margin-bottom:4px!important;align-items:center!important}
+#dataHub #inboxHub .data-search-field>span{display:none!important}
+#dataHub #inboxHub #dataInboxTableBody{padding:2px 8px 2px 2px!important}
+#dataHub #inboxHub .u-inbox-inspector .u-inbox-meta{margin:0 0 14px!important}
+#planner .ag-calendar{padding:8px!important;border-radius:16px!important}
+#noticesHub .notices-detail .notice-card-actions{padding-top:16px!important;margin-top:14px!important;gap:8px!important}
+body[data-current-view="transactions"] #transactions .movements-workbench .movement-table-shell{border:0!important;box-shadow:none!important;border-radius:0!important;background:transparent!important}
+body[data-current-view="transactions"] #transactions .movements-workbench .movement-filter-sidebar{padding-left:14px!important}
+#wealthMoneyHub .u-inventory-list .u-table-scroll{border:0!important;border-radius:0!important;box-shadow:none!important;border-top:1px solid var(--line)!important}
+#wealthMoneyHub .u-inspector.desk-inspector{position:static!important;height:auto!important;max-height:none!important;overflow:visible!important}
+body:is([data-current-view="casaPurchases"],[data-current-view="casaShopping"],[data-current-view="casaStock"],[data-current-view="casaRecipes"],[data-current-view="casaMeals"]) #addTransaction{display:none!important}
+#casaStock .casa-filter-bar .casa-pantry-locations button.secondary[aria-pressed="true"]{background:var(--blue)!important;border-color:var(--blue)!important;color:#fff!important}
+body #mainContent #casaGifts [data-gift-view].secondary{display:inline-flex!important;align-items:center;min-height:36px!important;padding:6px 16px!important;border-radius:99px!important;border:1px solid var(--line)!important;background:transparent!important;color:var(--muted)!important;font-weight:600}
+body #mainContent #casaGifts [data-gift-view].secondary[aria-pressed="true"]{background:var(--blue)!important;border-color:var(--blue)!important;color:#fff!important}
+#settings.u-settings #unifiedSettings.u-settings-workspace .st-nav>span{display:flex!important;flex-direction:column!important;align-items:stretch!important;gap:2px}
+#settings.u-settings #unifiedSettings.u-settings-workspace .st-nav>span>b,#settings.u-settings #unifiedSettings.u-settings-workspace .st-nav>span>small{width:100%!important;text-align:left!important;margin:0!important}
+body:not([data-theme="dark"]) .movements-dashboard{--movement-panel:var(--paper);--movement-panel-2:var(--paper);--movement-line:var(--line);--movement-line-strong:#c9d6de}
+body:not([data-theme="dark"]) .movements-dashboard :is(.movement-kpi,.movements-workbench){--ink:#172b36;--muted:#596c77;--paper:#fff}
+body:not([data-theme="dark"]) .movements-dashboard .movement-kpi{background:#fff!important;border-color:var(--line)!important;box-shadow:0 1px 2px rgba(20,40,50,.04)!important}
+body:not([data-theme="dark"]) .movements-dashboard .movements-workbench{background:#fff!important;border-color:var(--line)!important;box-shadow:0 1px 2px rgba(20,40,50,.04)!important}
+body:not([data-theme="dark"]) .movements-dashboard .movement-filter-sidebar{background:#f7f9fa!important}
+body:not([data-theme="dark"]) .movements-dashboard .movement-kpi-income .movement-kpi-icon{color:#147c5a;background:rgba(20,124,90,.12)}
+body:not([data-theme="dark"]) .movements-dashboard .movement-kpi-expense .movement-kpi-icon{color:#b4414e;background:rgba(180,65,78,.11)}
+body:not([data-theme="dark"]) .movements-dashboard .movement-kpi-balance .movement-kpi-icon{color:#2d5f73;background:rgba(45,95,115,.1)}
+body:not([data-theme="dark"]) .movements-dashboard .movement-kpi-review .movement-kpi-icon{color:#127a83;background:rgba(18,122,131,.11)}
+.movements-dashboard .movement-table-header>:last-child .movement-column-resizer{display:none!important}
+body:not([data-theme="dark"]) .movements-dashboard :is(.movement-date-cell,.movement-table-header,.movement-table-header span){color:#596c77!important}
+body:not([data-theme="dark"]) .movements-dashboard .movement-icon-action{color:#596c77!important;border-color:var(--line)!important;background:#fff!important}
+body:not([data-theme="dark"]) .movements-dashboard .movement-icon-action:hover{color:var(--blue)!important;border-color:var(--blue)!important}

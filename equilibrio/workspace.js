@@ -984,6 +984,19 @@ function movementActionsHtml(t) {
   const visibleActions = fragment.innerHTML + button("Apagar", "delete-tx", t.id, "link-button danger");
   return `<div class="movement-row-actions movement-row-actions-expanded">${edit}${receipt}<details class="movement-more"><summary class="movement-icon-action" aria-label="Mais ações · ${esc(t.description)}" title="Mais ações">•••</summary><div class="movement-inline-actions" role="menu">${visibleActions}</div></details></div><details class="movement-mobile-actions"><summary>Ações</summary><div class="movement-mobile-actions-list">${edit}${receipt}${visibleActions}</div></details>`;
 }
+// Menus suspensos em <details> (Criar plano, Adicionar, Gerir, «•••»): fecham ao escolher uma opção, ao clicar fora ou com Esc.
+(() => {
+  const MENUS = "details.u-add-menu, details.pl-manage, details.cs-more, details.cs-row-more, details.data-row-menu, details.row-menu";
+  document.addEventListener("click", (e) => {
+    const inside = e.target.closest(MENUS);
+    for (const menu of document.querySelectorAll(MENUS.split(",").map((s) => s.trim() + "[open]").join(","))) {
+      if (menu !== inside || (e.target.closest("button, a") && !e.target.closest("summary"))) menu.open = false;
+    }
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") document.querySelectorAll(MENUS.split(",").map((s) => s.trim() + "[open]").join(",")).forEach((m) => (m.open = false));
+  });
+})();
 // Menu «•••» das linhas de Movimentos: enquanto aberto, a lista passa para o <body> (a tabela tem scroll e
 // contentores que cortam menus absolutos/fixos); as ações continuam a ser tratadas pela delegação de [data-action].
 (() => {
