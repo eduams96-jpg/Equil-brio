@@ -1,3 +1,7 @@
+# 1.0.19 — Revisão, Casa, Dados, Avisos, Definições e Movimentos redesenhados
+
+Revisão e análise com o fecho do mês em três passos e contas em cartões. Mês a mês com uma cor por categoria. Casa (Visão geral, Lista de compras, Compras, Despensa, Análises, Refeições, Receitas), Dados, Avisos e Definições com blocos de resumo, filtros em pílulas e cartões. Movimentos numa linha, com as ações secundárias no menu «•••». Atualização desde 1.0.18.
+
 # 1.0.18 — Relatórios detalhados, catálogo e Agenda redesenhados, mais rápido
 
 Gravar fica mais rápido: a conferência do extrato só é recalculada com a página aberta e os compromissos futuros usam índices. Relatórios com Categorias e subcategorias, Mês a mês, Comparar anos, Onde gastas e Receitas (Visão anual igual). Agenda, Planos e decisões, Equipamentos, Produtos, Lojas e Preços (tabela editável) redesenhados. «Arrumar repetidas» junta categorias repetidas. Atualização desde 1.0.17.
