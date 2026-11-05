@@ -46,6 +46,10 @@ import Nav from './nav.cjs';
 
 import Mais from './screens/mais.cjs';
 
+import Resumo from './screens/resumo.cjs';
+
+import Movimentos from './screens/movimentos.cjs';
+
 const LAST_SYNC_KEY='equilibrio.mobile.lastSync';
 
 function readLastSync(){try{return localStorage.getItem(LAST_SYNC_KEY);}catch{return null;}}
@@ -102,27 +106,9 @@ const association=new A.Association({read:()=>adapter.read(),replace:(s,r)=>adap
 
 function money(cents){return current.state.hidden?'•••• €':new Intl.NumberFormat('pt-PT',{style:'currency',currency:'EUR'}).format(cents/100);}
 
-function row(t,accountName=''){
+function row(t,accountName=''){return Movimentos.row({state:current.state},t,accountName);}
 
- const status=V.statuses(current.state)[t.id],info=V.movementInfo(t,accountName),amount=info.amountCents;
-
- return `<button type="button" class="row movement-row" data-open="${escape(t.id)}"><div><strong>${escape(t.description)}</strong><small>${escape(V.dateLabel(accountName&&t.targetAccount===accountName?t.targetDate||t.date:t.date))} · ${escape(info.route)}</small><small>${escape(t.category||'')}${status?' · '+(status==='pending'?'Por confirmar':'A rever'):''}</small></div><span class="amount">${info.symbol}${money(amount)}</span></button>`;
-
-}
-
-const monthNames=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
-
-function periodControls(ledger){return `<div class="period-controls" aria-label="Mês e ano"><button type="button" id="period-prev" aria-label="Mês anterior">‹</button><label>Ano<select id="period-year">${V.years(ledger,summaryPeriod,today()).map(y=>`<option value="${y}" ${y===Number(summaryPeriod.slice(0,4))?'selected':''}>${y}</option>`).join('')}</select></label><label>Mês<select id="period-month">${monthNames.map((name,index)=>`<option value="${String(index+1).padStart(2,'0')}" ${index+1===Number(summaryPeriod.slice(5))?'selected':''}>${name}</option>`).join('')}</select></label><button type="button" id="period-next" aria-label="Mês seguinte">›</button></div>`;}
-
-function movementList(ledger){
-
- const result=V.movements(ledger,current.state,filters,visibleLimit),options=(values,value)=>values.map(([id,label])=>`<option value="${escape(id)}" ${id===value?'selected':''}>${escape(label)}</option>`).join('');
-
- const months=[...new Set([summaryPeriod,today().slice(0,7),...ledger.transactions.map(t=>t.date.slice(0,7))])].sort().reverse();
-
- return `<h1>Movimentos</h1><p class="sub">Consulta e gere os registos deste dispositivo.</p><button type="button" class="primary full" data-page="novo">+ Novo movimento</button><div class="movement-filters"><label>Pesquisar<input id="movement-search" type="search" placeholder="Descrição, categoria ou conta" maxlength="150" value="${escape(filters.query)}" autocomplete="off"></label><details id="movement-filters" ${filters.period||filters.accountId||filters.type||filters.status?'open':''}><summary>Filtrar movimentos</summary><div class="filter-grid"><label>Período<select id="filter-period">${options([['','Todos os meses'],...months.map(m=>[m,monthNames[Number(m.slice(5))-1]+' '+m.slice(0,4)])],filters.period)}</select></label><label>Conta<select id="filter-account">${options([['','Todas as contas'],...ledger.accounts.map(a=>[a.id,a.name])],filters.accountId)}</select></label><label>Tipo<select id="filter-type">${options([['','Todos'],['expense','Despesas'],['income','Rendimentos'],['transfer','Transferências']],filters.type)}</select></label><label>Estado<select id="filter-status">${options([['','Todos'],['confirmed','Confirmados'],['pending','Por confirmar'],['review','A rever']],filters.status)}</select></label></div></details><button type="button" id="clear-filters" class="text-button">Limpar pesquisa e filtros</button></div><p class="sub result-count" aria-live="polite">${result.total} ${result.total===1?'movimento encontrado':'movimentos encontrados'}</p><div id="movement-results">${result.rows.map(t=>row(t)).join('')||`<p class="empty">${ledger.transactions.length?'Não há movimentos com esta pesquisa. Altera ou limpa os filtros.':'Ainda não existem movimentos. Usa «Novo movimento» para começar.'}</p>`}</div>${result.rows.length<result.total?`<button id="show-more" type="button" class="full">Mostrar mais · ${result.rows.length} de ${result.total}</button>`:''}`;
-
-}
+function periodControls(ledger){return Resumo.periodControls(ledger,summaryPeriod,today());}
 
 function simple(t){return Policy.editable(t);}
 
@@ -234,15 +220,15 @@ async function render(){
 
  const stats=V.summary(ledger,summaryPeriod);
 
- const ctx={ledger,state,today:today(),lastSync:readLastSync(),settings:{notifications:false,hour:9,theme:'auto',hideOnOpen:false},money,go:target=>run(async()=>{renderedPage=null;page=target;}),commit:(command,payload,options)=>client.enqueue(command,payload,options)};
+ const ctx={ledger,state,today:today(),lastSync:readLastSync(),settings:{notifications:false,hour:9,theme:'auto',hideOnOpen:false},money,go:target=>run(async()=>{renderedPage=null;page=target;}),commit:(command,payload,options)=>client.enqueue(command,payload,options),counts:{notices:null,shopping:ledger.casa?.shopping?ledger.casa.shopping.filter(s=>!s.done).length:null},pending,release:__RELEASE__,setFilter:(field,value)=>{if(busy)return;filters[field]=value;visibleLimit=40;run(async()=>{});}};
 
  if(page==='mais')main.innerHTML=Mais.render(ctx);
 
  if(Nav.isPlaceholder(page))main.innerHTML=Nav.placeholder(page);
 
- if(page==='resumo')main.innerHTML=`<h1>Resumo</h1>${periodControls(ledger)}<section class="balance"><span>Saldo atual · todas as contas</span><strong>${money(stats.balanceCents)}</strong><small>${pending?'Inclui alterações locais por confirmar':(__RELEASE__?'Contas deste aparelho':'Contas de demonstração')}</small></section><h2>Este mês · ${monthNames[Number(summaryPeriod.slice(5))-1]} ${summaryPeriod.slice(0,4)}</h2><div class="pair"><div class="stat"><small>Rendimentos do mês</small><span class="amount">${money(stats.incomeCents)}</span></div><div class="stat"><small>Despesas do mês</small><span class="amount">${money(stats.expenseCents)}</span></div></div><p class="month-result">Resultado do mês <strong>${money(stats.resultCents)}</strong></p><button type="button" class="primary full" data-page="novo">+ Novo movimento</button><button type="button" class="full agenda-shortcut" data-page="agenda">Ver agenda do mês</button><div class="section-heading"><h2>Movimentos do mês</h2><button type="button" id="see-month" class="text-button">Ver todos</button></div>${V.movements(ledger,state,{period:summaryPeriod},3).rows.map(t=>row(t)).join('')||'<p class="empty">Ainda sem movimentos neste mês.</p>'}`;
+ if(page==='resumo')main.innerHTML=Resumo.render(ctx,{period:summaryPeriod});
 
- if(page==='movimentos')main.innerHTML=movementList(ledger);
+ if(page==='movimentos'){main.innerHTML=Movimentos.render(ctx,{filters,visibleLimit});Movimentos.bind(ctx,main);}
 
  if(page==='casa')main.innerHTML=HouseUI.render(ledger,houseTab,houseId,{escape,money,dateLabel:V.dateLabel});
 
@@ -437,7 +423,7 @@ document.addEventListener('click',event=>{
 
  if(b.id==='period-prev'||b.id==='period-next'){run(async()=>{summaryPeriod=V.shiftMonth(summaryPeriod,b.id==='period-prev'?-1:1);});return;}
 
- if(b.id==='see-month'){run(async()=>{filters={query:'',period:summaryPeriod,accountId:'',type:'',status:''};visibleLimit=40;page='movimentos';});return;}
+ if(b.id==='see-month'){run(async()=>{filters={query:'',period:'',accountId:'',type:'',status:''};visibleLimit=40;page='movimentos';});return;}
 
  if(b.id==='clear-filters'){run(async()=>{filters={query:'',period:'',accountId:'',type:'',status:''};visibleLimit=40;});return;}
 
