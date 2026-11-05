@@ -11,3 +11,4 @@ profiles/
 *.p12
 *.jks
 *.keystore
+app/www-preview/
