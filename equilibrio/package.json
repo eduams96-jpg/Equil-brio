@@ -1,8 +1,8 @@
 {
   "name": "financas-pessoais-desktop",
-  "version": "1.0.20",
+  "version": "1.0.21",
   "private": true,
-  "description": "Equilíbrio v1.0.20 — Revisão geral: espaçamentos, menus e tema claro",
+  "description": "Equilíbrio v1.0.21 — Património redesenhado e Ler Fatura retirado",
   "main": "desktop/main.cjs",
   "scripts": {
     "test": "node --test tests/*.cjs",

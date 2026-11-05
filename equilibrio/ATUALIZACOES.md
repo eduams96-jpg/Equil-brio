@@ -1,3 +1,7 @@
+# 1.0.21 — Património redesenhado e Ler Fatura retirado
+
+Património com blocos de resumo, evolução com «Guardar valor de hoje», composição e «A rever» em cartões; Inventário com filtros em pílulas e cartões. Ler Fatura retirado; dados já lidos e pesquisa de texto em PDFs conservados. Separadores certos ao abrir; «Fluxo de caixa» leva à Agenda. Atualização desde 1.0.20.
+
 # 1.0.20 — Revisão geral: espaçamentos, menus e tema claro
 
 Sem quadros colados nem molduras duplas em Revisão, Dados, Agenda, Avisos, Movimentos e Inventário. Menus suspensos fecham ao escolher ou clicar fora. Movimentos correto no tema claro. Casa sem botões duplicados e com filtros ativos realçados; Refeições sem receitas explica o que fazer. Atualização desde 1.0.19.

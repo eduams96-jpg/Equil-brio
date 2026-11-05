@@ -4,17 +4,17 @@ Estado em 05/11/2026. Lê isto primeiro quando voltares a pegar no projeto.
 
 ## Onde ficou
 
-- **Windows 1.0.20** pronto em `entrega-v1.0.20/` (atualização `.fpupdate`, hash e instruções). Aceita a instalação 1.0.19. Validado com instalação incremental e reposição automática numa cópia isolada.
+- **Windows 1.0.21** pronto em `entrega-v1.0.21/` (atualização `.fpupdate`, hash e instruções). Aceita a instalação 1.0.20. Validado com instalação incremental e reposição automática numa cópia isolada.
 - **Instalado neste PC:** 1.0.20 (instaladas e revistas a 1.0.17 a 1.0.20).
-- **Próxima versão (1.0.21), no código e ainda sem pacote:** Ler Fatura retirado; Património redesenhado; `workbench-ui.js` e 136 regras de CSS mortas removidos; navegação sem rotas duplicadas. Falta gerar a atualização (ver «Gerar a próxima atualização»).
+- **1.0.21:** Ler Fatura retirado; Património redesenhado; `workbench-ui.js` e 136 regras de CSS mortas removidos; navegação sem rotas duplicadas. Falta instalar neste PC.
 - **Android:** RC4, sem alterações desde a 1.0.15 (`entrega-v1.0.15/`).
 - **Código:** tudo gravado no `main`. Não enviado para o GitHub.
 - **Testes:** 683 a passar (`npm test` em `equilibrio/`); saíram os 26 testes da leitura de faturas.
-- **`historico/`:** baselines 1.0.16 a 1.0.20 em `historico/baselines/`. As entregas até 1.0.14 e a baseline 0.39.79 perderam-se em 30/10/2026.
+- **`historico/`:** baselines 1.0.16 a 1.0.21 em `historico/baselines/`. As entregas até 1.0.14 e a baseline 0.39.79 perderam-se em 30/10/2026.
 
 ## Próximos passos, por ordem
 
-1. **Gerar e instalar a 1.0.21** e rever Património (Visão geral e Inventário), Casa → Compras e o editor de movimentos.
+1. **Instalar a 1.0.21** (`entrega-v1.0.21/`) e rever Património (Visão geral e Inventário), Casa → Compras e o editor de movimentos.
 2. **Arrumar categorias da conta Casa** (o utilizador confirma mais tarde, tal como os possíveis duplicados Portagens 3,25 € e Condomínio 38,75 €). Gestão de categorias → «Arrumar repetidas»: 11 sugestões prováveis já marcadas; acrescentar à mão «Mercearia» → «Alimentação / Mercearias». Outras sugeridas ao utilizador: corrigir «Lanços»/«Cirúgica»/«Dispensa»/«Outros Despesas», Bagaço e Licor Beirão → Bebidas / Espirituosa, Saúde / Taxas Moderadoras → Cuidados de Saúde, Subscrições → Lazer / Subscrições. Também há lojas combinadas («Continente // LIDL…») a desfazer.
 3. **Consolidação visual:** concluída na 1.0.21. Ainda há camadas antigas em `features-ui.js` (cria os hubs de Património e os separadores antigos, que o `unified-workspace-ui.js` substitui) e regras de CSS mistas; só compensa mexer se o programa continuar a evoluir.
 4. **Desempenho, se ainda for lento:** os módulos `planning-ui`, `life-ui`, `daily-ui` e `features-ui` ainda desenham todas as suas secções em cada gravação. Medir com o painel do browser visível (escondido, as medições variam 3×).
@@ -74,15 +74,15 @@ npm run desktop
 
 ## Gerar a próxima atualização
 
-1. `node scripts/advance-version.cjs 1.0.21 "Descrição"` (repor CRLF em `package.json`, `package-lock.json`, `desktop/version.cjs`).
-2. Criar `DESKTOP-v1.0.21.md` e uma entrada no topo de `ATUALIZACOES.md`; correr `node scripts/check.cjs` e `npm test`.
-3. Gerar a partir da versão instalada mais antiga a suportar (ex.: baseline 1.0.20, aceitando até 1.0.20):
+1. `node scripts/advance-version.cjs 1.0.22 "Descrição"` (repor CRLF em `package.json`, `package-lock.json`, `desktop/version.cjs`).
+2. Criar `DESKTOP-v1.0.22.md` e uma entrada no topo de `ATUALIZACOES.md`; correr `node scripts/check.cjs` e `npm test`.
+3. Gerar a partir da versão instalada mais antiga a suportar (ex.: baseline 1.0.21, aceitando até 1.0.21):
    ```bash
-   node scripts/package-release.cjs ../historico/baselines/baseline-1.0.20 ../entrega-v1.0.21 1.0.20
+   node scripts/package-release.cjs ../historico/baselines/baseline-1.0.21 ../entrega-v1.0.22 1.0.21
    ```
 4. Validar (instala numa cópia e testa a reposição):
    ```bash
-   ELECTRON_PATH="$PWD/node_modules/electron/dist/electron.exe" node integration/validate-incremental-package.cjs ../historico/baselines/baseline-1.0.20 ../entrega-v1.0.21
+   ELECTRON_PATH="$PWD/node_modules/electron/dist/electron.exe" node integration/validate-incremental-package.cjs ../historico/baselines/baseline-1.0.21 ../entrega-v1.0.22
    ```
 5. Guardar a baseline nova: `node scripts/advance-version.cjs --snapshot`.
 
