@@ -17,6 +17,12 @@ const SCREENS = [
   { name: 'movimentos', module: '../src/screens/movimentos.cjs' },
   { name: 'casa', module: '../src/screens/casa.cjs' },
   { name: 'mais', module: '../src/screens/mais.cjs' },
+  { name: 'contas', module: '../src/screens/contas.cjs' },
+  { name: 'agenda', module: '../src/screens/agenda.cjs' },
+  { name: 'ligacao', module: '../src/screens/ligacao.cjs', page: 'sync' },
+  { name: 'casa-stock', module: '../src/screens/casa.cjs', page: 'casa', view: { tab: 'stock' } },
+  { name: 'casa-compras', module: '../src/screens/casa.cjs', page: 'casa', view: { tab: 'compras' } },
+  { name: 'ligacao-ligada', module: '../src/screens/ligacao.cjs', page: 'sync', view: { connection: {} } },
 ];
 const DATA = [['demo', fixtures.demo], ['vazio', fixtures.empty]];
 const THEMES = [['claro', 'light'], ['escuro', 'dark']];
@@ -66,8 +72,8 @@ function build() {
       for (const [themeName, theme] of THEMES) {
         const file = screen.name + '-' + dataName + '-' + themeName + '.html';
         let body;
-        try { body = render(fixtures.ctx(make())); } catch (error) { body = kit.errorCard(error.message); }
-        fs.writeFileSync(path.join(out, file), frame('Equilíbrio · ' + screen.name, theme, screen.name, body));
+        try { body = render(fixtures.ctx(make()), screen.view); } catch (error) { body = kit.errorCard(error.message); }
+        fs.writeFileSync(path.join(out, file), frame('Equilíbrio · ' + screen.name, theme, screen.page || screen.name, body));
         links.push(file);
       }
     }

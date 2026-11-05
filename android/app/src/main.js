@@ -10,7 +10,7 @@ import House from '../../shared/house.cjs';
 
 import HouseForm from '../../shared/house-form.cjs';
 
-import HouseUI from './house-ui.cjs';
+import Casa from './screens/casa.cjs';
 
 let houseTab='produtos',houseId=null,hf=null,hr=null,houseDiscard=null;
 
@@ -36,7 +36,7 @@ import Accounts from '../../shared/accounts.cjs';
 
 import Policy from '../../shared/movement-policy.cjs';
 
-import Agenda from './agenda.cjs';
+import Agenda from './screens/agenda.cjs';
 
 import K from '../../shared/commitment-drafts.cjs';
 
@@ -49,6 +49,10 @@ import Mais from './screens/mais.cjs';
 import Resumo from './screens/resumo.cjs';
 
 import Movimentos from './screens/movimentos.cjs';
+
+import Contas from './screens/contas.cjs';
+
+import Ligacao from './screens/ligacao.cjs';
 
 const LAST_SYNC_KEY='equilibrio.mobile.lastSync';
 
@@ -106,8 +110,6 @@ const association=new A.Association({read:()=>adapter.read(),replace:(s,r)=>adap
 
 function money(cents){return current.state.hidden?'•••• €':new Intl.NumberFormat('pt-PT',{style:'currency',currency:'EUR'}).format(cents/100);}
 
-function row(t,accountName=''){return Movimentos.row({state:current.state},t,accountName);}
-
 function periodControls(ledger){return Resumo.periodControls(ledger,summaryPeriod,today());}
 
 function simple(t){return Policy.editable(t);}
@@ -136,31 +138,11 @@ function movementForm(ledger){
 
 }
 
-function conflictPanel(state){
-
- const entry=state.outbox.find(r=>r.operation.operationId===conflictId);if(!entry||entry.resolution)return '<h1>Proposta já revista</h1><button data-page="sync">Voltar à ligação</button>';
-
- const proposed=entry.operation.payload,confirmed=state.confirmed.ledger.transactions.find(t=>t.id===proposed.id);
-
- const canRevise=entry.operation.command.endsWith('.add')||!!confirmed;
-
- return `<button class="back" data-page="sync">‹ Voltar</button><h1>Rever diferença</h1><p class="sub">Escolhe explicitamente o que queres manter. As propostas anteriores ficam no histórico.</p><div class="comparison"><section class="review-card"><h2>Versão confirmada no PC</h2>${confirmed?`<strong>${escape(confirmed.description)}</strong><p class="review-value">${money(P.Finance.cents(confirmed.amount))}</p><small>${escape(confirmed.date)} · ${escape(confirmed.account)}${confirmed.targetAccount?' → '+escape(confirmed.targetAccount):''}</small>`:'<p>O movimento não existe no estado confirmado.</p>'}</section><section class="review-card"><h2>A tua proposta</h2><strong>${escape(proposed.description||'Movimento')}</strong><p class="review-value">${entry.operation.command==='movement.delete'?'Eliminar movimento':money(proposed.amountCents)}</p><small>${escape(proposed.date||'')}</small></section></div><p class="sub">${escape(entry.receipt?.message||'A alteração precisa de revisão.')}</p><div class="review-actions"><button class="primary" id="keep-server">Manter versão do PC</button>${canRevise?`<button id="revise-local">${entry.operation.command==='movement.delete'?'Repetir eliminação':'Rever minha proposta'}</button>`:'<p class="sub">Uma edição antiga não pode recriar um movimento eliminado.</p>'}</div>`;
-
-}
-
-function accountCard(a,state,ledger){const confirmed=state.confirmed.ledger.accounts.find(c=>c.id===a.id);return `<button type="button" class="review-card account-card" data-account="${escape(a.id)}"><div><h2>${escape(a.name)}</h2><small>${escape(a.type)}${a.archived?' · Arquivada':''}</small></div><div><strong class="review-value" data-balance="${escape(a.id)}">${money(P.Finance.cents(P.Finance.balanceAt(ledger,a)))}</strong><small>${confirmed?'Confirmado: '+money(P.Finance.cents(P.Finance.balanceAt(state.confirmed.ledger,confirmed))):'Criada neste dispositivo'}</small></div></button>`;}
-
 function preserveAccount(){const form=document.getElementById('account-form');if(page!=='editar-conta'||!form||!accountForm)return;const values=new FormData(form);accountForm.name=String(values.get('name')||'');accountForm.type=String(values.get('type')||'');if(accountForm.command==='account.add')accountForm.opening=String(values.get('opening')||'');}
 
 function accountFingerprint(){preserveAccount();return JSON.stringify(accountForm);}
 
-function accountEditor(){const a=accountForm;if(!a)return '<h1>Conta indisponível</h1><button data-page="contas">Voltar</button>';return `<button class="back" data-page="contas">‹ Contas</button><h1>${a.command==='account.add'?'Nova conta':'Editar conta'}</h1><p class="sub">${a.command==='account.add'?'Define o saldo anterior aos movimentos que vais registar.':'Mudar o nome mantém os movimentos e os saldos desta conta.'}</p><form id="account-form"><label>Nome<input name="name" value="${escape(a.name)}" maxlength="80" required autocomplete="off"></label><label>Tipo<select name="type">${[...new Set([...Accounts.types,a.type])].map(t=>`<option ${t===a.type?'selected':''}>${escape(t)}</option>`).join('')}</select></label>${a.command==='account.add'?`<label>Saldo inicial (€)<input name="opening" value="${escape(a.opening)}" inputmode="decimal" required></label>`:'<p class="note">O saldo inicial é conservado. Esta edição não altera valores.</p>'}<p class="sub">Só fica guardado depois de tocares em Guardar conta.</p><button class="primary full" id="save-account" type="button">Guardar conta</button></form>`;}
-
 async function saveAccount(){const form=document.getElementById('account-form');if(!form||!form.reportValidity())return;preserveAccount();await run(async()=>{const a=accountForm,p={id:a.id,name:a.name,type:a.type};if(a.command==='account.add')p.openingCents=Accounts.openingCents(a.opening);const record=await persistAccount();await client.enqueue(a.command,p,{expectedEntityRevision:accountRevision,accountDraft:{token:record.token,sequence:record.sequence}});accountDraftRecord=null;selectedAccount=a.id;accountForm=null;page='conta';message.textContent='Conta guardada neste dispositivo.';});}
-
-function agendaPage(ledger){const result=Agenda.agenda(ledger,summaryPeriod,today(),showCompletedAgenda);return `<button class="back" data-page="resumo">‹ Resumo</button><h1>Agenda</h1><p class="sub">Compromissos, recorrências e subscrições deste mês.</p>${periodControls(ledger)}<button type="button" id="new-commitment" class="primary full">+ Novo compromisso</button>${commitBanner()}<div class="pair"><section class="stat"><small>A pagar</small><strong data-agenda-pay>${money(result.payCents)}</strong></section><section class="stat"><small>A receber</small><strong data-agenda-receive>${money(result.receiveCents)}</strong></section></div><p class="sub">${result.pendingCount} por concluir${result.estimated?' · Inclui estimativas':''}. Valores previstos; o saldo só muda com movimentos registados.</p><label class="agenda-check"><input id="agenda-completed" type="checkbox" ${showCompletedAgenda?'checked':''}> Mostrar recorrências e subscrições concluídas</label><div class="agenda-list">${result.rows.map(t=>`<article class="review-card agenda-entry"><div><strong>${escape(t.description||'Compromisso')}</strong><small>${escape(V.dateLabel(t.date))} · ${escape(t.agendaSource)}</small><small>${escape(t.account||'Conta não indicada')}${t.targetAccount?' → '+escape(t.targetAccount):''}</small><small class="agenda-state">${escape(t.status)}${t.estimated?' · Estimativa':''}</small>${t.occurrenceNote?`<p class="sub">${escape(t.occurrenceNote)}</p>`:''}${t.agendaSource==='Compromisso'?`<button type="button" class="commit-open" data-commitment="${escape(t.id)}">Abrir compromisso</button>`:''}</div><span class="amount">${t.type==='transfer'?'↔ ':t.type==='expense'?'−':'+'}${money(t.amountCents)}</span></article>`).join('')||'<p class="empty">Sem compromissos previstos neste mês.</p>'}</div>`;}
-
-function commitBanner(){return current.state.commitmentDraft?'<section class="draft-banner"><strong>Tens um compromisso por concluir</strong><p>O preenchimento está guardado neste dispositivo.</p><button type="button" id="resume-commitment">Retomar compromisso</button><button type="button" id="ask-discard-commitment">Descartar rascunho</button></section>':'';}
 
 function preserveCommit(){const form=document.getElementById('commitment-form');if(page!=='novo-compromisso'||!form||!cf)return;const values=new FormData(form);for(const k of ['type','amount','description','accountId','date','category','reason'])cf[k]=String(values.get(k)??'');}
 
@@ -171,10 +153,6 @@ function autoCommit(){if(page!=='novo-compromisso'||busy||!cr)return;preserveCom
 async function resumeCommit(){await adapter.idle();const state=(await adapter.read()).state,record=state.commitmentDraft;K.valid(record);cf=P.copy(record.form);cr=P.copy(record);cfBaseline=JSON.stringify(cf);page='novo-compromisso';}
 
 async function openCommitForm(id=null,action='edit'){await adapter.idle();const state=(await adapter.read()).state;if(state.commitmentDraft){await resumeCommit();return;}const v=P.view(state),old=id?v.ledger.pendingPayments.find(t=>t.id===id):null;if(id&&!Commitments.editable(v.ledger,old))throw Error('Este compromisso exige gestão especializada.');cf=old?{id:old.id,command:'commitment.update',action,type:old.type,amount:String(old.amount).replace('.',','),description:old.description,accountId:v.ledger.accounts.find(a=>a.name===old.account)?.id||'',date:old.date,category:old.category||'Outros',reason:'',changedOn:today()}:{id:P.id(),command:'commitment.add',action:'new',type:'expense',amount:'',description:'',accountId:v.ledger.accounts.find(a=>!a.archived)?.id||'',date:today(),category:'Outros',reason:'',changedOn:today()};cr=K.create(state,cf,v.revisions['commitment:'+cf.id]||0);cfBaseline=JSON.stringify(cf);page='novo-compromisso';}
-
-function commitForm(ledger){if(!cf||!cr)return '<p>Compromisso indisponível.</p>';const accounts=ledger.accounts.filter(a=>!a.archived),available=accounts.some(a=>a.id===cf.accountId),reason=K.reason(current.state,cr);return `<button class="back" data-page="agenda">‹ Agenda</button><h1>${cf.command==='commitment.add'?'Novo compromisso':cf.action==='reschedule'?'Reagendar compromisso':'Editar compromisso'}</h1><p class="sub">Guardar atualiza a previsão. O saldo mantém-se até registares o pagamento ou recebimento.</p><form id="commitment-form"><label>Tipo<select name="type"><option value="expense" ${cf.type==='expense'?'selected':''}>Despesa</option><option value="income" ${cf.type==='income'?'selected':''}>Receita</option></select></label><label>Descrição<input name="description" maxlength="120" required value="${escape(cf.description)}"></label><label>Valor (€)<input name="amount" inputmode="decimal" required value="${escape(cf.amount)}"></label><label>Conta<select name="accountId">${!available?`<option value="${escape(cf.accountId)}" selected>Conta indisponível · escolhe outra</option>`:''}${accounts.map(a=>`<option value="${escape(a.id)}" ${a.id===cf.accountId?'selected':''}>${escape(a.name)}</option>`).join('')}</select></label><label>Data prevista<input name="date" type="date" required value="${escape(cf.date)}"></label><label>Categoria<input name="category" maxlength="120" required value="${escape(cf.category)}" placeholder="Ex.: Casa / Renda"></label>${cf.command==='commitment.update'?`<label>Motivo do reagendamento (se mudares a data)<textarea name="reason" maxlength="500" rows="3">${escape(cf.reason)}</textarea></label>`:'<input name="reason" type="hidden" value="">'}<p id="commitment-status" role="status">${cr.sequence?'Rascunho guardado neste dispositivo.':'O preenchimento é guardado como rascunho.'}</p>${reason?`<p class="note">${escape(reason)}</p>`:''}<button type="button" class="primary full" id="save-commitment">Guardar compromisso</button><button id="ask-discard-commitment" class="full" type="button">Descartar rascunho</button></form>`;}
-
-function originalCommitmentDetail(ledger){const row=ledger.pendingPayments.find(t=>t.id===commitmentId);if(!row)return '<button data-page="agenda">‹ Agenda</button><h1>Compromisso indisponível</h1>';return `<button class="back" data-page="agenda">‹ Agenda</button><h1>${escape(row.description)}</h1><section class="review-card"><p class="review-value">${money(P.Finance.cents(row.amount))}</p><p>${escape(V.dateLabel(row.date))} · ${escape(row.account||'Conta não indicada')}</p><small>${escape(row.category||'Outros')}</small></section>${Commitments.editable(ledger,row)?'<div class="review-actions"><button id="edit-commitment" class="primary">Editar compromisso</button><button id="reschedule-commitment">Reagendar</button></div>':'<p class="note">Este compromisso exige gestão especializada.</p>'}${row.reschedules?.length?`<h2>Histórico de reagendamento</h2><ul class="commit-history">${row.reschedules.map(r=>`<li>${escape(V.dateLabel(r.from))} → ${escape(V.dateLabel(r.to))}<p>${escape(r.reason)}</p></li>`).join('')}</ul>`:''}`;}
 
 async function saveCommit(){const form=document.getElementById('commitment-form');if(!form||!form.reportValidity())return;preserveCommit();await run(async()=>{await adapter.idle();cf.changedOn=today();const record=await persistCommit(),p=K.payload(cf);await client.enqueue(cf.command,p,{expectedEntityRevision:cr.expectedRevision,commitmentDraft:{token:record.token,sequence:record.sequence}});commitmentId=p.id;summaryPeriod=p.date.slice(0,7);cf=null;cr=null;cfBaseline=null;page='compromisso';message.textContent='Compromisso guardado. O saldo não foi alterado.';});}
 
@@ -214,34 +192,32 @@ async function render(){
 
  if(page==='movimentos'){main.innerHTML=Movimentos.render(ctx,{filters,visibleLimit});Movimentos.bind(ctx,main);}
 
- if(page==='casa')main.innerHTML=HouseUI.render(ledger,houseTab,houseId,{escape,money,dateLabel:V.dateLabel});
+ if(page==='casa')main.innerHTML=Casa.render(ctx,{tab:houseTab,id:houseId});
 
- if(page==='casa-form')main.innerHTML=houseForm(ledger);
+ if(page==='casa-form')main.innerHTML=Casa.form(ctx,{form:hf,record:hr});
 
- if(page==='casa'&&state.houseDraft)main.insertAdjacentHTML('afterbegin','<section class="draft-banner"><strong>Tens um artigo Casa por concluir</strong><button id="resume-house">Retomar preenchimento</button><button id="ask-discard-house">Descartar rascunho</button></section>');
+ if(page==='descartar-casa')main.innerHTML=Casa.discard();
 
- if(page==='descartar-casa')main.innerHTML='<h1>Descartar o preenchimento Casa?</h1><p>Os produtos e o stock guardados mantêm-se.</p><button data-page="casa">Manter rascunho</button><button id="confirm-discard-house">Descartar rascunho</button>';
+ if(page==='recuperacao')main.innerHTML=Ligacao.recovery(ctx,{points:recoveryPoints,file:recoveryFile});
 
- if(page==='recuperacao')main.innerHTML=recoveryPage();
+ if(page==='confirmar-recuperacao')main.innerHTML=Ligacao.confirmRecovery();
 
- if(page==='confirmar-recuperacao')main.innerHTML='<button class="back" data-page="recuperacao">‹ Cancelar</button><h1>Rever recuperação</h1><p>O restauro substitui os dados locais e guarda o estado anterior. Só é permitido diretamente na mesma associação.</p><button id="confirm-recovery" class="primary full">Restaurar nesta associação</button><h2>Outro aparelho</h2><p>Num aparelho vazio, podes importar os dados para uso offline. Os registos antigos não são reenviados ao PC. A origem completa fica arquivada e os rascunhos que dependiam da associação anterior exigem revisão.</p><button id="portable-import" class="full">Preparar passagem para este aparelho</button><label>Palavra-passe para exportar a origem<input id="backup-password" type="password" minlength="10" maxlength="512" autocomplete="off"></label><button id="export-recovery-candidate">Guardar esta origem encriptada</button>';
+ if(page==='confirmar-desligar')main.innerHTML=Ligacao.confirmDetach();
+ if(page==='confirmar-passagem')main.innerHTML=Ligacao.confirmPassage();
 
- if(page==='confirmar-desligar')main.innerHTML='<button class="back" data-page="sync">‹ Cancelar</button><h1>Preparar nova ligação?</h1><p>Os dados atuais ficam disponíveis offline. O histórico original fica num ponto anterior e as operações antigas não serão reenviadas. A ligação antiga deixa de ser usada neste aparelho; revoga-a no PC se já não for necessária. A associação seguinte exige escolher os dados do PC.</p><button id="confirm-detach" class="primary full">Conservar dados e desligar associação</button>';
- if(page==='confirmar-passagem')main.innerHTML='<button class="back" data-page="recuperacao">‹ Cancelar</button><h1>Confirmar passagem offline?</h1><p>Os dados da cópia passam a ser a base local deste aparelho. O histórico original fica arquivado, sem credenciais e sem reenviar operações antigas. A ligação ao PC é feita separadamente e exige escolher os dados do PC.</p><button id="confirm-portable" class="primary full">Confirmar passagem</button>';
+ if(page==='agenda')main.innerHTML=Agenda.render(ctx,{period:summaryPeriod,showCompleted:showCompletedAgenda});
 
- if(page==='agenda')main.innerHTML=agendaPage(ledger);
+ if(page==='pagar-compromisso')main.innerHTML=Agenda.payment(ctx,{form:pf,record:pr});
 
- if(page==='pagar-compromisso')main.innerHTML=paymentForm(ledger);
+ if(page==='descartar-pagamento')main.innerHTML=Agenda.discardPayment();
 
- if(page==='descartar-pagamento')main.innerHTML='<h1>Descartar o pagamento por concluir?</h1><p>O compromisso e os pagamentos guardados mantêm-se.</p><button data-page="agenda">Manter rascunho</button><button id="confirm-discard-payment">Descartar rascunho</button>';
+ if(page==='resumo'&&state.paymentDraft)main.insertAdjacentHTML('afterbegin','<section class="draft-banner"><strong>Tens um pagamento por concluir</strong><button id="resume-payment">Retomar pagamento</button><button id="ask-discard-payment">Descartar rascunho</button></section>');
 
- if(['agenda','resumo'].includes(page)&&state.paymentDraft)main.insertAdjacentHTML('afterbegin','<section class="draft-banner"><strong>Tens um pagamento por concluir</strong><button id="resume-payment">Retomar pagamento</button><button id="ask-discard-payment">Descartar rascunho</button></section>');
+ if(page==='novo-compromisso')main.innerHTML=Agenda.form(ctx,{form:cf,record:cr});
 
- if(page==='novo-compromisso')main.innerHTML=commitForm(ledger);
+ if(page==='compromisso')main.innerHTML=Agenda.commitment(ctx,{commitmentId});
 
- if(page==='compromisso')main.innerHTML=commitmentDetail(ledger);
-
- if(page==='descartar-compromisso')main.innerHTML='<h1>Descartar o rascunho do compromisso?</h1><p>O preenchimento por concluir será removido. Os compromissos e movimentos guardados mantêm-se.</p><div class="review-actions"><button data-page="agenda">Manter rascunho</button><button id="confirm-discard-commitment">Descartar rascunho</button></div>';
+ if(page==='descartar-compromisso')main.innerHTML=Agenda.discardCommitment();
 
  if(page==='resumo'&&state.commitmentDraft)main.insertAdjacentHTML('afterbegin','<section class="draft-banner"><strong>Tens um compromisso por concluir</strong><button data-page="agenda">Abrir Agenda</button></section>');
 
@@ -253,25 +229,15 @@ async function render(){
 
  if(page==='novo')main.innerHTML=movementForm(ledger);
 
- if(page==='contas')main.innerHTML=`<h1>Contas</h1><p class="sub">Os saldos incluem alterações locais. Arquivar conserva o histórico e o saldo.</p><button class="primary full" id="new-account">+ Nova conta</button>${ledger.accounts.filter(a=>!a.archived).map(a=>accountCard(a,state,ledger)).join('')||'<p class="empty">Sem contas ativas. Cria ou reativa uma conta.</p>'}${ledger.accounts.some(a=>a.archived)?`<details class="archived-accounts"><summary>Contas arquivadas · ${ledger.accounts.filter(a=>a.archived).length}</summary>${ledger.accounts.filter(a=>a.archived).map(a=>accountCard(a,state,ledger)).join('')}</details>`:''}`;
+ if(page==='contas')main.innerHTML=Contas.render(ctx);
 
- if(page==='contas'&&state.accountDraft)main.insertAdjacentHTML('afterbegin','<section class="draft-banner"><strong>Tens uma conta por concluir</strong><button id="resume-account">Retomar conta</button></section>');
+ if(page==='editar-conta')main.innerHTML=Contas.editor(ctx,{form:accountForm});
 
- if(page==='editar-conta')main.innerHTML=accountEditor();
+ if(page==='sair-conta')main.innerHTML=Contas.leave();
 
- if(page==='sair-conta')main.innerHTML='<h1>Sair sem guardar a conta?</h1><p>O preenchimento desta conta ainda não foi guardado. Os movimentos e os rascunhos existentes mantêm-se.</p><div class="review-actions"><button id="stay-account" class="primary">Continuar a preencher</button><button id="leave-account">Sair sem guardar</button></div>';
+ if(page==='arquivar-conta')main.innerHTML=Contas.archive(ctx,{accountId:selectedAccount});
 
- if(page==='arquivar-conta'){const a=ledger.accounts.find(a=>a.id===selectedAccount);main.innerHTML=`<h1>${a?.archived?'Reativar':'Arquivar'} conta?</h1><p>${escape(a?.name||'Conta indisponível')}</p><p>O saldo e todos os movimentos são conservados. Uma conta arquivada deixa de estar disponível para novos movimentos.</p><div class="review-actions"><button data-page="conta">Cancelar</button><button id="confirm-archive" class="primary">${a?.archived?'Reativar':'Arquivar'} conta</button></div>`;}
-
- if(page==='conta'){
-
-  const account=ledger.accounts.find(a=>a.id===selectedAccount);
-
-  const rows=account?V.movements(ledger,state,{accountId:account.id},visibleLimit):{rows:[],total:0};
-
-  main.innerHTML=`<button class="back" data-page="contas">‹ Contas</button><h1>${account?escape(account.name):'Conta indisponível'}</h1>${account?`<section class="balance"><span>Saldo atual</span><strong>${money(P.Finance.cents(P.Finance.balanceAt(ledger,account)))}</strong><small>${escape(account.type)}${account.archived?' · Arquivada':''}</small></section><div class="review-actions"><button id="edit-account">Editar conta</button><button id="ask-archive">${account.archived?'Reativar conta':'Arquivar conta'}</button></div><h2>Movimentos desta conta</h2><p class="sub">Transferências mostram o efeito nesta conta.</p>${rows.rows.map(t=>row(t,account.name)).join('')||'<p class="empty">Ainda não existem movimentos nesta conta.</p>'}${rows.rows.length<rows.total?'<button id="show-more" class="full">Mostrar mais movimentos</button>':''}`:''}`;
-
- }
+ if(page==='conta')main.innerHTML=Contas.detail(ctx,{accountId:selectedAccount,visibleLimit});
 
  if(page==='consulta-financeira')main.innerHTML=financialConsultation(ledger);
 
@@ -292,19 +258,9 @@ async function render(){
 
  }
 
- if(page==='conflito')main.innerHTML=conflictPanel(state);
+ if(page==='conflito')main.innerHTML=Ligacao.conflict(ctx,{conflictId});
 
- if(page==='sync'){
-
-  const pairing=connection?`<div class="note">PC associado · ligação guardada com proteção do Android. Podes continuar a registar sem rede.</div><button type="button" id="sync" class="primary full">Sincronizar</button><button type="button" id="review-detach" class="full">Preparar nova ligação</button>`:savedConnection?.kind==='pairing'?`<div class="note">Existe uma associação por concluir. O código e a credencial estão guardados com proteção do Android.</div><button type="button" id="resume-pair" class="primary full">Retomar associação</button><button type="button" id="cancel-pair" class="full">Cancelar tentativa</button>`:`<div class="note">No PC de ensaio, cria um código para este dispositivo. Podes associar uma base vazia ou confirmar a substituição pelos dados do PC. Nesse caso, o estado local fica conservado num ponto anterior.</div><form id="pairing"><label>Endereço apresentado no PC<input name="server" id="pair-server" type="url" placeholder="https://pc:…" required autocomplete="off"></label><label>Código do PC<input name="code" id="pair-code" maxlength="19" placeholder="XXXX-XXXX-XXXX-XXXX" required autocomplete="off" autocapitalize="characters"></label><label class="note"><input type="checkbox" name="replaceLocal" value="yes" ${state.outbox.length||state.confirmed.ledger.transactions.length||state.confirmed.ledger.pendingPayments?.length||state.confirmed.ledger.casa?.catalog?.length||state.movementDraft||state.commitmentDraft||state.paymentDraft||state.accountDraft||state.houseDraft?'required':''}> Se este aparelho já tiver dados, confirmo substituí-los pelos dados do PC e conservar o estado local num ponto anterior. Esta ação não junta as duas bases.</label><button type="button" id="pair" class="primary">Associar este dispositivo</button></form>`;
-
-  main.innerHTML=`<h1>Ligação</h1><p class="sub">Ensaio local · associação e sincronização</p>${pairing}<h2>Alterações deste dispositivo</h2><div class="queue">${state.outbox.map(x=>`<section class="queue-entry"><strong>${escape(x.operation.payload.description||x.operation.payload.name||(x.operation.command.startsWith('account.')?'Conta':'Movimento'))}</strong><small>${x.resolution?(x.resolution.choice==='server'?'Revisto · versão do PC mantida':'Revisto · nova proposta conservada'):({pending:'Por enviar',sending:'Envio por confirmar',acknowledged:'Confirmado pelo servidor',conflict:'Conflito — proposta local preservada',rejected:'Recusado — proposta local preservada',blocked:'Bloqueado por dependência'})[x.status]||'Revisão necessária'}</small>${!x.resolution&&['conflict','rejected','blocked'].includes(x.status)?`<button data-review="${escape(x.operation.operationId)}">Rever</button>`:''}</section>`).join('')||'<p class="sub">Sem alterações pendentes.</p>'}</div>`;
-
- }
-
- if(page==='conflito'){const entry=state.outbox.find(x=>x.operation.operationId===conflictId);if(entry&&(entry.operation.command.startsWith('commitment.')||entry.operation.command.startsWith('house.')||entry.operation.command.startsWith('account.'))){const p=entry.operation.payload;main.innerHTML=`<button class="back" data-page="sync">‹ Ligação</button><h1>Rever proposta</h1><p>${escape(entry.receipt?.message||'Os dados mudaram.')}</p><h2>Proposta conservada</h2><pre class="proposal">${state.hidden?'Valores ocultos':escape(JSON.stringify(p,null,2))}</pre><p class="sub">Manter a versão do PC conserva a proposta no histórico. Repetir envia os mesmos campos apresentados com novas pré-condições; um pagamento nunca pode exceder o restante.</p><div class="review-actions"><button id="keep-server">Manter versão do PC</button><button id="repeat-extended">Repetir proposta apresentada</button></div>`;}}
-
- if(page==='sync')main.insertAdjacentHTML('afterbegin','<button data-page="recuperacao" class="full">Cópia e recuperação</button>');
+ if(page==='sync')main.innerHTML=Ligacao.render(ctx,{connection,savedConnection});
 
  if(page==='novo'&&draftBaseline===null){draftBaseline=formFingerprint();draftRecord.baseline=draftBaseline;}
 
@@ -514,10 +470,6 @@ async function persistPayment(){preservePayment();if(!pr)return;const saved=awai
 
 async function openPayment(){await adapter.idle();const s=(await adapter.read()).state;if(s.paymentDraft){pr=P.copy(s.paymentDraft);pf=P.copy(pr.form);}else{const v=P.view(s),t=v.ledger.pendingPayments.find(t=>t.id===commitmentId);if(!Commitments.payable(v.ledger,t))throw Error('Compromisso indisponível ou especializado.');pf={id:t.id,transactionId:P.id(),amount:String(t.amount).replace('.',','),date:today(),changedOn:today()};pr=Forms.create(s,pf,'commitment:'+t.id,v.revisions['commitment:'+t.id]||0);}page='pagar-compromisso';}
 
-function paymentForm(ledger){if(!pf)return '<p>Pagamento indisponível.</p>';const t=ledger.pendingPayments.find(t=>t.id===pf.id),reason=Forms.staleReason(current.state,pr);return `<button class="back" data-page="agenda">‹ Agenda</button><h1>${t?.type==='income'?'Registar recebimento':'Registar pagamento'}</h1><p>${escape(t?.description||'Compromisso indisponível')}</p><p>Por liquidar: <strong>${t?money(P.Finance.cents(t.amount)):'Indisponível'}</strong></p><p class="sub">Confirma apenas dinheiro que já entrou ou saiu. Num pagamento parcial, o restante continua na Agenda.</p><form id="payment-form"><label>Valor (€)<input name="amount" inputmode="decimal" required value="${escape(pf.amount)}"></label><label>Data efetiva<input name="date" type="date" required max="${today()}" value="${escape(pf.date)}"></label><p id="payment-status" role="status">${pr.sequence?'Rascunho guardado neste dispositivo.':'O preenchimento será guardado neste dispositivo.'}</p>${reason?`<p class="note">${escape(reason)}</p>`:''}<button id="save-payment" type="button" class="primary full">Confirmar registo</button><button id="ask-discard-payment" class="full" type="button">Descartar rascunho</button></form>`;}
-
-function commitmentDetail(ledger){const t=ledger.pendingPayments.find(t=>t.id===commitmentId),paid=ledger.transactions.filter(t=>t.pendingId===commitmentId);let html=t?originalCommitmentDetail(ledger):`<button data-page="agenda">‹ Agenda</button><h1>${paid.length?'Compromisso liquidado':'Compromisso indisponível'}</h1>`;if(t&&Commitments.payable(ledger,t))html+='<button id="open-payment" class="primary full">'+(t.type==='income'?'Registar recebimento':'Registar pagamento')+'</button>';if(paid.length)html+='<h2>Pagamentos registados</h2>'+paid.map(t=>row(t)).join('');return html;}
-
 document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b||busy)return;if(b.id==='open-payment'||b.id==='resume-payment'){e.stopImmediatePropagation();run(()=>openPayment());}else if(b.id==='save-payment'){e.stopImmediatePropagation();const f=document.getElementById('payment-form');if(!f.reportValidity())return;run(async()=>{const r=await persistPayment(),p=Forms.paymentPayload(pf);await client.enqueue('commitment.settle',p,{expectedEntityRevision:pr.expectedRevision,paymentDraft:{token:r.token,sequence:r.sequence}});commitmentId=p.id;pf=null;pr=null;page='compromisso';message.textContent='Registo guardado. O saldo e o restante foram atualizados em conjunto.';});}else if(b.id==='ask-discard-payment'){e.stopImmediatePropagation();run(async()=>{paymentDiscard=P.copy((await adapter.read()).state.paymentDraft);page='descartar-pagamento';});}else if(b.id==='confirm-discard-payment'){e.stopImmediatePropagation();run(async()=>{await Forms.discard(adapter,'paymentDraft',paymentDiscard);pf=null;pr=null;page='agenda';});}else if(page==='pagar-compromisso'&&b.dataset.page){e.stopImmediatePropagation();run(async()=>{if(pr&&!Forms.staleReason((await adapter.read()).state,pr))await persistPayment();pf=null;pr=null;page=b.dataset.page;});}},true);
 
 for(const name of ['input','change'])document.addEventListener(name,e=>{if(e.target.closest('#payment-form')&&!busy)persistPayment().then(()=>{const el=document.getElementById('payment-status');if(el)el.textContent='Rascunho guardado neste dispositivo.';}).catch(e=>message.textContent=e.message);});
@@ -538,17 +490,13 @@ async function persistHouse(){preserveHouse();if(!hr)return;const r=await Forms.
 
 async function openHouseForm(kind,id=null){await adapter.idle();const s=(await adapter.read()).state;if(s.houseDraft){hr=P.copy(s.houseDraft);hf=P.copy(hr.form);page='casa-form';return;}const v=P.view(s),c=House.Casa.state(v.ledger),old=kind==='product'?c.catalog.find(x=>x.id===id):c.stock.find(x=>x.id===id);hf={id:old?.id||P.id(),command:'house.'+kind,mode:old?'update':'create',seed:P.id(),changedOn:today()};if(kind==='product'){const cats=P.Finance.categoryParts(old?.category||'');Object.assign(hf,{name:old?.name||'',brand:old?.brand||'',category:cats[0]||'',sub1:cats[1]||'',sub2:cats[2]||'',sub3:cats[3]||'',unit:old?.unit||'un',url:old?.url||'',offers:old?Object.entries(old.offers).map(([storeId,o])=>({storeName:c.stores.find(s=>s.id===storeId)?.name||'',packageQty:String(o.packageQty),price:String(o.price).replace('.',','),...(o.url?{url:o.url}:{})})) :[]});}else if(kind==='lot'){Object.assign(hf,{catalogId:old?.catalogId||id||'',qty:String(old?.qty||''),location:old?.location||'',expiry:old?.expiry||'',opened:old?.opened===true});}else {if(!old)throw Error('Lote indisponível.');Object.assign(hf,{id:old.id,qty:'',type:'consume',note:''});}hr=Forms.create(s,hf,'house',v.revisions.house||0);page='casa-form';}
 
-function houseForm(ledger){if(!hf)return '<p>Formulário indisponível.</p>';const f=hf,reason=Forms.staleReason(current.state,hr),field=(name,label,extra='')=>`<label>${label}<input name="${name}" value="${escape(f[name]||'')}" ${extra}></label>`;let body='';if(f.command==='house.product'){body=field('name','Nome','required maxlength="160"')+field('brand','Marca','maxlength="80"')+field('category','Categoria','required')+field('sub1','Subcategoria 1')+field('sub2','Subcategoria 2')+field('sub3','Subcategoria 3')+`<label>Unidade de stock<select name="unit">${House.Casa.stockUnits.map(([id,label])=>`<option value="${id}" ${f.unit===id?'selected':''}>${escape(label)}</option>`).join('')}</select></label>`+`<h2>Preços por supermercado</h2><p class="sub">A quantidade usa a unidade de stock escolhida. Deixa o preço vazio se ainda não o sabes; o link pertence a este supermercado.</p>${f.offers.map((o,i)=>`<fieldset data-offer-row><legend>Preço ${i+1}</legend>${[['storeName','Supermercado'],['packageQty','Quantidade da embalagem'],['price','Preço (€), opcional'],['url','Link neste supermercado']].map(([k,label])=>`<label>${label}<input name="offer-${i}-${k}" data-offer-field="${k}" value="${escape(o[k]??'')}" ${k==='storeName'?'maxlength="160"':k==='url'?'type="url" maxlength="2048" placeholder="https://…"':'inputmode="decimal"'}></label>`).join('')}<button data-remove-offer="${i}" type="button">Retirar este preço do formulário</button></fieldset>`).join('')}<button id="add-offer" type="button">+ Adicionar supermercado</button>`;}else if(f.command==='house.lot'){body=(f.mode==='create'?field('qty','Quantidade','inputmode="decimal" required'):'<p>Alterar o destino mantém a quantidade original e os consumos.</p>')+field('location','Destino do produto','required maxlength="80" list="stock-places"')+'<datalist id="stock-places"><option>Despensa</option><option>Frigorífico</option><option>Congelador</option></datalist>'+field('expiry','Validade (opcional)','type="date"');}else body='<label>Registo<select name="type"><option value="consume" '+(f.type==='consume'?'selected':'')+'>Consumo</option><option value="waste" '+(f.type==='waste'?'selected':'')+'>Desperdício</option></select></label>'+field('qty','Quantidade','inputmode="decimal" required')+field('note','Motivo (opcional)','maxlength="500"');return `<button class="back" data-page="casa">‹ Casa</button><h1>${f.command==='house.product'?'Produto e preços':f.command==='house.lot'?'Lote de stock':'Registar consumo'}</h1><form id="house-form">${body}<p id="house-status" role="status">${hr.sequence?'Rascunho guardado neste dispositivo.':'O preenchimento será guardado neste dispositivo.'}</p>${reason?`<p class="note">${escape(reason)}</p>`:''}<button class="primary full" id="save-house" type="button">Guardar</button><button id="ask-discard-house" class="full" type="button">Descartar rascunho</button></form>`;}
-
-document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b||busy)return;let task=null;if(b.dataset.houseTab)task=async()=>{houseTab=b.dataset.houseTab;page='casa';};if(b.dataset.product)task=async()=>{houseId=b.dataset.product;houseTab='produto';page='casa';};if(b.dataset.lot)task=async()=>{houseId=b.dataset.lot;houseTab='lote';page='casa';};if(b.id==='new-product'||b.dataset.editProduct)task=()=>openHouseForm('product',b.dataset.editProduct||null);if(b.dataset.newLot)task=()=>openHouseForm('lot',b.dataset.newLot);if(b.dataset.editLot)task=()=>openHouseForm('lot',b.dataset.editLot);if(b.dataset.consumeLot)task=()=>openHouseForm('consume',b.dataset.consumeLot);if(b.id==='resume-house')task=()=>openHouseForm('product');if(b.id==='add-offer')task=async()=>{preserveHouse();hf.offers.push({storeName:'',packageQty:'',price:''});document.getElementById('house-form').remove();await persistHouse();};if(b.dataset.removeOffer!==undefined)task=async()=>{preserveHouse();hf.offers.splice(Number(b.dataset.removeOffer),1);document.getElementById('house-form').remove();await persistHouse();};if(b.id==='ask-discard-house')task=async()=>{houseDiscard=P.copy((await adapter.read()).state.houseDraft);page='descartar-casa';};if(b.id==='confirm-discard-house')task=async()=>{await Forms.discard(adapter,'houseDraft',houseDiscard);hr=null;hf=null;page='casa';};if(b.dataset.shopping)task=async()=>{const p={id:b.dataset.shopping,seed:P.id(),changedOn:today(),values:{operation:'toggle'}};await client.enqueue('house.shopping',p);};if(b.id==='save-house'){if(!document.getElementById('house-form').reportValidity())return;task=async()=>{const r=await persistHouse(),p=HouseForm.payload(hf);await client.enqueue(hf.command,p,{houseDraft:{token:r.token,sequence:r.sequence}});houseId=p.id;houseTab=hf.command==='house.product'?'produto':hf.command==='house.lot'?'lote':'despensa';hf=null;hr=null;page='casa';message.textContent='Casa guardada neste dispositivo.';};}if(page==='casa-form'&&b.dataset.page)task=async()=>{if(hr&&!Forms.staleReason((await adapter.read()).state,hr))await persistHouse();hf=null;hr=null;page=b.dataset.page;};if(task){e.stopImmediatePropagation();run(task);}},true);
+document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b||busy)return;let task=null;if(b.dataset.houseTab)task=async()=>{houseTab=b.dataset.houseTab;page='casa';};if(b.dataset.product)task=async()=>{houseId=b.dataset.product;houseTab='produto';page='casa';};if(b.dataset.lot)task=async()=>{houseId=b.dataset.lot;houseTab='lote';page='casa';};if(b.id==='new-product'||b.dataset.editProduct)task=()=>openHouseForm('product',b.dataset.editProduct||null);if(b.dataset.newLot)task=()=>openHouseForm('lot',b.dataset.newLot);if(b.dataset.editLot)task=()=>openHouseForm('lot',b.dataset.editLot);if(b.dataset.consumeLot)task=()=>openHouseForm('consume',b.dataset.consumeLot);if(b.id==='resume-house')task=()=>openHouseForm('product');if(b.id==='add-offer')task=async()=>{preserveHouse();hf.offers.push({storeName:'',packageQty:'',price:''});document.getElementById('house-form').remove();await persistHouse();};if(b.dataset.removeOffer!==undefined)task=async()=>{preserveHouse();hf.offers.splice(Number(b.dataset.removeOffer),1);document.getElementById('house-form').remove();await persistHouse();};if(b.id==='ask-discard-house')task=async()=>{houseDiscard=P.copy((await adapter.read()).state.houseDraft);page='descartar-casa';};if(b.id==='confirm-discard-house')task=async()=>{await Forms.discard(adapter,'houseDraft',houseDiscard);hr=null;hf=null;page='casa';};if(b.dataset.shopping)task=async()=>{const p={id:b.dataset.shopping,seed:P.id(),changedOn:today(),values:{operation:'toggle'}};await client.enqueue('house.shopping',p);};if(b.id==='save-house'){if(!document.getElementById('house-form').reportValidity())return;task=async()=>{const r=await persistHouse(),p=HouseForm.payload(hf);await client.enqueue(hf.command,p,{houseDraft:{token:r.token,sequence:r.sequence}});houseId=p.id;houseTab=hf.command==='house.product'?'produto':hf.command==='house.lot'?'lote':'stock';hf=null;hr=null;page='casa';message.textContent='Casa guardada neste dispositivo.';};}if(page==='casa-form'&&b.dataset.page)task=async()=>{if(hr&&!Forms.staleReason((await adapter.read()).state,hr))await persistHouse();hf=null;hr=null;page=b.dataset.page;};if(task){e.stopImmediatePropagation();run(task);}},true);
 
 for(const name of ['input','change'])document.addEventListener(name,e=>{if(e.target.closest('#house-form')&&!busy)persistHouse().then(()=>{const el=document.getElementById('house-status');if(el)el.textContent='Rascunho guardado neste dispositivo.';}).catch(e=>message.textContent=e.message);});
 
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'&&page==='casa-form')persistHouse().catch(e=>message.textContent=e.message);});
 
 document.addEventListener('click',e=>{const b=e.target.closest('button');if(b?.id==='repeat-extended'&&!busy){e.stopImmediatePropagation();run(async()=>{await client.resolve(conflictId,'local');page='sync';message.textContent='Nova proposta guardada; a anterior ficou no histórico.';});}},true);
-
-function recoveryPage(){return `<section><h2>Estados anteriores</h2><p class="sub">Conservamos até três pontos. Uma origem importada pode ser exportada novamente; só se restaura diretamente a mesma associação.</p><button id="list-checkpoints">Ver pontos guardados</button>${recoveryPoints.map(r=>`<article class="review-card"><strong>${r.revision===0?'Origem da passagem':'Estado anterior · revisão '+r.revision}</strong><p>${r.transactions} movimentos confirmados · ${r.operations} operações no histórico</p><button data-checkpoint="${r.id}">Abrir e rever</button></article>`).join('')}</section>`+`<button class="back" data-page="sync">‹ Ligação</button><h1>Cópia e recuperação</h1><p class="sub">Cópia encriptada dos dados e rascunhos locais. Guarda a palavra-passe: será necessária para recuperar. As credenciais da ligação ficam na proteção do Android e não são exportadas.</p><label>Palavra-passe da cópia<input id="backup-password" type="password" minlength="10" maxlength="512" autocomplete="off"></label><div class="review-actions"><button id="export-backup" class="primary">Guardar cópia encriptada</button><button id="choose-backup">Escolher cópia para recuperar</button>${recoveryFile?'<button id="open-backup">Abrir cópia escolhida</button>':''}</div>`;}
 
 const recoveryAdapter={read:()=>adapter.read(),restoreWithCheckpoint:(state,revision)=>store.compareAndSet({state,expectedRevision:revision,preservePrevious:true})};
 

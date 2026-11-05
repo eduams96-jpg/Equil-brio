@@ -1,6 +1,7 @@
 'use strict';
 // Dados fictícios partilhados pelos ecrãs, pelos testes e pela pré-visualização.
 const P = require('../../../shared/protocol.cjs');
+const H = require('../../../shared/house.cjs');
 
 function empty() {
   return P.fixture();
@@ -26,6 +27,10 @@ function demo() {
       { id: 'sh-3', name: 'Detergente', qty: '2', done: false },
     ],
   };
+  H.Casa.saveProductOffers(d, { name: 'Arroz agulha', brand: 'Cigala', category: 'Alimentação', unit: 'un' }, [
+    { storeName: 'Continente', packageQty: 1, price: 1.29 }, { storeName: 'Pingo Doce', packageQty: 1, price: 1.35 },
+  ]);
+  H.Life.lot(d, { catalogId: H.Casa.state(d).catalog[0].id, qty: 3, location: 'Despensa', expiry: '2027-03-01', opened: false });
   d.pendingPayments = [
     { id: 'pp-rent', description: 'Renda', date: '2026-11-08', type: 'expense', amount: 520, account: bank, category: 'Habitação' },
     { id: 'pp-net', description: 'Internet', date: '2026-11-20', type: 'expense', amount: 34.9, account: bank, category: 'Serviços' },
