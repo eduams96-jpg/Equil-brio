@@ -9,9 +9,12 @@ const types = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=
 
 http.createServer((req, res) => {
   if (new URL(req.url, 'http://localhost').pathname === '/') build(); // reconstrói ao abrir o índice
-  const name = decodeURIComponent(new URL(req.url, 'http://localhost').pathname).replace(/^\/+/, '') || 'index.html';
-  const file = path.resolve(dir, name);
-  if (!file.startsWith(dir + path.sep) || !fs.existsSync(file) || !fs.statSync(file).isFile()) {
+  let file = null;
+  try {
+    const name = decodeURIComponent(new URL(req.url, 'http://localhost').pathname).replace(/^\/+/, '') || 'index.html';
+    file = path.resolve(dir, name);
+  } catch { /* URL malformado: 404 */ }
+  if (!file || !file.startsWith(dir + path.sep) || !fs.existsSync(file) || !fs.statSync(file).isFile()) {
     res.writeHead(404, { 'content-type': 'text/plain; charset=utf-8' });
     return res.end('Não encontrado');
   }
