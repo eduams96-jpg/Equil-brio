@@ -126,29 +126,13 @@ function draftBanner(){return current.state.movementDraft?'<section class="draft
 
 function recovery(){const record=current.state.movementDraft;if(!record)return '<h1>Sem rascunho</h1><button data-page="movimentos">Voltar aos movimentos</button>';let error='',reason='';try{D.valid(record);reason=D.staleReason(current.state,record);}catch(e){error=e.message;}return `<h1>Movimento por concluir</h1><p class="sub">Guardado neste dispositivo. Ainda não é um movimento financeiro.</p>${error?`<p class="note">${escape(error)}</p>`:`<section class="review-card"><h2>${escape(record.form.description||'Descrição por preencher')}</h2><p>${record.form.command==='new'?'Novo movimento':'Edição de movimento'}</p><small>${escape(record.savedAt?V.dateLabel(record.savedAt.slice(0,10)):'')}</small></section>${reason?`<p class="note">${escape(reason)}</p>`:''}`}<div class="review-actions">${!error?'<button id="resume-edit" class="primary">Retomar preenchimento</button>':''}<button id="ask-discard-draft">Descartar rascunho</button><button data-page="resumo">Voltar ao Resumo</button></div>`;}
 
-function categorySuggestions(ledger,index,prefix=[]){const paths=['Alimentação','Casa','Transportes','Rendimentos','Outros',...ledger.transactions.map(t=>t.category),...(ledger.categoryCatalog||[]).filter(c=>!c.deleted).map(c=>c.name)].filter(Boolean).map(c=>P.Finance.categoryParts(c));return [...new Set(paths.filter(parts=>prefix.every((p,i)=>!p||parts[i]===p)).map(parts=>parts[index]).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-PT'));}
+
 
 function movementForm(ledger){
 
  if(!draft)draft=newDraft(ledger);if(!draftRecord)draftRecord=D.create(current.state,draft,formRevision,'',resolvingId);
 
- const d=draft,transfer=d.type==='transfer',options=(items,value)=>items.map(([id,label])=>`<option value="${escape(id)}" ${id===value?'selected':''}>${escape(label)}</option>`).join('');
-
- const types=d.command==='new'?[['expense','Despesa'],['income','Receita'],['transfer','Transferência']]:d.command.startsWith('transfer.')?[['transfer','Transferência']]:[['expense','Despesa'],['income','Receita']];
-
- const accounts=ledger.accounts.filter(a=>!a.archived).map(a=>[a.id,a.name]);
-
- const accountOptions=value=>options(accounts.some(([id])=>id===value)?accounts:[[value,'Conta indisponível · escolhe outra'],...accounts],value);
-
- const reason=D.staleReason(current.state,draftRecord);
-
- return `<button type="button" class="back" data-page="movimentos">‹ Voltar</button><h1>${resolvingId?'Rever proposta':d.command==='new'?'Novo movimento':'Editar movimento'}</h1>${resolvingId?'<p class="sub">A proposta anterior será conservada. Esta revisão fica por confirmar até sincronizares.</p>':''}
-
- <form id="movement"><label>Tipo<select name="type" id="movement-type">${options(types,d.type)}</select></label><label>Valor (€)<input name="amount" inputmode="decimal" value="${escape(d.amount)}" required autocomplete="off"></label><label>Descrição<input name="description" maxlength="120" value="${escape(d.description)}" required></label><label><span id="account-label">${transfer?'De':'Conta'}</span><select name="account">${accountOptions(d.accountId)}</select></label><label id="target-field" ${transfer?'':'hidden'}>Para<select name="target">${accountOptions(d.targetId)}</select></label>
-
- <fieldset id="category-field" ${transfer?'hidden':''}><legend>Categoria</legend>${['category','subcategory','categoryDetail','categorySubdetail'].map((key,index)=>`<label>${['Categoria','Subcategoria 1','Subcategoria 2','Subcategoria 3'][index]}<input name="${key}" value="${escape(d[key])}" maxlength="80" list="category-options-${index}" ${index?'placeholder="Opcional"':''}><datalist id="category-options-${index}">${categorySuggestions(ledger,index,['category','subcategory','categoryDetail'].slice(0,index).map(k=>d[k])).map(v=>`<option value="${escape(v)}"></option>`).join('')}</datalist></label>`).join('')}</fieldset>
-
- <label>Data<input name="date" type="date" value="${escape(d.date)}" required></label><details class="movement-options" ${d.note||d.beneficiary||d.noteColor?'open':''}><summary>Estabelecimento, nota e cor</summary><label>Estabelecimento<input name="beneficiary" maxlength="160" value="${escape(d.beneficiary)}" autocomplete="off"></label><label>Nota<textarea name="note" maxlength="1000" rows="3">${escape(d.note)}</textarea></label><label>Cor da nota<select name="noteColor">${options([['','Automática'],['default','Sem destaque'],['blue','Azul'],['green','Verde'],['purple','Roxo'],['orange','Laranja'],['red','Vermelho']],d.noteColor)}</select></label><label>Classificação<select name="expenseNature">${options([['variable','Variável'],['fixed','Fixa'],['exceptional','Extraordinária']],d.expenseNature)}</select></label></details><p id="draft-status" role="status" aria-live="polite">${draftRecord.sequence?'Rascunho guardado neste dispositivo.':'O preenchimento é guardado como rascunho.'}</p>${reason?`<p class="note">${escape(reason)}</p>`:''}<button type="button" class="primary" id="save">${resolvingId?'Guardar proposta revista':'Guardar no dispositivo'}</button></form>`;
+ return Movimentos.form({ledger,state:current.state},{draft,draftRecord,resolvingId});
 
 }
 
@@ -216,9 +200,9 @@ async function render(){
 
  const activeTab=Nav.tabFor(page);document.querySelectorAll('nav button').forEach(b=>{b.removeAttribute('aria-current');if(b.dataset.page===activeTab)b.setAttribute('aria-current','page');});
 
- const total=ledger.accounts.reduce((n,a)=>n+P.Finance.cents(P.Finance.balanceAt(ledger,a)),0);
 
- const stats=V.summary(ledger,summaryPeriod);
+
+
 
  const ctx={ledger,state,today:today(),lastSync:readLastSync(),settings:{notifications:false,hour:9,theme:'auto',hideOnOpen:false},money,go:target=>run(async()=>{renderedPage=null;page=target;}),commit:(command,payload,options)=>client.enqueue(command,payload,options),counts:{notices:null,shopping:ledger.casa?.shopping?ledger.casa.shopping.filter(s=>!s.done).length:null},pending,release:__RELEASE__,setFilter:(field,value)=>{if(busy)return;filters[field]=value;visibleLimit=40;run(async()=>{});}};
 
@@ -295,13 +279,10 @@ async function render(){
 
  if(page==='detalhe'){
 
-  const t=ledger.transactions.find(t=>t.id===selectedId);
-
-  main.innerHTML=`<button class="back" data-page="${detailReturn}">‹ Voltar</button><h1>Detalhe do movimento</h1>${t?`<section class="review-card"><h2>${escape(t.description)}</h2><p class="review-value">${V.movementInfo(t).symbol}${money(V.movementInfo(t).amountCents)}</p><p>${escape(V.movementInfo(t).dates)} · ${escape(V.movementInfo(t).route)}</p><small>${escape(V.movementInfo(t).label)}</small>${t.beneficiary?`<p class="movement-meta">Estabelecimento<br><strong>${escape(t.beneficiary)}</strong></p>`:''}${t.note?`<p class="movement-meta note-text" data-note-color="${escape(t.noteColor||'')}">Nota<br><span>${escape(t.note)}</span></p>`:''}</section>${simple(t)?'<div class="review-actions"><button id="edit-movement" class="primary">Editar</button><button id="ask-delete">Eliminar</button></div>':'<p class="sub">Usa o percurso especializado para alterar este movimento.</p>'}`:'<p>O movimento já não existe nesta vista.</p>'}`;
-
+  main.innerHTML=Movimentos.detail(ctx,{movementId:selectedId,returnPage:detailReturn});
  }
 
- if(page==='detalhe'){const t=ledger.transactions.find(t=>t.id===selectedId);if(t)main.insertAdjacentHTML('beforeend',movementConsultation(t));}
+
 
  if(page==='eliminar'){
 
@@ -515,7 +496,7 @@ document.addEventListener('change',event=>{
 
  if(id==='period-year'||id==='period-month'){const y=document.getElementById('period-year').value,m=document.getElementById('period-month').value;run(async()=>{summaryPeriod=y.padStart(4,'0')+'-'+m;});}
 
- const field={'filter-period':'period','filter-account':'accountId','filter-type':'type','filter-status':'status'}[id];if(field){filters[field]=event.target.value;visibleLimit=40;run(async()=>{});}
+ const field={'filter-period':'period','filter-account':'accountId'}[id];if(field){filters[field]=event.target.value;visibleLimit=40;run(async()=>{});}
 
 });
 
@@ -547,7 +528,7 @@ window.EquilibrioBack=()=>{if(busy)return true;const dialog=document.getElementB
 
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'){if(page==='novo')persistDraft().catch(e=>message.textContent=e.message);if(page==='novo-compromisso')persistCommit().catch(e=>message.textContent=e.message);if(page==='pagar-compromisso')persistPayment().catch(e=>message.textContent=e.message);}});
 
-function movementConsultation(t){const info=Consult.movement(t);return `${info.splits.length?'<h2>Divisão por categorias</h2><div class="split-list">'+info.splits.map(p=>`<div class="info-line"><span>${escape(p.category)}</span><strong>${money(p.amountCents)}</strong></div>`).join('')+'</div>':''}${info.links.length?'<p class="note">'+info.links.map(escape).join(' · ')+'</p>':''}${info.pendingTransfer?'<p class="note">Transferência por confirmar: o destino ainda não recebeu este valor.</p>':''}`;}
+
 
 function financialConsultation(ledger){const c=Consult.debts(ledger,summaryPeriod);return `<button class="back" data-page="resumo">‹ Resumo</button><h1>Créditos e prestações</h1><p class="sub">Consulta dos registos existentes. Alterações e pagamentos especializados mantêm o percurso no PC.</p>${periodControls(ledger)}<h2>Créditos</h2>${c.debts.map(d=>`<section class="review-card"><h3>${escape(d.name)}</h3><small>Capital em dívida</small><p class="review-value">${money(d.balanceCents)}</p><p>Prestação: ${money(d.paymentCents)}</p></section>`).join('')||'<p class="empty">Sem créditos registados.</p>'}<h2>Prestações estimadas do mês</h2><p class="sub">Estimativas do modelo Windows; não são pagamentos registados.</p>${c.estimates.map(e=>`<section class="review-card"><strong>${escape(e.description)}</strong><p>${escape(V.dateLabel(e.date))} · ${money(P.Finance.cents(e.amount))}</p></section>`).join('')||'<p class="empty">Sem prestações estimadas neste mês.</p>'}<h2>Compras em prestações</h2>${c.plans.map(p=>`<section class="review-card"><h3>${escape(p.description)}</h3>${p.payments.map(x=>`<div class="info-line"><span>${escape(V.dateLabel(x.date))}</span><strong>${money(x.remainingCents)} por liquidar</strong></div>`).join('')}</section>`).join('')||'<p class="empty">Sem planos de prestações.</p>'}`;}
 

@@ -22,8 +22,7 @@ function render(ctx, view = {}) {
   const ledger = ctx.ledger;
   const stats = V.summary(ledger, period);
   const counts = ctx.counts || {};
-  let agendaCount = null;
-  try { agendaCount = Agenda.agenda(ledger, period, ctx.today, false).pendingCount; } catch { agendaCount = null; }
+  const agendaCount = Agenda.agenda(ledger, period, ctx.today, false).pendingCount;
   const recent = V.movements(ledger, stateOf(ctx), {}, 5).rows;
   const note = ctx.pending ? 'Inclui alterações locais por confirmar' : (ctx.release ? 'Contas deste aparelho' : 'Contas de demonstração');
   const tiles = [
