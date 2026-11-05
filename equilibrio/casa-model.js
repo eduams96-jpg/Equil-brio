@@ -135,80 +135,6 @@
       return p.id;
     });
   }
-  // An OCR result is only a proposal. This method receives reviewed values and
-  // writes the purchase, catalogue prices, lots and optional debit together.
-  function addReceiptPurchase(d, input) {
-    if(input.text!==undefined && (typeof input.text!=="string"||input.text.length>200000))throw Error("Texto da fatura Casa inválido.");
-    return change(d, (draft, F) => {
-      const c = draft.casa;
-      const storeName = String(input.store || '').trim();
-      if (!storeName || storeName.length > 160) throw Error('Confirma o nome do supermercado.');
-      if (!F.validDate(input.date) || input.date > F.today() || draft.closedMonths.includes(input.date.slice(0, 7)))
-        throw Error('Escolhe uma data válida num mês aberto, até hoje.');
-      if (!Array.isArray(input.items) || !input.items.length || input.items.length > 200)
-        throw Error('Confirma entre 1 e 200 artigos da fatura.');
-      if (!Number.isFinite(input.total) || input.total <= 0 || F.money(input.total) !== input.total || !Number.isSafeInteger(F.cents(input.total)))
-        throw Error('Confirma o total da fatura em cêntimos.');
-      let store = c.stores.find(s => nameKey(s.name) === nameKey(storeName));
-      if (store?.archived) throw Error('O supermercado está arquivado. Reativa-o antes de guardar esta fatura.');
-      if (!store) {
-        store = {id:F.id(), name:storeName, archived:false};
-        c.stores.push(store);
-      }
-      const items = [];
-      let totalCents = 0;
-      for (const raw of input.items) {
-        const name = String(raw.name || '').trim();
-        const total = Number(raw.total);
-        if (!name || name.length > 160 || !Number.isFinite(total) || total <= 0 || F.money(total) !== total || !Number.isSafeInteger(F.cents(total)))
-          throw Error('Confirma o nome e o valor de cada artigo.');
-        totalCents += F.cents(total);
-        if (!raw.stock) {
-          const category=String(raw.productCategory||raw.category||input.category||'Outros').trim();
-          items.push({name,total,category,...(raw.sourceName?{sourceName:raw.sourceName}:{})});
-          continue;
-        }
-        const unit = String(raw.unit || '');
-        const productCategory = String(raw.productCategory || '').trim();
-        const packages = Number(raw.packages);
-        const packageQty = Number(raw.packageQty);
-        if (!validUnit(unit) || !productCategory || productCategory.length > 400 ||
-            !Number.isSafeInteger(packages) || packages < 1 || !quantity(packageQty) ||
-            !Number.isSafeInteger(packages * Math.round(packageQty * 1000)) ||
-            F.cents(total) % packages !== 0)
-          throw Error('Confirma a unidade, quantidade e preço por embalagem de cada artigo para o stock.');
-        let product = raw.catalogId
-          ? c.catalog.find(p => p.id === raw.catalogId)
-          : c.catalog.find(p => nameKey(p.name) === nameKey(name));
-        if (raw.catalogId && !product) throw Error('O produto escolhido para o stock já não existe.');
-        if (product?.archived) throw Error('O produto está arquivado. Reativa-o antes de o adicionar ao stock.');
-        if (product && product.unit !== unit) throw Error('A unidade do produto existente não coincide com o stock indicado.');
-        if (!product) {
-          product = {id:F.id(), name, category:productCategory, brand:'', barcode:'', notes:'', unit, archived:false, offers:{}};
-          c.catalog.push(product);
-        }
-        const price = F.cents(total) / packages / 100;
-        const qty = packages * Math.round(packageQty * 1000) / 1000;
-        if (!quantity(qty) || !Number.isSafeInteger(F.cents(price)))
-          throw Error('A quantidade ou o preço do artigo excede o limite permitido.');
-        const previous = product.offers[store.id];
-        if (!previous || previous.price !== price || previous.packageQty !== packageQty) {
-          product.offers[store.id] = {...previous,packageQty,price,date:input.date};
-          c.priceHistory.push({id:F.id(),catalogId:product.id,storeId:store.id,packageQty,price,date:input.date,source:'fatura confirmada'});
-        }
-        items.push({name,category:productCategory,catalogId:product.id,unit,requestedQty:qty,packages,packageQty,qty,price,total,...(raw.sourceName?{sourceName:raw.sourceName}:{})});
-      }
-      if (!Number.isSafeInteger(totalCents) || totalCents !== F.cents(input.total))
-        throw Error('A soma dos artigos tem de coincidir com o total da fatura. Revê descontos e linhas não reconhecidas.');
-      const purchase = {id:F.id(),date:input.date,storeId:store.id,store:store.name,items,discount:0,total:input.total,stockPosted:items.some(i => !!i.catalogId),...(input.text!==undefined?{receiptText:input.text}:{})};
-      c.purchases.push(purchase);
-      items.forEach((item,line) => {
-        if (item.catalogId) c.stock.push({id:F.id(),purchaseId:purchase.id,line,catalogId:item.catalogId,qty:item.qty,unit:item.unit});
-      });
-      if (input.account) linkDraft(draft,F,purchase,input.account,input.category);
-      return purchase.id;
-    });
-  }
   function link(d,id,account,category) {
     return change(d,(draft,F) => {
       const p = draft.casa.purchases.find(p => p.id === id);
@@ -562,7 +488,7 @@
     let changed=0;const prepared=rows.map(r=>{const base=nameKey(r.name);if(!split.has(base))return{...r};changed++;const pk=pack(r),brand=brandPacks.has(base+'|'+pk)?' · '+String(r.brand||'Sem marca').trim():'',variant=linkVariants.has(base+'|'+pk+'|'+nameKey(r.storeName||''))&&r.url?' · '+r.storeName+' · Oferta '+code(r.url):'';return{...r,name:r.name+' · '+labels.get(base+'|'+pk)+brand+variant};});
     return{rows:prepared,separatedRows:changed,separatedNames:split.size};
   }
-  const api = {catalogVariants,delimitedTable,catalogTableRows,productUrl,stockUnits,parseUnitSpec,convertCompatibleQty,importCatalogTable,validatePreservedAttachment,categoryPaths,state,validate,addPurchase,addReceiptPurchase,link,removePurchase,shopping,saveStore,saveProduct,removeProduct,clearProductCategories,saveProductOffers,setOffer,queueProduct,quote,checkout,change,attachMovement,correctPurchase};
+  const api = {catalogVariants,delimitedTable,catalogTableRows,productUrl,stockUnits,parseUnitSpec,convertCompatibleQty,importCatalogTable,validatePreservedAttachment,categoryPaths,state,validate,addPurchase,link,removePurchase,shopping,saveStore,saveProduct,removeProduct,clearProductCategories,saveProductOffers,setOffer,queueProduct,quote,checkout,change,attachMovement,correctPurchase};
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.CasaFinance = Object.freeze(api);
 })(typeof globalThis === 'object' ? globalThis : this);

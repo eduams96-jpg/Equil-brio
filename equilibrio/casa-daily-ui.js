@@ -58,7 +58,7 @@
     });
     count.textContent=`${visible} ${visible===1?'lote':'lotes'}`;
    };
-   search.oninput=paint;select.onchange=paint;for(const b of places.querySelectorAll('button'))b.onclick=()=>{stockLocations.set(key,b.dataset.pantryPlace);for(const button of places.querySelectorAll('button'))button.setAttribute('aria-pressed',String(button===b));paint();window.WorkbenchUI?.render();};paint();
+   search.oninput=paint;select.onchange=paint;for(const b of places.querySelectorAll('button'))b.onclick=()=>{stockLocations.set(key,b.dataset.pantryPlace);for(const button of places.querySelectorAll('button'))button.setAttribute('aria-pressed',String(button===b));paint();};paint();
   }
   document.querySelectorAll((!target||target==='casaRecipes')?'[data-recipe-edit]':'[data-no-recipe]').forEach(b=>{const r=state().recipes.find(r=>r.id===b.dataset.recipeEdit),cost=D.recipeCost(data,r.id,r.servings),text=document.createElement('p');b.closest('article').querySelector('.casa-recipe-cost')?.remove();text.className='casa-card-meta casa-recipe-cost';text.textContent=cost.missing.length?'Custo incompleto · falta preço: '+cost.missing.join(', '):'Custo estimado: '+eur(cost.total)+' · '+eur(cost.perServing)+' / porção';b.closest('article').append(text);});
   $('#casaMeals .casa-meal-suggestion')?.remove();const suggestion=(!target||target==='casaMeals')?D.suggestRecipes(data)[0]:null;if(suggestion?.feasible&&(!target||target==='casaMeals')){const text=document.createElement('p');text.className='panel casa-meal-suggestion';text.textContent='Sugestão com stock disponível: '+suggestion.name+(suggestion.expiry!=='9999'?' · ingrediente com validade '+suggestion.expiry:'')+'. Confirma os lotes ao preparar.';$('#casaMeals .section-head').after(text);}

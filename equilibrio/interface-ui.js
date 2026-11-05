@@ -36,7 +36,6 @@
   ['Objetivos, reservas e orçamentos somam-se?','Não. Objetivos e reservas identificam dinheiro que está nas contas; os orçamentos limitam a despesa. Podem sobrepor-se e não são somados. Um compromisso só altera o saldo depois de confirmado.','Planeamento e revisão'],
   ['O que representam as simulações?','São estimativas com os compromissos conhecidos e as premissas escolhidas. Simular não cria movimentos nem transfere dinheiro. Evita introduzir novamente uma prestação que já esteja incluída na previsão.','Planeamento e revisão'],
   ['Como aplicar uma regra?','Em Dados → Regras, cria ou edita a regra e abre Pré-visualizar. Confere os movimentos elegíveis antes de aplicar. O histórico permite desfazer a aplicação quando os registos não foram entretanto alterados.','Movimentos e valores'],
-  ['Como ler uma fatura?','Abre Ler fatura e escolhe uma imagem ou PDF. Numa fotografia podes rodar, acertar a inclinação, reforçar contraste e retirar margens antes de ler. Na revisão, confere os avisos por campo/artigo e a diferença dos totais antes de guardar. Imagens até 10 MB; PDF até 8 MB e dez páginas. A leitura não confirma automaticamente produtos, categorias ou pagamentos.','Comprovativos e Casa'],
   ['Onde ficam os comprovativos?','Ficam associados aos movimentos e guardados no espaço financeiro. Em Dados → Documentos, pesquisa, filtra e abre o detalhe. Abrir, guardar uma cópia ou exportar os ficheiros não altera saldos. PDFs conservam o formato original.','Comprovativos e Casa'],
   ['Como funciona a Despensa?','A lista reúne cada produto e mostra a quantidade e a validade mais próxima. O detalhe mantém os lotes separados por local e validade. Consumir exige confirmação. Repor abre uma entrada manual num lote novo; para registar uma compra, usa Compras. Os novos registos Casa não criam movimentos financeiros; as ligações históricas são preservadas.','Casa','stock alimentos inventário'],
   ['Como guardar ícones nas contas?','Em Definições → Utilização e aparência → Ícones, associa uma imagem à conta, fornecedor ou beneficiário. PNG, JPEG e WebP até 2 MB são reduzidos para 96 × 96. A imagem fica no espaço e acompanha as cópias. Podes também escolher apenas iniciais.','Começar'],
@@ -75,7 +74,7 @@
  document.body.append(help);help.querySelector('[aria-label="Fechar ajuda"]').onclick=()=>help.close();search.oninput=()=>{helpSelected=null;renderHelp();};renderHelp();
  function collectHelp(root=document){
   // A FAQ usa apenas conteúdo editorial: nunca acumula nomes/valores de um espaço.
-  for(const node of root.querySelectorAll('.context-help,.desk-guidance,#plansHubOverview>p,#providerIconSettings>p,.receipt-inline>p:not([role]):not(.receipt-status),.transaction-split-workbench-head>div>p:not(.eyebrow),#modal.transaction-editor .optional-fields>p'))node.remove();
+  for(const node of root.querySelectorAll('.context-help,.desk-guidance,#plansHubOverview>p,#providerIconSettings>p,.transaction-split-workbench-head>div>p:not(.eyebrow),#modal.transaction-editor .optional-fields>p'))node.remove();
  }
  const openHelp=()=>{if(!help.open)help.showModal();renderHelp();help.querySelector('input').focus();};
  const list=document.querySelector('#settings .help-list');

@@ -113,7 +113,6 @@
       "provider-icons.js",
       "provider-icons-ui.js",
       "approved-visual-ui.js",
-      "workbench-ui.js",
       "assets/fonts/dm-sans.ttf",
       "assets/fonts/OFL-DM-Sans.txt",
       "interface-ui.js",

@@ -1933,9 +1933,3 @@ body.equilibrio-studio #topNoticesBtn{height:36px;min-height:36px;font-size:13px
 /* @order 37133 */
 @media(max-width:900px){#plansHub .decisions-secondary-grid{grid-template-columns:minmax(0,1fr)}}
 
-/* @order 37134 */
-#casaProducts .desk-owned-content .product-title-button{display:block;background:transparent;border:0;padding:8px 0;color:var(--ink);font:inherit;font-size:19px;font-weight:700;text-align:left;cursor:pointer}
-/* @order 37135 */
-#casaProducts .desk-owned-content .casa-offers{display:grid;gap:12px;margin:18px 0;line-height:1.6}
-/* @order 37136 */
-#casaProducts .desk-owned-content .casa-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}

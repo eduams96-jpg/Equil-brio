@@ -6,7 +6,7 @@ const workspaceId = require("node:crypto")
   .createHash("sha256")
   .update(path.resolve(__dirname).toLowerCase())
   .digest("hex");
-const publicFiles = new Set(["Equilibrio.ico","entry-tips-ui.js","dossiers-model.js","dossiers-ui.js","mobile-connection-ui.js","mobile-connection.css","receipt-image.js","casa-finance-pilot-model.js","casa-finance-pilot-ui.js","gifts-model.js","gifts-ui.js","assets/fonts/dm-sans.ttf","assets/fonts/OFL-DM-Sans.txt","workbench-ui.js","provider-icons.js","provider-icons-ui.js","approved-visual-ui.js","experience-model.js","experience-ui.js","practical-model.js","practical-ui.js","captura.html",
+const publicFiles = new Set(["Equilibrio.ico","entry-tips-ui.js","dossiers-model.js","dossiers-ui.js","mobile-connection-ui.js","mobile-connection.css","receipt-image.js","casa-finance-pilot-model.js","casa-finance-pilot-ui.js","gifts-model.js","gifts-ui.js","assets/fonts/dm-sans.ttf","assets/fonts/OFL-DM-Sans.txt","provider-icons.js","provider-icons-ui.js","approved-visual-ui.js","experience-model.js","experience-ui.js","practical-model.js","practical-ui.js","captura.html",
  "interface-ui.js",
  "productivity-model.js",
  "productivity-ui.js", "reports-model.js", "reports-ui.js", "backup-info.js", "space-transfer-model.js", "space-transfer-ui.js",

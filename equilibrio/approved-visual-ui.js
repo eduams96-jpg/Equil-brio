@@ -22,8 +22,6 @@
   actions.append(document.getElementById('addTransaction3'));
   const recurring=planner.querySelector('.planner-recurring-actions');if(recurring){actions.append(...recurring.children);recurring.remove();}
   planner.querySelector('.planner-insights-card')?.remove();
-  document.getElementById('wealth').querySelector('.section-head h2').textContent = 'Património';
-  document.getElementById('wealth').querySelector('.section-head p').textContent = 'O que tens, o que deves e como evolui.';
   const tabs = document.querySelector('.area-tabs'), original = document.createComment('Separadores das outras áreas');
   tabs.before(original);
   function placeTabs() {

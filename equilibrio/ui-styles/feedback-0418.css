@@ -1,5 +1,3 @@
-/* @order 21000 */
-body.equilibrio-studio #casaStock .desk-workspace{grid-template-columns:minmax(0,1fr) 310px!important;gap:20px!important;align-items:start}
 /* @order 21001 */
 #casaStock .casa-pantry-locations{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px}
 /* @order 21002 */
@@ -10,24 +8,12 @@ body.equilibrio-studio #casaStock .desk-workspace{grid-template-columns:minmax(0
 #casaStock .casa-filter-bar{grid-template-columns:minmax(180px,1fr) minmax(180px,230px) auto!important;padding:0!important;border:0!important;background:transparent!important;margin:22px 0!important}
 /* @order 21005 */
 #casaStock .casa-filter-bar label,#casaStock .casa-stock-count{font-size:12px!important}
-/* @order 21006 */
-#casaStock .desk-table th{font-size:12px!important;text-transform:none;letter-spacing:0;padding:14px 18px!important}
-/* @order 21007 */
-#casaStock .desk-table td{padding:19px 18px!important;font-size:13px!important;line-height:1.5}
-/* @order 21008 */
-#casaStock .desk-table td:first-child{width:50%}
-/* @order 21009 */
-#casaStock .desk-table td:nth-child(2){text-align:right;white-space:nowrap!important}
-/* @order 21010 */
-#casaStock .desk-table td:last-child{min-width:120px;text-align:right;font-variant-numeric:tabular-nums}
 /* @order 21011 */
 #casaStock .desk-inspector-heading{padding:20px;border-bottom:0}
 /* @order 21012 */
 #casaStock .desk-inspector-heading h3{font-size:23px!important;line-height:1.3!important;margin-top:8px!important}
 /* @order 21013 */
 #casaStock .desk-inspector-heading>span{font-size:11px;letter-spacing:.07em;text-transform:uppercase}
-/* @order 21014 */
-#casaStock .desk-owned-content{padding:0 20px 20px!important}
 /* @order 21015 */
 #casaStock .desk-inspector .casa-stock-card{padding:0 0 22px!important;margin:0 0 22px!important;gap:15px!important}
 /* @order 21016 */
@@ -54,10 +40,6 @@ body.equilibrio-studio #casaStock .desk-workspace{grid-template-columns:minmax(0
 #casaStock .casa-pantry-options{padding-top:14px;border-top:1px solid var(--line);font-size:13px}
 /* @order 21027 */
 #casaStock .casa-pantry-options summary{color:var(--ink);line-height:1.5}
-/* @order 21028 */
-#casaStock .desk-supplement{padding:0 20px 20px!important;font-size:12px;line-height:1.6}
-/* @order 21029 */
-@media(max-width:1050px){body.equilibrio-studio #casaStock .desk-workspace{grid-template-columns:minmax(0,1fr) 270px!important}#casaStock .desk-table th,#casaStock .desk-table td{padding:14px 12px!important}}
 /* @order 21030 */
 @media(max-width:760px){body.equilibrio-studio #casaStock .desk-workspace{grid-template-columns:minmax(0,1fr)!important}#casaStock .casa-filter-bar{grid-template-columns:1fr 1fr!important}#casaStock .casa-stock-count{grid-column:1/-1}#casaStock .desk-table td:last-child{min-width:0}#casaStock .desk-table td:first-child{width:42%}}
 /* @order 21031 */

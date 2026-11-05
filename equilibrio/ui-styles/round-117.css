@@ -6,8 +6,6 @@
 #productCategoryLevels .split-choice{width:100%}
 /* @order 45103 */
 #addProductOffer{white-space:nowrap;flex:0 0 auto}
-/* @order 45104 */
-body.equilibrio-studio #casaProducts .desk-table td:first-child{width:40%}
 /* @order 45105 */
 body[data-current-view="casaGifts"] #mainContent>header{display:none!important}
 /* @order 45106 */

@@ -8,16 +8,6 @@
   if(JSON.stringify(value).length>24*1024*1024)throw Error('O rascunho excede o limite local.');
   return structuredClone(value);
  }
- function receiptAdjustment(items,amount,kind,target){
-  if(!Array.isArray(items)||!items.length||!amount||!Number.isSafeInteger(F.cents(amount))||F.money(amount)!==amount||!['discount','shipping','rounding'].includes(kind)||kind==='discount'&&amount>=0||kind==='shipping'&&amount<=0||Math.abs(amount)>1000000)throw Error('Ajuste de fatura inválido.');
-  const rows=structuredClone(items),indexes=target==='all'?rows.map((_,i)=>i):[Number(target)];
-  if(indexes.some(i=>!Number.isInteger(i)||!rows[i]||!Number.isFinite(rows[i].amount)||rows[i].amount<=0))throw Error('Escolhe os artigos do ajuste.');
-  const total=indexes.reduce((n,i)=>n+F.cents(rows[i].amount),0),delta=F.cents(amount);
-  if(total+delta<indexes.length)throw Error('O desconto deixa artigos sem valor positivo. Revê a distribuição.');
-  let allocated=0;
-  indexes.forEach((i,n)=>{const share=n===indexes.length-1?delta-allocated:Math.trunc(delta*F.cents(rows[i].amount)/total);allocated+=share;const next=F.cents(rows[i].amount)+share;if(next<1)throw Error('O ajuste deixa um artigo sem valor positivo.');rows[i].amount=next/100;});
-  return {items:rows,adjustment:{kind,amount,target,allocations:indexes.map(i=>({index:i,from:items[i].amount,to:rows[i].amount}))}};
- }
  function balanceChanges(d,from,to){
   if(!F.validDate(from)||!F.validDate(to)||from>to)throw Error('Intervalo inválido.');
   const accounts=d.accounts.map(a=>({id:a.id,name:a.name,from:F.balanceAt(d,a,from),to:F.balanceAt(d,a,to)}));
@@ -48,5 +38,5 @@
  function periodIndex(d){const map=new Map(),ensure=m=>{if(!map.has(m))map.set(m,{income:0,expense:0});return map.get(m);};for(const t of d.transactions)if(t.type==='income'&&!t.refundOf)ensure(t.date.slice(0,7)).income+=F.cents(t.amount);for(const t of F.expenseEntries(d))ensure(t.date.slice(0,7)).expense+=F.cents(t.amount);const balance=F.money(d.accounts.reduce((n,a)=>n+a.balance,0));return prefix=>{let income=0,expense=0;for(const [m,value]of map)if(m.startsWith(prefix)){income+=value.income;expense+=value.expense;}return {income:income/100,expense:expense/100,balance};};}
  function cashIndex(d){const names=new Set(d.accounts.map(a=>a.name)),days=new Map();const add=(date,delta)=>days.set(date,(days.get(date)||0)+F.cents(delta));for(const t of d.transactions){if(names.has(t.account))add(t.date,F.transactionDeltaForAccount(t,t.account));if(t.type==='transfer'&&t.transferStatus!=='pending'&&names.has(t.targetAccount))add(t.targetDate||t.date,F.transactionDeltaForAccount(t,t.targetAccount));}let value=d.accounts.reduce((n,a)=>n+F.cents(F.openingBalance(d,a)),0);const points=[...days].sort(([a],[b])=>a.localeCompare(b)).map(([date,delta])=>({date,value:(value+=delta)/100}));const opening=d.accounts.reduce((n,a)=>n+F.cents(F.openingBalance(d,a)),0)/100;return date=>{let low=0,high=points.length;while(low<high){const mid=(low+high)>>1;if(points[mid].date<=date)low=mid+1;else high=mid;}return low?points[low-1].value:opening;};}
  function priceEvidence(d,id){const c=d.casa,p=c?.catalog.find(p=>p.id===id);if(!p)throw Error('Produto não encontrado.');const rows=[];for(const purchase of c.purchases){if(purchase.date>F.today())continue;const total=purchase.items.reduce((n,i)=>n+F.cents(i.total),0);for(const item of purchase.items)if(item.catalogId===id&&item.qty>0&&total>0)rows.push({date:purchase.date,store:purchase.store,source:'Compra confirmada',unit:p.unit,per:item.total/item.qty*(purchase.total/(total/100)),purchaseId:purchase.id});}for(const h of c.priceHistory||[])if(h.catalogId===id&&h.packageQty>0&&h.date<=F.today())rows.push({date:h.date,store:c.stores.find(s=>s.id===h.storeId)?.name||'Loja histórica',source:'Preço registado',unit:p.unit,per:h.price/h.packageQty});return rows.sort((a,b)=>b.date.localeCompare(a.date));}
- const api={validateDraft,receiptAdjustment,balanceChanges,bulkEligibility,forecastEvidence,unitQuantity,periodIndex,cashIndex,priceEvidence};root.ProductivityFinance=api;if(typeof module==='object')module.exports=api;
+ const api={validateDraft,balanceChanges,bulkEligibility,forecastEvidence,unitQuantity,periodIndex,cashIndex,priceEvidence};root.ProductivityFinance=api;if(typeof module==='object')module.exports=api;
 })(globalThis);

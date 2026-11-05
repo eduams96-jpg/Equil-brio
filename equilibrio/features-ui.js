@@ -936,29 +936,6 @@
         )
         .join("") || empty("Não há registos apagados para recuperar.");
   }
-  function renderWealthHistory() {
-    const history = data.wealthHistory
-        .slice()
-        .sort((a, b) => a.date.localeCompare(b.date)),
-      max = Math.max(1, ...history.map((s) => Math.abs(s.net)));
-    $("#wealthEvolution").innerHTML =
-      sectionHead(
-        "Evolução do património",
-        "Acompanha como o teu património líquido evolui ao longo do tempo.",
-      ) +
-      `<div class="wealth-snapshot-toolbar">${button("Guardar valor de hoje", "snapshot")}<p><b>O que é guardado?</b> Um retrato do dia com contas + investimentos + bens − dívidas. Serve apenas para construir a evolução histórica; não cria movimentos nem altera saldos. Se guardares novamente no mesmo dia, esse registo é atualizado.</p></div>` +
-      (history.length
-        ? `<div class="wealth-timeline">${history
-            .slice(-30)
-            .map(
-              (s) =>
-                `<div title="${dateLabel(s.date)}: ${eur(s.net)}"><i class="${s.net < 0 ? "below-zero" : ""}" style="height:${Math.max(2, (Math.abs(s.net) / max) * 100)}%"></i><small>${s.date.slice(8)}/${s.date.slice(5, 7)}</small></div>`,
-            )
-            .join(
-              "",
-            )}</div><div class="mini-metrics">${metric("Primeiro registo", eur(history[0].net), dateLabel(history[0].date))}${metric("Último registo", eur(history.at(-1).net), dateLabel(history.at(-1).date))}${metric("Variação registada", eur(history.at(-1).net - history[0].net))}</div>`
-        : empty("Guarda o primeiro registo para começar."));
-  }
   function monthlyReport() {
     const totals = F.totals(data, month),
       info = P.insights(data, month);
@@ -1046,7 +1023,6 @@
     if (['cashflow','planner','plansHub','decisionsHub'].includes(view)) renderForecast();
     if (['dashboard','weeklyHub','reviewMonthHub','insights','reports'].includes(view)) renderAnalytics();
     if (['settings','dataHub','review'].includes(view) || document.querySelector('#historyManagerDialog')?.open) renderRecovery();
-    if (['wealth','wealthMoneyHub','wealthHoldingsHub','reports','assets','investments'].includes(view)) renderWealthHistory();
     $$("#accountsGrid .account-card").forEach((card, i) => {
       const a = data.accounts[i];
       card.classList.toggle("archived-account", !!a.archived);

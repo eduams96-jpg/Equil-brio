@@ -1999,8 +1999,7 @@ function form(title, fields, action, help = "", submit = "Guardar") {
   window.DraftUI?.suspend();
   formRevision++;
   $('#modalForm .close').disabled = false;
-  $("#modal").classList.remove("import-dialog", "transaction-editor", "receipt-review-dialog", "financial-detail-dialog", "balance-variation-dialog", "receipt-image-dialog");
-  $("#modalForm").classList.remove("receipt-assisted-review");
+  $("#modal").classList.remove("import-dialog", "transaction-editor", "financial-detail-dialog", "balance-variation-dialog");
   const formSpace = key;
   const returnView = view;
   $("#modal").dataset.returnView = returnView;
@@ -2296,7 +2295,6 @@ function transactionForm(id) {
   bindDateStepper($("#modalContent"), "date");
   const descriptions = document.createElement("datalist");
   window.MovementUI?.enhanceForm(t);
-  window.ReceiptUI?.attachToMovement(t);
   $("#modal").classList.add('transaction-editor');
   const editor=$('#modalContent'),identity=document.createElement('div'),basics=document.createElement('div');
   identity.className='transaction-identity';basics.className='transaction-basics';
@@ -2305,7 +2303,6 @@ function transactionForm(id) {
   moveField('type',basics);moveField('date',basics);moveField('account',basics);moveField('amount',basics);
   $('#formError').after(identity,basics);
   editor.querySelectorAll('.two-cols').forEach(n=>{if(!n.children.length)n.remove();});
-  const receipt=editor.querySelector('.receipt-inline');if(receipt)identity.before(receipt);
   const notes=document.createElement('div');notes.className='transaction-notes';editor.querySelector('[name=note]').closest('label').before(notes);moveField('note',notes);moveField('noteColor',notes);
   const noteDisclosure=document.createElement('details');noteDisclosure.className='transaction-note-disclosure';noteDisclosure.innerHTML='<summary>Nota e cor (opcional)</summary>';notes.before(noteDisclosure);noteDisclosure.append(notes);noteDisclosure.open=!!t?.note||!!t?.noteColor;
   const depth=editor.querySelector('.category-depth-fields'),depthDisclosure=document.createElement('details');depthDisclosure.className='transaction-depth-disclosure';depthDisclosure.innerHTML='<summary>Mais níveis de categoria</summary>';depth.before(depthDisclosure);depthDisclosure.append(depth);depthDisclosure.open=!!formCategoryDetail||!!formCategorySubdetail;
@@ -2321,7 +2318,6 @@ function transactionForm(id) {
   typeInput.closest('label').append(typeChoices);typeInput.classList.add('transaction-native-type');
   const syncType=()=>typeChoices.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.movementType===typeInput.value)));typeInput.addEventListener('change',syncType);syncType();
   const helper=editor.querySelector('.modal-subtitle');if(helper)helper.remove();
-  if(receipt){basics.querySelector('.transaction-type-field').after(receipt);receipt.querySelector('summary').textContent='Ler fatura';}
   const submit=editor.querySelector('button[type=submit]'),footer=document.createElement('div');footer.className='transaction-editor-footer';
   const cancel=document.createElement('button');cancel.type='button';cancel.className='secondary';cancel.textContent='Cancelar';cancel.onclick=closeForm;submit.before(footer);footer.append(cancel,submit);
   const categoryInputs=['category','subcategory','categoryDetail','categorySubdetail'].map(name=>$('#modalContent [name='+name+']'));

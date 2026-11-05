@@ -1,23 +1,6 @@
 (function(){
  'use strict';
  const M=ProductivityFinance;
- function receiptPanel(draft){
-  const host=document.getElementById('receiptProducts');if(!host)return;
-  host.adjustments=structuredClone(draft.reviewedAdjustments||[]);
-  const panel=document.createElement('details');panel.className='workflow-detail';panel.id='receiptAdjustmentPanel';
-  panel.innerHTML='<summary>Descontos, portes e arredondamentos</summary>'+select('Tipo','receiptAdjustmentKind',[['discount','Desconto'],['shipping','Portes'],['rounding','Arredondamento']])+number('Valor com sinal (€)','receiptAdjustmentAmount','',-1000000)+select('Aplicar a','receiptAdjustmentTarget',[['all','Distribuir pelos artigos incluídos']])+ '<p id="receiptAdjustmentPreview" role="status"></p><button type="button" class="secondary" id="applyReceiptAdjustment">Aplicar aos artigos</button><ol id="receiptAdjustmentHistory"></ol>';
-  host.after(panel);panel.querySelector('[name=receiptAdjustmentAmount]').required=false;const total=document.createElement('p');total.id='receiptLineDifference';total.setAttribute('role','status');panel.before(total);
-  const readRows=()=>[...host.querySelectorAll('.receipt-product')].filter(row=>!row.querySelector('[name^=omit]').checked).map(row=>({row,name:row.querySelector('[name^=product]').value,amount:Number(row.querySelector('[name^=price]').value)}));
-  const history=()=>{document.getElementById('receiptAdjustmentHistory').innerHTML=host.adjustments.map(a=>'<li>'+esc(({discount:'Desconto',shipping:'Portes',rounding:'Arredondamento'})[a.kind])+' · '+eur(a.amount)+'</li>').join('');};
-  const refresh=()=>{const rows=readRows(),sum=rows.reduce((n,i)=>n+F.cents(i.amount||0),0)/100,value=Number(document.querySelector('[name=receiptTotal]').value),diff=F.money(value-sum);total.textContent='Artigos: '+eur(sum)+' · Total: '+eur(value)+' · Diferença: '+eur(diff);
-   const target=document.querySelector('[name=receiptAdjustmentTarget]'),old=target.value;target.innerHTML='<option value="all">Distribuir pelos artigos incluídos</option>'+rows.map((r,i)=>'<option value="'+i+'">'+esc(r.name||'Artigo '+(i+1))+'</option>').join('');if([...target.options].some(o=>o.value===old))target.value=old;
-   try{const result=M.receiptAdjustment(rows.map(({name,amount})=>({name,amount})),Number(document.querySelector('[name=receiptAdjustmentAmount]').value),document.querySelector('[name=receiptAdjustmentKind]').value,target.value);document.getElementById('receiptAdjustmentPreview').textContent=result.adjustment.allocations.map(a=>rows[a.index].name+': '+eur(a.from)+' → '+eur(a.to)).join(' · ');document.getElementById('applyReceiptAdjustment').disabled=false;}catch(e){document.getElementById('receiptAdjustmentPreview').textContent=e.message;document.getElementById('applyReceiptAdjustment').disabled=true;}
-  };
-  panel.addEventListener('input',refresh);panel.addEventListener('change',refresh);host.addEventListener('input',refresh);host.addEventListener('change',refresh);document.querySelector('[name=receiptTotal]').addEventListener('input',refresh);
-  document.getElementById('applyReceiptAdjustment').onclick=()=>{const rows=readRows(),result=M.receiptAdjustment(rows.map(({name,amount})=>({name,amount})),Number(document.querySelector('[name=receiptAdjustmentAmount]').value),document.querySelector('[name=receiptAdjustmentKind]').value,document.querySelector('[name=receiptAdjustmentTarget]').value);result.items.forEach((item,i)=>rows[i].row.querySelector('[name^=price]').value=item.amount);host.adjustments.push(result.adjustment);document.querySelector('[name=receiptAdjustmentAmount]').value='';history();refresh();host.dispatchEvent(new Event('input',{bubbles:true}));};
-  const proposal=(draft.adjustments||[])[0];if(proposal){document.querySelector('[name=receiptAdjustmentKind]').value=proposal.kind;document.querySelector('[name=receiptAdjustmentAmount]').value=proposal.amount;}
-  history();refresh();
- }
  function variation(){
   const end=dashboardMonthEnd(month),prior=dashboardMonthEnd(dashboardMonthOffset(month,-1));
   form('Explicar a variação do saldo',field('Desde (saldo no fim do dia)','variationFrom',prior,'date','required')+field('Até','variationTo',end,'date','required')+'<div id="variationResult"></div>',()=>true,'','Fechar');
@@ -41,5 +24,5 @@
  function reserves(){const total=data.reserves.reduce((n,r)=>n+F.cents(r.saved||0),0)/100;form('Composição das reservas','<p>Total atribuído às reservas: <b>'+eur(total)+'</b></p><p>Estas atribuições fazem parte do dinheiro nas contas; não são somadas de novo ao património.</p>'+data.reserves.map(r=>'<p>'+esc(r.name)+' · '+eur(r.saved||0)+' reservado de '+eur(r.target||0)+'</p>').join(''),()=>true,'','Fechar');}
  function refresh(){const add=(id,host,text,fn)=>{const target=document.querySelector(host);if(!target)return;let b=document.getElementById(id);if(!b){b=document.createElement('button');b.id=id;b.type='button';b.className='link-button';b.textContent=text;}target.append(b);b.onclick=fn;};add('balanceVariationButton','#balanceTrend','Explicar variação',variation);add('wealthContributionButton','#wealth .wealth-v3-composition','Ver composição',contribution);add('casaPriceEvidenceButton','#casaPrices .section-head','Comparar com histórico',casaPrices);add('reserveEvidenceButton',document.querySelector('#plansHub .u-plan-list-heading')?'#plansHub .u-plan-list-heading':'#plansHub .u-head .u-actions','Ver reservas',reserves);}
  UILifecycle.register('productivity',{afterRender:refresh,afterNavigation:refresh},60);refresh();
- window.ProductivityUI={receiptPanel,variation,forecast,contribution,casaPrices,reserves};
+ window.ProductivityUI={variation,forecast,contribution,casaPrices,reserves};
 })();

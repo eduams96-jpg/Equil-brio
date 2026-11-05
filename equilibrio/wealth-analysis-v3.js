@@ -17,9 +17,8 @@
     const page = byId("wealth");
     if (!page || byId("wealthV3Overview")) return;
     const header = page.querySelector(":scope > .section-head");
-    header?.querySelector("h2")?.replaceChildren("O teu património, num só lugar.");
-    header?.querySelector("p")?.replaceChildren("O que tens, o que deves e como evoluiu — numa única vista.");
-    header?.querySelector(":scope > div")?.insertAdjacentHTML("afterbegin", '<span class="wa-v3-eyebrow">PATRIMÓNIO</span>');
+    header?.querySelector("h2")?.replaceChildren("Património");
+    header?.querySelector("p")?.replaceChildren("O que tens, o que deves e como evolui.");
     const overview = document.createElement("div");
     overview.id = "wealthV3Overview";
     overview.className = "wa-v3-overview wealth-v3-overview";
@@ -60,7 +59,7 @@
       .sort((a, b) => a.date.localeCompare(b.date))
       .slice(-12);
     if (!history.length)
-      return '<div class="wealth-v3-chart-empty">Ainda não há retratos guardados. Guarda um valor na evolução detalhada para acompanhares a tendência.</div>';
+      return '<div class="wealth-v3-chart-empty">Ainda não há valores guardados. Usa «Guardar valor de hoje» para começares a acompanhar a tendência.</div>';
     const points = history.length === 1
       ? [{ ...history[0], x: 70 }, { ...history[0], x: 580 }]
       : history.map((point, index) => ({ ...point, x: 70 + (index / (history.length - 1)) * 510 }));
@@ -80,48 +79,80 @@
   function renderWealth() {
     const host = byId("wealthV3Overview");
     if (!host) return;
-    const accounts = data.accounts || [];
+    const today = F.today();
+    const I = (name) => window.InterfaceUI?.icon ? InterfaceUI.icon(name) : "";
+    const accounts = (data.accounts || []).filter((item) => !item.archived);
     const investments = data.investments || [];
     const assets = data.assets || [];
     const debts = data.debts || [];
-    const cash = total(accounts, (item) => F.balanceAt(data, item, F.today()));
-    const liquid = total(accounts.filter(item => !item.archived && !/cartão|credito|crédito/i.test(item.type)), item => F.balanceAt(data,item,F.today()));
+    const cash = total(data.accounts || [], (item) => F.balanceAt(data, item, today));
     const investmentValue = total(investments, (item) => item.value);
     const assetValue = window.LifeFinance?.assetTotal?.(data) || 0;
     const debtValue = total(debts, (item) => item.balance);
+    const monthlyPayments = total(debts.filter((item) => item.balance > 0), (item) => item.payment);
     const net = F.money(cash + investmentValue + assetValue - debtValue);
     const positive = Math.max(0, cash) + Math.max(0, investmentValue) + Math.max(0, assetValue);
-    const historical = [...(data.wealthHistory || [])].filter((item) => Number.isFinite(Number(item.net)) && item.date <= F.today()).sort((a, b) => a.date.localeCompare(b.date));
+    const historical = [...(data.wealthHistory || [])].filter((item) => Number.isFinite(Number(item.net)) && item.date <= today).sort((a, b) => a.date.localeCompare(b.date));
     const previous = historical.at(-1);
     const delta = previous ? F.money(net - Number(previous.net)) : null;
-    const portions = positive ? [cash, investmentValue, assetValue].map((value) => `${Math.max(0, value) / positive * 100}%`) : ["0%", "0%", "0%"];
+    const share = (value) => positive ? Math.max(0, value) / positive * 100 : 0;
+    const pct = (value) => `${Math.round(share(value))}%`;
+    const pending = ["Por conferir", "Rever avaliação", "Sem avaliação"];
     const entries = [
-      ...accounts.map(item => {
-        const posted = (data.transactions || []).filter(t => (t.account === item.name || t.targetAccount === item.name) && t.date <= F.today()).map(t => t.date).filter(F.validDate).sort().at(-1);
+      ...accounts.map((item) => {
+        const posted = (data.transactions || []).filter((t) => (t.account === item.name || t.targetAccount === item.name) && t.date <= today).map((t) => t.date).filter(F.validDate).sort().at(-1);
         const checked = F.validDate(item.reconciledOn) && (!posted || posted <= item.reconciledOn);
-        return {id:"account:"+item.id,name:item.name, type:item.type || "Conta", value:F.balanceAt(data,item,F.today()), date:item.reconciledOn, status:checked ? "Conferida" : "Por conferir", route:"wealthMoneyHub"};
+        return { id: "account:" + item.id, kind: "account", name: item.name, type: item.type || "Conta", value: F.balanceAt(data, item, today), date: item.reconciledOn, status: checked ? "Conferida" : "Por conferir" };
       }),
-      ...investments.map(item => ({id:"investment:"+item.id,name:item.name,type:"Investimento",value:item.value,date:item.updatedOn || item.date,status:"Valor registado",route:"wealthHoldingsHub"})),
-      ...assets.map(item => {
-        const date=(item.valuations || []).filter(v=>v.date<=F.today()).map(v=>v.date).sort().at(-1);
-        const stale=!date || date<FinancePlus.monthAdd(F.today().slice(0,7),-6)+'-01';
-        return {id:"asset:"+item.id,name:item.name,type:item.kind || "Bem",value:LifeFinance.assetValue(item),date,status:!date?"Sem avaliação":stale?"Rever avaliação":"Avaliação registada",route:"wealthHoldingsHub"};
+      ...assets.map((item) => {
+        const date = (item.valuations || []).filter((v) => v.date <= today).map((v) => v.date).sort().at(-1);
+        const stale = !date || date < FinancePlus.monthAdd(today.slice(0, 7), -6) + "-01";
+        return { id: "asset:" + item.id, kind: "asset", name: item.name, type: item.kind || "Bem", value: LifeFinance.assetValue(item), date, status: !date ? "Sem avaliação" : stale ? "Rever avaliação" : "Avaliação registada" };
       }),
-      ...debts.map(item => ({id:"debt:"+item.id,name:item.name,type:"Crédito",value:-item.balance,date:item.updatedOn || item.date,status:"Saldo registado",route:"wealthMoneyHub"})),
     ];
+    const review = entries.filter((item) => pending.includes(item.status));
+    const unchecked = review.filter((item) => item.kind === "account").length;
+    // productivity-ui.js adds "Ver composição" to this card; keep it across redraws.
+    const contribution = byId("wealthContributionButton");
+    const tile = (tone, icon, label, value, detail) => `<article class="ch-tile is-${tone}"><span class="ch-tile-icon">${I(icon)}</span><div><span>${label}</span><strong class="amount">${value}</strong><small>${detail}</small></div></article>`;
+    const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+    const parts = [
+      ["accounts", "Contas", cash, plural(accounts.length, "conta ativa", "contas ativas")],
+      ["investments", "Investimentos", investmentValue, plural(investments.length, "posição", "posições")],
+      ["assets", "Bens", assetValue, plural(assets.length, "bem", "bens")],
+    ];
+    const reviewCard = (item) => {
+      const account = item.kind === "account";
+      return `<article class="wl-review-card${account ? "" : " is-asset"}"><span class="wl-kind-badge kind-${item.kind}">${I(account ? "account" : "box")}</span><div class="wl-review-main"><h4>${safe(item.name)}</h4><p>${safe(item.type)} · ${F.validDate(item.date) ? (account ? "conferida a " : "avaliada a ") + dateLabel(item.date) : account ? "nunca conferida" : "sem avaliação"}</p></div><div class="wl-review-side"><strong class="amount">${money(item.value)}</strong><span class="wl-status is-pending">${safe(item.status)}</span></div><button type="button" class="secondary" data-u-open-record="${safe(item.id)}">${account ? "Conferir saldo" : "Registar avaliação"}</button></article>`;
+    };
     host.innerHTML = `
-      <div class="approved-wealth-metrics">
-        <article class="panel approved-metric"><span>Património líquido</span><strong class="amount">${money(net)}</strong></article>
-        <article class="panel approved-metric"><span>Contas</span><strong class="amount">${money(cash)}</strong><small>Antes de reservas e compromissos</small></article>
-        <article class="panel approved-metric"><span>Bens e investimentos</span><strong class="amount">${money(investmentValue + assetValue)}</strong></article>
-        <article class="panel approved-metric"><span>Créditos</span><strong class="amount">${money(-debtValue)}</strong></article>
+      <div class="wl-tiles">
+        ${tile(net >= 0 ? "green" : "red", "chart", "Património líquido", money(net), delta === null ? "Sem valores guardados para comparar" : `${delta >= 0 ? "+" : "−"}${money(Math.abs(delta))} desde ${dateLabel(previous.date)}`)}
+        ${tile("blue", "account", "Contas", money(cash), unchecked ? plural(unchecked, "conta por conferir", "contas por conferir") : "Todas conferidas")}
+        ${tile("purple", "box", "Bens e investimentos", money(investmentValue + assetValue), `${plural(assets.length, "bem", "bens")} · ${plural(investments.length, "posição", "posições")}`)}
+        ${tile(debtValue ? "amber" : "green", "alert", "Créditos", money(-debtValue), debtValue ? `Prestações de ${money(monthlyPayments)}/mês` : "Sem créditos em dívida")}
       </div>
-      <div class="wealth-v3-hero-grid">
-        <article class="wa-v3-card wealth-v3-net"><div class="approved-card-heading"><h3>Evolução do património</h3></div><p>${delta === null ? "Guarda retratos para acompanhar a evolução." : `<span class="amount">${delta >= 0 ? "+" : ""}${money(delta)}</span> face ao último retrato guardado`}</p>${wealthHistoryChart(net)}</article>
-        <article class="wa-v3-card wealth-v3-composition"><h3>Composição</h3><div class="wealth-v3-composition-bar" role="img" aria-label="Composição dos ativos: contas ${money(cash)}, investimentos ${money(investmentValue)}, bens ${money(assetValue)}"><i style="width:${portions[0]}"></i><i style="width:${portions[1]}"></i><i style="width:${portions[2]}"></i></div><div class="wealth-v3-legend"><span>Contas <b class="amount">${money(cash)}</b></span><span>Investimentos <b class="amount">${money(investmentValue)}</b></span><span>Bens <b class="amount">${money(assetValue)}</b></span><span>Créditos <b class="amount">−${money(debtValue)}</b></span></div></article>
+      <div class="wl-grid">
+        <article class="wl-card wl-evolution">
+          <header class="wl-card-head"><div><h3>Evolução</h3><p>${delta === null ? "Guarda o valor de hoje para começares a acompanhar a tendência." : `<span class="amount ${delta >= 0 ? "positive" : "negative"}">${delta >= 0 ? "+" : "−"}${money(Math.abs(delta))}</span> face ao último valor guardado (${plural(historical.length, "registo", "registos")})`}</p></div><button type="button" class="secondary" data-action="snapshot">${I("history")}Guardar valor de hoje</button></header>
+          ${wealthHistoryChart(net)}
+        </article>
+        <article class="wl-card wl-composition wealth-v3-composition">
+          <header class="wl-card-head"><div><h3>Composição</h3><p>Ativos de ${money(positive)}</p></div></header>
+          <div class="wl-stack" role="img" aria-label="Composição dos ativos: ${parts.map(([, label, value]) => `${label} ${money(value)}`).join(", ")}">${parts.map(([key, , value]) => `<i class="part-${key}" style="width:${share(value).toFixed(2)}%"></i>`).join("")}</div>
+          <ul class="wl-parts">
+            ${parts.map(([key, label, value, detail]) => `<li><span class="wl-dot part-${key}"></span><div><b>${label}</b><small>${detail}</small></div><strong class="amount">${money(value)}</strong><em>${pct(value)}</em></li>`).join("")}
+            <li class="is-debt"><span class="wl-dot part-debts"></span><div><b>Créditos</b><small>${plural(debts.filter((item) => item.balance > 0).length, "crédito em dívida", "créditos em dívida")}</small></div><strong class="amount">${debtValue ? "−" : ""}${money(debtValue)}</strong><em>${positive ? Math.round(debtValue / positive * 100) + "%" : "—"}</em></li>
+          </ul>
+          <button type="button" class="wa-v3-link" data-wa-route="wealthMoneyHub">Ver inventário <span aria-hidden="true">→</span></button>
+        </article>
       </div>
-      <article id="wealthInventory" class="panel approved-wealth-inventory"><div class="approved-card-heading"><h3>Avaliações e conferências a rever</h3></div><div class="table-wrap"><table><thead><tr><th>Nome</th><th>Tipo</th><th>Valor</th><th>Última conferência / avaliação</th><th>Estado</th><th><span class="sr-only">Ação</span></th></tr></thead><tbody>${entries.filter(item=>["Por conferir","Rever avaliação","Sem avaliação"].includes(item.status)).slice(0,100).map(item => `<tr><td data-label="Nome">${safe(item.name)}</td><td data-label="Tipo">${safe(item.type)}</td><td class="amount" data-label="Valor">${money(item.value)}</td><td data-label="Conferência / avaliação">${F.validDate(item.date) ? dateLabel(item.date) : "Não registada"}</td><td data-label="Estado"><span class="approved-state ${["Por conferir","Rever avaliação","Sem avaliação"].includes(item.status) ? "pending" : "confirmed"}">${safe(item.status)}</span></td><td><button type="button" class="secondary" data-u-open-record="${safe(item.id)}">${item.status === "Por conferir" ? "Conferir" : "Rever avaliação"}</button></td></tr>`).join("")}</tbody></table></div>${!entries.some(item=>["Por conferir","Rever avaliação","Sem avaliação"].includes(item.status)) ? '<p class="empty-state">Sem avaliações ou conferências pendentes.</p>' : ''}${entries.length > 100 ? '<p>Mostrados os primeiros 100 registos. Consulta a lista completa em Contas e créditos ou Bens e investimentos.</p>' : ''}<p class="approved-footnote">Transferências entre contas não aumentam o património. Os bens usam a última avaliação registada; a evolução usa apenas retratos guardados.</p></article>`;
-
+      <article id="wealthInventory" class="wl-card wl-review">
+        <header class="wl-card-head"><div><h3>A rever</h3><p>Contas por conferir com o extrato e bens sem avaliação recente (6 meses).</p></div>${review.length ? `<span class="wl-count">${review.length}</span>` : ""}</header>
+        ${review.length ? `<div class="wl-review-grid">${review.slice(0, 24).map(reviewCard).join("")}</div>${review.length > 24 ? `<p class="wl-more">Mais ${review.length - 24} no <button type="button" class="wa-v3-link" data-wa-route="wealthMoneyHub">Inventário</button>.</p>` : ""}` : `<div class="wl-empty">${I("check")}<strong>Tudo em dia</strong><p>Não há contas por conferir nem bens por avaliar.</p></div>`}
+      </article>
+      <p class="wl-footnote">Transferências entre contas não alteram o património. Os bens usam a última avaliação registada; a evolução usa apenas os valores guardados.</p>`;
+    if (contribution) host.querySelector(".wl-composition")?.append(contribution);
   }
 
   function categoryOverview() {
@@ -235,6 +266,9 @@
     }
   });
 
+  // Icons come from interface-ui.js, loaded later: redraw when the page is opened.
+  const priorNavigation = window.PremiumUI?.navigation;
+  if (window.PremiumUI) PremiumUI.navigation = (v) => { priorNavigation?.(v); if (v === "wealth") { setupWealth(); renderWealth(); } };
   window.WealthAnalysisV3 = { render };
   if (!window.equilibrioStartup?.awaitingChoice) render();
 })();

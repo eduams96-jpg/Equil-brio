@@ -56,20 +56,12 @@
 #wealthMoneyHub .u-inventory-legacy>.inventory-diagnostic-nav{padding-bottom:16px;border-bottom:1px solid var(--line)}
 /* @order 42028 */
 #wealthMoneyHub .reconciliation-diagnostics-details{margin-top:24px;padding:20px;border:1px solid var(--line);border-radius:12px}
-/* @order 42029 */
-:is(#casaProducts,#casaStores,#casaPrices) .desk-workspace{grid-template-columns:minmax(0,1.25fr) minmax(340px,1fr)!important;gap:24px!important;align-items:start}
 /* @order 42030 */
 :is(#casaProducts,#casaStores,#casaPrices) .desk-inspector{padding:24px!important;min-width:0;overflow:visible!important}
 /* @order 42031 */
 :is(#casaProducts,#casaStores,#casaPrices) .desk-inspector-heading{padding:0 0 20px!important;margin:0 0 20px;border-bottom:1px solid var(--line)}
 /* @order 42032 */
 :is(#casaProducts,#casaStores,#casaPrices) .desk-inspector-heading h3{font-size:23px!important;line-height:1.4!important;margin:8px 0 0!important;overflow-wrap:anywhere}
-/* @order 42033 */
-:is(#casaProducts,#casaStores,#casaPrices) .desk-owned-content .casa-product-card,:is(#casaProducts,#casaStores) .desk-owned-content .casa-store-card{padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important;border-radius:0!important;min-height:0!important}
-/* @order 42034 */
-#casaProducts .desk-owned-content .product-title-button{font-size:13px!important;font-weight:500!important;color:var(--blue,#70c6ac);padding:10px 0!important;text-decoration:underline}
-/* @order 42035 */
-#casaProducts .desk-owned-content p:empty{display:none}
 /* @order 42036 */
 #casaProducts .catalog-offer{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;padding:16px;border:1px solid var(--line);border-radius:10px;align-items:start;min-width:0}
 /* @order 42037 */
@@ -82,12 +74,6 @@
 #casaProducts .catalog-best{font-size:11px;color:var(--blue,#70c6ac);align-self:center}
 /* @order 42041 */
 :is(#casaProducts,#casaStores,#casaPrices) .desk-inspector .casa-actions{display:flex;gap:10px!important;flex-wrap:wrap;justify-content:flex-start;padding-top:18px;border-top:1px solid var(--line)}
-/* @order 42042 */
-#casaPrices .desk-owned-content .casa-card-grid{display:grid;grid-template-columns:minmax(0,1fr)!important;gap:18px}
-/* @order 42043 */
-#casaPrices .desk-owned-content .casa-product-card{padding-bottom:18px!important;border-bottom:1px solid var(--line)!important}
-/* @order 42044 */
-#casaStores .desk-supplement{margin-top:24px;padding-top:20px;border-top:1px solid var(--line)}
 /* @order 42045 */
 @media(max-width:1000px){#noticesHub .notices-workbench,:is(#casaProducts,#casaStores,#casaPrices) .desk-workspace{grid-template-columns:minmax(0,1fr)!important}#noticesHub .notices-detail{position:static}#noticesHub .notices-master{max-height:400px}#plansHub .u-plan-legacy>#plansHubSections{grid-template-columns:minmax(0,1fr)}}
 /* @order 42046 */

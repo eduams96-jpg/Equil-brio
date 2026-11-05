@@ -1,23 +1,24 @@
 # Retomar o Equilíbrio
 
-Estado em 04/11/2026. Lê isto primeiro quando voltares a pegar no projeto.
+Estado em 05/11/2026. Lê isto primeiro quando voltares a pegar no projeto.
 
 ## Onde ficou
 
 - **Windows 1.0.20** pronto em `entrega-v1.0.20/` (atualização `.fpupdate`, hash e instruções). Aceita a instalação 1.0.19. Validado com instalação incremental e reposição automática numa cópia isolada.
-- **Instalado neste PC:** 1.0.16 ou 1.0.17 — instalar por ordem a 1.0.17 (`entrega-v1.0.17/`), a 1.0.18 (`entrega-v1.0.18/`), a 1.0.19 (`entrega-v1.0.19/`) e a 1.0.20.
+- **Instalado neste PC:** 1.0.20 (instaladas e revistas a 1.0.17 a 1.0.20).
+- **Próxima versão (1.0.21), no código e ainda sem pacote:** Ler Fatura retirado; Património redesenhado; `workbench-ui.js` e 136 regras de CSS mortas removidos; navegação sem rotas duplicadas. Falta gerar a atualização (ver «Gerar a próxima atualização»).
 - **Android:** RC4, sem alterações desde a 1.0.15 (`entrega-v1.0.15/`).
 - **Código:** tudo gravado no `main`. Não enviado para o GitHub.
-- **Testes:** 709 a passar (`npm test` em `equilibrio/`).
+- **Testes:** 683 a passar (`npm test` em `equilibrio/`); saíram os 26 testes da leitura de faturas.
 - **`historico/`:** baselines 1.0.16 a 1.0.20 em `historico/baselines/`. As entregas até 1.0.14 e a baseline 0.39.79 perderam-se em 30/10/2026.
 
 ## Próximos passos, por ordem
 
-1. **Instalar a 1.0.17, a 1.0.18, a 1.0.19 e a 1.0.20, por esta ordem.** Definições → Backup e Atualização: guardar cópia, escolher o `.fpupdate`, confirmar a versão depois de reiniciar. Rever: Revisão e análise, Relatórios (Mês a mês), Agenda, Planos e decisões, todas as páginas da Casa, Dados, Avisos, Definições e o menu «•••» dos Movimentos.
-2. **Arrumar categorias da conta Casa.** Gestão de categorias → «Arrumar repetidas»: 11 sugestões prováveis já marcadas; acrescentar à mão «Mercearia» → «Alimentação / Mercearias». Outras sugeridas ao utilizador: corrigir «Lanços»/«Cirúgica»/«Dispensa»/«Outros Despesas», Bagaço e Licor Beirão → Bebidas / Espirituosa, Saúde / Taxas Moderadoras → Cuidados de Saúde, Subscrições → Lazer / Subscrições. Também há lojas combinadas («Continente // LIDL…») a desfazer.
-3. **Consolidação visual (plano acordado, passos 3–4):** na 1.0.19 já passaram para as peças comuns Revisão e análise, toda a Casa, Dados, Avisos, Definições e Movimentos; falta Património (Visão geral e Inventário). Depois tirar cada página já migrada dos scripts que a reescrevem (`workbench-ui.js`, `approved-visual-ui.js`, `features-ui.js`) e apagar as camadas de CSS antigas que deixam de se aplicar; depois simplificar a navegação (Decisões/Revisão/Análise duplicadas).
+1. **Gerar e instalar a 1.0.21** e rever Património (Visão geral e Inventário), Casa → Compras e o editor de movimentos.
+2. **Arrumar categorias da conta Casa** (o utilizador confirma mais tarde, tal como os possíveis duplicados Portagens 3,25 € e Condomínio 38,75 €). Gestão de categorias → «Arrumar repetidas»: 11 sugestões prováveis já marcadas; acrescentar à mão «Mercearia» → «Alimentação / Mercearias». Outras sugeridas ao utilizador: corrigir «Lanços»/«Cirúgica»/«Dispensa»/«Outros Despesas», Bagaço e Licor Beirão → Bebidas / Espirituosa, Saúde / Taxas Moderadoras → Cuidados de Saúde, Subscrições → Lazer / Subscrições. Também há lojas combinadas («Continente // LIDL…») a desfazer.
+3. **Consolidação visual:** concluída na 1.0.21. Ainda há camadas antigas em `features-ui.js` (cria os hubs de Património e os separadores antigos, que o `unified-workspace-ui.js` substitui) e regras de CSS mistas; só compensa mexer se o programa continuar a evoluir.
 4. **Desempenho, se ainda for lento:** os módulos `planning-ui`, `life-ui`, `daily-ui` e `features-ui` ainda desenham todas as suas secções em cada gravação. Medir com o painel do browser visível (escondido, as medições variam 3×).
-5. **Ler Fatura** — adiado. Precisa de 2–3 faturas reais e da descrição do que deve ficar preenchido. Código: `receipt-reader.js`, `receipt-model.js`, `receipt-ui.js`, `receipt-assistance-ui.js`.
+5. **Ler Fatura** — retirado na 1.0.21 a pedido do utilizador. Ficaram: o motor local de texto (`receipt-reader.js`, `receipt-image.js`), usado pela pesquisa em PDFs e comprovativos; a validação e a pesquisa dos dados já lidos (`receipt-model.js`); a janela «Produtos» dos movimentos antigos (`receipt-ui.js`); «Ler texto para pesquisa» em Dados → Documentos (`receipt-assistance-ui.js`). As antigas sugestões de artigos (`receiptRules`) continuam guardadas, sem uso.
 6. **Pendentes que dependem de ti** (da 1.0.15): piloto físico da partilha (`PILOTO-FINAL.md`); guardar fora deste PC a chave de assinatura Android (`RECUPERACAO-DA-ASSINATURA.md`).
 
 ## O que foi feito na 1.0.20

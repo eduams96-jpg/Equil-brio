@@ -377,29 +377,29 @@
 /* @order 46386 */
 #casaHome .ch-tiles{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:14px!important;margin:0!important}
 /* @order 46387 */
-:is(#casaHome,#casaShopping,#casaPurchases,#casaStock,#casaAnalytics,#casaMeals,#casaRecipes,#dataHub,#noticesHub,#settings) .ch-tile{display:flex;gap:14px;align-items:flex-start;padding:18px;border-radius:16px;background:var(--paper);border:1px solid var(--line);min-width:0}
+:is(#wealth,#wealthMoneyHub,#casaHome,#casaShopping,#casaPurchases,#casaStock,#casaAnalytics,#casaMeals,#casaRecipes,#dataHub,#noticesHub,#settings) .ch-tile{display:flex;gap:14px;align-items:flex-start;padding:18px;border-radius:16px;background:var(--paper);border:1px solid var(--line);min-width:0}
 /* @order 46388 */
-:is(#casaHome,#casaShopping,#casaPurchases,#casaStock,#casaAnalytics,#casaMeals,#casaRecipes,#dataHub,#noticesHub,#settings) .ch-tile>div{display:grid;gap:3px;min-width:0;flex:1}
+:is(#wealth,#wealthMoneyHub,#casaHome,#casaShopping,#casaPurchases,#casaStock,#casaAnalytics,#casaMeals,#casaRecipes,#dataHub,#noticesHub,#settings) .ch-tile>div{display:grid;gap:3px;min-width:0;flex:1}
 /* @order 46389 */
-:is(#casaHome,#casaShopping,#casaPurchases,#casaStock,#casaAnalytics,#casaMeals,#casaRecipes,#dataHub,#noticesHub,#settings) .ch-tile span{font-size:12px;color:var(--muted)}
+:is(#wealth,#wealthMoneyHub,#casaHome,#casaShopping,#casaPurchases,#casaStock,#casaAnalytics,#casaMeals,#casaRecipes,#dataHub,#noticesHub,#settings) .ch-tile span{font-size:12px;color:var(--muted)}
 /* @order 46390 */
-:is(#casaHome,#casaShopping,#casaPurchases,#casaStock,#casaAnalytics,#casaMeals,#casaRecipes,#dataHub,#noticesHub,#settings) .ch-tile strong{font-size:22px!important;font-weight:700!important;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+:is(#wealth,#wealthMoneyHub,#casaHome,#casaShopping,#casaPurchases,#casaStock,#casaAnalytics,#casaMeals,#casaRecipes,#dataHub,#noticesHub,#settings) .ch-tile strong{font-size:22px!important;font-weight:700!important;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* @order 46391 */
-:is(#casaHome,#casaShopping,#casaPurchases,#casaStock,#casaAnalytics,#casaMeals,#casaRecipes,#dataHub,#noticesHub,#settings) .ch-tile small{font-size:12px;color:var(--muted)}
+:is(#wealth,#wealthMoneyHub,#casaHome,#casaShopping,#casaPurchases,#casaStock,#casaAnalytics,#casaMeals,#casaRecipes,#dataHub,#noticesHub,#settings) .ch-tile small{font-size:12px;color:var(--muted)}
 /* @order 46392 */
-:is(#casaHome,#casaShopping,#casaPurchases,#casaStock,#casaAnalytics,#casaMeals,#casaRecipes,#dataHub,#noticesHub,#settings) .ch-tile strong .sensitive-value{font-size:inherit!important;font-weight:inherit!important;color:inherit}
+:is(#wealth,#wealthMoneyHub,#casaHome,#casaShopping,#casaPurchases,#casaStock,#casaAnalytics,#casaMeals,#casaRecipes,#dataHub,#noticesHub,#settings) .ch-tile strong .sensitive-value{font-size:inherit!important;font-weight:inherit!important;color:inherit}
 /* @order 46393 */
-:is(#casaHome,#casaShopping,#casaPurchases,#casaStock,#casaAnalytics,#casaMeals,#casaRecipes,#dataHub,#noticesHub,#settings) .ch-tile-icon{display:grid;place-items:center;flex:0 0 40px;width:40px;height:40px;border-radius:12px;background:color-mix(in srgb,var(--blue) 14%,transparent);color:var(--blue)}
+:is(#wealth,#wealthMoneyHub,#casaHome,#casaShopping,#casaPurchases,#casaStock,#casaAnalytics,#casaMeals,#casaRecipes,#dataHub,#noticesHub,#settings) .ch-tile-icon{display:grid;place-items:center;flex:0 0 40px;width:40px;height:40px;border-radius:12px;background:color-mix(in srgb,var(--blue) 14%,transparent);color:var(--blue)}
 /* @order 46394 */
-:is(#casaHome,#casaShopping,#casaPurchases,#casaStock,#casaAnalytics,#casaMeals,#casaRecipes,#dataHub,#noticesHub,#settings) .ch-tile-icon svg{width:20px;height:20px}
+:is(#wealth,#wealthMoneyHub,#casaHome,#casaShopping,#casaPurchases,#casaStock,#casaAnalytics,#casaMeals,#casaRecipes,#dataHub,#noticesHub,#settings) .ch-tile-icon svg{width:20px;height:20px}
 /* @order 46395 */
-:is(#casaHome,#casaShopping,#casaPurchases,#casaStock,#casaAnalytics,#casaMeals,#casaRecipes,#dataHub,#noticesHub,#settings) .is-green .ch-tile-icon{background:color-mix(in srgb,var(--green) 15%,transparent);color:var(--green)}
+:is(#wealth,#wealthMoneyHub,#casaHome,#casaShopping,#casaPurchases,#casaStock,#casaAnalytics,#casaMeals,#casaRecipes,#dataHub,#noticesHub,#settings) .is-green .ch-tile-icon{background:color-mix(in srgb,var(--green) 15%,transparent);color:var(--green)}
 /* @order 46396 */
-:is(#casaHome,#casaShopping,#casaPurchases,#casaStock,#casaAnalytics,#casaMeals,#casaRecipes,#dataHub,#noticesHub,#settings) .is-amber .ch-tile-icon{background:color-mix(in srgb,var(--orange) 16%,transparent);color:var(--orange)}
+:is(#wealth,#wealthMoneyHub,#casaHome,#casaShopping,#casaPurchases,#casaStock,#casaAnalytics,#casaMeals,#casaRecipes,#dataHub,#noticesHub,#settings) .is-amber .ch-tile-icon{background:color-mix(in srgb,var(--orange) 16%,transparent);color:var(--orange)}
 /* @order 46397 */
-:is(#casaHome,#casaShopping,#casaPurchases,#casaStock,#casaAnalytics,#casaMeals,#casaRecipes,#dataHub,#noticesHub,#settings) .is-red .ch-tile-icon{background:color-mix(in srgb,var(--red) 14%,transparent);color:var(--red)}
+:is(#wealth,#wealthMoneyHub,#casaHome,#casaShopping,#casaPurchases,#casaStock,#casaAnalytics,#casaMeals,#casaRecipes,#dataHub,#noticesHub,#settings) .is-red .ch-tile-icon{background:color-mix(in srgb,var(--red) 14%,transparent);color:var(--red)}
 /* @order 46398 */
-:is(#casaHome,#casaShopping,#casaPurchases,#casaStock,#casaAnalytics,#casaMeals,#casaRecipes,#dataHub,#noticesHub,#settings) .is-purple .ch-tile-icon{background:color-mix(in srgb,#9b6bd3 16%,transparent);color:#9b6bd3}
+:is(#wealth,#wealthMoneyHub,#casaHome,#casaShopping,#casaPurchases,#casaStock,#casaAnalytics,#casaMeals,#casaRecipes,#dataHub,#noticesHub,#settings) .is-purple .ch-tile-icon{background:color-mix(in srgb,#9b6bd3 16%,transparent);color:#9b6bd3}
 /* @order 46399 */
 #casaHome .ch-bar{height:6px!important;margin-top:6px;border-radius:99px;background:var(--surface-soft);overflow:hidden}
 /* @order 46400 */
@@ -564,21 +564,21 @@
 /* @order 46479 */
 #casaShopping .cs-toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 /* @order 46480 */
-:is(#casaShopping,#casaPurchases,#casaStock,#casaRecipes,#casaMeals,#noticesHub,#dataHub,#settings) .cs-pills{display:flex;gap:6px;flex-wrap:wrap}
+:is(#wealthMoneyHub,#casaShopping,#casaPurchases,#casaStock,#casaRecipes,#casaMeals,#noticesHub,#dataHub,#settings) .cs-pills{display:flex;gap:6px;flex-wrap:wrap}
 /* @order 46481 */
-:is(#casaShopping,#casaPurchases,#casaStock,#casaRecipes,#casaMeals,#noticesHub,#dataHub,#settings) .cs-pills button,#casaShopping .cs-stores button{display:inline-flex!important;align-items:center;gap:7px;min-height:34px!important;padding:6px 14px!important;border-radius:99px!important;border:1px solid var(--line)!important;background:transparent!important;color:var(--muted)!important;font-size:13px;font-weight:600;width:auto!important}
+:is(#wealthMoneyHub,#casaShopping,#casaPurchases,#casaStock,#casaRecipes,#casaMeals,#noticesHub,#dataHub,#settings) .cs-pills button,#casaShopping .cs-stores button{display:inline-flex!important;align-items:center;gap:7px;min-height:34px!important;padding:6px 14px!important;border-radius:99px!important;border:1px solid var(--line)!important;background:transparent!important;color:var(--muted)!important;font-size:13px;font-weight:600;width:auto!important}
 /* @order 46482 */
-:is(#casaShopping,#casaPurchases,#casaStock,#casaRecipes,#casaMeals,#noticesHub,#dataHub,#settings) .cs-pills button small,#casaShopping .cs-stores button small{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:99px;background:var(--surface-soft);font-size:11px}
+:is(#wealthMoneyHub,#casaShopping,#casaPurchases,#casaStock,#casaRecipes,#casaMeals,#noticesHub,#dataHub,#settings) .cs-pills button small,#casaShopping .cs-stores button small{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:99px;background:var(--surface-soft);font-size:11px}
 /* @order 46483 */
-:is(#casaShopping,#casaPurchases,#casaStock,#casaRecipes,#casaMeals,#noticesHub,#dataHub,#settings) .cs-pills button.active,#casaShopping .cs-stores button.active{background:var(--blue)!important;border-color:var(--blue)!important;color:#fff!important}
+:is(#wealthMoneyHub,#casaShopping,#casaPurchases,#casaStock,#casaRecipes,#casaMeals,#noticesHub,#dataHub,#settings) .cs-pills button.active,#casaShopping .cs-stores button.active{background:var(--blue)!important;border-color:var(--blue)!important;color:#fff!important}
 /* @order 46484 */
-:is(#casaShopping,#casaPurchases,#casaStock,#casaRecipes,#casaMeals,#noticesHub,#dataHub,#settings) .cs-pills button.active small,#casaShopping .cs-stores button.active small{background:rgba(255,255,255,.22);color:#fff}
+:is(#wealthMoneyHub,#casaShopping,#casaPurchases,#casaStock,#casaRecipes,#casaMeals,#noticesHub,#dataHub,#settings) .cs-pills button.active small,#casaShopping .cs-stores button.active small{background:rgba(255,255,255,.22);color:#fff}
 /* @order 46485 */
-:is(#casaShopping,#casaPurchases,#casaStock,#casaRecipes,#casaMeals,#noticesHub,#dataHub,#settings) .cs-search{position:relative;display:flex!important;align-items:center;flex:1 1 240px;margin:0!important;min-width:200px}
+:is(#wealthMoneyHub,#casaShopping,#casaPurchases,#casaStock,#casaRecipes,#casaMeals,#noticesHub,#dataHub,#settings) .cs-search{position:relative;display:flex!important;align-items:center;flex:1 1 240px;margin:0!important;min-width:200px}
 /* @order 46486 */
-:is(#casaShopping,#casaPurchases,#casaStock,#casaRecipes,#casaMeals,#noticesHub,#dataHub,#settings) .cs-search svg{position:absolute;left:12px;width:16px;height:16px;color:var(--muted);pointer-events:none}
+:is(#wealthMoneyHub,#casaShopping,#casaPurchases,#casaStock,#casaRecipes,#casaMeals,#noticesHub,#dataHub,#settings) .cs-search svg{position:absolute;left:12px;width:16px;height:16px;color:var(--muted);pointer-events:none}
 /* @order 46487 */
-:is(#casaShopping,#casaPurchases,#casaStock,#casaRecipes,#casaMeals,#noticesHub,#dataHub,#settings) .cs-search input{width:100%;min-height:38px;padding-left:36px!important;border-radius:99px!important}
+:is(#wealthMoneyHub,#casaShopping,#casaPurchases,#casaStock,#casaRecipes,#casaMeals,#noticesHub,#dataHub,#settings) .cs-search input{width:100%;min-height:38px;padding-left:36px!important;border-radius:99px!important}
 /* @order 46488 */
 #casaShopping .cs-more{position:relative}
 /* @order 46489 */

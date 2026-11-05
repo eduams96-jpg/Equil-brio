@@ -1,90 +1,9 @@
-/* Explicit article suggestions, document text and purchase progress. */
+/* Texto pesquisável dos comprovativos (Dados → Documentos).
+ * A leitura de faturas e as sugestões de artigos foram retiradas na 1.0.21. */
 (() => {
   'use strict';
-  const R=ReceiptFinance,$=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
-  let activeReview=null,indexController;
-  function reviewRows(form,kind) {
-    return $$(kind==='category'?'.receipt-product':'.casa-receipt-line',form).map(row=>{
-      const i=row.dataset.receiptIndex;
-      return {row,name:$(kind==='category'?'[name=product'+i+']':'[data-receipt-name]',row),
-        omit:$(kind==='category'?'[name=omit'+i+']':'[data-receipt-omit]',row),
-        value:$(kind==='category'?'[name=category'+i+']':'[data-receipt-product]',row)};
-    });
-  }
-  function refreshReview() {
-    if(!activeReview?.form.isConnected||!$('.receipt-learning-preview',activeReview.form))return;
-    const {form,kind}=activeReview,merchant=$(kind==='category'?'[name=merchant]':'[name=casaReceiptStore]',form)?.value||'';
-    qualityReview();
-    for(const entry of reviewRows(form,kind)) {
-      let hint=$('.receipt-article-hint',entry.row);
-      if(!hint){hint=document.createElement('div');hint.className='receipt-article-hint';entry.row.append(hint);}
-      const name=entry.row.dataset.sourceName||entry.name.value,suggestion=R.suggest(data,merchant,name,kind);
-      hint.replaceChildren();
-      if(!suggestion||entry.omit.checked)continue;
-      const message=document.createElement('span');
-      if(suggestion.conflict){message.textContent='Há associações diferentes para este artigo. Escolhe manualmente ou revê as sugestões em Dados.';hint.append(message);continue;}
-      const value=kind==='category'?suggestion.category:suggestion.catalogId,
-        label=kind==='category'?value:data.casa.catalog.find(p=>p.id===value)?.name;
-      message.textContent='Memorizado: '+label+' · '+(suggestion.merchant||'todas as lojas');hint.append(message);
-      const apply=document.createElement('button');apply.type='button';apply.className='secondary';apply.textContent=entry.value.value===value?'Já selecionado':'Aplicar sugestão';apply.disabled=entry.value.value===value;
-      apply.onclick=()=>{entry.value.value=value;if(kind==='product'){$('[data-receipt-stock]',entry.row).checked=true;$('[data-receipt-stock]',entry.row).dispatchEvent(new Event('change'));}entry.value.dispatchEvent(new Event('change',{bubbles:true}));refreshReview();};hint.append(apply);
-    }
-    const preview=$('.receipt-learning-preview',form),checked=$('[name=receiptLearn]',form)?.checked;
-    preview.replaceChildren();preview.hidden=!checked;
-    if(checked)try{
-      const items=reviewRows(form,kind).filter(e=>!e.omit.checked&&(kind==='category'||$('[data-receipt-stock]',e.row).checked)).map(e=>({name:e.name.value,sourceName:e.row.dataset.sourceName,...(kind==='category'?{category:e.value.value}:{catalogId:e.value.value})}));
-      const rows=R.learningPreview(data,merchant,items,kind,$('[name=receiptLearnScope]',form).value==='all');
-      const title=document.createElement('strong');title.textContent=rows.length+' associações a memorizar após guardar';preview.append(title);
-      for(const row of rows){const p=document.createElement('p');p.textContent=row.name+' → '+(row.category||data.casa?.catalog.find(p=>p.id===row.catalogId)?.name||'Produto')+' · '+(row.merchant||'todas as lojas');preview.append(p);}
-      if(kind==='product'&&items.some(i=>!i.catalogId)){const p=document.createElement('p');p.textContent='Os novos produtos assinalados para stock também serão memorizados após a confirmação.';preview.append(p);}
-    }catch(error){const p=document.createElement('p');p.className='error';p.textContent=error.message;preview.append(p);}
-  }
-  function qualityReview(){
-    if(!activeReview?.draft||!activeReview.form.isConnected)return;
-    const {form,kind,draft}=activeReview,rows=reviewRows(form,kind).filter(e=>!e.omit.checked),isFinance=kind==='category';
-    const items=rows.map(e=>{const i=Number(e.row.dataset.receiptIndex),original=draft.items?.[i];return{name:e.name.value,quantity:isFinance?Number($('[name=quantity'+i+']',e.row).value):original?.quantity||1,amount:Number($(isFinance?'[name=price'+i+']':'[data-receipt-total]',e.row).value),unitPrice:original?.unitPrice};});
-    const report=R.inspect({merchant:$(isFinance?'[name=merchant]':'[name=casaReceiptStore]',form).value,date:$(isFinance?'[name=receiptDate]':'[name=casaReceiptDate]',form).value,total:Number($(isFinance?'[name=receiptTotal]':'[name=casaReceiptTotal]',form).value),items});
-    const panel=$('.receipt-quality-review',form);if(!panel)return;
-    $('.receipt-quality-summary',panel).textContent=report.issues.length?report.issues.length+' pontos a conferir antes de guardar':'Os totais e os campos principais coincidem. Confere ainda com o documento.';
-    $('.receipt-quality-balance',panel).textContent='Artigos: '+eur(report.itemTotal)+' · Documento: '+(report.total===null?'Por indicar':eur(report.total))+' · Diferença: '+(report.difference===null?'Por indicar':eur(report.difference));
-    const list=$('.receipt-quality-issues',panel);list.replaceChildren();for(const issue of report.issues){const li=document.createElement('li');li.textContent=(issue.field==='item'?'Artigo '+(Number(rows[issue.index].row.dataset.receiptIndex)+1)+': ':'')+issue.message;list.append(li);}
-    for(const entry of reviewRows(form,kind)){entry.row.classList.remove('receipt-needs-review');entry.row.querySelector('.receipt-line-check')?.remove();}
-    for(let i=0;i<rows.length;i++){const issues=report.issues.filter(e=>e.field==='item'&&e.index===i);if(!issues.length)continue;rows[i].row.classList.add('receipt-needs-review');const hint=document.createElement('p');hint.className='receipt-line-check';hint.textContent=issues.map(e=>e.message).join(' ');rows[i].row.append(hint);}
-  }
-  function enhanceReview(kind,draft) {
-    const form=$('#modalForm');if(!form||$('.receipt-learning',form))return;
-    activeReview={form,kind,draft};form.classList.add('receipt-assisted-review');
-    $('#modal').classList.add('receipt-review-dialog');
-    if(draft){
-      const panel=document.createElement('section');panel.className='receipt-quality-review panel';panel.setAttribute('aria-label','Conferência da leitura');
-      panel.innerHTML='<h3>Conferir a leitura</h3><p class="receipt-quality-summary" role="status"></p><p class="receipt-quality-balance amount"></p><ul class="receipt-quality-issues"></ul>';
-      const messages=[...(draft.warnings||[]),...(draft.reading?.warnings||[])];if(messages.length){const details=document.createElement('details'),summary=document.createElement('summary');summary.textContent='Avisos da leitura inicial';details.append(summary);const list=document.createElement('ul');for(const message of [...new Set(messages)]){const li=document.createElement('li');li.textContent=message;list.append(li);}details.append(list);panel.append(details);}
-      if(draft.reading){const timing=document.createElement('p');timing.className='receipt-reading-time';timing.textContent='Leitura local: '+(draft.reading.durationMs/1000).toFixed(1).replace('.',',')+' s · '+draft.reading.pages.length+' página(s). O reconhecimento não valida os valores.';panel.append(timing);}
-      form.querySelector('.receipt-status')?.remove();$('#receiptProducts,#casaReceiptLines',form)?.before(panel);
-    }
-    if(kind==='category'){
-      const names=['merchant','receiptDate','receiptTotal','account'],group=document.createElement('div');group.className='receipt-review-basics';
-      const first=$('[name=merchant]',form)?.closest('label');if(first){first.before(group);for(const name of names){const label=$('[name='+name+']',form)?.closest('label');if(label)group.append(label);}}
-    }
-    const learn=document.createElement('details');learn.className='receipt-learning workflow-detail';
-    learn.innerHTML='<summary>Memorizar associações destes artigos</summary><label class="checkbox"><input type="checkbox" name="receiptLearn"> Sugerir estas escolhas nas próximas faturas</label><label>Aplicar sugestões em<select name="receiptLearnScope"><option value="merchant">Só nesta loja</option><option value="all">Todas as lojas</option></select></label><div class="receipt-learning-preview" hidden aria-live="polite"></div>';
-    const anchor=$('[name=receiptConfirmed],[name=casaReceiptConfirmed]',form)?.closest('label');if(anchor)anchor.before(learn);else form.append(learn);
-    refreshReview();
-  }
-  function editRule(id) {
-    const r=(data.receiptRules||[]).find(r=>r.id===id);if(!r)return;
-    const input=(label,name,value)=>'<label>'+label+'<input name="'+name+'" value="'+esc(value)+'" maxlength="200"></label>';
-    const mapping=r.kind==='category'?input('Categoria / subcategoria','category',r.category):'<label>Produto Casa<select name="catalogId">'+(data.casa?.catalog||[]).map(p=>'<option value="'+esc(p.id)+'" '+(p.id===r.catalogId?'selected':'')+'>'+esc(p.name)+(p.archived?' · arquivado':'')+'</option>').join('')+'</select></label>';
-    form('Sugestão de artigo',input('Nome lido na fatura','name',r.name)+input('Loja (vazio = todas)','merchant',r.merchant)+mapping+'<label>Excluir lojas (uma por linha)<textarea name="exceptions">'+esc(r.excludedMerchants.join('\n'))+'</textarea></label><label class="checkbox"><input name="enabled" type="checkbox" '+(r.enabled?'checked':'')+'> Sugestão ativa</label>',f=>commit(()=>R.updateRule(data,id,{name:f.get('name').trim(),merchant:f.get('merchant').trim(),...(r.kind==='category'?{category:f.get('category').trim()}:{catalogId:f.get('catalogId')}),enabled:f.has('enabled'),excludedMerchants:f.get('exceptions').split(/\r?\n/).map(s=>s.trim()).filter(Boolean)}),'Sugestão atualizada.'),'As sugestões só se aplicam quando confirmadas. Não alteram movimentos anteriores.');
-  }
-  function rules() {
-    const source=$('#personalRules');if(!source)return;
-    let panel=$('#receiptArticleRules');if(!panel){panel=document.createElement('section');panel.id='receiptArticleRules';panel.className='panel receipt-rules';source.append(panel);}
-    const rows=data.receiptRules||[];
-    panel.innerHTML='<div class="panel-heading"><div><h3>Artigos das faturas</h3><p>'+rows.length+' associações confirmadas</p></div></div>'+(rows.length?'<div class="u-table-scroll"><table class="u-table"><thead><tr><th>Artigo</th><th>Sugestão</th><th>Loja</th><th>Estado / ações</th></tr></thead><tbody>'+rows.map(r=>'<tr><td>'+esc(r.name)+'</td><td>'+esc(r.kind==='category'?r.category:data.casa?.catalog.find(p=>p.id===r.catalogId)?.name||'Produto já indisponível')+'</td><td>'+esc(r.merchant||'Todas')+(r.excludedMerchants.length?'<small>Exclui: '+esc(r.excludedMerchants.join(', '))+'</small>':'')+'</td><td>'+esc(r.enabled?'Ativa':'Desativada')+' <button class="link-button" type="button" data-article-edit="'+esc(r.id)+'">Editar</button> <button class="link-button" type="button" data-article-remove="'+esc(r.id)+'">Eliminar</button></td></tr>').join('')+'</tbody></table></div>':'<p class="quiet-state">Na revisão de uma fatura, abre “Memorizar associações” e confirma as escolhas para as reutilizar.</p>');
-    $$('[data-article-edit]',panel).forEach(b=>b.onclick=()=>editRule(b.dataset.articleEdit));
-    $$('[data-article-remove]',panel).forEach(b=>b.onclick=()=>{const r=rows.find(r=>r.id===b.dataset.articleRemove);form('Eliminar sugestão','<p>'+esc(r.name)+' · '+esc(r.merchant||'Todas as lojas')+'</p>',()=>commit(()=>R.removeRule(data,r.id),'Sugestão eliminada.'),'A classificação dos movimentos guardados mantém-se.','Eliminar sugestão');});
-  }
+  const R=ReceiptFinance,$=(s,r=document)=>r.querySelector(s);
+  let indexController;
   async function indexDocument(id) {
     const tx=data.transactions.find(t=>String(t.id)===String(id));if(!tx?.attachment)return;
     const origin=key,stamp=JSON.stringify(tx),a=tx.attachment;
@@ -109,11 +28,10 @@
     const body=document.createElement('pre');body.textContent=[tx.receiptText,...(tx.receiptItems||[]).map(i=>i.name+' · '+i.category)].filter(Boolean).join('\n')||'Este comprovativo ainda não tem texto lido.';detail.append(body);
     const read=document.createElement('button');read.type='button';read.className='secondary';read.textContent=tx.receiptText?'Voltar a ler texto':'Ler texto para pesquisa';read.onclick=()=>indexDocument(tx.id);detail.append(read);preview.after(detail);
   }
-  function render(){if(view!=='dataHub')return;if(UnifiedWorkspaceUI.dataTask()==='rules')rules();if(UnifiedWorkspaceUI.dataTask()==='documents')documentDetail();}
+  function render(){if(view!=='dataHub')return;if(UnifiedWorkspaceUI.dataTask()==='documents')documentDetail();}
   document.addEventListener('click',event=>{if(event.target.closest('.document-select'))documentDetail();});
-  for(const type of ['input','change'])document.addEventListener(type,event=>{if(event.target.closest('#modalForm'))refreshReview();});
   document.addEventListener('keydown',event=>{if(event.target.closest('.document-select'))requestAnimationFrame(documentDetail);});
   $('#modal').addEventListener('close',()=>{if(!$('#documentIndexProgress'))return;indexController?.abort();});
   UILifecycle.register('receipt-assistance',{afterRender:render,afterNavigation:render},40);
-  window.ReceiptAssistanceUI=Object.freeze({enhanceReview,refreshReview,render,indexDocument,refreshDocuments:documentDetail});render();
+  window.ReceiptAssistanceUI=Object.freeze({render,indexDocument,refreshDocuments:documentDetail});render();
 })();

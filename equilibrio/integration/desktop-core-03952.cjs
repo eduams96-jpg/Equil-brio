@@ -35,9 +35,9 @@ const F=require('../finance.js'),{createSqliteStorage}=require('../desktop/stora
   let nativeReceipt=null;
   if(revision(financasDesktop.desktopVersion)>=69){
    const canvas=document.createElement('canvas');canvas.width=1000;canvas.height=700;const ctx=canvas.getContext('2d');ctx.fillStyle='white';ctx.fillRect(0,0,1000,700);ctx.fillStyle='black';ctx.font='40px monospace';['LOJA TESTE','01/10/2026','Leite 1,50','Pao 2,00','TOTAL 3,50'].forEach((line,i)=>ctx.fillText(line,60,90+i*110));const blob=await new Promise(r=>canvas.toBlob(r,'image/png'));
-   const result=await ReceiptReader.read(new File([blob],'teste-nativo.png',{type:'image/png'}),()=>{}),parsed=ReceiptFinance.parse(result.text);if(parsed.total!==3.5||parsed.items.length!==2||!result.attachment)throw Error('Leitura real nativa inválida: '+result.text);nativeReceipt={total:parsed.total,items:parsed.items.length,local:true};
+   const result=await ReceiptReader.read(new File([blob],'teste-nativo.png',{type:'image/png'}),()=>{});if(!/TOTAL/i.test(result.text)||!result.attachment)throw Error('Leitura real nativa inválida: '+result.text);nativeReceipt={text:true,local:true};
   }
-  if(revision(financasDesktop.desktopVersion)>=78)commit(()=>{ReceiptFinance.remember(data,'Mercado nativo',[{name:'Artigo nativo',category:'Casa / Limpeza'}]);data.transactions.find(t=>t.id===splitId).receiptText='Texto nativo: detergente 888777666';});
+  if(revision(financasDesktop.desktopVersion)>=78)commit(()=>{data.receiptRules=[{id:'native-rule',kind:'category',name:'Artigo nativo',merchant:'Mercado nativo',category:'Casa / Limpeza',enabled:true,excludedMerchants:[]}];data.transactions.find(t=>t.id===splitId).receiptText='Texto nativo: detergente 888777666';});
   const saved=DesktopPersistence.readSpace('main').data;
   await financasDesktop.setBackupSettings({directory:backupDir,onClose:false});
   const backup=await financasDesktop.runBackup('{"stale":true}',{force:true});

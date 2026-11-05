@@ -109,7 +109,7 @@ body.equilibrio-studio #summaryBalanceChart,body.equilibrio-studio .summary-inco
 /* @order 23054 */
 #personalRules .rule-safety{margin-top:18px!important;padding-top:16px;border-top:1px solid var(--line)}
 /* @order 23055 */
-#personalRules .rules-suggestions,#personalRules .rules-history,#personalRules .receipt-rules{border:1px solid var(--line);border-radius:14px;padding:22px!important;margin-top:22px!important;background:var(--paper)}
+#personalRules .rules-suggestions,#personalRules .rules-history{border:1px solid var(--line);border-radius:14px;padding:22px!important;margin-top:22px!important;background:var(--paper)}
 /* @order 23056 */
 #personalRules .rule-suggestion,#personalRules .rule-history-entry{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:16px 0;border-top:1px solid var(--line)}
 /* @order 23057 */

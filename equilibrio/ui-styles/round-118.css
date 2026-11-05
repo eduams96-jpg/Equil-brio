@@ -108,14 +108,6 @@
 #wealthMoneyHub #unifiedInventory .u-inventory-list tbody tr.is-selected{background:color-mix(in srgb,var(--kind,#3f8f7a) 12%,var(--paper))!important}
 /* @order 45269 */
 #wealthMoneyHub #unifiedInventory .u-inventory-list td small{display:flex;align-items:center;gap:6px;margin-top:3px;color:var(--muted)}
-/* @order 45270 */
-#wealthMoneyHub #unifiedInventory .u-kind-pill{font-style:normal;font-size:10.5px;font-weight:700;letter-spacing:.02em;padding:1px 7px;border-radius:999px;color:var(--kind,#3f8f7a);background:color-mix(in srgb,var(--kind,#3f8f7a) 14%,transparent)}
-/* @order 45271 */
-#wealthMoneyHub #unifiedInventory .u-status-pill{display:inline-block;font-size:11.5px;padding:2px 9px;border-radius:999px;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
-/* @order 45272 */
-#wealthMoneyHub #unifiedInventory .u-status-pill:is([data-status=Conferida],[data-status=Liquidado]){color:#2f8a6c;border-color:color-mix(in srgb,#2f8a6c 40%,transparent);background:color-mix(in srgb,#2f8a6c 10%,transparent)}
-/* @order 45273 */
-#wealthMoneyHub #unifiedInventory .u-status-pill:is([data-status="Por conferir"],[data-status="Em dívida"]){color:#b8792a;border-color:color-mix(in srgb,#b8792a 40%,transparent);background:color-mix(in srgb,#b8792a 10%,transparent)}
 /* @order 45274 */
 #wealthMoneyHub #unifiedInventory .u-muted{color:var(--muted)}
 /* @order 45275 */

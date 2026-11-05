@@ -1,0 +1,155 @@
+/* 1.0.21 — Património (Visão geral e Inventário) nas peças comuns: quadros, cartões, pílulas. */
+/* @order 47000 */
+:is(#wealth,#wealthMoneyHub) .wl-tiles{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:14px!important;margin:0 0 18px!important}
+/* @order 47001 */
+#wealthMoneyHub #unifiedInventory .wl-tiles-5{grid-template-columns:repeat(5,minmax(0,1fr))!important}
+/* @order 47002 */
+#wealthMoneyHub #unifiedInventory button.ch-tile{border:1px solid var(--line)!important;border-radius:16px!important;background:var(--paper)!important;padding:16px!important;width:100%;margin:0!important;text-align:left;cursor:pointer;font:inherit;color:var(--ink);min-height:0!important;box-shadow:none!important;transition:border-color .15s,box-shadow .15s}
+/* @order 47003 */
+#wealthMoneyHub #unifiedInventory button.ch-tile:hover{border-color:color-mix(in srgb,var(--blue) 45%,var(--line))}
+/* @order 47004 */
+#wealthMoneyHub #unifiedInventory button.ch-tile.active{border-color:var(--blue)!important;box-shadow:0 0 0 1px var(--blue)!important;background:color-mix(in srgb,var(--blue) 5%,var(--paper))!important}
+/* @order 47005 */
+:is(#wealth,#wealthMoneyHub) .ch-tile strong.negative{color:var(--red)}
+/* @order 47010 */
+#wealth .wl-grid{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:18px;margin-bottom:18px}
+/* @order 47011 */
+#wealth .wl-card{background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:20px 22px;min-width:0;box-shadow:none}
+/* @order 47012 */
+#wealth .wl-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:14px}
+/* @order 47013 */
+#wealth .wl-card-head h3{margin:0;font-size:16px;font-weight:700}
+/* @order 47014 */
+#wealth .wl-card-head p{margin:4px 0 0;color:var(--muted);font-size:13px;line-height:1.45}
+/* @order 47015 */
+#wealth .wl-card-head>button{flex:none;display:inline-flex;align-items:center;gap:7px;white-space:nowrap}
+/* @order 47016 */
+#wealth .wl-card-head>button svg{width:16px;height:16px}
+/* @order 47017 */
+#wealth .wl-card-head .positive{color:var(--green);font-weight:700}
+/* @order 47018 */
+#wealth .wl-card-head .negative{color:var(--red);font-weight:700}
+/* @order 47019 */
+#wealth .wl-evolution .wealth-v3-chart{width:100%!important;height:auto!important;max-height:none!important;display:block}
+/* @order 47020 */
+#wealth .wl-evolution .wealth-v3-chart-empty{display:grid;place-items:center;min-height:180px;padding:24px;border:1px dashed var(--line);border-radius:12px;color:var(--muted);text-align:center;font-size:13px}
+/* @order 47021 */
+#wealth .wl-stack{display:flex;height:14px;border-radius:99px;overflow:hidden;background:var(--surface-soft,var(--selected));margin:4px 0 16px}
+/* @order 47022 */
+#wealth .wl-stack i{display:block;height:100%;min-width:0}
+/* @order 47023 */
+#wealth :is(.wl-stack i,.wl-dot).part-accounts{background:var(--blue)}
+/* @order 47024 */
+#wealth :is(.wl-stack i,.wl-dot).part-investments{background:#4f8fd6}
+/* @order 47025 */
+#wealth :is(.wl-stack i,.wl-dot).part-assets{background:#9b6bd3}
+/* @order 47026 */
+#wealth .wl-dot.part-debts{background:var(--orange)}
+/* @order 47027 */
+#wealth .wl-parts{list-style:none;margin:0 0 12px;padding:0;display:grid;gap:4px}
+/* @order 47028 */
+#wealth .wl-parts li{display:grid;grid-template-columns:12px minmax(0,1fr) auto 44px;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
+/* @order 47029 */
+#wealth .wl-parts li:last-child{border-bottom:0}
+/* @order 47030 */
+#wealth .wl-parts li.is-debt{margin-top:6px;padding-top:14px;border-top:1px dashed var(--line)}
+/* @order 47031 */
+#wealth .wl-dot{width:12px;height:12px;border-radius:4px}
+/* @order 47032 */
+#wealth .wl-parts li>div{display:grid;gap:2px;min-width:0}
+/* @order 47033 */
+#wealth .wl-parts b{font-size:14px;font-weight:600}
+/* @order 47034 */
+#wealth .wl-parts small{font-size:12px;color:var(--muted)}
+/* @order 47035 */
+#wealth .wl-parts strong{font-size:14px;font-weight:700;white-space:nowrap}
+/* @order 47036 */
+#wealth .wl-parts em{font-style:normal;font-size:12px;color:var(--muted);text-align:right}
+/* @order 47037 */
+#wealth .wl-review{margin-bottom:12px}
+/* @order 47038 */
+#wealth .wl-count{flex:none;display:inline-grid;place-items:center;min-width:28px;height:28px;padding:0 9px;border-radius:99px;background:color-mix(in srgb,var(--orange) 16%,transparent);color:var(--orange);font-weight:700;font-size:13px}
+/* @order 47039 */
+#wealth .wl-review-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+/* @order 47040 */
+#wealth .wl-review-card{display:grid;grid-template-columns:40px minmax(0,1fr) auto;grid-template-areas:"badge main side" "badge action action";align-items:center;gap:6px 12px;padding:14px 16px;border:1px solid var(--line);border-radius:14px;background:var(--paper)}
+/* @order 47041 */
+#wealth .wl-review-card>.wl-kind-badge{grid-area:badge;align-self:start}
+/* @order 47042 */
+#wealth .wl-review-main{grid-area:main;min-width:0}
+/* @order 47043 */
+#wealth .wl-review-main h4{margin:0;font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* @order 47044 */
+#wealth .wl-review-main p{margin:3px 0 0;font-size:12px;color:var(--muted)}
+/* @order 47045 */
+#wealth .wl-review-side{grid-area:side;display:grid;justify-items:end;gap:4px}
+/* @order 47046 */
+#wealth .wl-review-side strong{font-size:15px;font-weight:700;white-space:nowrap}
+/* @order 47047 */
+#wealth .wl-review-card>button{grid-area:action;justify-self:start;margin-top:6px;min-height:34px!important;padding:6px 14px!important}
+/* @order 47048 */
+:is(#wealth,#wealthMoneyHub) .wl-kind-badge{display:grid;place-items:center;width:40px;height:40px;border-radius:12px;background:color-mix(in srgb,var(--blue) 14%,transparent);color:var(--blue)}
+/* @order 47049 */
+:is(#wealth,#wealthMoneyHub) .wl-kind-badge svg{width:20px;height:20px}
+/* @order 47050 */
+:is(#wealth,#wealthMoneyHub) .wl-kind-badge.kind-debt{background:color-mix(in srgb,var(--orange) 16%,transparent);color:var(--orange)}
+/* @order 47051 */
+:is(#wealth,#wealthMoneyHub) .wl-kind-badge.kind-asset{background:color-mix(in srgb,#9b6bd3 16%,transparent);color:#9b6bd3}
+/* @order 47052 */
+:is(#wealth,#wealthMoneyHub) .wl-kind-badge.kind-investment{background:color-mix(in srgb,#4f8fd6 16%,transparent);color:#4f8fd6}
+/* @order 47053 */
+:is(#wealth,#wealthMoneyHub) .wl-status{display:inline-flex;align-items:center;padding:3px 10px;border-radius:99px;font-size:11.5px;font-weight:600;white-space:nowrap;background:color-mix(in srgb,var(--green) 13%,transparent);color:var(--green)}
+/* @order 47054 */
+:is(#wealth,#wealthMoneyHub) .wl-status.is-pending{background:color-mix(in srgb,var(--orange) 15%,transparent);color:var(--orange)}
+/* @order 47055 */
+:is(#wealth,#wealthMoneyHub) .wl-status.is-muted{background:var(--surface-soft,var(--selected));color:var(--muted)}
+/* @order 47056 */
+:is(#wealth,#wealthMoneyHub) .wl-empty{display:grid;justify-items:center;gap:6px;padding:28px 16px;text-align:center;color:var(--muted)}
+/* @order 47057 */
+:is(#wealth,#wealthMoneyHub) .wl-empty svg{width:28px;height:28px;color:var(--green)}
+/* @order 47058 */
+:is(#wealth,#wealthMoneyHub) .wl-empty strong{color:var(--ink);font-size:15px}
+/* @order 47059 */
+:is(#wealth,#wealthMoneyHub) .wl-empty p{margin:0;font-size:13px}
+/* @order 47060 */
+#wealth .wl-footnote{margin:4px 2px 0;font-size:12px;color:var(--muted)}
+/* @order 47061 */
+#wealth .wl-more{margin:12px 0 0;font-size:13px;color:var(--muted)}
+/* @order 47070 */
+#wealthMoneyHub #unifiedInventory .wl-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;margin-bottom:14px}
+/* @order 47071 */
+#wealthMoneyHub #unifiedInventory .wl-toolbar .cs-pills button{min-height:34px!important}
+/* @order 47072 */
+#wealthMoneyHub #unifiedInventory .wl-record-list{display:grid;gap:8px}
+/* @order 47073 */
+#wealthMoneyHub #unifiedInventory .wl-record{display:grid;grid-template-columns:40px minmax(0,1fr) auto;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--line);border-radius:14px;background:var(--paper);cursor:pointer;transition:border-color .15s,background .15s}
+/* @order 47074 */
+#wealthMoneyHub #unifiedInventory .wl-record:hover{border-color:color-mix(in srgb,var(--blue) 40%,var(--line))}
+/* @order 47075 */
+#wealthMoneyHub #unifiedInventory .wl-record.is-selected{border-color:var(--blue);box-shadow:0 0 0 1px var(--blue);background:color-mix(in srgb,var(--blue) 5%,var(--paper))}
+/* @order 47076 */
+#wealthMoneyHub #unifiedInventory .wl-record-main{display:grid;gap:3px;min-width:0}
+/* @order 47077 */
+#wealthMoneyHub #unifiedInventory .wl-record-main .u-record-button{all:unset;cursor:pointer;font-size:14px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* @order 47078 */
+#wealthMoneyHub #unifiedInventory .wl-record-main .u-record-button:focus-visible{outline:2px solid var(--blue);outline-offset:2px;border-radius:4px}
+/* @order 47079 */
+#wealthMoneyHub #unifiedInventory .wl-record-main small{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* @order 47080 */
+#wealthMoneyHub #unifiedInventory .wl-record-side{display:grid;justify-items:end;gap:4px}
+/* @order 47081 */
+#wealthMoneyHub #unifiedInventory .wl-record-side strong{font-size:15px;font-weight:700;white-space:nowrap}
+/* @order 47082 */
+#wealthMoneyHub #unifiedInventory .wl-record-side strong.negative{color:var(--red)}
+/* @order 47083 */
+#wealthMoneyHub #unifiedInventory .u-inventory-list>footer{margin-top:12px;font-size:12px;color:var(--muted)}
+/* @order 47090 */
+@media (max-width:1200px){#wealthMoneyHub #unifiedInventory .wl-tiles-5{grid-template-columns:repeat(3,minmax(0,1fr))!important}}
+/* @order 47091 */
+@media (max-width:1100px){#wealth .wl-tiles{grid-template-columns:repeat(2,minmax(0,1fr))!important}#wealth .wl-grid{grid-template-columns:1fr}}
+/* @order 47092 */
+@media (max-width:700px){#wealthMoneyHub #unifiedInventory .wl-tiles-5{grid-template-columns:repeat(2,minmax(0,1fr))!important}#wealth .wl-card-head{flex-wrap:wrap}}
+/* @order 47093 */
+@media (max-width:560px){#wealth .wl-tiles{grid-template-columns:1fr!important}#wealth .wl-review-grid{grid-template-columns:1fr}#wealthMoneyHub #unifiedInventory .wl-record{grid-template-columns:36px minmax(0,1fr)}#wealthMoneyHub #unifiedInventory .wl-record-side{grid-column:2;justify-items:start;grid-auto-flow:column;align-items:center;gap:10px}}
+/* @order 47062 */
+#wealth .wl-evolution .wealth-v3-chart text{font-size:9px!important;fill:var(--muted)}

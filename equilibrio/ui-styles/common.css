@@ -5071,10 +5071,6 @@ body[data-theme="dark"] .note-red {
   gap: 10px;
   padding: 12px 0;
 }
-/* @order 1154 */
-.receipt-inline {
-  margin: 0 0 12px;
-}
 /* @order 1155 */
 @media (max-width: 600px) {
   .inline-global-search {
