@@ -67,7 +67,7 @@ test('Detalhe mostra o movimento e as ações de editar e eliminar', () => {
 
 test('Detalhe com valores ocultos não mostra montantes e movimento em falta é tratado', () => {
   const hiddenHtml = movimentos.detail(ctx(demo(), { state: { hidden: true } }), { movementId: 'm-super' });
-  assert.doesNotMatch(hiddenHtml, /d,d{2}s?€/);
+  assert.doesNotMatch(hiddenHtml, /\d,\d{2}\s?€/);
   assert.ok(movimentos.detail(ctx(demo()), { movementId: 'nao-existe' }).includes('já não existe'));
 });
 
