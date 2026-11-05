@@ -42,6 +42,16 @@ import K from '../../shared/commitment-drafts.cjs';
 
 import Commitments from '../../shared/commitments.cjs';
 
+import Nav from './nav.cjs';
+
+import Mais from './screens/mais.cjs';
+
+const LAST_SYNC_KEY='equilibrio.mobile.lastSync';
+
+function readLastSync(){try{return localStorage.getItem(LAST_SYNC_KEY);}catch{return null;}}
+
+function markSynced(){try{localStorage.setItem(LAST_SYNC_KEY,new Date().toISOString());}catch{}}
+
 let cf=null,cr=null,cfBaseline=null,commitmentId=null,commitDiscard=null,commitWrite=0;
 
 let showCompletedAgenda=false;
@@ -218,11 +228,17 @@ async function render(){
 
  const privacy=document.getElementById('privacy');privacy.textContent=state.hidden?'Mostrar valores':'Ocultar valores';privacy.setAttribute('aria-pressed',String(state.hidden));
 
- document.querySelectorAll('nav button').forEach(b=>{b.removeAttribute('aria-current');if(b.dataset.page===(['conta','editar-conta','arquivar-conta','sair-conta'].includes(page)?'contas':['novo','detalhe','eliminar'].includes(page)?(detailReturn==='conta'&&page==='detalhe'?'contas':'movimentos'):['conflito','recuperacao','confirmar-recuperacao','confirmar-passagem','confirmar-desligar'].includes(page)?'sync':['casa','casa-form','descartar-casa'].includes(page)?'casa':['agenda','novo-compromisso','compromisso','descartar-compromisso','pagar-compromisso','descartar-pagamento','consulta-financeira'].includes(page)?'resumo':page))b.setAttribute('aria-current','page');});
+ const activeTab=Nav.tabFor(page);document.querySelectorAll('nav button').forEach(b=>{b.removeAttribute('aria-current');if(b.dataset.page===activeTab)b.setAttribute('aria-current','page');});
 
  const total=ledger.accounts.reduce((n,a)=>n+P.Finance.cents(P.Finance.balanceAt(ledger,a)),0);
 
  const stats=V.summary(ledger,summaryPeriod);
+
+ const ctx={ledger,state,today:today(),lastSync:readLastSync(),settings:{notifications:false,hour:9,theme:'auto',hideOnOpen:false},money,go:target=>run(async()=>{renderedPage=null;page=target;}),commit:(command,payload,options)=>client.enqueue(command,payload,options)};
+
+ if(page==='mais')main.innerHTML=Mais.render(ctx);
+
+ if(Nav.isPlaceholder(page))main.innerHTML=Nav.placeholder(page);
 
  if(page==='resumo')main.innerHTML=`<h1>Resumo</h1>${periodControls(ledger)}<section class="balance"><span>Saldo atual · todas as contas</span><strong>${money(stats.balanceCents)}</strong><small>${pending?'Inclui alterações locais por confirmar':(__RELEASE__?'Contas deste aparelho':'Contas de demonstração')}</small></section><h2>Este mês · ${monthNames[Number(summaryPeriod.slice(5))-1]} ${summaryPeriod.slice(0,4)}</h2><div class="pair"><div class="stat"><small>Rendimentos do mês</small><span class="amount">${money(stats.incomeCents)}</span></div><div class="stat"><small>Despesas do mês</small><span class="amount">${money(stats.expenseCents)}</span></div></div><p class="month-result">Resultado do mês <strong>${money(stats.resultCents)}</strong></p><button type="button" class="primary full" data-page="novo">+ Novo movimento</button><button type="button" class="full agenda-shortcut" data-page="agenda">Ver agenda do mês</button><div class="section-heading"><h2>Movimentos do mês</h2><button type="button" id="see-month" class="text-button">Ver todos</button></div>${V.movements(ledger,state,{period:summaryPeriod},3).rows.map(t=>row(t)).join('')||'<p class="empty">Ainda sem movimentos neste mês.</p>'}`;
 
@@ -451,7 +467,7 @@ document.addEventListener('click',event=>{
 
  if(b.id==='save')save();
 
- if(b.id==='sync')run(async()=>{await client.sync();message.textContent='Sincronização de ensaio concluída.';});
+ if(b.id==='sync')run(async()=>{await client.sync();markSynced();message.textContent='Sincronização de ensaio concluída.';});
 
  if(b.id==='pair'){
 
@@ -481,7 +497,7 @@ if(!__RELEASE__)window.EquilibrioTest={
 
  enqueue:async(command,payload)=>{const op=await client.enqueue(command,payload);await render();return op;},
 
- sync:async()=>{const result=await client.sync();await render();return result;},
+ sync:async()=>{const result=await client.sync();markSynced();await render();return result;},
 
  resolve:async(id,choice,payload)=>{const result=await client.resolve(id,choice,payload);await render();return result;},
 

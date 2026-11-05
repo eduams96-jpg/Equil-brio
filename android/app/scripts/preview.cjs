@@ -3,8 +3,9 @@
 // Para juntar um ecrã basta acrescentar uma entrada a SCREENS.
 const fs = require('node:fs');
 const path = require('node:path');
-const { icon } = require('../src/ui/icons.cjs');
+const shell = require('../src/shell.cjs');
 const kit = require('../src/ui/kit.cjs');
+const { tabFor } = require('../src/nav.cjs');
 const fixtures = require('../src/screens/fixtures.cjs');
 
 const root = path.resolve(__dirname, '..');
@@ -19,11 +20,9 @@ const SCREENS = [
 ];
 const DATA = [['demo', fixtures.demo], ['vazio', fixtures.empty]];
 const THEMES = [['claro', 'light'], ['escuro', 'dark']];
-const NAV = [['resumo', 'Resumo', 'chart'], ['movimentos', 'Movimentos', 'list'], ['casa', 'Casa', 'home'], ['mais', 'Mais', 'settings']];
 const CSP = "default-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'";
 
 function frame(title, theme, active, body) {
-  const nav = NAV.map(([id, label, ic]) => '<button type="button" data-page="' + id + '"' + (id === active ? ' aria-current="page"' : '') + '>' + icon(ic) + '<span>' + label + '</span></button>').join('');
   return '<!doctype html>\n<html lang="pt-PT" data-theme="' + theme + '"><head><meta charset="utf-8">'
     + '<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">'
     + '<meta http-equiv="Content-Security-Policy" content="' + CSP + '">'
@@ -31,8 +30,8 @@ function frame(title, theme, active, body) {
     + '<div id="app"><header><div><strong>Equilíbrio</strong><small>Pré-visualização</small></div>'
     + '<button type="button" id="privacy" aria-pressed="false">Ocultar valores</button></header>'
     + '<main id="main">' + body + '</main>'
-    + '<nav aria-label="Navegação principal">' + nav + '</nav>'
-    + '<button type="button" id="quickAdd" aria-label="Novo movimento">' + icon('plus') + '</button></div></body></html>\n';
+    + shell.navHtml(tabFor(active))
+    + shell.fabHtml() + '</div></body></html>\n';
 }
 
 // Página «moldura»: um mosaico de cada cor, pílulas, pesquisa, cartão e linhas.
