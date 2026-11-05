@@ -95,3 +95,30 @@ test('Formulário de edição mostra os dados do movimento e limita os tipos', (
   assert.ok(!html.includes('value="transfer"'));
   assert.ok(html.includes('Rascunho guardado'));
 });
+
+test('Rascunho, descarte e eliminação não atiram com empty() e demo()', () => {
+  for (const make of [empty, demo]) {
+    const c = formCtx(make());
+    assert.equal(movimentos.draftBanner(c), '');
+    assert.ok(movimentos.recovery(c).includes('Sem rascunho'));
+    assert.ok(movimentos.discardDraft().includes('id="confirm-discard-draft"'));
+    assert.ok(movimentos.remove(c, { movementId: 'x' }).includes('já foi eliminado'));
+  }
+});
+
+test('Banner e página do rascunho de movimento', () => {
+  const ledger = demo(), c = formCtx(ledger), d = draftFor(ledger);
+  const withDraft = ctx(ledger, { state: { ...c.state, movementDraft: record(c, { ...d, description: 'Pizza' }, 1) } });
+  assert.ok(movimentos.draftBanner(withDraft).includes('id="resume-draft"'));
+  assert.ok(movimentos.render(withDraft, { filters: NONE, visibleLimit: 40 }).includes('id="resume-draft"'));
+  const page = movimentos.recovery(withDraft);
+  assert.ok(page.includes('Pizza') && page.includes('id="resume-edit"') && page.includes('id="ask-discard-draft"'));
+});
+
+test('Eliminar mostra o movimento e esconde o valor quando oculto (com dentes)', () => {
+  const ledger = demo(), id = ledger.transactions[0].id;
+  const visible = movimentos.remove(ctx(ledger), { movementId: id });
+  assert.ok(visible.includes('id="confirm-delete"'));
+  assert.match(visible, /\d,\d{2}\s?€/);
+  assert.doesNotMatch(movimentos.remove(ctx(ledger, { state: { hidden: true } }), { movementId: id }), /\d,\d{2}\s?€/);
+});

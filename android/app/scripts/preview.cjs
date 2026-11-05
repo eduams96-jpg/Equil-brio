@@ -21,6 +21,7 @@ const SCREENS = [
   { name: 'agenda', module: '../src/screens/agenda.cjs' },
   { name: 'ligacao', module: '../src/screens/ligacao.cjs', page: 'sync' },
   { name: 'casa-stock', module: '../src/screens/casa.cjs', page: 'casa', view: { tab: 'stock' } },
+  { name: 'casa-historico', module: '../src/screens/casa.cjs', page: 'casa', view: { tab: 'historico' } },
   { name: 'casa-compras', module: '../src/screens/casa.cjs', page: 'casa', view: { tab: 'compras' } },
   { name: 'ligacao-ligada', module: '../src/screens/ligacao.cjs', page: 'sync', view: { connection: {} } },
 ];

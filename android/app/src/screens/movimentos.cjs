@@ -49,7 +49,7 @@ function render(ctx, view = {}) {
   const empty = '<p class="empty">' + (ledger.transactions.length
     ? 'Não há movimentos com esta pesquisa. Altera ou limpa os filtros.'
     : 'Ainda não existem movimentos. Usa «Novo movimento» para começar.') + '</p>';
-  return '<h1>Movimentos</h1><p class="sub">Consulta e gere os registos deste dispositivo.</p>'
+  return draftBanner(ctx) + '<h1>Movimentos</h1><p class="sub">Consulta e gere os registos deste dispositivo.</p>'
     + '<button type="button" class="primary full" data-page="novo">+ Novo movimento</button>'
     + '<div class="movement-filters">'
     + kit.search('movement-search', filters.query, 'Descrição, categoria ou conta')
@@ -137,4 +137,39 @@ function form(ctx, view) {
     + '<button type="button" class="primary" id="save">' + (resolvingId ? 'Guardar proposta revista' : 'Guardar no dispositivo') + '</button></form>';
 }
 
-module.exports = { render, bind, row, stateOf, detail, form, categorySuggestions, MONTHS };
+// Banner do rascunho de movimento por concluir (Resumo e Movimentos).
+function draftBanner(ctx) {
+  return ctx.state.movementDraft
+    ? '<section class="draft-banner"><strong>Tens um movimento por concluir</strong><p>O rascunho está guardado neste dispositivo.</p><button type="button" id="resume-draft">Retomar rascunho</button></section>' : '';
+}
+
+// Página do rascunho guardado. Só constrói HTML; retomar/descartar ficam em main.js.
+function recovery(ctx) {
+  const e = kit.escape, record = ctx.state.movementDraft;
+  if (!record) return '<h1>Sem rascunho</h1><button data-page="movimentos">Voltar aos movimentos</button>';
+  let error = '', reason = '';
+  try { D.valid(record); reason = D.staleReason(ctx.state, record); } catch (err) { error = err.message; }
+  return '<h1>Movimento por concluir</h1><p class="sub">Guardado neste dispositivo. Ainda não é um movimento financeiro.</p>'
+    + (error ? '<p class="note">' + e(error) + '</p>'
+      : '<section class="review-card"><h2>' + e(record.form.description || 'Descrição por preencher') + '</h2><p>' + (record.form.command === 'new' ? 'Novo movimento' : 'Edição de movimento') + '</p>'
+        + '<small>' + e(record.savedAt ? V.dateLabel(record.savedAt.slice(0, 10)) : '') + '</small></section>' + (reason ? '<p class="note">' + e(reason) + '</p>' : ''))
+    + '<div class="review-actions">' + (!error ? '<button id="resume-edit" class="primary">Retomar preenchimento</button>' : '')
+    + '<button id="ask-discard-draft">Descartar rascunho</button><button data-page="resumo">Voltar ao Resumo</button></div>';
+}
+
+function discardDraft() {
+  return '<h1>Descartar o rascunho?</h1><p>O texto por concluir será removido deste dispositivo. Os movimentos guardados mantêm-se.</p>'
+    + '<div class="review-actions"><button id="cancel-discard-draft" class="primary">Manter rascunho</button><button id="confirm-discard-draft">Descartar rascunho</button></div>';
+}
+
+// Confirmação de eliminação. view: {movementId}.
+function remove(ctx, view = {}) {
+  const t = ctx.ledger.transactions.find(x => x.id === view.movementId);
+  return '<button class="back" data-page="movimentos">‹ Cancelar</button><h1>Eliminar movimento?</h1>'
+    + (t ? '<section class="review-card"><h2>' + kit.escape(t.description) + '</h2><p>' + kit.money(P.Finance.cents(t.amount), ctx.state.hidden) + '</p>'
+      + '<small>' + (t.type === 'transfer' ? 'O efeito nas duas contas será retirado em conjunto.' : 'A alteração fica por confirmar até sincronizares.') + '</small></section>'
+      + '<button id="confirm-delete" class="primary full">Eliminar movimento</button>'
+      : '<p>O movimento já foi eliminado.</p>');
+}
+
+module.exports = { render, bind, row, stateOf, detail, form, draftBanner, recovery, discardDraft, remove, categorySuggestions, MONTHS };

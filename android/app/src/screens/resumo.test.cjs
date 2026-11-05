@@ -33,3 +33,19 @@ test('Resumo com valores ocultos não mostra montantes', () => {
   const html = resumo.render(ctx(demo(), { state: { hidden: true } }));
   assert.doesNotMatch(html, /\d,\d{2}\s?€/);
 });
+
+test('Banners do Resumo e atalho de consulta', () => {
+  const state = { hidden: false, commitmentDraft: { t: 1 }, paymentDraft: { t: 1 } };
+  const html = resumo.render(ctx(demo(), { state }));
+  assert.ok(html.includes('data-page="agenda">Abrir Agenda') && html.includes('id="resume-payment"'));
+  assert.ok(html.includes('data-page="consulta-financeira"'));
+  assert.ok(!resumo.render(ctx(demo())).includes('draft-banner'));
+});
+
+test('Consulta financeira não atira e esconde montantes (com dentes)', () => {
+  for (const make of [empty, demo]) assert.ok(resumo.financial(ctx(make())).includes('Créditos e prestações'));
+  const re = /\d,\d{2}\s?€/;
+  const visible = resumo.financial(ctx(demo()), { period: '2026-11' });
+  assert.match(visible, re);
+  assert.doesNotMatch(resumo.financial(ctx(demo(), { state: { hidden: true } }), { period: '2026-11' }), re);
+});

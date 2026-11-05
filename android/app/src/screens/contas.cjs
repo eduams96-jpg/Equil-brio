@@ -1,14 +1,10 @@
 'use strict';
 const kit = require('../ui/kit.cjs');
+const { fullState } = require('./state.cjs');
 const V = require('../view-model.cjs');
 const P = require('../../../shared/protocol.cjs');
 const Accounts = require('../../../shared/accounts.cjs');
 const { row, stateOf } = require('./movimentos.cjs');
-
-// O estado dos ecrãs pode vir sem o razão confirmado (pré-visualização, testes).
-function fullState(ctx) {
-  return { ...stateOf(ctx), confirmed: { ledger: ctx.ledger }, ...ctx.state };
-}
 
 function balance(ledger, account) {
   return P.Finance.cents(P.Finance.balanceAt(ledger, account));

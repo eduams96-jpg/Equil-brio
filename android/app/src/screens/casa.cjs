@@ -12,6 +12,7 @@ const PILLS = [
   ['compras', 'Lista de compras', 'data-page="compras"'],
   ['produtos', 'Produtos', 'data-house-tab="produtos"'],
   ['stock', 'Stock', 'data-house-tab="stock"'],
+  ['historico', 'Histórico', 'data-house-tab="historico"'],
 ];
 
 function pills(tab) {
@@ -81,6 +82,15 @@ function stockBody(c) {
   }).join('');
 }
 
+function historyBody(ctx, c) {
+  const e = kit.escape;
+  return c.purchases.map(p => kit.card({
+    title: p.store, subtitle: V.dateLabel(p.date),
+    body: '<p class="review-value">' + kit.money(Math.round(p.total * 100), ctx.state.hidden) + '</p>'
+      + p.items.map(i => '<div class="info-line"><span>' + e(i.name) + '</span><span>' + e(i.qty == null ? '' : i.qty) + ' ' + e(i.unit || '') + '</span></div>').join(''),
+  })).join('') || '<p class="empty">Ainda sem compras registadas.</p>';
+}
+
 function shoppingBody(c) {
   const open = c.shopping.filter(s => !s.done).length;
   return kit.card({
@@ -89,13 +99,13 @@ function shoppingBody(c) {
   });
 }
 
-// Ecrã Casa. view: {tab: 'compras'|'produtos'|'stock' (ou 'produto'|'lote' nos detalhes), id}.
+// Ecrã Casa. view: {tab: 'compras'|'produtos'|'stock'|'historico' (ou 'produto'|'lote' nos detalhes), id}.
 function render(ctx, view = {}) {
   const tab = view.tab || 'produtos', id = view.id;
   const c = H.Casa.state(ctx.ledger);
   if (tab === 'produto') return banner(ctx.state) + productPage(ctx, c, c.catalog.find(p => p.id === id));
   if (tab === 'lote') return banner(ctx.state) + lotPage(ctx, c, c.stock.find(l => l.id === id));
-  const body = tab === 'compras' ? shoppingBody(c) : tab === 'stock' ? stockBody(c) : productsBody(c);
+  const body = tab === 'compras' ? shoppingBody(c) : tab === 'stock' ? stockBody(c) : tab === 'historico' ? historyBody(ctx, c) : productsBody(c);
   return banner(ctx.state) + '<h1>Casa</h1><p class="sub">Compras e stock · dados guardados neste dispositivo</p>' + pills(tab)
     + (body || '<p class="empty">Ainda sem registos nesta vista. Começa por criar um produto.</p>');
 }

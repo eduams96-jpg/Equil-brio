@@ -1,11 +1,7 @@
 'use strict';
 const kit = require('../ui/kit.cjs');
+const { fullState } = require('./state.cjs');
 const P = require('../../../shared/protocol.cjs');
-
-// O estado dos ecrãs pode vir sem fila de envio nem razão confirmado (pré-visualização, testes).
-function fullState(ctx) {
-  return { outbox: [], confirmed: { ledger: ctx.ledger }, ...ctx.state };
-}
 
 function back(page, label) {
   return '<button type="button" class="back" data-page="' + page + '">' + label + '</button>';

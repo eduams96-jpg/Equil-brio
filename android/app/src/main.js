@@ -14,8 +14,6 @@ import Casa from './screens/casa.cjs';
 
 let houseTab='produtos',houseId=null,hf=null,hr=null,houseDiscard=null;
 
-import Consult from './financial-consultation.cjs';
-
 import Forms from '../../shared/form-drafts.cjs';
 
 let pf=null,pr=null,paymentDiscard=null;
@@ -110,8 +108,6 @@ const association=new A.Association({read:()=>adapter.read(),replace:(s,r)=>adap
 
 function money(cents){return current.state.hidden?'•••• €':new Intl.NumberFormat('pt-PT',{style:'currency',currency:'EUR'}).format(cents/100);}
 
-function periodControls(ledger){return Resumo.periodControls(ledger,summaryPeriod,today());}
-
 function simple(t){return Policy.editable(t);}
 
 function today(){const date=new Date();return [date.getFullYear(),String(date.getMonth()+1).padStart(2,'0'),String(date.getDate()).padStart(2,'0')].join('-');}
@@ -123,10 +119,6 @@ function fromMovement(t,ledger){return {id:t.id,type:t.type,amount:String(t.amou
 function newDraft(ledger){return {id:P.id(),type:'expense',amount:'',description:'',accountId:ledger.accounts.filter(a=>!a.archived)[0]?.id||'',targetId:ledger.accounts.filter(a=>!a.archived)[1]?.id||'',...metadata(),date:today(),command:'new'};}
 
 function openEdit(t){if(current.state.movementDraft){page='rascunho';return;}if(!simple(t))throw Error('Este movimento exige o percurso especializado do programa.');const view=P.view(current.state);draft=fromMovement(t,view.ledger);formRevision=view.revisions['transaction:'+t.id]||0;resolvingId=null;draftRecord=null;draftBaseline=null;page='novo';}
-
-function draftBanner(){return current.state.movementDraft?'<section class="draft-banner"><strong>Tens um movimento por concluir</strong><p>O rascunho está guardado neste dispositivo.</p><button type="button" id="resume-draft">Retomar rascunho</button></section>':'';}
-
-function recovery(){const record=current.state.movementDraft;if(!record)return '<h1>Sem rascunho</h1><button data-page="movimentos">Voltar aos movimentos</button>';let error='',reason='';try{D.valid(record);reason=D.staleReason(current.state,record);}catch(e){error=e.message;}return `<h1>Movimento por concluir</h1><p class="sub">Guardado neste dispositivo. Ainda não é um movimento financeiro.</p>${error?`<p class="note">${escape(error)}</p>`:`<section class="review-card"><h2>${escape(record.form.description||'Descrição por preencher')}</h2><p>${record.form.command==='new'?'Novo movimento':'Edição de movimento'}</p><small>${escape(record.savedAt?V.dateLabel(record.savedAt.slice(0,10)):'')}</small></section>${reason?`<p class="note">${escape(reason)}</p>`:''}`}<div class="review-actions">${!error?'<button id="resume-edit" class="primary">Retomar preenchimento</button>':''}<button id="ask-discard-draft">Descartar rascunho</button><button data-page="resumo">Voltar ao Resumo</button></div>`;}
 
 
 
@@ -211,21 +203,15 @@ async function render(){
 
  if(page==='descartar-pagamento')main.innerHTML=Agenda.discardPayment();
 
- if(page==='resumo'&&state.paymentDraft)main.insertAdjacentHTML('afterbegin','<section class="draft-banner"><strong>Tens um pagamento por concluir</strong><button id="resume-payment">Retomar pagamento</button><button id="ask-discard-payment">Descartar rascunho</button></section>');
-
  if(page==='novo-compromisso')main.innerHTML=Agenda.form(ctx,{form:cf,record:cr});
 
  if(page==='compromisso')main.innerHTML=Agenda.commitment(ctx,{commitmentId});
 
  if(page==='descartar-compromisso')main.innerHTML=Agenda.discardCommitment();
 
- if(page==='resumo'&&state.commitmentDraft)main.insertAdjacentHTML('afterbegin','<section class="draft-banner"><strong>Tens um compromisso por concluir</strong><button data-page="agenda">Abrir Agenda</button></section>');
+ if(page==='rascunho')main.innerHTML=Movimentos.recovery(ctx);
 
- if(['resumo','movimentos'].includes(page)&&state.movementDraft)main.insertAdjacentHTML('afterbegin',draftBanner());
-
- if(page==='rascunho')main.innerHTML=recovery();
-
- if(page==='descartar-rascunho')main.innerHTML='<h1>Descartar o rascunho?</h1><p>O texto por concluir será removido deste dispositivo. Os movimentos guardados mantêm-se.</p><div class="review-actions"><button id="cancel-discard-draft" class="primary">Manter rascunho</button><button id="confirm-discard-draft">Descartar rascunho</button></div>';
+ if(page==='descartar-rascunho')main.innerHTML=Movimentos.discardDraft();
 
  if(page==='novo')main.innerHTML=movementForm(ledger);
 
@@ -239,9 +225,7 @@ async function render(){
 
  if(page==='conta')main.innerHTML=Contas.detail(ctx,{accountId:selectedAccount,visibleLimit});
 
- if(page==='consulta-financeira')main.innerHTML=financialConsultation(ledger);
-
- if(page==='resumo')main.insertAdjacentHTML('beforeend','<button class="full agenda-shortcut" data-page="consulta-financeira">Créditos e prestações · consulta</button>');
+ if(page==='consulta-financeira')main.innerHTML=Resumo.financial(ctx,{period:summaryPeriod});
 
  if(page==='detalhe'){
 
@@ -250,13 +234,7 @@ async function render(){
 
 
 
- if(page==='eliminar'){
-
-  const t=ledger.transactions.find(t=>t.id===selectedId);
-
-  main.innerHTML=`<button class="back" data-page="movimentos">‹ Cancelar</button><h1>Eliminar movimento?</h1>${t?`<section class="review-card"><h2>${escape(t.description)}</h2><p>${money(P.Finance.cents(t.amount))}</p><small>${t.type==='transfer'?'O efeito nas duas contas será retirado em conjunto.':'A alteração fica por confirmar até sincronizares.'}</small></section><button id="confirm-delete" class="primary full">Eliminar movimento</button>`:'<p>O movimento já foi eliminado.</p>'}`;
-
- }
+ if(page==='eliminar')main.innerHTML=Movimentos.remove(ctx,{movementId:selectedId});
 
  if(page==='conflito')main.innerHTML=Ligacao.conflict(ctx,{conflictId});
 
@@ -481,8 +459,6 @@ window.EquilibrioBack=()=>{if(busy)return true;const dialog=document.getElementB
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'){if(page==='novo')persistDraft().catch(e=>message.textContent=e.message);if(page==='novo-compromisso')persistCommit().catch(e=>message.textContent=e.message);if(page==='pagar-compromisso')persistPayment().catch(e=>message.textContent=e.message);}});
 
 
-
-function financialConsultation(ledger){const c=Consult.debts(ledger,summaryPeriod);return `<button class="back" data-page="resumo">‹ Resumo</button><h1>Créditos e prestações</h1><p class="sub">Consulta dos registos existentes. Alterações e pagamentos especializados mantêm o percurso no PC.</p>${periodControls(ledger)}<h2>Créditos</h2>${c.debts.map(d=>`<section class="review-card"><h3>${escape(d.name)}</h3><small>Capital em dívida</small><p class="review-value">${money(d.balanceCents)}</p><p>Prestação: ${money(d.paymentCents)}</p></section>`).join('')||'<p class="empty">Sem créditos registados.</p>'}<h2>Prestações estimadas do mês</h2><p class="sub">Estimativas do modelo Windows; não são pagamentos registados.</p>${c.estimates.map(e=>`<section class="review-card"><strong>${escape(e.description)}</strong><p>${escape(V.dateLabel(e.date))} · ${money(P.Finance.cents(e.amount))}</p></section>`).join('')||'<p class="empty">Sem prestações estimadas neste mês.</p>'}<h2>Compras em prestações</h2>${c.plans.map(p=>`<section class="review-card"><h3>${escape(p.description)}</h3>${p.payments.map(x=>`<div class="info-line"><span>${escape(V.dateLabel(x.date))}</span><strong>${money(x.remainingCents)} por liquidar</strong></div>`).join('')}</section>`).join('')||'<p class="empty">Sem planos de prestações.</p>'}`;}
 
 function preserveHouse(){const f=document.getElementById('house-form');if(page!=='casa-form'||!hf||!f)return;const d=new FormData(f);for(const [k,v] of d.entries())if(!k.startsWith('offer-'))hf[k]=String(v);if(hf.command==='house.product')hf.offers=[...f.querySelectorAll('[data-offer-row]')].map(el=>({...Object.fromEntries(['storeName','packageQty','price','url'].map(k=>[k,el.querySelector('[data-offer-field="'+k+'"]').value]))}));}
 

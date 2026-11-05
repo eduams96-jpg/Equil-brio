@@ -20,7 +20,7 @@ function demo() {
   ];
   for (const t of rows) P.Finance.add(d, t);
   d.casa = {
-    version: 1, purchases: [], catalog: [], stores: [], stock: [],
+    version: 1, purchases: [{ id: 'pu-1', store: 'Continente', date: '2026-11-03', total: 63.2, items: [{ name: 'Leite', qty: 6, unit: 'un', total: 5.4 }, { name: 'Pão', qty: 1, unit: 'un', total: 57.8 }] }], catalog: [], stores: [], stock: [],
     shopping: [
       { id: 'sh-1', name: 'Leite', qty: '6 un', done: false },
       { id: 'sh-2', name: 'Pão', qty: '1', done: true },

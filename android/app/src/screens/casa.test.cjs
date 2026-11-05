@@ -13,7 +13,7 @@ const realCtx = (ledger, hidden = false) => ctx(ledger, { state: { ...P.offlineF
 test('Casa não atira com dados vazios e de demonstração em nenhum separador', () => {
   for (const make of [empty, demo]) {
     const c = realCtx(make());
-    for (const tab of ['compras', 'produtos', 'stock']) assert.ok(casa.render(c, { tab }).includes('Casa'));
+    for (const tab of ['compras', 'produtos', 'stock', 'historico']) assert.ok(casa.render(c, { tab }).includes('Casa'));
     assert.ok(casa.render(c).includes('Casa'));
     assert.ok(casa.discard().includes('id="confirm-discard-house"'));
   }
@@ -28,6 +28,17 @@ test('Casa tem as pills Lista de compras, Produtos e Stock e marca a ativa', () 
   const prod = casa.render(realCtx(demo()), { tab: 'produtos' });
   assert.match(prod, /data-house-tab="produtos"[^>]*aria-pressed="true"/);
   assert.match(prod, /data-page="compras"[^>]*aria-pressed="false"/);
+});
+
+test('Histórico lista as compras do demo, avisa quando vazio e esconde montantes', () => {
+  const html = casa.render(realCtx(demo()), { tab: 'historico' });
+  assert.ok(html.includes('Continente') && html.includes('Leite'));
+  assert.match(html, /data-house-tab="historico"[^>]*aria-pressed="true"/);
+  assert.match(html, AMOUNT);
+  assert.doesNotMatch(casa.render(realCtx(demo(), true), { tab: 'historico' }), AMOUNT);
+  assert.ok(casa.render(realCtx(empty()), { tab: 'historico' }).includes('Ainda sem compras'));
+  const order = [...casa.render(realCtx(demo()), { tab: 'produtos' }).matchAll(/>(Lista de compras|Produtos|Stock|Histórico)<\/button>/g)].map(m => m[1]);
+  assert.deepEqual(order, ['Lista de compras', 'Produtos', 'Stock', 'Histórico']);
 });
 
 test('Produtos e stock listam o catálogo do demo', () => {
