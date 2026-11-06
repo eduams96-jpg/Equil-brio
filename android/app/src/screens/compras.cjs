@@ -84,7 +84,7 @@ function render(ctx, filters) {
     + kit.pills('shopstatus', opts, f.status)
     + (f.inStore ? kit.pills('shopstore', stores, f.storeId) : '')
     + '<div class="shop-list" id="shop-list">' + (v.rows.map(r => row(ctx, r)).join('') || '<p class="empty">' + empty + '</p>') + '</div>'
-    + '<div class="shop-footer" role="status"><div><small>Estimado</small><strong>' + amount(ctx, v.estimated) + '</strong></div>'
+    + '<div class="shop-footer" role="group" aria-label="Totais da lista"><div><small>Estimado</small><strong>' + amount(ctx, v.estimated) + '</strong></div>'
     + '<div><small>No carrinho</small><strong>' + amount(ctx, v.inCart) + '</strong></div></div>';
 }
 
@@ -121,6 +121,12 @@ function offerDefaults(ledger, id) {
   const p = s && c.catalog.find(x => x.id === s.catalogId), offer = p && p.offers[s.storeId];
   if (!offer) return null;
   return { packages: Math.ceil(Math.round(s.requestedQty * 1000) / Math.round(offer.packageQty * 1000)), price: offer.price };
+}
+
+// Há alterações por guardar? Compara só os campos do formulário inicial, sem espaços nas pontas.
+function isDirty(initial, current) {
+  const norm = x => String(x == null ? '' : x).trim();
+  return Object.keys(initial || {}).some(k => norm(initial[k]) !== norm((current || {})[k]));
 }
 
 function initial(s, q) {
@@ -178,4 +184,4 @@ function updateValues(form, hasOffer, defaults) {
   return Object.assign(out, { location: String(form.location || '').trim(), expiry: String(form.expiry || '').trim(), note: String(form.note || '').trim() });
 }
 
-module.exports = { view, render, item, add, initial, offerDefaults, pricing, setDone, queueValues, addValues, updateValues, NO_FILTERS };
+module.exports = { view, render, item, add, initial, offerDefaults, isDirty, pricing, setDone, queueValues, addValues, updateValues, NO_FILTERS };

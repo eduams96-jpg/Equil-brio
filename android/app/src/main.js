@@ -254,7 +254,7 @@ async function render(){
 
  if(page==='novo'&&draftBaseline===null){draftBaseline=formFingerprint();draftRecord.baseline=draftBaseline;}
 
- main.setAttribute('aria-busy',String(busy));
+ main.setAttribute('aria-busy',String(busy));document.getElementById('app').classList.toggle('has-shop-footer',page==='compras');
 
  if(renderedPage!==page){renderedPage=page;await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));window.scrollTo(0,0);}
 
@@ -270,7 +270,7 @@ function autoSaveDraft(){if(page!=='novo'||!draftRecord||busy)return;preserveDra
 
 async function leaveForm(next,discard){await adapter.idle();const s=(await adapter.read()).state,saved=s.movementDraft;if(discard&&saved){if(!draftRecord||saved.token!==draftRecord.token)throw Error('Existe outro rascunho. Foi preservado.');await drafts.discard(saved);}else if(!discard&&draftRecord&&!D.staleReason(s,draftRecord))await persistDraft();draft=null;draftRecord=null;draftBaseline=null;formRevision=null;resolvingId=null;renderedPage=null;page=next;}
 
-async function run(fn){if(busy)return;preserveHouse();preserveShop();preservePayment();preserveCommit();preserveAccount();preserveDraft();busy=true;main.inert=true;main.setAttribute('aria-busy','true');message.textContent='';document.querySelectorAll('button').forEach(b=>b.disabled=true);try{await fn();await render();}catch(error){message.textContent=error.message;try{await render();}catch{main.textContent='Não foi possível abrir os dados. Nenhum ficheiro foi substituído.';}}finally{busy=false;main.inert=false;main.setAttribute('aria-busy','false');document.getElementById('privacy').disabled=false;document.querySelectorAll('nav button,#leaveDialog button').forEach(b=>b.disabled=false);}}
+async function run(fn){if(busy)return;preserveHouse();preserveShop();preservePayment();preserveCommit();preserveAccount();preserveDraft();busy=true;main.inert=true;main.setAttribute('aria-busy','true');message.textContent='';document.querySelectorAll('button').forEach(b=>b.disabled=true);try{await fn();await render();}catch(error){message.textContent=error.message;try{await render();}catch{main.textContent='Não foi possível abrir os dados. Nenhum ficheiro foi substituído.';}}finally{busy=false;main.inert=false;main.setAttribute('aria-busy','false');document.getElementById('privacy').disabled=false;document.querySelectorAll('nav button,#leaveDialog button,#shopLeaveDialog button').forEach(b=>b.disabled=false);}}
 
 async function save(){
 
@@ -502,6 +502,12 @@ for(const event of ['input','change'])document.addEventListener(event,e=>{if(e.t
 
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'&&page==='editar-conta')persistAccount().catch(e=>message.textContent=e.message);});
 
+
+let shopSkipGuard=false,shopPendingButton=null;
+
+function shopDirty(){if(page==='compras-artigo'){const f=shopRead();if(!f||!shopId)return false;const l=P.view(current.state).ledger,c=House.Casa.state(l),s=c.shopping.find(x=>x.id===shopId);return s?Compras.isDirty(Compras.initial(s,s.catalogId?Compras.pricing(l,c)(s.id):null),f):false;}if(page==='compras-novo')return Compras.isDirty({qty:'1',name:''},{qty:shopAdd.qty,name:shopAdd.name});return false;}
+
+document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.id==='shop-leave-cancel'){document.getElementById('shopLeaveDialog').close();shopPendingButton=null;return;}if(b.id==='shop-leave-discard'){document.getElementById('shopLeaveDialog').close();const next=shopPendingButton;shopPendingButton=null;shopSkipGuard=true;if(next)next.click();shopSkipGuard=false;return;}if(busy||(page!=='compras-artigo'&&page!=='compras-novo')||!b.dataset.page&&!b.closest('nav')&&b.id!=='quickAdd')return;if(shopSkipGuard){shopForm=null;shopAdd={query:'',qty:'1',name:''};return;}if(shopDirty()){e.stopImmediatePropagation();preserveShop();shopPendingButton=b;document.getElementById('shopLeaveDialog').showModal();}},true);
 
 const shopSend=(id,values)=>client.enqueue('house.shopping',{id,seed:P.id(),changedOn:today(),values});
 

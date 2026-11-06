@@ -178,3 +178,27 @@ test('offerDefaults ignora o ajuste guardado e é nulo para artigos livres', () 
   assert.equal(compras.updateValues({ packages: '3', price: '1,29', location: '', expiry: '', note: '' }, true, compras.offerDefaults(ledger, row.id)).purchaseOverride, null);
   assert.deepEqual(compras.updateValues({ packages: '4', price: '1,29', location: '', expiry: '', note: '' }, true, compras.offerDefaults(ledger, row.id)).purchaseOverride, { packages: 4, price: 1.29 });
 });
+
+test('isDirty compara os campos iniciais e ignora espaços nas pontas', () => {
+  const ledger = demo();
+  const row = queued(ledger);
+  const q = compras.pricing(ledger, H.Casa.state(ledger))(row.id);
+  const initial = compras.initial(row, q);
+  assert.equal(compras.isDirty(initial, { ...initial }), false);
+  assert.equal(compras.isDirty(initial, { ...initial, note: '  ' }), false);
+  assert.equal(compras.isDirty(initial, { ...initial, packages: ' 3 ' }), false);
+  assert.equal(compras.isDirty(initial, { ...initial, note: 'Integral' }), true);
+  assert.equal(compras.isDirty(initial, { ...initial, packages: '4' }), true);
+  assert.equal(compras.isDirty(initial, { ...initial, expiry: '2027-01-01' }), true);
+  assert.equal(compras.isDirty({ qty: '1', name: '' }, { qty: '1', name: '' }), false);
+  assert.equal(compras.isDirty({ qty: '1', name: '' }, { qty: '2', name: '' }), true);
+  assert.equal(compras.isDirty({ qty: '1', name: '' }, { qty: '1', name: 'Sal' }), true);
+  assert.equal(compras.isDirty({ qty: '1' }, null), true);
+  assert.equal(compras.isDirty(null, { qty: '9' }), false);
+});
+
+test('o rodapé é um grupo etiquetado, não um estado', () => {
+  const html = compras.render(ctx(demo()), TODO);
+  assert.match(html, /class="shop-footer" role="group" aria-label="[^"]+"/);
+  assert.doesNotMatch(html, /role="status"/);
+});

@@ -38,7 +38,7 @@ function frame(title, theme, active, body) {
     + '<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">'
     + '<meta http-equiv="Content-Security-Policy" content="' + CSP + '">'
     + '<title>' + kit.escape(title) + '</title><link rel="stylesheet" href="style.css"></head><body>'
-    + '<div id="app"><header><div><strong>Equilíbrio</strong><small>Pré-visualização</small></div>'
+    + '<div id="app"' + (body.includes('shop-footer') ? ' class="has-shop-footer"' : '') + '><header><div><strong>Equilíbrio</strong><small>Pré-visualização</small></div>'
     + '<button type="button" id="privacy" aria-pressed="false">Ocultar valores</button></header>'
     + '<main id="main">' + body + '</main>'
     + shell.navHtml(tabFor(active))
