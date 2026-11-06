@@ -54,6 +54,8 @@ import Compras from './screens/compras.cjs';
 import Relatorios from './screens/relatorios.cjs';
 import Patrimonio from './screens/patrimonio.cjs';
 import Avisos from './screens/avisos.cjs';
+import Notifier from './notifier.cjs';
+import {LocalNotifications} from '@capacitor/local-notifications';
 import Dossiers from '../../../equilibrio/dossiers-model.js';
 
 import Contas from './screens/contas.cjs';
@@ -116,7 +118,13 @@ const client=new C.Client(adapter,request,{negotiate:true});
 
 // Avisos calculados uma vez por estado: a cache cai em cada gravação ou sincronização e quando muda o dia ou a revisão.
 let noticesCache=null;
-for(const name of ['enqueue','sync','resolve']){const original=client[name]&&client[name].bind(client);if(original)client[name]=async(...args)=>{noticesCache=null;try{return await original(...args);}finally{noticesCache=null;}};}
+// Definições locais (a Tarefa 13 trá-las para o ecrã); a notificação diária fica dormente enquanto `notifications` for falso.
+const settings={notifications:false,hour:9,theme:'auto',hideOnOpen:false};
+// Reagenda a notificação diária: em série, só se ativa, e uma falha nunca estraga a app.
+let notifyChain=Promise.resolve();
+function rescheduleNotifications(){if(!settings.notifications)return notifyChain;notifyChain=notifyChain.then(async()=>{const saved=await adapter.read();if(!saved.state)return;await Notifier.schedule(P.view(saved.state).ledger,settings,{hidden:!!saved.state.hidden,now:new Date()},LocalNotifications);}).catch(()=>{});return notifyChain;}
+for(const name of ['enqueue','sync','resolve']){const original=client[name]&&client[name].bind(client);if(original)client[name]=async(...args)=>{noticesCache=null;try{return await original(...args);}finally{noticesCache=null;rescheduleNotifications();}};}
+try{LocalNotifications.addListener('localNotificationActionPerformed',event=>{const target=event&&event.notification&&event.notification.extra&&event.notification.extra.page;if(typeof target!=='string'||!target)return;const go=n=>{if(!busy)run(async()=>{renderedPage=null;page=target;});else if(n>0)setTimeout(()=>go(n-1),300);};go(20);}).catch(()=>{});}catch{}
 function noticesFor(ledger,day,revision){const key=day+':'+String(revision??'');if(noticesCache&&noticesCache.key===key)return noticesCache.value;let value=null;try{value=Dossiers.notices(ledger,{today:day});}catch{value=null;}noticesCache={key,value};return value;}
 
 const association=new A.Association({read:()=>adapter.read(),replace:(s,r)=>adapter.replace(s,r),restoreWithCheckpoint:(state,revision)=>store.compareAndSet({state,expectedRevision:revision,preservePrevious:true}),importWithArchive:(state,archiveSource,revision)=>store.compareAndSet({state,archiveSource,expectedRevision:revision,preservePrevious:true})},vault,rawRequest);
@@ -189,7 +197,7 @@ async function render(){
 
 
 
- const ctx={ledger,state,notices,today:today(),lastSync:readLastSync(),settings:{notifications:false,hour:9,theme:'auto',hideOnOpen:false},money,go:target=>run(async()=>{renderedPage=null;page=target;}),commit:(command,payload,options)=>client.enqueue(command,payload,options),counts:{notices:notices?notices.counts.high+notices.counts.medium:null,shopping:ledger.casa?.shopping?ledger.casa.shopping.filter(s=>!s.done).length:null},pending,release:__RELEASE__,setFilter:(field,value)=>{if(busy)return;filters[field]=value;visibleLimit=40;run(async()=>{});}};
+ const ctx={ledger,state,notices,today:today(),lastSync:readLastSync(),settings,money,go:target=>run(async()=>{renderedPage=null;page=target;}),commit:(command,payload,options)=>client.enqueue(command,payload,options),counts:{notices:notices?notices.counts.high+notices.counts.medium:null,shopping:ledger.casa?.shopping?ledger.casa.shopping.filter(s=>!s.done).length:null},pending,release:__RELEASE__,setFilter:(field,value)=>{if(busy)return;filters[field]=value;visibleLimit=40;run(async()=>{});}};
 
  if(page==='mais')main.innerHTML=Mais.render(ctx);
 
@@ -444,6 +452,8 @@ run(async()=>{
  const saved=await adapter.read();if(!saved.state)await adapter.replace(__RELEASE__?P.local({serverId:'unpaired',epoch:'unpaired',spaceId:'casa',snapshot:{ledger:{...P.Finance.empty(),ledgerCoreVersion:1},revisions:{},cursor:0}},P.id()):P.offlineFixture(),0);
 
  savedConnection=await association.restore();if(savedConnection?.kind==='paired')connection=savedConnection;
+
+ rescheduleNotifications();
 
 });
 
