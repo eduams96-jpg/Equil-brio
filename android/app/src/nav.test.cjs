@@ -16,7 +16,7 @@ test('tabFor devolve resumo para páginas desconhecidas', () => {
 });
 
 test('placeholder «Em breve» só para páginas sem ecrã próprio', () => {
-  for (const p of ['patrimonio', 'avisos', 'definicoes']) {
+  for (const p of ['avisos', 'definicoes']) {
     assert.equal(nav.isPlaceholder(p), true, p);
     const html = nav.placeholder(p);
     assert.match(html, /Em breve/);
@@ -26,6 +26,7 @@ test('placeholder «Em breve» só para páginas sem ecrã próprio', () => {
   assert.equal(nav.isPlaceholder('mais'), false);
   assert.equal(nav.isPlaceholder('compras'), false);
   assert.equal(nav.isPlaceholder('relatorios'), false);
+  assert.equal(nav.isPlaceholder('patrimonio'), false);
 });
 
 test('index.html usa a mesma navegação que a pré-visualização', () => {

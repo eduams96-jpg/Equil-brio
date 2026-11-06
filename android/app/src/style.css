@@ -256,3 +256,28 @@ dialog{color:var(--ink)}
 .rep-key::before{content:"";display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
 .rep-key.is-inc::before{background:var(--green)}
 .rep-key.is-exp::before{background:var(--red)}
+
+/* ---- Património ---- */
+.pat-stack{display:block;width:100%;height:12px;border-radius:6px;overflow:hidden;margin:2px 0 10px}
+.pat-track{fill:var(--surface-soft)}
+.pat-seg.part-accounts,.pat-key.part-accounts rect{fill:var(--blue)}
+.pat-seg.part-investments,.pat-key.part-investments rect{fill:var(--purple)}
+.pat-seg.part-assets,.pat-key.part-assets rect{fill:var(--orange)}
+.pat-key.part-debts rect{fill:var(--red)}
+.pat-parts{list-style:none;margin:0;padding:0}
+.pat-parts li{display:grid;grid-template-columns:12px minmax(0,1fr) auto 44px;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+.pat-parts li:last-child{border-bottom:0}
+.pat-parts li>div{min-width:0;overflow-wrap:anywhere}
+.pat-parts b{display:block;font-size:14px}
+.pat-parts small{color:var(--muted);font-size:12px}
+.pat-parts .amount{font-size:14px;font-weight:600;white-space:nowrap}
+.pat-parts em{font-style:normal;font-size:12px;color:var(--muted);text-align:right}
+.pat-key{width:12px;height:12px}
+.pat-key rect{rx:3px}
+.pat-chart{display:block;width:100%;height:auto}
+.pat-base{stroke:var(--line);stroke-width:1;fill:none}
+.pat-axis{fill:var(--muted);font-size:8px}
+.pat-area{fill:color-mix(in srgb,var(--blue) 14%,transparent);stroke:none}
+.pat-line{fill:none;stroke:var(--blue);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.pat-dot{fill:var(--blue)}
+.pat-dates{display:flex;justify-content:space-between;margin:4px 0 0;font-size:12px;color:var(--muted)}

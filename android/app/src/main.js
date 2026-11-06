@@ -52,6 +52,7 @@ import Movimentos from './screens/movimentos.cjs';
 
 import Compras from './screens/compras.cjs';
 import Relatorios from './screens/relatorios.cjs';
+import Patrimonio from './screens/patrimonio.cjs';
 
 import Contas from './screens/contas.cjs';
 
@@ -200,6 +201,8 @@ async function render(){
  if(page==='compras-artigo')main.innerHTML=Compras.item(ctx,{id:shopId,form:shopForm});
 
  if(page==='compras-novo')main.innerHTML=Compras.add(ctx,shopAdd);
+
+ if(page==='patrimonio')main.innerHTML=Patrimonio.render(ctx);
 
  if(page==='relatorios'){repSel=repSel||{...Relatorios.initial(ctx.today),open:''};main.innerHTML=Relatorios.render(ctx,repSel);}
 

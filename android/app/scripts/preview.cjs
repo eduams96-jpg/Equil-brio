@@ -30,6 +30,7 @@ const SCREENS = [
   { name: 'relatorios', module: '../src/screens/relatorios.cjs', page: 'relatorios', view: { year: '2026', period: 'm11', account: '', open: 'Alimentação' } },
   { name: 'relatorios-ano', module: '../src/screens/relatorios.cjs', page: 'relatorios', view: { year: '2026', period: 'year', account: '' } },
   { name: 'relatorios-trimestre', module: '../src/screens/relatorios.cjs', page: 'relatorios', view: { year: '2026', period: 'q4', account: '' } },
+  { name: 'patrimonio', module: '../src/screens/patrimonio.cjs', page: 'patrimonio' },
   { name: 'ligacao-ligada', module: '../src/screens/ligacao.cjs', page: 'sync', view: { connection: {} } },
 ];
 const DATA = [['demo', fixtures.demo], ['vazio', fixtures.empty]];
