@@ -138,7 +138,7 @@ test('o ecrã não usa style= (a CSP bloqueia-o) e desenha cores em atributos SV
 const tile = (html, name) => (html.match(new RegExp('<article[^>]*>(?:(?!</article>).)*' + name + '(?:(?!</article>).)*</article>')) || [''])[0];
 
 test('com valores ocultos não há montantes, nem em aria-label', () => {
-  for (const period of ['m11', 'q4', 'year']) {
+  for (const period of ['m11', 'm12', 'q4', 'year']) {
     const sel = { year: '2026', period, account: '', open: 'Alimentação' };
     // dentes: o mesmo ecrã visível tem montantes e a expressão apanha-os
     assert.match(relatorios.render(realCtx(demo(), false), sel), AMOUNT, period);
@@ -146,9 +146,10 @@ test('com valores ocultos não há montantes, nem em aria-label', () => {
     assert.doesNotMatch(html, AMOUNT, period);
     assert.ok(html.includes('•••• €'));
     assert.doesNotMatch(tile(html, 'Diferença do saldo'), /%/, period);
-    if (period === 'm12') assert.match(tile(relatorios.render(realCtx(demo(), false), sel), 'Diferença do saldo'), /%/);
     for (const label of html.match(/aria-label="[^"]*"/g) || []) assert.doesNotMatch(label, /\d,\d{2}|€/, label);
   }
+  // dente da percentagem oculta: com saldo anterior positivo (m12) o mosaico visível mostra a %
+  assert.match(tile(relatorios.render(realCtx(demo(), false), { year: '2026', period: 'm12', account: '' }), 'Diferença do saldo'), /%/);
   const emptyHtml = relatorios.render(realCtx(empty(), true), NOV);
   assert.doesNotMatch(emptyHtml, AMOUNT);
 });
