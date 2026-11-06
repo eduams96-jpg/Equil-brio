@@ -48,9 +48,8 @@ function render(ctx, view = {}) {
   const found = result.total + ' ' + (result.total === 1 ? 'movimento encontrado' : 'movimentos encontrados');
   const empty = '<p class="empty">' + (ledger.transactions.length
     ? 'Não há movimentos com esta pesquisa. Altera ou limpa os filtros.'
-    : 'Ainda não existem movimentos. Usa «Novo movimento» para começar.') + '</p>';
+    : 'Ainda não existem movimentos. Usa o botão «+» para começar.') + '</p>';
   return draftBanner(ctx) + '<h1>Movimentos</h1><p class="sub">Consulta e gere os registos deste dispositivo.</p>'
-    + '<button type="button" class="primary full" data-page="novo">+ Novo movimento</button>'
     + '<div class="movement-filters">'
     + kit.search('movement-search', filters.query, 'Descrição, categoria ou conta')
     + kit.pills('type', pillOptions(TYPES), filters.type)

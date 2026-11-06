@@ -122,3 +122,9 @@ test('Eliminar mostra o movimento e esconde o valor quando oculto (com dentes)',
   assert.match(visible, /\d,\d{2}\s?€/);
   assert.doesNotMatch(movimentos.remove(ctx(ledger, { state: { hidden: true } }), { movementId: id }), /\d,\d{2}\s?€/);
 });
+
+test('Movimentos não duplica o botão de novo movimento (o FAB do shell é a entrada única)', () => {
+  const html = movimentos.render(ctx(demo()), {});
+  assert.ok(!html.includes('data-page="novo"'));
+  assert.ok(require('../shell.cjs').fabHtml().includes('data-page="novo"'));
+});
