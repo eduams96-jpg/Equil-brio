@@ -42,5 +42,7 @@
   const biggest=expense.slice().sort((a,b)=>b.amount-a.amount).slice(0,10);
   return{months,elapsed,categories,comparison,previous:previous?{year:previous.year,income:previous.income,expense:previous.expense,saving:previous.saving,monthsWithData:previous.months.filter(x=>x.income||x.expense).length,monthsCompared:previous.months.length}:null,merchants,income:incomeRows,biggest,averageExpense:F.money((current.expense||0)/elapsed),averageIncome:F.money((current.income||0)/elapsed)};
  }
- const api={analyse,detail,ranges};root.ReportAnalysis=api;if(typeof module==='object')module.exports=api;
+ const palette=['#2f9e83','#e07a5f','#5b7fd6','#f2b134','#9b6bd3','#3fb4c8','#d4688f','#7a9e3f','#c98a4a','#a7c957','#f08a5d','#7c8ee8','#56b870','#c58fe0'];
+ const color=i=>palette[i%palette.length];
+ const api={analyse,detail,ranges,palette,color};root.ReportAnalysis=api;if(typeof module==='object')module.exports=api;
 })(globalThis);
