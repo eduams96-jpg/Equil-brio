@@ -1,7 +1,7 @@
 (function(root){
  'use strict';
  const F=root.Finance||(typeof require==='function'?require('./finance.js'):null);
- const ranges={year:[1,12],h1:[1,6],h2:[7,12],q1:[1,3],q2:[4,6],q3:[7,9],q4:[10,12]};
+ const ranges={year:[1,12],h1:[1,6],h2:[7,12],q1:[1,3],q2:[4,6],q3:[7,9],q4:[10,12],m01:[1,1],m02:[2,2],m03:[3,3],m04:[4,4],m05:[5,5],m06:[6,6],m07:[7,7],m08:[8,8],m09:[9,9],m10:[10,10],m11:[11,11],m12:[12,12]};
  function analyse(d,options={}){
   const year=String(options.year||F.today().slice(0,4)),period=options.period||'year',account=options.account||'';
   if(!/^\d{4}$/.test(year)||Number(year)<1900||!ranges[period])throw Error('Período de relatório inválido.');
