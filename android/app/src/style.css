@@ -281,3 +281,11 @@ dialog{color:var(--ink)}
 .pat-line{fill:none;stroke:var(--blue);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
 .pat-dot{fill:var(--blue)}
 .pat-dates{display:flex;justify-content:space-between;margin:4px 0 0;font-size:12px;color:var(--muted)}
+.avisos{list-style:none;margin:0;padding:0}
+.aviso{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:14px 0 14px 12px;border-bottom:1px solid var(--line);border-left:4px solid var(--blue)}
+.aviso.is-high{border-left-color:var(--red)}
+.aviso.is-medium{border-left-color:var(--orange)}
+.aviso.is-low{border-left-color:var(--blue)}
+.aviso-main{flex:1 1 160px;min-width:0;overflow-wrap:anywhere;display:flex;flex-direction:column;gap:2px}
+.aviso .amount{font-size:14px;font-weight:700}
+.aviso-go{min-height:44px}

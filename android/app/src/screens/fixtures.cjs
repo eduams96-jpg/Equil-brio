@@ -53,6 +53,17 @@ function demo() {
   return d;
 }
 
+// Demo com avisos de três tipos: atrasado, para hoje e dentro de dias.
+function avisos() {
+  const d = demo();
+  const bank = d.accounts[0].name;
+  d.pendingPayments.push(
+    { id: 'pp-old', description: 'Seguro da casa', date: '2026-11-01', type: 'expense', amount: 80.5, account: bank, category: 'Serviços' },
+    { id: 'pp-today', description: 'Ginásio', date: '2026-11-05', type: 'expense', amount: 25, account: bank, category: 'Saúde' },
+  );
+  return d;
+}
+
 function ctx(ledger, overrides) {
   return {
     ledger,
@@ -65,4 +76,4 @@ function ctx(ledger, overrides) {
   };
 }
 
-module.exports = { empty, demo, ctx };
+module.exports = { empty, demo, avisos, ctx };

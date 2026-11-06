@@ -31,6 +31,7 @@ const SCREENS = [
   { name: 'relatorios-ano', module: '../src/screens/relatorios.cjs', page: 'relatorios', view: { year: '2026', period: 'year', account: '' } },
   { name: 'relatorios-trimestre', module: '../src/screens/relatorios.cjs', page: 'relatorios', view: { year: '2026', period: 'q4', account: '' } },
   { name: 'patrimonio', module: '../src/screens/patrimonio.cjs', page: 'patrimonio' },
+  { name: 'avisos', module: '../src/screens/avisos.cjs', page: 'avisos', demo: fixtures.avisos },
   { name: 'ligacao-ligada', module: '../src/screens/ligacao.cjs', page: 'sync', view: { connection: {} } },
 ];
 const DATA = [['demo', fixtures.demo], ['vazio', fixtures.empty]];
@@ -81,7 +82,7 @@ function build() {
       for (const [themeName, theme] of THEMES) {
         const file = screen.name + '-' + dataName + '-' + themeName + '.html';
         let body;
-        try { body = (() => { const ledger = make(); return render(fixtures.ctx(ledger), typeof screen.view === 'function' ? screen.view(ledger) : screen.view); })(); } catch (error) { body = kit.errorCard(error.message); }
+        try { body = (() => { const ledger = (dataName === 'demo' && screen.demo || make)(); return render(fixtures.ctx(ledger), typeof screen.view === 'function' ? screen.view(ledger) : screen.view); })(); } catch (error) { body = kit.errorCard(error.message); }
         fs.writeFileSync(path.join(out, file), frame('Equilíbrio · ' + screen.name, theme, screen.page || screen.name, body));
         links.push(file);
       }

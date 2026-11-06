@@ -16,7 +16,7 @@ test('tabFor devolve resumo para páginas desconhecidas', () => {
 });
 
 test('placeholder «Em breve» só para páginas sem ecrã próprio', () => {
-  for (const p of ['avisos', 'definicoes']) {
+  for (const p of ['definicoes']) {
     assert.equal(nav.isPlaceholder(p), true, p);
     const html = nav.placeholder(p);
     assert.match(html, /Em breve/);

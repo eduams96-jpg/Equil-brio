@@ -53,6 +53,8 @@ import Movimentos from './screens/movimentos.cjs';
 import Compras from './screens/compras.cjs';
 import Relatorios from './screens/relatorios.cjs';
 import Patrimonio from './screens/patrimonio.cjs';
+import Avisos from './screens/avisos.cjs';
+import Dossiers from '../../../equilibrio/dossiers-model.js';
 
 import Contas from './screens/contas.cjs';
 
@@ -112,6 +114,11 @@ async function request(method,path,data){if(!connection)throw Error('Sem PC asso
 
 const client=new C.Client(adapter,request,{negotiate:true});
 
+// Avisos calculados uma vez por estado: a cache cai em cada gravação ou sincronização e quando muda o dia ou a revisão.
+let noticesCache=null;
+for(const name of ['enqueue','sync','resolve']){const original=client[name]&&client[name].bind(client);if(original)client[name]=async(...args)=>{noticesCache=null;try{return await original(...args);}finally{noticesCache=null;}};}
+function noticesFor(ledger,day,revision){const key=day+':'+String(revision??'');if(noticesCache&&noticesCache.key===key)return noticesCache.value;let value=null;try{value=Dossiers.notices(ledger,{today:day});}catch{value=null;}noticesCache={key,value};return value;}
+
 const association=new A.Association({read:()=>adapter.read(),replace:(s,r)=>adapter.replace(s,r),restoreWithCheckpoint:(state,revision)=>store.compareAndSet({state,expectedRevision:revision,preservePrevious:true}),importWithArchive:(state,archiveSource,revision)=>store.compareAndSet({state,archiveSource,expectedRevision:revision,preservePrevious:true})},vault,rawRequest);
 
 function money(cents){return current.state.hidden?'•••• €':new Intl.NumberFormat('pt-PT',{style:'currency',currency:'EUR'}).format(cents/100);}
@@ -170,7 +177,7 @@ async function render(){
 
  current=await adapter.read();const state=current.state;if(!state)throw Error('SQLite não devolveu dados.');
 
- const view=P.view(state),ledger=view.ledger,pending=state.outbox.filter(x=>['pending','sending'].includes(x.status)).length;
+ const view=P.view(state),ledger=view.ledger,notices=noticesFor(ledger,today(),current.revision),pending=state.outbox.filter(x=>['pending','sending'].includes(x.status)).length;
 
  document.getElementById('storage').textContent=`SQLite local · ${pending?pending+' por sincronizar':'dados guardados'}${state.blocked?' · revisão necessária':''}`;
 
@@ -182,7 +189,7 @@ async function render(){
 
 
 
- const ctx={ledger,state,today:today(),lastSync:readLastSync(),settings:{notifications:false,hour:9,theme:'auto',hideOnOpen:false},money,go:target=>run(async()=>{renderedPage=null;page=target;}),commit:(command,payload,options)=>client.enqueue(command,payload,options),counts:{notices:null,shopping:ledger.casa?.shopping?ledger.casa.shopping.filter(s=>!s.done).length:null},pending,release:__RELEASE__,setFilter:(field,value)=>{if(busy)return;filters[field]=value;visibleLimit=40;run(async()=>{});}};
+ const ctx={ledger,state,notices,today:today(),lastSync:readLastSync(),settings:{notifications:false,hour:9,theme:'auto',hideOnOpen:false},money,go:target=>run(async()=>{renderedPage=null;page=target;}),commit:(command,payload,options)=>client.enqueue(command,payload,options),counts:{notices:notices?notices.counts.high+notices.counts.medium:null,shopping:ledger.casa?.shopping?ledger.casa.shopping.filter(s=>!s.done).length:null},pending,release:__RELEASE__,setFilter:(field,value)=>{if(busy)return;filters[field]=value;visibleLimit=40;run(async()=>{});}};
 
  if(page==='mais')main.innerHTML=Mais.render(ctx);
 
@@ -203,6 +210,8 @@ async function render(){
  if(page==='compras-novo')main.innerHTML=Compras.add(ctx,shopAdd);
 
  if(page==='patrimonio')main.innerHTML=Patrimonio.render(ctx);
+
+ if(page==='avisos')main.innerHTML=Avisos.render(ctx);
 
  if(page==='relatorios'){repSel=repSel||{...Relatorios.initial(ctx.today),open:''};main.innerHTML=Relatorios.render(ctx,repSel);}
 
@@ -528,3 +537,6 @@ document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b||
 document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b||busy||page!=='relatorios')return;const d=b.dataset;let task=null;if(d.pillRepkind!==undefined)task=async()=>{repSel={...Relatorios.switchKind(repSel,d.pillRepkind,today()),open:''};};else if(b.id==='rep-prev'||b.id==='rep-next')task=async()=>{repSel={...Relatorios.shift(repSel,b.id==='rep-prev'?-1:1),open:''};};else if(d.pillRepaccount!==undefined)task=async()=>{repSel={...repSel,account:d.pillRepaccount};};else if(d.repCat!==undefined)task=async()=>{repSel={...repSel,open:repSel.open===d.repCat?'':d.repCat};};if(task){e.stopImmediatePropagation();run(task);}},true);
 
 document.addEventListener('input',event=>{const id=event.target.id,value=event.target.value;if(id==='shop-add-qty'){shopAdd.qty=value;return;}if(id==='shop-add-name'){shopAdd.name=value;return;}if(id!=='shop-search'&&id!=='shop-add-query')return;if(id==='shop-search')shopFilters.query=value;else shopAdd.query=value;const start=event.target.selectionStart,end=event.target.selectionEnd;clearTimeout(shopTimer);shopTimer=setTimeout(async()=>{if(busy||(page!=='compras'&&page!=='compras-novo'))return;const y=window.scrollY;await run(async()=>{});const input=document.getElementById(id);if(input){input.focus({preventScroll:true});input.setSelectionRange(start,end);window.scrollTo(0,y);}},180);});
+
+// Avisos: o botão de um aviso leva ao ecrã certo com o estado já preparado.
+document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b||busy||page!=='avisos')return;if(b.dataset.noticePay){e.stopImmediatePropagation();run(async()=>{commitmentId=b.dataset.noticePay;await openPayment();});}else if(b.dataset.noticeTab){e.stopImmediatePropagation();run(async()=>{houseTab=b.dataset.noticeTab;houseId=null;page='casa';});}},true);
