@@ -1,0 +1,37 @@
+# Review package: 8c07e64..HEAD
+
+## Commits
+ffeefca Android: teste de valores ocultos no detalhe deixa de ser vazio
+
+## Files changed
+ android/app/src/screens/movimentos.test.cjs | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+## Diff
+diff --git a/android/app/src/screens/movimentos.test.cjs b/android/app/src/screens/movimentos.test.cjs
+index b40332e..82ef324 100644
+--- a/android/app/src/screens/movimentos.test.cjs
++++ b/android/app/src/screens/movimentos.test.cjs
+@@ -60,21 +60,21 @@ test('Movimentos com valores ocultos não mostra montantes', () => {
+ test('Detalhe mostra o movimento e as ações de editar e eliminar', () => {
+   const html = movimentos.detail(ctx(demo()), { movementId: 'm-super', returnPage: 'movimentos' });
+   assert.ok(html.includes('Compras no supermercado'));
+   assert.ok(html.includes('id="edit-movement"') && html.includes('id="ask-delete"'));
+   assert.ok(html.includes('data-page="movimentos"'));
+   assert.match(html, /63,20/);
+ });
+ 
+ test('Detalhe com valores ocultos não mostra montantes e movimento em falta é tratado', () => {
+   const hiddenHtml = movimentos.detail(ctx(demo(), { state: { hidden: true } }), { movementId: 'm-super' });
+-  assert.doesNotMatch(hiddenHtml, /d,d{2}s?€/);
++  assert.doesNotMatch(hiddenHtml, /\d,\d{2}\s?€/);
+   assert.ok(movimentos.detail(ctx(demo()), { movementId: 'nao-existe' }).includes('já não existe'));
+ });
+ 
+ function draftFor(ledger, id) {
+   const base = { id: 'novo-1', type: 'expense', amount: '', description: '', accountId: ledger.accounts[0].id, targetId: ledger.accounts[1].id, category: '', subcategory: '', categoryDetail: '', categorySubdetail: '', note: '', beneficiary: '', noteColor: '', expenseNature: 'variable', date: '2026-11-05', command: 'new' };
+   return base;
+ }
+ 
+ test('Formulário novo tem os campos e ids usados pelos manipuladores', () => {
+   const ledger = demo();

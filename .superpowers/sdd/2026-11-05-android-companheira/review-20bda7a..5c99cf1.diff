@@ -1,0 +1,821 @@
+# Review package: 20bda7a..HEAD
+
+## Commits
+5c99cf1 Android: Lista de compras
+
+## Files changed
+ android/app/scripts/preview.cjs          |   8 +-
+ android/app/src/main.js                  |  24 +++-
+ android/app/src/nav.cjs                  |   6 +-
+ android/app/src/nav.test.cjs             |   7 +-
+ android/app/src/screens/compras.cjs      | 181 +++++++++++++++++++++++++++++++
+ android/app/src/screens/compras.test.cjs | 180 ++++++++++++++++++++++++++++++
+ android/app/src/screens/fixtures.cjs     |   8 ++
+ android/app/src/style.css                |  23 ++++
+ android/server/shopping-sync.test.cjs    |  62 +++++++++++
+ 9 files changed, 489 insertions(+), 10 deletions(-)
+
+## Diff
+diff --git a/android/app/scripts/preview.cjs b/android/app/scripts/preview.cjs
+index f4ba873..e2c5316 100644
+--- a/android/app/scripts/preview.cjs
++++ b/android/app/scripts/preview.cjs
+@@ -15,20 +15,24 @@ const SCREENS = [
+   { name: 'moldura', module: null },
+   { name: 'resumo', module: '../src/screens/resumo.cjs' },
+   { name: 'movimentos', module: '../src/screens/movimentos.cjs' },
+   { name: 'casa', module: '../src/screens/casa.cjs' },
+   { name: 'mais', module: '../src/screens/mais.cjs' },
+   { name: 'contas', module: '../src/screens/contas.cjs' },
+   { name: 'agenda', module: '../src/screens/agenda.cjs' },
+   { name: 'ligacao', module: '../src/screens/ligacao.cjs', page: 'sync' },
+   { name: 'casa-stock', module: '../src/screens/casa.cjs', page: 'casa', view: { tab: 'stock' } },
+   { name: 'casa-historico', module: '../src/screens/casa.cjs', page: 'casa', view: { tab: 'historico' } },
++  { name: 'compras', module: '../src/screens/compras.cjs', view: { status: 'all' } },
++  { name: 'compras-na-loja', module: '../src/screens/compras.cjs', page: 'compras', view: ledger => ({ status: 'todo', inStore: true, storeId: (ledger.casa && ledger.casa.stores[0] || {}).id || '' }) },
++  { name: 'compras-artigo', module: '../src/screens/compras.cjs', fn: 'item', page: 'compras', view: ledger => ({ id: ((ledger.casa && ledger.casa.shopping.find(x => x.catalogId)) || {}).id }) },
++  { name: 'compras-novo', module: '../src/screens/compras.cjs', fn: 'add', page: 'compras', view: { query: 'arroz' } },
+   { name: 'casa-compras', module: '../src/screens/casa.cjs', page: 'casa', view: { tab: 'compras' } },
+   { name: 'ligacao-ligada', module: '../src/screens/ligacao.cjs', page: 'sync', view: { connection: {} } },
+ ];
+ const DATA = [['demo', fixtures.demo], ['vazio', fixtures.empty]];
+ const THEMES = [['claro', 'light'], ['escuro', 'dark']];
+ const CSP = "default-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'";
+ 
+ function frame(title, theme, active, body) {
+   return '<!doctype html>\n<html lang="pt-PT" data-theme="' + theme + '"><head><meta charset="utf-8">'
+     + '<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">'
+@@ -60,27 +64,27 @@ function build() {
+   fs.copyFileSync(path.join(root, 'src/style.css'), path.join(out, 'style.css'));
+   const font = ['www/assets/dm-sans.ttf', '../../equilibrio/assets/fonts/dm-sans.ttf'].map(p => path.join(root, p)).find(p => fs.existsSync(p));
+   if (font) fs.copyFileSync(font, path.join(out, 'assets/dm-sans.ttf'));
+ 
+   const links = [];
+   for (const screen of SCREENS) {
+     let render = frameBody;
+     if (screen.module) {
+       const file = path.resolve(__dirname, screen.module);
+       if (!fs.existsSync(file)) continue;
+-      render = require(file).render;
++      render = require(file)[screen.fn || 'render'];
+     }
+     for (const [dataName, make] of DATA) {
+       for (const [themeName, theme] of THEMES) {
+         const file = screen.name + '-' + dataName + '-' + themeName + '.html';
+         let body;
+-        try { body = render(fixtures.ctx(make()), screen.view); } catch (error) { body = kit.errorCard(error.message); }
++        try { body = (() => { const ledger = make(); return render(fixtures.ctx(ledger), typeof screen.view === 'function' ? screen.view(ledger) : screen.view); })(); } catch (error) { body = kit.errorCard(error.message); }
+         fs.writeFileSync(path.join(out, file), frame('Equilíbrio · ' + screen.name, theme, screen.page || screen.name, body));
+         links.push(file);
+       }
+     }
+   }
+   const items = links.map(f => '<li><a href="' + f + '">' + f.replace('.html', '') + '</a></li>').join('');
+   fs.writeFileSync(path.join(out, 'index.html'), '<!doctype html>\n<html lang="pt-PT"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pré-visualização</title><link rel="stylesheet" href="style.css"></head><body><div id="app"><main><h1>Pré-visualização</h1><ul>' + items + '</ul></main></div></body></html>\n');
+   return links;
+ }
+ 
+diff --git a/android/app/src/main.js b/android/app/src/main.js
+index 915ca19..e1365a7 100644
+--- a/android/app/src/main.js
++++ b/android/app/src/main.js
+@@ -7,20 +7,22 @@ let recoveryFile=null,recoveryCandidate=null,recoveryExpected=null,recoveryPoint
+ const backupFiles=registerPlugin('BackupFiles');
+ 
+ import House from '../../shared/house.cjs';
+ 
+ import HouseForm from '../../shared/house-form.cjs';
+ 
+ import Casa from './screens/casa.cjs';
+ 
+ let houseTab='produtos',houseId=null,hf=null,hr=null,houseDiscard=null;
+ 
++let shopFilters={status:'todo',storeId:'',query:'',inStore:false},shopId=null,shopForm=null,shopAdd={query:'',qty:'1',name:''},shopTimer=null;
++
+ import Forms from '../../shared/form-drafts.cjs';
+ 
+ let pf=null,pr=null,paymentDiscard=null;
+ 
+ import {registerPlugin,Capacitor,CapacitorHttp} from '@capacitor/core';
+ 
+ import P from '../../shared/protocol.cjs';
+ 
+ import C from '../../shared/client.cjs';
+ 
+@@ -41,20 +43,22 @@ import K from '../../shared/commitment-drafts.cjs';
+ import Commitments from '../../shared/commitments.cjs';
+ 
+ import Nav from './nav.cjs';
+ 
+ import Mais from './screens/mais.cjs';
+ 
+ import Resumo from './screens/resumo.cjs';
+ 
+ import Movimentos from './screens/movimentos.cjs';
+ 
++import Compras from './screens/compras.cjs';
++
+ import Contas from './screens/contas.cjs';
+ 
+ import Ligacao from './screens/ligacao.cjs';
+ 
+ const LAST_SYNC_KEY='equilibrio.mobile.lastSync';
+ 
+ function readLastSync(){try{return localStorage.getItem(LAST_SYNC_KEY);}catch{return null;}}
+ 
+ function markSynced(){try{localStorage.setItem(LAST_SYNC_KEY,new Date().toISOString());}catch{}}
+ 
+@@ -181,20 +185,26 @@ async function render(){
+  if(Nav.isPlaceholder(page))main.innerHTML=Nav.placeholder(page);
+ 
+  if(page==='resumo')main.innerHTML=Resumo.render(ctx,{period:summaryPeriod});
+ 
+  if(page==='movimentos'){main.innerHTML=Movimentos.render(ctx,{filters,visibleLimit});Movimentos.bind(ctx,main);}
+ 
+  if(page==='casa')main.innerHTML=Casa.render(ctx,{tab:houseTab,id:houseId});
+ 
+  if(page==='casa-form')main.innerHTML=Casa.form(ctx,{form:hf,record:hr});
+ 
++ if(page==='compras')main.innerHTML=Compras.render(ctx,shopFilters);
++
++ if(page==='compras-artigo')main.innerHTML=Compras.item(ctx,{id:shopId,form:shopForm});
++
++ if(page==='compras-novo')main.innerHTML=Compras.add(ctx,shopAdd);
++
+  if(page==='descartar-casa')main.innerHTML=Casa.discard();
+ 
+  if(page==='recuperacao')main.innerHTML=Ligacao.recovery(ctx,{points:recoveryPoints,file:recoveryFile});
+ 
+  if(page==='confirmar-recuperacao')main.innerHTML=Ligacao.confirmRecovery();
+ 
+  if(page==='confirmar-desligar')main.innerHTML=Ligacao.confirmDetach();
+  if(page==='confirmar-passagem')main.innerHTML=Ligacao.confirmPassage();
+ 
+  if(page==='agenda')main.innerHTML=Agenda.render(ctx,{period:summaryPeriod,showCompleted:showCompletedAgenda});
+@@ -253,21 +263,21 @@ async function render(){
+ function formFingerprint(){const form=document.getElementById('movement');return form?JSON.stringify([...new FormData(form).entries()]):null;}
+ 
+ function preserveDraft(){const form=document.getElementById('movement');if(page!=='novo'||!draft||!form)return;const values=new FormData(form);for(const key of ['amount','description','type','category','subcategory','categoryDetail','categorySubdetail','date','note','beneficiary','noteColor','expenseNature'])draft[key]=String(values.get(key)??'');draft.accountId=String(values.get('account')||'');draft.targetId=String(values.get('target')||'');}
+ 
+ async function persistDraft(){preserveDraft();if(!draftRecord||!draft)return null;const record={...draftRecord,form:P.copy(draft),baseline:draftBaseline||draftRecord.baseline};const saved=await drafts.save(record);draftRecord=saved;return saved;}
+ 
+ function autoSaveDraft(){if(page!=='novo'||!draftRecord||busy)return;preserveDraft();if(!draftRecord.sequence&&formFingerprint()===draftBaseline)return;const id=++draftWriteId;const status=document.getElementById('draft-status');if(status)status.textContent='A guardar rascunho…';persistDraft().then(()=>{if(id===draftWriteId&&document.getElementById('draft-status'))document.getElementById('draft-status').textContent='Rascunho guardado neste dispositivo.';}).catch(error=>{if(document.getElementById('draft-status'))document.getElementById('draft-status').textContent='Não foi possível guardar o rascunho. Mantém este formulário aberto.';message.textContent=error.message;});}
+ 
+ async function leaveForm(next,discard){await adapter.idle();const s=(await adapter.read()).state,saved=s.movementDraft;if(discard&&saved){if(!draftRecord||saved.token!==draftRecord.token)throw Error('Existe outro rascunho. Foi preservado.');await drafts.discard(saved);}else if(!discard&&draftRecord&&!D.staleReason(s,draftRecord))await persistDraft();draft=null;draftRecord=null;draftBaseline=null;formRevision=null;resolvingId=null;renderedPage=null;page=next;}
+ 
+-async function run(fn){if(busy)return;preserveHouse();preservePayment();preserveCommit();preserveAccount();preserveDraft();busy=true;main.inert=true;main.setAttribute('aria-busy','true');message.textContent='';document.querySelectorAll('button').forEach(b=>b.disabled=true);try{await fn();await render();}catch(error){message.textContent=error.message;try{await render();}catch{main.textContent='Não foi possível abrir os dados. Nenhum ficheiro foi substituído.';}}finally{busy=false;main.inert=false;main.setAttribute('aria-busy','false');document.getElementById('privacy').disabled=false;document.querySelectorAll('nav button,#leaveDialog button').forEach(b=>b.disabled=false);}}
++async function run(fn){if(busy)return;preserveHouse();preserveShop();preservePayment();preserveCommit();preserveAccount();preserveDraft();busy=true;main.inert=true;main.setAttribute('aria-busy','true');message.textContent='';document.querySelectorAll('button').forEach(b=>b.disabled=true);try{await fn();await render();}catch(error){message.textContent=error.message;try{await render();}catch{main.textContent='Não foi possível abrir os dados. Nenhum ficheiro foi substituído.';}}finally{busy=false;main.inert=false;main.setAttribute('aria-busy','false');document.getElementById('privacy').disabled=false;document.querySelectorAll('nav button,#leaveDialog button').forEach(b=>b.disabled=false);}}
+ 
+ async function save(){
+ 
+  const form=document.getElementById('movement');if(!form||!form.reportValidity())return;
+ 
+  preserveDraft();let payload;try{payload=D.payload(draft);}catch(error){message.textContent=error.message;return;}
+ 
+  const command=draft.command==='new'?(payload.type==='transfer'?'transfer.add':'movement.add'):draft.command;
+ 
+  await run(async()=>{const record=await persistDraft();const options={...(formRevision===null?{}:{expectedEntityRevision:formRevision}),draft:{token:record.token,sequence:record.sequence}};if(resolvingId)await client.resolve(resolvingId,'local',payload,options);else await client.enqueue(command,payload,options);page='movimentos';draft=null;draftRecord=null;draftBaseline=null;resolvingId=null;formRevision=null;message.textContent='Movimento guardado neste dispositivo.';});
+@@ -461,21 +471,21 @@ window.EquilibrioBack=()=>{if(busy)return true;const dialog=document.getElementB
+ document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'){if(page==='novo')persistDraft().catch(e=>message.textContent=e.message);if(page==='novo-compromisso')persistCommit().catch(e=>message.textContent=e.message);if(page==='pagar-compromisso')persistPayment().catch(e=>message.textContent=e.message);}});
+ 
+ 
+ 
+ function preserveHouse(){const f=document.getElementById('house-form');if(page!=='casa-form'||!hf||!f)return;const d=new FormData(f);for(const [k,v] of d.entries())if(!k.startsWith('offer-'))hf[k]=String(v);if(hf.command==='house.product')hf.offers=[...f.querySelectorAll('[data-offer-row]')].map(el=>({...Object.fromEntries(['storeName','packageQty','price','url'].map(k=>[k,el.querySelector('[data-offer-field="'+k+'"]').value]))}));}
+ 
+ async function persistHouse(){preserveHouse();if(!hr)return;const r=await Forms.save(adapter,'houseDraft',{...hr,form:P.copy(hf)});if(hr?.token===r.token)hr=r;return r;}
+ 
+ async function openHouseForm(kind,id=null){await adapter.idle();const s=(await adapter.read()).state;if(s.houseDraft){hr=P.copy(s.houseDraft);hf=P.copy(hr.form);page='casa-form';return;}const v=P.view(s),c=House.Casa.state(v.ledger),old=kind==='product'?c.catalog.find(x=>x.id===id):c.stock.find(x=>x.id===id);hf={id:old?.id||P.id(),command:'house.'+kind,mode:old?'update':'create',seed:P.id(),changedOn:today()};if(kind==='product'){const cats=P.Finance.categoryParts(old?.category||'');Object.assign(hf,{name:old?.name||'',brand:old?.brand||'',category:cats[0]||'',sub1:cats[1]||'',sub2:cats[2]||'',sub3:cats[3]||'',unit:old?.unit||'un',url:old?.url||'',offers:old?Object.entries(old.offers).map(([storeId,o])=>({storeName:c.stores.find(s=>s.id===storeId)?.name||'',packageQty:String(o.packageQty),price:String(o.price).replace('.',','),...(o.url?{url:o.url}:{})})) :[]});}else if(kind==='lot'){Object.assign(hf,{catalogId:old?.catalogId||id||'',qty:String(old?.qty||''),location:old?.location||'',expiry:old?.expiry||'',opened:old?.opened===true});}else {if(!old)throw Error('Lote indisponível.');Object.assign(hf,{id:old.id,qty:'',type:'consume',note:''});}hr=Forms.create(s,hf,'house',v.revisions.house||0);page='casa-form';}
+ 
+-document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b||busy)return;let task=null;if(b.dataset.houseTab)task=async()=>{houseTab=b.dataset.houseTab;page='casa';};if(b.dataset.product)task=async()=>{houseId=b.dataset.product;houseTab='produto';page='casa';};if(b.dataset.lot)task=async()=>{houseId=b.dataset.lot;houseTab='lote';page='casa';};if(b.id==='new-product'||b.dataset.editProduct)task=()=>openHouseForm('product',b.dataset.editProduct||null);if(b.dataset.newLot)task=()=>openHouseForm('lot',b.dataset.newLot);if(b.dataset.editLot)task=()=>openHouseForm('lot',b.dataset.editLot);if(b.dataset.consumeLot)task=()=>openHouseForm('consume',b.dataset.consumeLot);if(b.id==='resume-house')task=()=>openHouseForm('product');if(b.id==='add-offer')task=async()=>{preserveHouse();hf.offers.push({storeName:'',packageQty:'',price:''});document.getElementById('house-form').remove();await persistHouse();};if(b.dataset.removeOffer!==undefined)task=async()=>{preserveHouse();hf.offers.splice(Number(b.dataset.removeOffer),1);document.getElementById('house-form').remove();await persistHouse();};if(b.id==='ask-discard-house')task=async()=>{houseDiscard=P.copy((await adapter.read()).state.houseDraft);page='descartar-casa';};if(b.id==='confirm-discard-house')task=async()=>{await Forms.discard(adapter,'houseDraft',houseDiscard);hr=null;hf=null;page='casa';};if(b.dataset.shopping)task=async()=>{const p={id:b.dataset.shopping,seed:P.id(),changedOn:today(),values:{operation:'toggle'}};await client.enqueue('house.shopping',p);};if(b.id==='save-house'){if(!document.getElementById('house-form').reportValidity())return;task=async()=>{const r=await persistHouse(),p=HouseForm.payload(hf);await client.enqueue(hf.command,p,{houseDraft:{token:r.token,sequence:r.sequence}});houseId=p.id;houseTab=hf.command==='house.product'?'produto':hf.command==='house.lot'?'lote':'stock';hf=null;hr=null;page='casa';message.textContent='Casa guardada neste dispositivo.';};}if(page==='casa-form'&&b.dataset.page)task=async()=>{if(hr&&!Forms.staleReason((await adapter.read()).state,hr))await persistHouse();hf=null;hr=null;page=b.dataset.page;};if(task){e.stopImmediatePropagation();run(task);}},true);
++document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b||busy)return;let task=null;if(b.dataset.houseTab)task=async()=>{houseTab=b.dataset.houseTab;page='casa';};if(b.dataset.product)task=async()=>{houseId=b.dataset.product;houseTab='produto';page='casa';};if(b.dataset.lot)task=async()=>{houseId=b.dataset.lot;houseTab='lote';page='casa';};if(b.id==='new-product'||b.dataset.editProduct)task=()=>openHouseForm('product',b.dataset.editProduct||null);if(b.dataset.newLot)task=()=>openHouseForm('lot',b.dataset.newLot);if(b.dataset.editLot)task=()=>openHouseForm('lot',b.dataset.editLot);if(b.dataset.consumeLot)task=()=>openHouseForm('consume',b.dataset.consumeLot);if(b.id==='resume-house')task=()=>openHouseForm('product');if(b.id==='add-offer')task=async()=>{preserveHouse();hf.offers.push({storeName:'',packageQty:'',price:''});document.getElementById('house-form').remove();await persistHouse();};if(b.dataset.removeOffer!==undefined)task=async()=>{preserveHouse();hf.offers.splice(Number(b.dataset.removeOffer),1);document.getElementById('house-form').remove();await persistHouse();};if(b.id==='ask-discard-house')task=async()=>{houseDiscard=P.copy((await adapter.read()).state.houseDraft);page='descartar-casa';};if(b.id==='confirm-discard-house')task=async()=>{await Forms.discard(adapter,'houseDraft',houseDiscard);hr=null;hf=null;page='casa';};if(b.id==='save-house'){if(!document.getElementById('house-form').reportValidity())return;task=async()=>{const r=await persistHouse(),p=HouseForm.payload(hf);await client.enqueue(hf.command,p,{houseDraft:{token:r.token,sequence:r.sequence}});houseId=p.id;houseTab=hf.command==='house.product'?'produto':hf.command==='house.lot'?'lote':'stock';hf=null;hr=null;page='casa';message.textContent='Casa guardada neste dispositivo.';};}if(page==='casa-form'&&b.dataset.page)task=async()=>{if(hr&&!Forms.staleReason((await adapter.read()).state,hr))await persistHouse();hf=null;hr=null;page=b.dataset.page;};if(task){e.stopImmediatePropagation();run(task);}},true);
+ 
+ for(const name of ['input','change'])document.addEventListener(name,e=>{if(e.target.closest('#house-form')&&!busy)persistHouse().then(()=>{const el=document.getElementById('house-status');if(el)el.textContent='Rascunho guardado neste dispositivo.';}).catch(e=>message.textContent=e.message);});
+ 
+ document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'&&page==='casa-form')persistHouse().catch(e=>message.textContent=e.message);});
+ 
+ document.addEventListener('click',e=>{const b=e.target.closest('button');if(b?.id==='repeat-extended'&&!busy){e.stopImmediatePropagation();run(async()=>{await client.resolve(conflictId,'local');page='sync';message.textContent='Nova proposta guardada; a anterior ficou no histórico.';});}},true);
+ 
+ const recoveryAdapter={read:()=>adapter.read(),restoreWithCheckpoint:(state,revision)=>store.compareAndSet({state,expectedRevision:revision,preservePrevious:true})};
+ 
+ document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b||busy)return;let task=null;const password=()=>document.getElementById('backup-password')?.value||'';if(b.id==='export-backup'){const pass=password();task=async()=>{await adapter.idle();const s=(await adapter.read()).state,data=await Recovery.encrypt(s,pass);await backupFiles.exportBackup({data});message.textContent='Cópia encriptada guardada.';};}if(b.id==='choose-backup')task=async()=>{recoveryFile=(await backupFiles.importBackup()).data;message.textContent='Cópia escolhida. Indica a palavra-passe e abre-a para rever o restauro.';};if(b.id==='review-detach')task=async()=>{recoveryExpected=await adapter.read();page='confirmar-desligar';};if(b.id==='confirm-detach')task=async()=>{await adapter.idle();await association.detach(recoveryExpected.revision);connection=null;savedConnection=null;recoveryExpected=null;page='sync';message.textContent='Dados conservados offline. Podes preparar a nova associação.';};if(b.id==='list-checkpoints')task=async()=>{recoveryPoints=(await store.listCheckpoints()).checkpoints;};if(b.dataset.checkpoint)task=async()=>{recoveryCandidate=(await store.readCheckpoint({id:Number(b.dataset.checkpoint)})).state;recoveryExpected=await adapter.read();portableMode=false;page='confirmar-recuperacao';};if(b.id==='portable-import')task=async()=>{Recovery.portable(recoveryCandidate,(await adapter.read()).state);recoveryExpected=await adapter.read();portableMode=true;page='confirmar-passagem';};if(b.id==='export-recovery-candidate'){const pass=password();task=async()=>{await backupFiles.exportBackup({data:await Recovery.encrypt(recoveryCandidate,pass)});message.textContent='Origem exportada com encriptação.';};}if(b.id==='confirm-portable')task=async()=>{await adapter.idle();await Recovery.transfer({...recoveryAdapter,importWithArchive:(state,archiveSource,revision)=>store.compareAndSet({state,archiveSource,expectedRevision:revision,preservePrevious:true})},recoveryCandidate,recoveryExpected);recoveryCandidate=null;recoveryExpected=null;page='resumo';message.textContent='Dados recuperados para consulta e uso offline. A origem ficou arquivada; as operações antigas não serão reenviadas ao PC.';};if(b.id==='open-backup'){const pass=password();task=async()=>{recoveryCandidate=await Recovery.decrypt(recoveryFile,pass);recoveryExpected=await adapter.read();page='confirmar-recuperacao';recoveryFile=null;};}if(b.id==='confirm-recovery')task=async()=>{await adapter.idle();await Recovery.restore(recoveryAdapter,recoveryCandidate,recoveryExpected);recoveryCandidate=null;recoveryExpected=null;draft=null;cf=null;pf=null;hf=null;draftRecord=null;cr=null;pr=null;hr=null;page='resumo';message.textContent='Cópia recuperada. O estado anterior foi conservado neste dispositivo.';};if(task){e.stopImmediatePropagation();run(task);}},true);
+@@ -485,10 +495,20 @@ if(!__RELEASE__)window.EquilibrioRecoveryTest={encrypt:Recovery.encrypt,decrypt:
+ async function persistAccount(){preserveAccount();if(!accountForm||!accountDraftRecord)return null;const r=await Forms.save(adapter,'accountDraft',{...accountDraftRecord,form:P.copy(accountForm)});if(accountDraftRecord?.token===r.token)accountDraftRecord=r;return r;}
+ 
+ async function resumeAccount(){await adapter.idle();const s=(await adapter.read()).state,r=s.accountDraft;Forms.valid('accountDraft',r);accountDraftRecord=P.copy(r);accountForm=P.copy(r.form);accountRevision=P.copy(r.expectedRevision);accountBaseline=JSON.stringify(accountForm);page='editar-conta';}
+ 
+ document.addEventListener('click',e=>{const b=e.target.closest('button');if(b?.id==='resume-account'&&!busy){e.stopImmediatePropagation();run(()=>resumeAccount());}},true);
+ 
+ for(const event of ['input','change'])document.addEventListener(event,e=>{if(e.target.closest('#account-form')&&!busy)persistAccount().catch(e=>message.textContent=e.message);});
+ 
+ document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'&&page==='editar-conta')persistAccount().catch(e=>message.textContent=e.message);});
+ 
++
++const shopSend=(id,values)=>client.enqueue('house.shopping',{id,seed:P.id(),changedOn:today(),values});
++
++function shopRead(){const f=document.getElementById('shop-item-form');return f?Object.fromEntries([...new FormData(f).entries()].map(([k,v])=>[k,String(v)])):null;}
++
++function preserveShop(){if(page!=='compras-artigo')return;const f=shopRead();if(f)shopForm=f;}
++
++document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b||busy)return;const d=b.dataset;let task=null;if(d.shoppingDone)task=()=>shopSend(d.shoppingDone,Compras.setDone(d.next==='true'));else if(d.pillShopstatus!==undefined)task=async()=>{shopFilters.status=d.pillShopstatus;};else if(d.pillShopstore!==undefined)task=async()=>{shopFilters.storeId=d.pillShopstore;};else if(b.id==='shop-instore')task=async()=>{shopFilters.inStore=!shopFilters.inStore;if(!shopFilters.inStore)shopFilters.storeId='';};else if(b.id==='shop-add')task=async()=>{shopAdd={query:'',qty:'1',name:''};page='compras-novo';};else if(d.shoppingOpen)task=async()=>{shopId=d.shoppingOpen;shopForm=null;page='compras-artigo';};else if(b.id==='shop-item-save')task=async()=>{const f=shopRead(),id=shopId;try{const defaults=f.packages===undefined?null:Compras.offerDefaults(P.view((await adapter.read()).state).ledger,id);await shopSend(id,Compras.updateValues(f,f.packages!==undefined,defaults));}catch(error){shopForm=f;throw error;}shopForm=null;page='compras';message.textContent='Artigo guardado neste dispositivo.';};else if(b.id==='shop-item-remove')task=async()=>{await shopSend(shopId,{operation:'remove'});shopId=null;shopForm=null;page='compras';message.textContent='Artigo retirado da lista.';};else if(d.queueCatalog)task=async()=>{const values=Compras.queueValues({catalogId:d.queueCatalog,storeId:d.queueStore,qty:document.getElementById('shop-add-qty').value});await shopSend(P.id(),values);shopFilters.status='todo';page='compras';message.textContent='Artigo acrescentado à lista.';};else if(b.id==='shop-add-free')task=async()=>{const values=Compras.addValues({name:document.getElementById('shop-add-name').value,qty:document.getElementById('shop-add-qty').value});await shopSend(P.id(),values);shopFilters.status='todo';page='compras';message.textContent='Artigo acrescentado à lista.';};if(task){e.stopImmediatePropagation();run(task);}},true);
++
++document.addEventListener('input',event=>{const id=event.target.id,value=event.target.value;if(id==='shop-add-qty'){shopAdd.qty=value;return;}if(id==='shop-add-name'){shopAdd.name=value;return;}if(id!=='shop-search'&&id!=='shop-add-query')return;if(id==='shop-search')shopFilters.query=value;else shopAdd.query=value;const start=event.target.selectionStart,end=event.target.selectionEnd;clearTimeout(shopTimer);shopTimer=setTimeout(async()=>{if(busy||(page!=='compras'&&page!=='compras-novo'))return;const y=window.scrollY;await run(async()=>{});const input=document.getElementById(id);if(input){input.focus({preventScroll:true});input.setSelectionRange(start,end);window.scrollTo(0,y);}},180);});
+diff --git a/android/app/src/nav.cjs b/android/app/src/nav.cjs
+index 53a6feb..0990714 100644
+--- a/android/app/src/nav.cjs
++++ b/android/app/src/nav.cjs
+@@ -1,37 +1,37 @@
+ 'use strict';
+ const kit = require('./ui/kit.cjs');
+ 
+ const MOVIMENTOS = ['movimentos', 'detalhe', 'novo', 'rascunho', 'eliminar', 'descartar-rascunho', 'conflito'];
+-const CASA = ['casa', 'casa-form', 'descartar-casa', 'compras'];
++const CASA = ['casa', 'casa-form', 'descartar-casa', 'compras', 'compras-artigo', 'compras-novo'];
+ const MAIS = [
+   'mais', 'contas', 'conta', 'editar-conta', 'arquivar-conta', 'sair-conta',
+   'agenda', 'compromisso', 'novo-compromisso', 'pagar-compromisso', 'descartar-compromisso', 'descartar-pagamento',
+   'patrimonio', 'relatorios', 'avisos', 'sync', 'recuperacao',
+   'confirmar-recuperacao', 'confirmar-desligar', 'confirmar-passagem',
+   'consulta-financeira', 'definicoes',
+ ];
+ 
+ // Separador da barra inferior a que uma página pertence; o que não está listado cai em «resumo».
+ function tabFor(page) {
+   if (MOVIMENTOS.includes(page)) return 'movimentos';
+   if (CASA.includes(page)) return 'casa';
+   if (MAIS.includes(page)) return 'mais';
+   return 'resumo';
+ }
+ 
+ // Páginas cujo ecrã ainda não existe: mostram «Em breve». Quando uma tarefa registar o ecrã
+ // real, basta retirar o nome daqui.
+-const PLACEHOLDERS = { compras: 'Compras', patrimonio: 'Património', relatorios: 'Relatórios', avisos: 'Avisos', definicoes: 'Definições' };
++const PLACEHOLDERS = { patrimonio: 'Património', relatorios: 'Relatórios', avisos: 'Avisos', definicoes: 'Definições' };
+ 
+ function isPlaceholder(page) {
+   return Object.prototype.hasOwnProperty.call(PLACEHOLDERS, page);
+ }
+ 
+ function placeholder(page) {
+   const title = PLACEHOLDERS[page] || 'Página';
+-  const back = page === 'compras' ? ['casa', '‹ Casa'] : ['mais', '‹ Mais'];
++  const back = ['mais', '‹ Mais'];
+   return '<button type="button" class="back" data-page="' + back[0] + '">' + back[1] + '</button>'
+     + kit.card({ title, subtitle: 'Em breve', body: '<p class="sub">Esta página chega numa próxima atualização.</p>' });
+ }
+ 
+ module.exports = { tabFor, isPlaceholder, placeholder };
+diff --git a/android/app/src/nav.test.cjs b/android/app/src/nav.test.cjs
+index f91565d..19c490a 100644
+--- a/android/app/src/nav.test.cjs
++++ b/android/app/src/nav.test.cjs
+@@ -1,34 +1,35 @@
+ 'use strict';
+ const test = require('node:test');
+ const assert = require('node:assert/strict');
+ const nav = require('./nav.cjs');
+ 
+ test('tabFor agrupa as páginas por separador', () => {
+   assert.equal(nav.tabFor('resumo'), 'resumo');
+   for (const p of ['movimentos', 'detalhe', 'novo', 'rascunho', 'eliminar', 'descartar-rascunho', 'conflito']) assert.equal(nav.tabFor(p), 'movimentos', p);
+-  for (const p of ['casa', 'casa-form', 'descartar-casa', 'compras']) assert.equal(nav.tabFor(p), 'casa', p);
++  for (const p of ['casa', 'casa-form', 'descartar-casa', 'compras', 'compras-artigo', 'compras-novo']) assert.equal(nav.tabFor(p), 'casa', p);
+   for (const p of ['contas', 'conta', 'editar-conta', 'arquivar-conta', 'sair-conta', 'agenda', 'compromisso', 'novo-compromisso', 'pagar-compromisso', 'descartar-compromisso', 'descartar-pagamento', 'patrimonio', 'relatorios', 'avisos', 'sync', 'recuperacao', 'confirmar-recuperacao', 'confirmar-desligar', 'confirmar-passagem', 'consulta-financeira', 'definicoes', 'mais']) assert.equal(nav.tabFor(p), 'mais', p);
+ });
+ 
+ test('tabFor devolve resumo para páginas desconhecidas', () => {
+   assert.equal(nav.tabFor('desconhecida'), 'resumo');
+   assert.equal(nav.tabFor(undefined), 'resumo');
+ });
+ 
+ test('placeholder «Em breve» só para páginas sem ecrã próprio', () => {
+-  for (const p of ['compras', 'patrimonio', 'relatorios', 'avisos', 'definicoes']) {
++  for (const p of ['patrimonio', 'relatorios', 'avisos', 'definicoes']) {
+     assert.equal(nav.isPlaceholder(p), true, p);
+     const html = nav.placeholder(p);
+     assert.match(html, /Em breve/);
+-    assert.match(html, p === 'compras' ? /data-page="casa"/ : /data-page="mais"/);
++    assert.match(html, /data-page="mais"/);
+   }
+   assert.equal(nav.isPlaceholder('contas'), false);
+   assert.equal(nav.isPlaceholder('mais'), false);
++  assert.equal(nav.isPlaceholder('compras'), false);
+ });
+ 
+ test('index.html usa a mesma navegação que a pré-visualização', () => {
+   const html = require('node:fs').readFileSync(require('node:path').join(__dirname, 'index.html'), 'utf8');
+   const shell = require('./shell.cjs');
+   assert.ok(html.includes(shell.navHtml('resumo') + shell.fabHtml()));
+   assert.match(shell.fabHtml(), /id="quickAdd" data-page="novo"/);
+ });
+diff --git a/android/app/src/screens/compras.cjs b/android/app/src/screens/compras.cjs
+new file mode 100644
+index 0000000..7d8ab08
+--- /dev/null
++++ b/android/app/src/screens/compras.cjs
+@@ -0,0 +1,181 @@
++'use strict';
++const kit = require('../ui/kit.cjs');
++const { icon } = require('../ui/icons.cjs');
++const H = require('../../../shared/house.cjs');
++
++const STATUSES = [['todo', 'Por comprar'], ['cart', 'No carrinho'], ['all', 'Todos']];
++const PLACES = ['Despensa', 'Frigorífico', 'Congelador'];
++const NO_FILTERS = { status: 'todo', storeId: '', query: '', inStore: false };
++
++const cents = x => Math.round(x * 100);
++const fold = s => String(s == null ? '' : s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
++const num = s => Number(String(s == null ? '' : s).trim().replace(',', '.'));
++
++// Preço de uma linha ligada ao catálogo, calculado pela mesma regra do fecho da compra
++// (Casa.quote exige o artigo marcado, por isso a cotação usa uma cópia com todos marcados).
++function pricing(ledger, c) {
++  const copy = { ...ledger, casa: { ...ledger.casa, shopping: c.shopping.map(s => ({ ...s, done: true, notFound: false })) } };
++  return id => {
++    try {
++      const item = H.Casa.quote(copy, [id])[0].items[0];
++      return { unitPrice: item.price, total: item.total, packages: item.packages, packageQty: item.packageQty };
++    } catch {
++      return null;
++    }
++  };
++}
++
++function filtersOf(f) {
++  return { ...NO_FILTERS, ...(f || {}) };
++}
++
++// Pura: linhas filtradas, totais da lista inteira e lojas disponíveis.
++function view(ledger, filters) {
++  const f = filtersOf(filters);
++  const c = H.Casa.state(ledger || {});
++  const price = pricing(ledger || {}, c);
++  const storeName = id => (c.stores.find(s => s.id === id) || {}).name || '';
++  const all = c.shopping.map(s => {
++    const p = s.catalogId ? price(s.id) : null;
++    return { id: s.id, name: s.name, qty: s.qty, storeId: s.storeId || '', storeName: storeName(s.storeId), unitPrice: p ? p.unitPrice : null, total: p ? p.total : null, done: s.done === true, notFound: s.notFound === true };
++  });
++  const sum = list => list.reduce((t, r) => t + (r.total == null ? 0 : cents(r.total)), 0) / 100;
++  const query = fold(f.query).trim();
++  const rows = all.filter(r => (f.status === 'all' || (f.status === 'cart') === r.done)
++    && (!f.storeId || r.storeId === f.storeId)
++    && (!query || fold(r.name).includes(query)));
++  return {
++    rows,
++    estimated: sum(all.filter(r => !r.notFound)),
++    inCart: sum(all.filter(r => r.done)),
++    stores: c.stores.filter(s => !s.archived).map(s => ({ id: s.id, name: s.name })),
++    counts: { todo: all.filter(r => !r.done).length, cart: all.filter(r => r.done).length, all: all.length },
++  };
++}
++
++function amount(ctx, value) {
++  return value == null ? '' : kit.money(cents(value), ctx.state.hidden);
++}
++
++function row(ctx, r) {
++  const e = kit.escape;
++  const detail = [r.qty, r.storeName, r.notFound ? 'Não encontrado' : ''].filter(Boolean).map(e).join(' · ');
++  return '<div class="shop-row' + (r.done ? ' is-done' : '') + (r.notFound ? ' is-missing' : '') + '">'
++    + '<button type="button" class="shop-check" data-shopping-done="' + e(r.id) + '" data-next="' + !r.done
++    + '" role="checkbox" aria-checked="' + r.done + '" aria-label="' + e((r.done ? 'Desmarcar ' : 'Marcar como comprado: ') + r.name) + '">' + (r.done ? icon('check') : '') + '</button>'
++    + '<button type="button" class="shop-name" data-shopping-open="' + e(r.id) + '"><strong>' + e(r.name) + '</strong><small>' + detail + '</small></button>'
++    + '<span class="amount">' + amount(ctx, r.total) + '</span></div>';
++}
++
++// Ecrã «Lista de compras». filters: {status, storeId, query, inStore}, geridos por main.js.
++function render(ctx, filters) {
++  const f = filtersOf(filters);
++  const v = view(ctx.ledger, f);
++  const opts = STATUSES.map(([value, label]) => ({ value, label, count: v.counts[value] }));
++  const stores = [{ value: '', label: 'Todas' }, ...v.stores.map(s => ({ value: s.id, label: s.name }))];
++  const empty = v.counts.all
++    ? 'Nenhum artigo nesta vista. Altera a pesquisa ou o estado.'
++    : 'A lista está vazia. Usa «Acrescentar» para juntar o primeiro artigo.';
++  return '<button type="button" class="back" data-page="casa">‹ Casa</button><h1>Lista de compras</h1>'
++    + '<p class="sub">' + v.counts.todo + (v.counts.todo === 1 ? ' artigo por comprar' : ' artigos por comprar') + '</p>'
++    + '<div class="shop-actions"><button type="button" class="primary" id="shop-add">' + icon('plus') + ' Acrescentar</button>'
++    + '<button type="button" id="shop-instore" aria-pressed="' + f.inStore + '">' + icon('cart') + ' Estou na loja</button></div>'
++    + kit.search('shop-search', f.query, 'Pesquisar na lista')
++    + kit.pills('shopstatus', opts, f.status)
++    + (f.inStore ? kit.pills('shopstore', stores, f.storeId) : '')
++    + '<div class="shop-list" id="shop-list">' + (v.rows.map(r => row(ctx, r)).join('') || '<p class="empty">' + empty + '</p>') + '</div>'
++    + '<div class="shop-footer" role="status"><div><small>Estimado</small><strong>' + amount(ctx, v.estimated) + '</strong></div>'
++    + '<div><small>No carrinho</small><strong>' + amount(ctx, v.inCart) + '</strong></div></div>';
++}
++
++// Folha «Conferir artigo». view: {id, form?}; form substitui os valores iniciais (rascunho de main.js).
++function item(ctx, view = {}) {
++  const e = kit.escape;
++  const c = H.Casa.state(ctx.ledger);
++  const s = c.shopping.find(x => x.id === view.id);
++  const back = '<button type="button" class="back" data-page="compras">‹ Lista de compras</button>';
++  if (!s) return back + '<h1>Artigo indisponível</h1><p class="sub">Este artigo já não está na lista.</p>';
++  const q = s.catalogId ? pricing(ctx.ledger, c)(s.id) : null;
++  const form = { ...initial(s, q), ...(view.form || {}) };
++  const product = c.catalog.find(p => p.id === s.catalogId);
++  const store = c.stores.find(x => x.id === s.storeId);
++  const field = (name, label, extra = '', value = form[name]) => '<label>' + label + '<input name="' + name + '" value="' + e(value) + '" ' + extra + '></label>';
++  const offer = q
++    ? field('packages', 'Embalagens', 'inputmode="numeric" autocomplete="off"') + field('price', 'Preço por embalagem (€)', 'inputmode="decimal" autocomplete="off"')
++      + '<p class="sub">' + e(q.packageQty + ' ' + product.unit) + ' por embalagem · total ' + amount(ctx, q.total) + '</p>'
++    : '';
++  return back + '<h1>Conferir artigo</h1>'
++    + '<section class="review-card"><h2>' + e(s.name) + '</h2><p>' + e(s.qty) + (store ? ' · ' + e(store.name) : '') + '</p></section>'
++    + '<form id="shop-item-form" data-shopping-id="' + e(s.id) + '">' + offer
++    + field('location', 'Guardar em', 'maxlength="80" list="shop-places" autocomplete="off"')
++    + '<datalist id="shop-places">' + PLACES.map(p => '<option>' + p + '</option>').join('') + '</datalist>'
++    + field('expiry', 'Validade (opcional)', 'type="date"')
++    + '<label>Nota<textarea name="note" maxlength="500" rows="3">' + e(form.note) + '</textarea></label>'
++    + '<button type="button" class="primary full" id="shop-item-save">Guardar</button>'
++    + '<button type="button" class="full" id="shop-item-remove">Retirar da lista</button></form>';
++}
++
++// Embalagens e preço que a oferta da loja dá (sem o ajuste guardado), para saber se o ajuste mudou.
++function offerDefaults(ledger, id) {
++  const c = H.Casa.state(ledger), s = c.shopping.find(x => x.id === id);
++  const p = s && c.catalog.find(x => x.id === s.catalogId), offer = p && p.offers[s.storeId];
++  if (!offer) return null;
++  return { packages: Math.ceil(Math.round(s.requestedQty * 1000) / Math.round(offer.packageQty * 1000)), price: offer.price };
++}
++
++function initial(s, q) {
++  return {
++    packages: q ? String(q.packages) : '', price: q ? String(q.unitPrice).replace('.', ',') : '',
++    location: s.location || '', expiry: s.expiry || '', note: s.note || '',
++  };
++}
++
++// Folha «Acrescentar». view: {query, qty, name}.
++function add(ctx, view = {}) {
++  const e = kit.escape;
++  const c = H.Casa.state(ctx.ledger);
++  const query = fold(view.query).trim();
++  const results = [];
++  for (const p of c.catalog.filter(x => !x.archived && fold(x.name + ' ' + (x.brand || '')).includes(query))) {
++    for (const s of c.stores.filter(x => !x.archived && p.offers[x.id])) results.push({ p, s, offer: p.offers[s.id] });
++  }
++  const list = results.slice(0, 12).map(({ p, s, offer }) => '<button type="button" class="row movement-row" data-queue-catalog="' + e(p.id) + '" data-queue-store="' + e(s.id) + '"><div><strong>' + e(p.name) + '</strong>'
++    + '<small>' + e(s.name) + ' · ' + (offer.price > 0 ? kit.money(cents(offer.price), ctx.state.hidden) : 'Sem preço') + ' · ' + e(offer.packageQty + ' ' + p.unit) + '</small></div><span>' + icon('plus') + '</span></button>').join('');
++  return '<button type="button" class="back" data-page="compras">‹ Lista de compras</button><h1>Acrescentar</h1>'
++    + '<label>Quantidade<input id="shop-add-qty" inputmode="decimal" autocomplete="off" value="' + e(view.qty == null ? '1' : view.qty) + '"></label>'
++    + '<h2>Do catálogo</h2><p class="sub">Só aparecem produtos com preço numa loja.</p>'
++    + kit.search('shop-add-query', view.query || '', 'Pesquisar produtos')
++    + (list || '<p class="empty">Nenhum produto encontrado no catálogo.</p>')
++    + '<h2>Artigo livre</h2><label>Nome<input id="shop-add-name" maxlength="160" autocomplete="off" value="' + e(view.name || '') + '"></label>'
++    + '<button type="button" class="primary full" id="shop-add-free">Acrescentar à lista</button>';
++}
++
++// Valores enviados em house.shopping (aceites por shared/house.cjs).
++function setDone(done) {
++  return { operation: 'set-done', done: done === true };
++}
++
++function queueValues({ catalogId, storeId, qty }) {
++  const requestedQty = num(qty);
++  if (!Number.isFinite(requestedQty) || requestedQty <= 0) throw Error('Indica uma quantidade positiva.');
++  return { operation: 'queue', catalogId, storeId, requestedQty };
++}
++
++function addValues({ name, qty }) {
++  const n = String(name == null ? '' : name).trim();
++  if (!n) throw Error('Indica o nome do artigo.');
++  return { operation: 'add', name: n, qty: String(qty == null ? '' : qty).trim() };
++}
++
++// defaults: valores calculados pela oferta; se não foram alterados, retira-se o ajuste guardado.
++function updateValues(form, hasOffer, defaults) {
++  const out = { operation: 'update' };
++  if (hasOffer) {
++    const packages = num(form.packages), price = num(form.price);
++    if (!Number.isSafeInteger(packages) || packages < 1 || !Number.isFinite(price) || price <= 0 || String(form.packages).trim() === '') throw Error('Confirma embalagens (inteiro ≥ 1) e preço positivo.');
++    out.purchaseOverride = defaults && packages === defaults.packages && price === defaults.price ? null : { packages, price };
++  }
++  return Object.assign(out, { location: String(form.location || '').trim(), expiry: String(form.expiry || '').trim(), note: String(form.note || '').trim() });
++}
++
++module.exports = { view, render, item, add, initial, offerDefaults, pricing, setDone, queueValues, addValues, updateValues, NO_FILTERS };
+diff --git a/android/app/src/screens/compras.test.cjs b/android/app/src/screens/compras.test.cjs
+new file mode 100644
+index 0000000..23eba21
+--- /dev/null
++++ b/android/app/src/screens/compras.test.cjs
+@@ -0,0 +1,180 @@
++'use strict';
++const test = require('node:test');
++const assert = require('node:assert/strict');
++const compras = require('./compras.cjs');
++const H = require('../../../shared/house.cjs');
++const { ctx, demo, empty } = require('./fixtures.cjs');
++
++const AMOUNT = /\d,\d{2}\s?€/;
++const TODO = { status: 'todo', storeId: '', query: '', inStore: false };
++const view = (ledger, f = {}) => compras.view(ledger, { ...TODO, ...f });
++const storeOf = (ledger, name) => H.Casa.state(ledger).stores.find(s => s.name === name).id;
++const queued = ledger => H.Casa.state(ledger).shopping.find(s => s.catalogId && !s.done && !s.notFound);
++
++test('view(todo) exclui os itens feitos e view(cart) só mostra os feitos', () => {
++  const ledger = demo();
++  const todo = view(ledger, { status: 'todo' });
++  assert.ok(todo.rows.length > 0);
++  assert.ok(todo.rows.every(r => r.done === false));
++  assert.ok(!todo.rows.some(r => r.name === 'Pão'));
++  const cart = view(ledger, { status: 'cart' });
++  assert.deepEqual(cart.rows.map(r => r.name).sort(), ['Arroz agulha', 'Pão']);
++  assert.equal(view(ledger, { status: 'all' }).rows.length, todo.rows.length + cart.rows.length);
++});
++
++test('view filtra por pesquisa e, com storeId, só mostra os itens dessa loja', () => {
++  const ledger = demo();
++  assert.deepEqual(view(ledger, { status: 'all', query: 'detergente' }).rows.map(r => r.name), ['Detergente']);
++  assert.deepEqual(view(ledger, { status: 'all', query: 'PAO' }).rows.map(r => r.name), ['Pão']);
++  const pingo = storeOf(ledger, 'Pingo Doce');
++  const inStore = view(ledger, { status: 'all', storeId: pingo, inStore: true });
++  assert.ok(inStore.rows.length > 0);
++  assert.ok(inStore.rows.every(r => r.storeName === 'Pingo Doce'));
++  const all = view(ledger, { status: 'all', inStore: true });
++  assert.ok(all.rows.length > inStore.rows.length);
++  assert.ok(all.rows.some(r => r.storeName === 'Continente'));
++  assert.deepEqual(view(ledger, { status: 'all', storeId: pingo }).rows, inStore.rows);
++});
++
++test('estimated soma os totais de todos os itens não «não encontrados» e inCart os dos feitos', () => {
++  const ledger = demo();
++  const v = view(ledger, { status: 'all' });
++  const priced = v.rows.filter(r => r.total != null);
++  assert.ok(priced.length >= 3);
++  const notFound = v.rows.filter(r => r.notFound);
++  assert.equal(notFound.length, 1);
++  assert.ok(notFound[0].total != null, 'o item não encontrado tem total mas fica fora do estimado');
++  const sum = list => Math.round(list.reduce((s, r) => s + r.total * 100, 0)) / 100;
++  assert.equal(v.estimated, sum(priced.filter(r => !r.notFound)));
++  assert.equal(v.inCart, sum(priced.filter(r => r.done)));
++  assert.ok(v.estimated > v.inCart && v.inCart > 0);
++  // Os totais não dependem do filtro de estado.
++  assert.equal(view(ledger, { status: 'todo' }).estimated, v.estimated);
++});
++
++test('o total de uma linha vem de embalagens × preço e respeita purchaseOverride', () => {
++  const ledger = demo();
++  const row = queued(ledger);
++  const before = view(ledger, { status: 'all' }).rows.find(r => r.id === row.id);
++  assert.equal(before.total, Math.round(Math.ceil(row.requestedQty) * before.unitPrice * 100) / 100);
++  ledger.casa.shopping.find(s => s.id === row.id).purchaseOverride = { packages: 5, price: 2, packageQty: 1 };
++  const after = view(ledger, { status: 'all' }).rows.find(r => r.id === row.id);
++  assert.equal(after.total, 10);
++  assert.equal(after.unitPrice, 2);
++});
++
++test('sem casa ou sem artigos a lista fica vazia, sem lançar', () => {
++  const noCasa = empty();
++  delete noCasa.casa;
++  for (const ledger of [noCasa, empty()]) {
++    const v = view(ledger);
++    assert.deepEqual(v.rows, []);
++    assert.equal(v.estimated, 0);
++    assert.equal(v.inCart, 0);
++    assert.deepEqual(v.stores, []);
++    assert.ok(compras.render(ctx(ledger), TODO).includes('A lista está vazia'));
++  }
++});
++
++test('render mostra linhas, caixa com valor inverso, rodapé e pills de estado', () => {
++  const html = compras.render(ctx(demo()), { ...TODO, status: 'all' });
++  assert.match(html, /<h1>Lista de compras<\/h1>/);
++  assert.ok(html.includes('Leite') && html.includes('Detergente') && html.includes('Pão'));
++  assert.match(html, /data-shopping-done="sh-1"[^>]*data-next="true"[^>]*aria-checked="false"/);
++  assert.match(html, /data-shopping-done="sh-2"[^>]*data-next="false"[^>]*aria-checked="true"/);
++  assert.match(html, /data-shopping-open="sh-1"/);
++  assert.match(html, /data-pill-shopstatus="todo"/);
++  assert.match(html, /data-pill-shopstatus="cart"/);
++  assert.ok(html.includes('Estimado') && html.includes('No carrinho'));
++  assert.match(html, /data-page="casa"/);
++  assert.match(html, /id="shop-add"/);
++  assert.ok(!/ on\w+=|<script|style=/.test(html));
++});
++
++test('o estado por omissão vem dos filtros e marca a pill ativa', () => {
++  const html = compras.render(ctx(demo()), TODO);
++  assert.match(html, /data-pill-shopstatus="todo"[^>]*aria-pressed="true"/);
++  assert.match(html, /data-pill-shopstatus="all"[^>]*aria-pressed="false"/);
++  assert.ok(!html.includes('data-shopping-open="sh-2"'));
++});
++
++test('modo «Na loja» mostra as lojas como pills e marca a escolhida', () => {
++  const ledger = demo();
++  const pingo = storeOf(ledger, 'Pingo Doce');
++  const html = compras.render(ctx(ledger), { ...TODO, inStore: true, storeId: pingo });
++  assert.match(html, new RegExp('data-pill-shopstore="' + pingo + '"[^>]*aria-pressed="true"'));
++  assert.match(html, /data-pill-shopstore=""/);
++  assert.match(html, /id="shop-instore"[^>]*aria-pressed="true"/);
++  assert.doesNotMatch(compras.render(ctx(ledger), TODO), /data-pill-shopstore=/);
++});
++
++test('com valores ocultos não há montantes (e com visíveis há)', () => {
++  const ledger = demo();
++  const f = { ...TODO, status: 'all' };
++  const shown = compras.render(ctx(ledger, { state: { hidden: false } }), f);
++  const hidden = compras.render(ctx(ledger, { state: { hidden: true } }), f);
++  assert.match(shown, AMOUNT);
++  assert.doesNotMatch(hidden, AMOUNT);
++  assert.ok(hidden.includes('•••• €'));
++  const id = queued(ledger).id;
++  assert.match(compras.item(ctx(ledger), { id }), AMOUNT);
++  assert.doesNotMatch(compras.item(ctx(ledger, { state: { hidden: true } }), { id }), AMOUNT);
++  assert.match(compras.add(ctx(ledger), { query: 'arroz' }), AMOUNT);
++  assert.doesNotMatch(compras.add(ctx(ledger, { state: { hidden: true } }), { query: 'arroz' }), AMOUNT);
++});
++
++test('os nomes são escapados', () => {
++  const ledger = demo();
++  ledger.casa.shopping.push({ id: 'sh-x', name: '<img src=x onerror=alert(1)>', qty: '"1"', done: false });
++  const html = compras.render(ctx(ledger), TODO);
++  assert.ok(!html.includes('<img src=x'));
++  assert.ok(html.includes('&lt;img src=x'));
++});
++
++test('folha «Conferir artigo» tem embalagens, preço, guardar em, validade e nota', () => {
++  const ledger = demo();
++  const html = compras.item(ctx(ledger), { id: queued(ledger).id });
++  assert.match(html, /<h1>Conferir artigo<\/h1>/);
++  for (const name of ['packages', 'price', 'location', 'expiry', 'note']) assert.match(html, new RegExp('name="' + name + '"'));
++  assert.match(html, /id="shop-item-save"/);
++  assert.match(html, /id="shop-item-remove"/);
++  assert.match(html, /data-page="compras"/);
++  assert.ok(!/name="packages"/.test(compras.item(ctx(ledger), { id: 'sh-1' })), 'artigo livre não tem embalagens');
++  assert.ok(compras.item(ctx(ledger), { id: 'nope' }).includes('Artigo indisponível'));
++});
++
++test('folha «Acrescentar» pesquisa o catálogo (queue) e aceita nome livre (add)', () => {
++  const html = compras.add(ctx(demo()), { query: 'arroz' });
++  assert.match(html, /<h1>Acrescentar<\/h1>/);
++  assert.match(html, /data-queue-catalog="[^"]+"[^>]*data-queue-store="[^"]+"/);
++  assert.ok(html.includes('Continente') && html.includes('Pingo Doce'));
++  assert.match(html, /id="shop-add-name"/);
++  assert.match(html, /id="shop-add-free"/);
++  assert.match(html, /id="shop-add-qty"/);
++  const none = compras.add(ctx(demo()), { query: 'zzzz' });
++  assert.ok(!none.includes('data-queue-catalog'));
++  assert.ok(none.includes('Nenhum produto'));
++});
++
++test('payloads das operações são os aceites por house.shopping', () => {
++  assert.deepEqual(compras.setDone(true), { operation: 'set-done', done: true });
++  assert.deepEqual(compras.queueValues({ catalogId: 'c', storeId: 's', qty: '2,5' }), { operation: 'queue', catalogId: 'c', storeId: 's', requestedQty: 2.5 });
++  assert.deepEqual(compras.addValues({ name: ' Sal ', qty: '2' }), { operation: 'add', name: 'Sal', qty: '2' });
++  assert.throws(() => compras.addValues({ name: ' ', qty: '1' }), /nome/);
++  assert.throws(() => compras.queueValues({ catalogId: 'c', storeId: 's', qty: '0' }), /quantidade/);
++  assert.deepEqual(compras.updateValues({ packages: '2', price: '1,5', location: 'Despensa', expiry: '2027-01-01', note: 'x' }, true),
++    { operation: 'update', purchaseOverride: { packages: 2, price: 1.5 }, location: 'Despensa', expiry: '2027-01-01', note: 'x' });
++  assert.equal(compras.updateValues({ packages: '', price: '', location: '', expiry: '', note: '' }, false).purchaseOverride, undefined);
++  assert.throws(() => compras.updateValues({ packages: '0', price: '1', location: '', expiry: '', note: '' }, true), /embalagens/);
++});
++
++test('offerDefaults ignora o ajuste guardado e é nulo para artigos livres', () => {
++  const ledger = demo();
++  const row = queued(ledger);
++  assert.deepEqual(compras.offerDefaults(ledger, row.id), { packages: 3, price: 1.29 });
++  ledger.casa.shopping.find(s => s.id === row.id).purchaseOverride = { packages: 5, price: 2, packageQty: 1 };
++  assert.deepEqual(compras.offerDefaults(ledger, row.id), { packages: 3, price: 1.29 });
++  assert.equal(compras.offerDefaults(ledger, 'sh-1'), null);
++  assert.equal(compras.updateValues({ packages: '3', price: '1,29', location: '', expiry: '', note: '' }, true, compras.offerDefaults(ledger, row.id)).purchaseOverride, null);
++  assert.deepEqual(compras.updateValues({ packages: '4', price: '1,29', location: '', expiry: '', note: '' }, true, compras.offerDefaults(ledger, row.id)).purchaseOverride, { packages: 4, price: 1.29 });
++});
+diff --git a/android/app/src/screens/fixtures.cjs b/android/app/src/screens/fixtures.cjs
+index 6c07ed8..0edb6e0 100644
+--- a/android/app/src/screens/fixtures.cjs
++++ b/android/app/src/screens/fixtures.cjs
+@@ -24,20 +24,28 @@ function demo() {
+     shopping: [
+       { id: 'sh-1', name: 'Leite', qty: '6 un', done: false },
+       { id: 'sh-2', name: 'Pão', qty: '1', done: true },
+       { id: 'sh-3', name: 'Detergente', qty: '2', done: false },
+     ],
+   };
+   H.Casa.saveProductOffers(d, { name: 'Arroz agulha', brand: 'Cigala', category: 'Alimentação', unit: 'un' }, [
+     { storeName: 'Continente', packageQty: 1, price: 1.29 }, { storeName: 'Pingo Doce', packageQty: 1, price: 1.35 },
+   ]);
+   H.Life.lot(d, { catalogId: H.Casa.state(d).catalog[0].id, qty: 3, location: 'Despensa', expiry: '2027-03-01', opened: false });
++  // Artigos ligados ao catálogo: um por comprar, um já no carrinho e um que não se encontrou.
++  const casa = H.Casa.state(d), rice = casa.catalog[0].id;
++  const continente = casa.stores.find(s => s.name === 'Continente').id, pingo = casa.stores.find(s => s.name === 'Pingo Doce').id;
++  H.Casa.queueProduct(d, { catalogId: rice, storeId: continente, requestedQty: 3 });
++  const inCart = H.Casa.queueProduct(d, { catalogId: rice, storeId: continente, requestedQty: 2 });
++  const missing = H.Casa.queueProduct(d, { catalogId: rice, storeId: pingo, requestedQty: 4 });
++  d.casa.shopping.find(s => s.id === inCart).done = true;
++  d.casa.shopping.find(s => s.id === missing).notFound = true;
+   d.pendingPayments = [
+     { id: 'pp-rent', description: 'Renda', date: '2026-11-08', type: 'expense', amount: 520, account: bank, category: 'Habitação' },
+     { id: 'pp-net', description: 'Internet', date: '2026-11-20', type: 'expense', amount: 34.9, account: bank, category: 'Serviços' },
+   ];
+   d.investments = [{ id: 'inv-1', name: 'Fundo Poupança', type: 'Fundo', account: bank, invested: 1500, value: 1620 }];
+   d.assets = [{ id: 'as-1', name: 'Automóvel', kind: 'Veículo', valuations: [{ date: '2026-10-01', value: 6500 }] }];
+   d.debts = [{ id: 'db-1', name: 'Crédito automóvel', account: bank, balance: 3200, payment: 150 }];
+   d.wealthHistory = [
+     { id: 'w-1', date: '2026-09-30', cash: 2100, investments: 1600, assets: 6500, debts: 3350, net: 6850 },
+     { id: 'w-2', date: '2026-10-31', cash: 2300, investments: 1620, assets: 6500, debts: 3200, net: 7220 },
+diff --git a/android/app/src/style.css b/android/app/src/style.css
+index e49d625..22cbca4 100644
+--- a/android/app/src/style.css
++++ b/android/app/src/style.css
+@@ -199,10 +199,33 @@ dialog{color:var(--ink)}
+   .pair{gap:8px}.stat{padding:12px}
+   nav button{font-size:11px}
+ }
+ @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
+ .mais-list{display:grid;gap:8px;margin-top:12px}
+ .mais-row{display:flex;align-items:center;gap:12px;width:100%;min-height:56px;padding:10px 14px;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:14px;color:var(--text)}
+ .mais-icon{display:grid;place-items:center;width:36px;height:36px;border-radius:10px;background:color-mix(in srgb,var(--blue) 14%,transparent);color:var(--blue-text);flex:none}
+ .mais-text{display:grid;gap:2px;flex:1;min-width:0}
+ .mais-text small{color:var(--muted);font-size:12px}
+ .mais-go{color:var(--muted);font-size:22px;line-height:1;flex:none}
++
++/* ---- Lista de compras ---- */
++.shop-actions{display:flex;gap:8px;margin:12px 0 0}
++.shop-actions button{flex:1 1 0;display:inline-flex;align-items:center;justify-content:center;gap:8px;min-width:0}
++.shop-actions .interface-icon{width:18px;height:18px}
++.shop-actions button[aria-pressed=true]{background:color-mix(in srgb,var(--blue) 14%,transparent);border-color:var(--blue);color:var(--blue-text)}
++.shop-list{margin:4px 0 8px}
++.shop-row{display:grid;grid-template-columns:44px minmax(0,1fr) auto;align-items:center;gap:4px;border-bottom:1px solid var(--line)}
++.shop-check{position:relative;width:44px;height:44px;min-height:44px;padding:0;border:0;background:transparent;display:grid;place-items:center;color:var(--on-blue)}
++.shop-check::before{content:"";position:absolute;inset:10px;border:2px solid var(--muted);border-radius:8px}
++.shop-check[aria-checked=true]::before{background:var(--blue);border-color:var(--blue)}
++.shop-check .interface-icon{position:relative;width:18px;height:18px}
++.shop-name{text-align:left;border:0;background:transparent;border-radius:0;padding:10px 4px;min-width:0}
++.shop-name strong,.shop-name small{display:block;overflow-wrap:anywhere}
++.shop-name small{color:var(--muted);font-size:13px;margin-top:2px}
++.shop-row .amount{font-weight:600;padding-right:4px;white-space:nowrap}
++.shop-row.is-done .shop-name strong{text-decoration:line-through;color:var(--muted)}
++.shop-row.is-missing .shop-name small{color:var(--orange)}
++.shop-footer{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(var(--nav-h) + 10px + env(safe-area-inset-bottom));width:min(100%,560px);z-index:4;display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:10px 16px;background:var(--paper);border-top:1px solid var(--line)}
++.shop-footer small{display:block;color:var(--muted);font-size:12px}
++.shop-footer strong{font-size:18px}
++#app:has(.shop-footer){padding-bottom:calc(var(--nav-h) + 74px + 16px + 56px + 24px + env(safe-area-inset-bottom))}
++#app:has(.shop-footer) #quickAdd{bottom:calc(var(--nav-h) + 74px + 16px + env(safe-area-inset-bottom))}
+diff --git a/android/server/shopping-sync.test.cjs b/android/server/shopping-sync.test.cjs
+new file mode 100644
+index 0000000..c757471
+--- /dev/null
++++ b/android/server/shopping-sync.test.cjs
+@@ -0,0 +1,62 @@
++'use strict';
++// Lista de compras: riscar no cliente, sincronizar e o PC (espaço do servidor) ver done:true.
++const test = require('node:test'), assert = require('node:assert/strict'), fs = require('node:fs'), os = require('node:os'), path = require('node:path');
++const P = require('../shared/protocol.cjs'), { Client } = require('../shared/client.cjs'), { SqliteStore } = require('./sqlite-store.cjs'), { createDesktopBridge } = require('./desktop-bridge.cjs');
++const Compras = require('../app/src/screens/compras.cjs');
++
++// Tal como no telemóvel: cliente com negociação de compatibilidade contra a ponte do PC.
++async function setup(t) {
++  const folder = fs.mkdtempSync(path.join(os.tmpdir(), 'eq-shopping-')), service = createDesktopBridge(path.join(folder, 'pc-profile')), url = await service.listen();
++  const token = service.provision('phone', ['main']);
++  const request = async (method, p, data) => {
++    const r = await fetch(url + p, { method, headers: { authorization: 'Bearer ' + token, 'content-type': 'application/json' }, ...(data ? { body: JSON.stringify(data) } : {}) });
++    const value = await r.json();
++    if (r.status >= 400 && value.status !== 'epoch-mismatch') throw Object.assign(Error(value.message || 'HTTP ' + r.status), { status: r.status });
++    return value;
++  };
++  const bootstrap = await request('GET', '/api/v1/spaces/main/bootstrap'), store = new SqliteStore(path.join(folder, 'phone.db'), P.local(bootstrap, 'phone'));
++  t.after(async () => { store.close(); await service.close(); fs.rmSync(folder, { recursive: true, force: true }); });
++  const client = new Client(store, request, { negotiate: true });
++  const send = (id, values) => client.enqueue('house.shopping', { id, seed: P.id(), changedOn: '2026-11-05', values });
++  const server = () => service.desktop.readSpace('main').data.casa.shopping;
++  return { client, store, send, server };
++}
++
++test('riscar no cliente sincroniza e o PC vê done:true; desmarcar volta a false', async t => {
++  const x = await setup(t), id = P.id();
++  await x.send(id, Compras.addValues({ name: 'Detergente', qty: '2' }));
++  await x.client.sync();
++  assert.equal(x.server().find(s => s.id === id).done, false);
++
++  // O que o ecrã mostra decide o valor enviado: caixa por marcar -> data-next="true".
++  const html = Compras.render({ ledger: P.view(x.store.read().state).ledger, state: { hidden: false } }, { status: 'all', storeId: '', query: '', inStore: false });
++  assert.match(html, new RegExp('data-shopping-done="' + id + '"[^>]*data-next="true"'));
++  await x.send(id, Compras.setDone(true));
++  await x.send(id, Compras.setDone(true));
++  assert.equal(P.view(x.store.read().state).ledger.casa.shopping.find(s => s.id === id).done, true);
++  await x.client.sync();
++  assert.equal(x.server().find(s => s.id === id).done, true);
++  assert.deepEqual(x.store.read().state.outbox.map(o => o.status), ['acknowledged', 'acknowledged', 'acknowledged']);
++
++  await x.send(id, Compras.setDone(false));
++  await x.client.sync();
++  assert.equal(x.server().find(s => s.id === id).done, false);
++});
++
++test('conferir artigo do catálogo: o ajuste de embalagens e a nota chegam ao PC', async t => {
++  const x = await setup(t);
++  await x.client.enqueue('house.product', { id: 'rice', mode: 'create', seed: P.id(), changedOn: '2026-11-05', values: { name: 'Arroz', brand: '', category: 'Alimentação', unit: 'un', url: '', offersRows: [{ storeName: 'Loja A', packageQty: 1, price: 1.2 }] } });
++  const ledger = () => P.view(x.store.read().state).ledger;
++  const storeId = ledger().casa.stores[0].id, id = P.id();
++  await x.send(id, Compras.queueValues({ catalogId: 'rice', storeId, qty: '2' }));
++  const defaults = Compras.offerDefaults(ledger(), id);
++  assert.deepEqual(defaults, { packages: 2, price: 1.2 });
++  await x.send(id, Compras.updateValues({ packages: '3', price: '1,10', location: 'Despensa', expiry: '', note: 'Integral' }, true, defaults));
++  await x.client.sync();
++  const row = x.server().find(s => s.id === id);
++  assert.deepEqual([row.note, row.location, row.purchaseOverride.packages, row.purchaseOverride.price], ['Integral', 'Despensa', 3, 1.1]);
++  assert.equal(Compras.view(ledger(), { status: 'all' }).rows[0].total, 3.3);
++  await x.send(id, Compras.updateValues({ packages: '2', price: '1,2', location: 'Despensa', expiry: '', note: 'Integral' }, true, defaults));
++  await x.client.sync();
++  assert.equal(x.server().find(s => s.id === id).purchaseOverride, undefined);
++});

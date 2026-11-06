@@ -1,0 +1,143 @@
+# Review package: 8a078e9..HEAD
+
+## Commits
+6843bc4 Android: FAB sem cobrir conteúdo, sem botão duplicado em Movimentos, pills numa só linha
+
+## Files changed
+ android/app/src/main.js                     | 2 ++
+ android/app/src/screens/movimentos.cjs      | 3 +--
+ android/app/src/screens/movimentos.test.cjs | 6 ++++++
+ android/app/src/style.css                   | 7 ++++---
+ 4 files changed, 13 insertions(+), 5 deletions(-)
+
+## Diff
+diff --git a/android/app/src/main.js b/android/app/src/main.js
+index 50112ba..e7c9b07 100644
+--- a/android/app/src/main.js
++++ b/android/app/src/main.js
+@@ -206,20 +206,22 @@ async function render(){
+  if(page==='novo-compromisso')main.innerHTML=Agenda.form(ctx,{form:cf,record:cr});
+ 
+  if(page==='compromisso')main.innerHTML=Agenda.commitment(ctx,{commitmentId});
+ 
+  if(page==='descartar-compromisso')main.innerHTML=Agenda.discardCommitment();
+ 
+  if(page==='rascunho')main.innerHTML=Movimentos.recovery(ctx);
+ 
+  if(page==='descartar-rascunho')main.innerHTML=Movimentos.discardDraft();
+ 
++ main.querySelectorAll('.cs-pills [aria-pressed=true]').forEach(b=>{const p=b.parentElement,r=b.getBoundingClientRect(),c=p.getBoundingClientRect();if(r.right>c.right||r.left<c.left)p.scrollLeft+=r.left-c.left-8;});
++
+  if(page==='novo')main.innerHTML=movementForm(ledger);
+ 
+  if(page==='contas')main.innerHTML=Contas.render(ctx);
+ 
+  if(page==='editar-conta')main.innerHTML=Contas.editor(ctx,{form:accountForm});
+ 
+  if(page==='sair-conta')main.innerHTML=Contas.leave();
+ 
+  if(page==='arquivar-conta')main.innerHTML=Contas.archive(ctx,{accountId:selectedAccount});
+ 
+diff --git a/android/app/src/screens/movimentos.cjs b/android/app/src/screens/movimentos.cjs
+index b84452c..1e92887 100644
+--- a/android/app/src/screens/movimentos.cjs
++++ b/android/app/src/screens/movimentos.cjs
+@@ -41,23 +41,22 @@ function pillOptions(list) {
+ function render(ctx, view = {}) {
+   const filters = { ...NO_FILTERS, ...(view.filters || {}) };
+   const limit = view.visibleLimit == null ? 40 : view.visibleLimit;
+   const ledger = ctx.ledger;
+   const result = V.movements(ledger, stateOf(ctx), filters, limit);
+   const months = [...new Set([ctx.today.slice(0, 7), ...ledger.transactions.map(t => t.date.slice(0, 7))])].sort().reverse();
+   const open = filters.period || filters.accountId ? ' open' : '';
+   const found = result.total + ' ' + (result.total === 1 ? 'movimento encontrado' : 'movimentos encontrados');
+   const empty = '<p class="empty">' + (ledger.transactions.length
+     ? 'Não há movimentos com esta pesquisa. Altera ou limpa os filtros.'
+-    : 'Ainda não existem movimentos. Usa «Novo movimento» para começar.') + '</p>';
++    : 'Ainda não existem movimentos. Usa o botão «+» para começar.') + '</p>';
+   return draftBanner(ctx) + '<h1>Movimentos</h1><p class="sub">Consulta e gere os registos deste dispositivo.</p>'
+-    + '<button type="button" class="primary full" data-page="novo">+ Novo movimento</button>'
+     + '<div class="movement-filters">'
+     + kit.search('movement-search', filters.query, 'Descrição, categoria ou conta')
+     + kit.pills('type', pillOptions(TYPES), filters.type)
+     + kit.pills('status', pillOptions(STATUSES), filters.status)
+     + '<details id="movement-filters"' + open + '><summary>Período e conta</summary><div class="filter-grid">'
+     + '<label>Período<select id="filter-period">' + options([['', 'Todos os meses'], ...months.map(m => [m, MONTHS[Number(m.slice(5)) - 1] + ' ' + m.slice(0, 4)])], filters.period) + '</select></label>'
+     + '<label>Conta<select id="filter-account">' + options([['', 'Todas as contas'], ...ledger.accounts.map(a => [a.id, a.name])], filters.accountId) + '</select></label>'
+     + '</div></details>'
+     + '<button type="button" id="clear-filters" class="text-button">Limpar pesquisa e filtros</button></div>'
+     + '<p class="sub result-count" aria-live="polite">' + found + '</p>'
+diff --git a/android/app/src/screens/movimentos.test.cjs b/android/app/src/screens/movimentos.test.cjs
+index 52bdfdf..3b0d9ba 100644
+--- a/android/app/src/screens/movimentos.test.cjs
++++ b/android/app/src/screens/movimentos.test.cjs
+@@ -115,10 +115,16 @@ test('Banner e página do rascunho de movimento', () => {
+   assert.ok(page.includes('Pizza') && page.includes('id="resume-edit"') && page.includes('id="ask-discard-draft"'));
+ });
+ 
+ test('Eliminar mostra o movimento e esconde o valor quando oculto (com dentes)', () => {
+   const ledger = demo(), id = ledger.transactions[0].id;
+   const visible = movimentos.remove(ctx(ledger), { movementId: id });
+   assert.ok(visible.includes('id="confirm-delete"'));
+   assert.match(visible, /\d,\d{2}\s?€/);
+   assert.doesNotMatch(movimentos.remove(ctx(ledger, { state: { hidden: true } }), { movementId: id }), /\d,\d{2}\s?€/);
+ });
++
++test('Movimentos não duplica o botão de novo movimento (o FAB do shell é a entrada única)', () => {
++  const html = movimentos.render(ctx(demo()), {});
++  assert.ok(!html.includes('data-page="novo"'));
++  assert.ok(require('../shell.cjs').fabHtml().includes('data-page="novo"'));
++});
+diff --git a/android/app/src/style.css b/android/app/src/style.css
+index cac27a0..2da6808 100644
+--- a/android/app/src/style.css
++++ b/android/app/src/style.css
+@@ -45,21 +45,21 @@ fieldset legend{color:var(--ink);font-size:14px;padding:0 5px}
+ fieldset label+label{margin-top:12px}
+ .primary{background:var(--blue);color:var(--on-blue);border-color:transparent;font-weight:600}
+ .full{width:100%}
+ .actions{display:flex;gap:10px}.actions button{flex:1}
+ .amount{font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+ .empty{padding:30px 0;color:var(--muted);font-size:14px}
+ .back{margin-bottom:18px}
+ .text-button{border:0;background:transparent;color:var(--blue-text);font-size:13px;padding:8px 4px;min-height:44px}
+ 
+ /* ---- Moldura: cabeçalho, conteúdo, barra inferior, FAB ---- */
+-#app{max-width:560px;margin:auto;padding:max(8px,env(safe-area-inset-top)) 16px calc(var(--nav-h) + 24px + env(safe-area-inset-bottom));min-height:100dvh;display:flex;flex-direction:column}
++#app{max-width:560px;margin:auto;padding:max(8px,env(safe-area-inset-top)) 16px calc(var(--nav-h) + 16px + 56px + 24px + env(safe-area-inset-bottom));min-height:100dvh;display:flex;flex-direction:column}
+ header{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 0}
+ header strong{font-size:23px;font-weight:700;letter-spacing:-.01em}
+ header small{font-size:11px}
+ #privacy{min-width:104px;max-width:112px;font-size:12px;padding:9px 8px;min-height:44px}
+ #storage{font-size:12px;color:var(--muted);padding-bottom:12px;border-bottom:1px solid var(--line);margin:0}
+ main{flex:1;min-width:0;padding:16px 0 24px}
+ #message{font-size:13px;color:var(--blue-text);overflow-wrap:anywhere;margin:0}
+ #message:empty{display:none}
+ #message:not(:empty){padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--paper)}
+ nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:min(100%,560px);z-index:5;display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:4px;padding:8px 12px max(10px,env(safe-area-inset-bottom));background:var(--paper);border-top:1px solid var(--line)}
+@@ -86,22 +86,23 @@ nav button[aria-current]{background:color-mix(in srgb,var(--blue) 14%,transparen
+ .ch-tile-icon{margin-bottom:6px;display:grid;place-items:center;width:40px;height:40px;border-radius:12px;background:color-mix(in srgb,var(--blue) 14%,transparent);color:var(--blue-text)}
+ .ch-tile-icon svg{width:20px;height:20px}
+ .ch-tile-label{font-size:12px;color:var(--muted)}
+ .ch-tile-value{max-width:100%;font-size:19px;font-weight:700;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+ .ch-tile-detail{font-size:12px;color:var(--muted)}
+ .is-green .ch-tile-icon{background:color-mix(in srgb,var(--green) 15%,transparent);color:var(--green)}
+ .is-amber .ch-tile-icon{background:color-mix(in srgb,var(--orange) 16%,transparent);color:var(--orange)}
+ .is-red .ch-tile-icon{background:color-mix(in srgb,var(--red) 14%,transparent);color:var(--red)}
+ .is-purple .ch-tile-icon{background:color-mix(in srgb,var(--purple) 16%,transparent);color:var(--purple)}
+ 
+-.cs-pills{display:flex;gap:6px;flex-wrap:wrap;margin:12px 0}
+-.cs-pills button{display:inline-flex;align-items:center;gap:7px;min-height:44px;padding:6px 14px;border-radius:99px;border:1px solid var(--line);background:transparent;color:var(--muted);font-size:13px;font-weight:600;width:auto}
++.cs-pills{display:flex;gap:6px;flex-wrap:nowrap;overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x proximity;scrollbar-width:none;-webkit-overflow-scrolling:touch;margin:12px 0;padding:3px 2px}
++.cs-pills::-webkit-scrollbar{display:none}
++.cs-pills button{flex:0 0 auto;white-space:nowrap;scroll-snap-align:start;display:inline-flex;align-items:center;gap:7px;min-height:44px;padding:6px 14px;border-radius:99px;border:1px solid var(--line);background:transparent;color:var(--muted);font-size:13px;font-weight:600;width:auto}
+ .cs-pills button .cs-pill-count{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:99px;background:var(--surface-soft);font-size:11px}
+ .cs-pills button[aria-pressed=true]{background:var(--blue);border-color:var(--blue);color:var(--on-blue)}
+ .cs-pills button[aria-pressed=true] .cs-pill-count{background:rgba(255,255,255,.22);color:#fff}
+ 
+ .cs-search{position:relative;display:flex;align-items:center;margin:12px 0;min-width:0}
+ .cs-search svg{position:absolute;left:12px;width:16px;height:16px;color:var(--muted);pointer-events:none}
+ .cs-search input{width:100%;min-height:44px;padding-left:36px;border-radius:99px}
+ 
+ /* ---- Cartões e linhas dos ecrãs atuais ---- */
+ .balance{padding:19px;background:var(--surface-soft);border-radius:18px;margin:14px 0 16px}

@@ -1,0 +1,608 @@
+# Review package: 485abef..HEAD
+
+## Commits
+a94e093 Android: Relatórios
+63d6d9d Relatórios: paleta de categorias no modelo
+
+## Files changed
+ android/app/scripts/preview.cjs             |   3 +
+ android/app/src/main.js                     |   7 ++
+ android/app/src/nav.cjs                     |   2 +-
+ android/app/src/nav.test.cjs                |   3 +-
+ android/app/src/screens/relatorios.cjs      | 165 ++++++++++++++++++++++++++++
+ android/app/src/screens/relatorios.test.cjs | 132 ++++++++++++++++++++++
+ android/app/src/style.css                   |  27 +++++
+ equilibrio/reports-model.js                 |   4 +-
+ equilibrio/reports-ui.js                    |   3 +-
+ equilibrio/tests/reports-palette.cjs        |  14 +++
+ 10 files changed, 355 insertions(+), 5 deletions(-)
+
+## Diff
+diff --git a/android/app/scripts/preview.cjs b/android/app/scripts/preview.cjs
+index 69aa98c..4c7c3d9 100644
+--- a/android/app/scripts/preview.cjs
++++ b/android/app/scripts/preview.cjs
+@@ -20,20 +20,23 @@ const SCREENS = [
+   { name: 'contas', module: '../src/screens/contas.cjs' },
+   { name: 'agenda', module: '../src/screens/agenda.cjs' },
+   { name: 'ligacao', module: '../src/screens/ligacao.cjs', page: 'sync' },
+   { name: 'casa-stock', module: '../src/screens/casa.cjs', page: 'casa', view: { tab: 'stock' } },
+   { name: 'casa-historico', module: '../src/screens/casa.cjs', page: 'casa', view: { tab: 'historico' } },
+   { name: 'compras', module: '../src/screens/compras.cjs', view: { status: 'all' } },
+   { name: 'compras-na-loja', module: '../src/screens/compras.cjs', page: 'compras', view: ledger => ({ status: 'todo', inStore: true, storeId: (ledger.casa && ledger.casa.stores[0] || {}).id || '' }) },
+   { name: 'compras-artigo', module: '../src/screens/compras.cjs', fn: 'item', page: 'compras', view: ledger => ({ id: ((ledger.casa && ledger.casa.shopping.find(x => x.catalogId)) || {}).id }) },
+   { name: 'compras-novo', module: '../src/screens/compras.cjs', fn: 'add', page: 'compras', view: { query: 'arroz' } },
+   { name: 'casa-compras', module: '../src/screens/casa.cjs', page: 'casa', view: { tab: 'compras' } },
++  { name: 'relatorios', module: '../src/screens/relatorios.cjs', page: 'relatorios', view: { year: '2026', period: 'm11', account: '', open: 'Alimentação' } },
++  { name: 'relatorios-ano', module: '../src/screens/relatorios.cjs', page: 'relatorios', view: { year: '2026', period: 'year', account: '' } },
++  { name: 'relatorios-trimestre', module: '../src/screens/relatorios.cjs', page: 'relatorios', view: { year: '2026', period: 'q4', account: '' } },
+   { name: 'ligacao-ligada', module: '../src/screens/ligacao.cjs', page: 'sync', view: { connection: {} } },
+ ];
+ const DATA = [['demo', fixtures.demo], ['vazio', fixtures.empty]];
+ const THEMES = [['claro', 'light'], ['escuro', 'dark']];
+ const CSP = "default-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'";
+ 
+ function frame(title, theme, active, body) {
+   return '<!doctype html>\n<html lang="pt-PT" data-theme="' + theme + '"><head><meta charset="utf-8">'
+     + '<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">'
+     + '<meta http-equiv="Content-Security-Policy" content="' + CSP + '">'
+diff --git a/android/app/src/main.js b/android/app/src/main.js
+index 7d5bf60..3f99bcf 100644
+--- a/android/app/src/main.js
++++ b/android/app/src/main.js
+@@ -44,35 +44,38 @@ import Commitments from '../../shared/commitments.cjs';
+ 
+ import Nav from './nav.cjs';
+ 
+ import Mais from './screens/mais.cjs';
+ 
+ import Resumo from './screens/resumo.cjs';
+ 
+ import Movimentos from './screens/movimentos.cjs';
+ 
+ import Compras from './screens/compras.cjs';
++import Relatorios from './screens/relatorios.cjs';
+ 
+ import Contas from './screens/contas.cjs';
+ 
+ import Ligacao from './screens/ligacao.cjs';
+ 
+ const LAST_SYNC_KEY='equilibrio.mobile.lastSync';
+ 
+ function readLastSync(){try{return localStorage.getItem(LAST_SYNC_KEY);}catch{return null;}}
+ 
+ function markSynced(){try{localStorage.setItem(LAST_SYNC_KEY,new Date().toISOString());}catch{}}
+ 
+ let cf=null,cr=null,cfBaseline=null,commitmentId=null,commitDiscard=null,commitWrite=0;
+ 
+ let showCompletedAgenda=false;
+ 
++let repSel=null;
++
+ let accountForm=null,accountRevision=null,accountBaseline=null,accountNext=null,archiveRevision=null;
+ 
+ if(typeof globalThis.structuredClone!=='function')globalThis.structuredClone=value=>JSON.parse(JSON.stringify(value));
+ 
+ const store=registerPlugin('PrototypeStore');
+ 
+ const protectedStore=registerPlugin('ConnectionVault');
+ 
+ const vault={read:async()=>(await protectedStore.read()).connection,write:connection=>protectedStore.write({connection}),clear:()=>protectedStore.clear()};
+ 
+@@ -191,20 +194,22 @@ async function render(){
+  if(page==='casa')main.innerHTML=Casa.render(ctx,{tab:houseTab,id:houseId});
+ 
+  if(page==='casa-form')main.innerHTML=Casa.form(ctx,{form:hf,record:hr});
+ 
+  if(page==='compras')main.innerHTML=Compras.render(ctx,shopFilters);
+ 
+  if(page==='compras-artigo')main.innerHTML=Compras.item(ctx,{id:shopId,form:shopForm});
+ 
+  if(page==='compras-novo')main.innerHTML=Compras.add(ctx,shopAdd);
+ 
++ if(page==='relatorios'){repSel=repSel||{...Relatorios.initial(ctx.today),open:''};main.innerHTML=Relatorios.render(ctx,repSel);}
++
+  if(page==='descartar-casa')main.innerHTML=Casa.discard();
+ 
+  if(page==='recuperacao')main.innerHTML=Ligacao.recovery(ctx,{points:recoveryPoints,file:recoveryFile});
+ 
+  if(page==='confirmar-recuperacao')main.innerHTML=Ligacao.confirmRecovery();
+ 
+  if(page==='confirmar-desligar')main.innerHTML=Ligacao.confirmDetach();
+  if(page==='confirmar-passagem')main.innerHTML=Ligacao.confirmPassage();
+ 
+  if(page==='agenda')main.innerHTML=Agenda.render(ctx,{period:summaryPeriod,showCompleted:showCompletedAgenda});
+@@ -510,11 +515,13 @@ function shopDirty(){if(page==='compras-artigo'){const f=shopRead();if(!f||!shop
+ document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.id==='shop-leave-cancel'){document.getElementById('shopLeaveDialog').close();shopPendingButton=null;return;}if(b.id==='shop-leave-discard'){document.getElementById('shopLeaveDialog').close();const next=shopPendingButton;shopPendingButton=null;shopSkipGuard=true;if(next)next.click();shopSkipGuard=false;return;}if(busy||(page!=='compras-artigo'&&page!=='compras-novo')||!b.dataset.page&&!b.closest('nav')&&b.id!=='quickAdd')return;if(shopSkipGuard){shopForm=null;shopAdd={query:'',qty:'1',name:''};return;}if(shopDirty()){e.stopImmediatePropagation();preserveShop();shopPendingButton=b;document.getElementById('shopLeaveDialog').showModal();}},true);
+ 
+ const shopSend=(id,values)=>client.enqueue('house.shopping',{id,seed:P.id(),changedOn:today(),values});
+ 
+ function shopRead(){const f=document.getElementById('shop-item-form');return f?Object.fromEntries([...new FormData(f).entries()].map(([k,v])=>[k,String(v)])):null;}
+ 
+ function preserveShop(){if(page!=='compras-artigo')return;const f=shopRead();if(f)shopForm=f;}
+ 
+ document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b||busy)return;const d=b.dataset;let task=null;if(d.shoppingDone)task=()=>shopSend(d.shoppingDone,Compras.setDone(d.next==='true'));else if(d.pillShopstatus!==undefined)task=async()=>{shopFilters.status=d.pillShopstatus;};else if(d.pillShopstore!==undefined)task=async()=>{shopFilters.storeId=d.pillShopstore;};else if(b.id==='shop-instore')task=async()=>{shopFilters.inStore=!shopFilters.inStore;if(!shopFilters.inStore)shopFilters.storeId='';};else if(b.id==='shop-add')task=async()=>{shopAdd={query:'',qty:'1',name:''};page='compras-novo';};else if(d.shoppingOpen)task=async()=>{shopId=d.shoppingOpen;shopForm=null;page='compras-artigo';};else if(b.id==='shop-item-save')task=async()=>{const f=shopRead(),id=shopId;try{const defaults=f.packages===undefined?null:Compras.offerDefaults(P.view((await adapter.read()).state).ledger,id);await shopSend(id,Compras.updateValues(f,f.packages!==undefined,defaults));}catch(error){shopForm=f;throw error;}shopForm=null;page='compras';message.textContent='Artigo guardado neste dispositivo.';};else if(b.id==='shop-item-remove')task=async()=>{await shopSend(shopId,{operation:'remove'});shopId=null;shopForm=null;page='compras';message.textContent='Artigo retirado da lista.';};else if(d.queueCatalog)task=async()=>{const values=Compras.queueValues({catalogId:d.queueCatalog,storeId:d.queueStore,qty:document.getElementById('shop-add-qty').value});await shopSend(P.id(),values);shopFilters.status='todo';page='compras';message.textContent='Artigo acrescentado à lista.';};else if(b.id==='shop-add-free')task=async()=>{const values=Compras.addValues({name:document.getElementById('shop-add-name').value,qty:document.getElementById('shop-add-qty').value});await shopSend(P.id(),values);shopFilters.status='todo';page='compras';message.textContent='Artigo acrescentado à lista.';};if(task){e.stopImmediatePropagation();run(task);}},true);
+ 
++document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b||busy||page!=='relatorios')return;const d=b.dataset;let task=null;if(d.pillRepkind!==undefined)task=async()=>{repSel={...Relatorios.switchKind(repSel,d.pillRepkind,today()),open:''};};else if(b.id==='rep-prev'||b.id==='rep-next')task=async()=>{repSel={...Relatorios.shift(repSel,b.id==='rep-prev'?-1:1),open:''};};else if(d.pillRepaccount!==undefined)task=async()=>{repSel={...repSel,account:d.pillRepaccount};};else if(d.repCat!==undefined)task=async()=>{repSel={...repSel,open:repSel.open===d.repCat?'':d.repCat};};if(task){e.stopImmediatePropagation();run(task);}},true);
++
+ document.addEventListener('input',event=>{const id=event.target.id,value=event.target.value;if(id==='shop-add-qty'){shopAdd.qty=value;return;}if(id==='shop-add-name'){shopAdd.name=value;return;}if(id!=='shop-search'&&id!=='shop-add-query')return;if(id==='shop-search')shopFilters.query=value;else shopAdd.query=value;const start=event.target.selectionStart,end=event.target.selectionEnd;clearTimeout(shopTimer);shopTimer=setTimeout(async()=>{if(busy||(page!=='compras'&&page!=='compras-novo'))return;const y=window.scrollY;await run(async()=>{});const input=document.getElementById(id);if(input){input.focus({preventScroll:true});input.setSelectionRange(start,end);window.scrollTo(0,y);}},180);});
+diff --git a/android/app/src/nav.cjs b/android/app/src/nav.cjs
+index 0990714..e1ac635 100644
+--- a/android/app/src/nav.cjs
++++ b/android/app/src/nav.cjs
+@@ -14,21 +14,21 @@ const MAIS = [
+ // Separador da barra inferior a que uma página pertence; o que não está listado cai em «resumo».
+ function tabFor(page) {
+   if (MOVIMENTOS.includes(page)) return 'movimentos';
+   if (CASA.includes(page)) return 'casa';
+   if (MAIS.includes(page)) return 'mais';
+   return 'resumo';
+ }
+ 
+ // Páginas cujo ecrã ainda não existe: mostram «Em breve». Quando uma tarefa registar o ecrã
+ // real, basta retirar o nome daqui.
+-const PLACEHOLDERS = { patrimonio: 'Património', relatorios: 'Relatórios', avisos: 'Avisos', definicoes: 'Definições' };
++const PLACEHOLDERS = { patrimonio: 'Património', avisos: 'Avisos', definicoes: 'Definições' };
+ 
+ function isPlaceholder(page) {
+   return Object.prototype.hasOwnProperty.call(PLACEHOLDERS, page);
+ }
+ 
+ function placeholder(page) {
+   const title = PLACEHOLDERS[page] || 'Página';
+   const back = ['mais', '‹ Mais'];
+   return '<button type="button" class="back" data-page="' + back[0] + '">' + back[1] + '</button>'
+     + kit.card({ title, subtitle: 'Em breve', body: '<p class="sub">Esta página chega numa próxima atualização.</p>' });
+diff --git a/android/app/src/nav.test.cjs b/android/app/src/nav.test.cjs
+index 19c490a..87c0db7 100644
+--- a/android/app/src/nav.test.cjs
++++ b/android/app/src/nav.test.cjs
+@@ -9,27 +9,28 @@ test('tabFor agrupa as páginas por separador', () => {
+   for (const p of ['casa', 'casa-form', 'descartar-casa', 'compras', 'compras-artigo', 'compras-novo']) assert.equal(nav.tabFor(p), 'casa', p);
+   for (const p of ['contas', 'conta', 'editar-conta', 'arquivar-conta', 'sair-conta', 'agenda', 'compromisso', 'novo-compromisso', 'pagar-compromisso', 'descartar-compromisso', 'descartar-pagamento', 'patrimonio', 'relatorios', 'avisos', 'sync', 'recuperacao', 'confirmar-recuperacao', 'confirmar-desligar', 'confirmar-passagem', 'consulta-financeira', 'definicoes', 'mais']) assert.equal(nav.tabFor(p), 'mais', p);
+ });
+ 
+ test('tabFor devolve resumo para páginas desconhecidas', () => {
+   assert.equal(nav.tabFor('desconhecida'), 'resumo');
+   assert.equal(nav.tabFor(undefined), 'resumo');
+ });
+ 
+ test('placeholder «Em breve» só para páginas sem ecrã próprio', () => {
+-  for (const p of ['patrimonio', 'relatorios', 'avisos', 'definicoes']) {
++  for (const p of ['patrimonio', 'avisos', 'definicoes']) {
+     assert.equal(nav.isPlaceholder(p), true, p);
+     const html = nav.placeholder(p);
+     assert.match(html, /Em breve/);
+     assert.match(html, /data-page="mais"/);
+   }
+   assert.equal(nav.isPlaceholder('contas'), false);
+   assert.equal(nav.isPlaceholder('mais'), false);
+   assert.equal(nav.isPlaceholder('compras'), false);
++  assert.equal(nav.isPlaceholder('relatorios'), false);
+ });
+ 
+ test('index.html usa a mesma navegação que a pré-visualização', () => {
+   const html = require('node:fs').readFileSync(require('node:path').join(__dirname, 'index.html'), 'utf8');
+   const shell = require('./shell.cjs');
+   assert.ok(html.includes(shell.navHtml('resumo') + shell.fabHtml()));
+   assert.match(shell.fabHtml(), /id="quickAdd" data-page="novo"/);
+ });
+diff --git a/android/app/src/screens/relatorios.cjs b/android/app/src/screens/relatorios.cjs
+new file mode 100644
+index 0000000..6ae2282
+--- /dev/null
++++ b/android/app/src/screens/relatorios.cjs
+@@ -0,0 +1,165 @@
++'use strict';
++const kit = require('../ui/kit.cjs');
++const R = require('../../../../equilibrio/reports-model.js');
++
++const KINDS = [['m', 'Mês'], ['q', 'Trimestre'], ['year', 'Ano']];
++const MONTHS = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
++const SHORT = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
++
++const cents = x => Math.round((Number(x) || 0) * 100);
++const two = n => String(n).padStart(2, '0');
++
++function kindOf(period) {
++  if (/^m\d\d$/.test(period)) return 'm';
++  if (/^q\d$/.test(period)) return 'q';
++  return 'year';
++}
++
++// Seleção inicial: o mês corrente de ctx.today, todas as contas.
++function initial(today) {
++  const t = String(today || '');
++  return { year: t.slice(0, 4), period: 'm' + t.slice(5, 7), account: '' };
++}
++
++// Recua (-1) ou avança (+1) um mês, trimestre ou ano; atravessa a fronteira do ano.
++function shift(sel, dir) {
++  const kind = kindOf(sel.period);
++  let year = Number(sel.year);
++  if (kind === 'year') return { ...sel, year: String(year + dir), period: 'year' };
++  const size = kind === 'm' ? 12 : 4;
++  let n = Number(sel.period.slice(1)) + dir;
++  if (n < 1) { n = size; year -= 1; }
++  if (n > size) { n = 1; year += 1; }
++  return { ...sel, year: String(year), period: kind === 'm' ? 'm' + two(n) : 'q' + n };
++}
++
++// Muda entre Mês, Trimestre e Ano mantendo o ano; de «Ano» para outra vista usa o mês de hoje se o ano coincidir.
++function switchKind(sel, kind, today) {
++  const from = kindOf(sel.period);
++  if (from === kind) return sel;
++  if (kind === 'year') return { ...sel, period: 'year' };
++  let month = 1;
++  if (from === 'm') month = Number(sel.period.slice(1));
++  else if (from === 'q') month = (Number(sel.period.slice(1)) - 1) * 3 + 1;
++  else if (String(today || '').slice(0, 4) === String(sel.year)) month = Number(String(today).slice(5, 7)) || 1;
++  return { ...sel, period: kind === 'm' ? 'm' + two(month) : 'q' + Math.ceil(month / 3) };
++}
++
++function label(sel) {
++  const kind = kindOf(sel.period);
++  if (kind === 'm') return MONTHS[Number(sel.period.slice(1)) - 1] + ' de ' + sel.year;
++  if (kind === 'q') return sel.period.slice(1) + '.º trimestre de ' + sel.year;
++  return sel.year;
++}
++
++// Pura: período atual e anterior, diferenças (do saldo) e categorias com cor e subcategorias.
++function view(ledger, sel, analyse = R.analyse) {
++  const current = analyse(ledger, sel);
++  const previous = analyse(ledger, shift(sel, -1));
++  const diff = (a, b) => (cents(a) - cents(b)) / 100;
++  const saving = diff(current.saving, previous.saving);
++  const delta = {
++    income: diff(current.income, previous.income),
++    expense: diff(current.expense, previous.expense),
++    saving,
++    pct: previous.saving ? saving / Math.abs(previous.saving) * 100 : null,
++  };
++  const categories = R.detail(ledger, { ...sel, result: current }).categories.map((c, i) => ({
++    name: c.name,
++    value: c.amount,
++    color: R.color(i),
++    children: c.children.map(ch => ({ name: ch.name, value: ch.amount })),
++  }));
++  return { current, previous, delta, categories };
++}
++
++function pct(v) {
++  return v == null || !Number.isFinite(v) ? '' : (v > 0 ? '+' : '') + v.toLocaleString('pt-PT', { maximumFractionDigits: 0 }) + ' %';
++}
++
++function controls(ctx, sel) {
++  const e = kit.escape;
++  const accounts = (ctx.ledger.accounts || []).filter(a => !a.archived);
++  return kit.pills('repkind', KINDS.map(([value, text]) => ({ value, label: text })), kindOf(sel.period))
++    + '<div class="rep-step"><button type="button" id="rep-prev" aria-label="Período anterior">‹</button>'
++    + '<strong aria-live="polite">' + e(label(sel)) + '</strong>'
++    + '<button type="button" id="rep-next" aria-label="Período seguinte">›</button></div>'
++    + (accounts.length > 1 ? kit.pills('repaccount', [{ value: '', label: 'Todas' }, ...accounts.map(a => ({ value: String(a.id), label: a.name }))], String(sel.account || '')) : '');
++}
++
++function tiles(ctx, v, sel) {
++  const hidden = ctx.state.hidden;
++  const money = x => kit.money(cents(x), hidden);
++  const diff = (v.delta.saving > 0 && !hidden ? '+' : '') + money(v.delta.saving);
++  const p = pct(v.delta.pct);
++  return '<div class="ch-tiles">'
++    + kit.tile({ tone: 'green', icon: 'plus', label: 'Receitas', value: money(v.current.income) })
++    + kit.tile({ tone: 'red', icon: 'cart', label: 'Despesas', value: money(v.current.expense) })
++    + kit.tile({ tone: v.current.saving < 0 ? 'red' : 'blue', icon: 'account', label: 'Saldo', value: money(v.current.saving) })
++    + kit.tile({ tone: 'purple', icon: 'chart', label: 'Diferença', value: diff, detail: (p ? p + ' ' : '') + 'face a ' + label(shift(sel, -1)) })
++    + '</div>';
++}
++
++// Barra horizontal em SVG: a cor vai em atributo de apresentação (a CSP não admite style="").
++function bar(width, color) {
++  const w = Math.max(0, Math.min(100, width)).toFixed(1);
++  return '<svg class="rep-bar" viewBox="0 0 100 8" preserveAspectRatio="none" aria-hidden="true" focusable="false">'
++    + '<rect class="rep-track" width="100" height="8"/><rect width="' + w + '" height="8" fill="' + kit.escape(color) + '"/></svg>';
++}
++
++function categories(ctx, v, open) {
++  const e = kit.escape;
++  const total = v.current.expense;
++  const top = v.categories.reduce((m, c) => Math.max(m, c.value), 0);
++  const money = x => kit.money(cents(x), ctx.state.hidden);
++  if (!v.categories.length) return kit.card({ title: 'Onde gastas', body: '<p class="empty">Sem despesas neste período.</p>' });
++  const rows = v.categories.map(c => {
++    const share = total > 0 ? Math.round(c.value / total * 100) : 0;
++    const isOpen = open === c.name;
++    const kids = isOpen
++      ? '<div class="rep-kids">' + c.children.map(ch => '<div class="rep-kid"><span>' + e(ch.name) + '</span><span class="amount">' + money(ch.value) + '</span></div>').join('') + '</div>'
++      : '';
++    return '<div class="rep-cat' + (isOpen ? ' is-open' : '') + '">'
++      + '<button type="button" class="rep-cat-head" data-rep-cat="' + e(c.name) + '" aria-expanded="' + isOpen + '">'
++      + '<span class="rep-cat-line"><svg class="rep-dot" viewBox="0 0 10 10" aria-hidden="true" focusable="false"><rect width="10" height="10" fill="' + e(c.color) + '"/></svg>'
++      + '<strong>' + e(c.name) + '</strong><span class="amount">' + money(c.value) + '</span></span>'
++      + bar(top > 0 ? c.value / top * 100 : 0, c.color)
++      + '<small>' + share + ' % das despesas</small></button>' + kids + '</div>';
++  }).join('');
++  return kit.card({ title: 'Onde gastas', subtitle: 'Toca numa categoria para ver as subcategorias', body: rows });
++}
++
++function months(v, sel) {
++  const list = v.current.months;
++  if (kindOf(sel.period) === 'm' || !list.length) return '';
++  const W = 300, H = 120, base = 100, slot = W / list.length, bw = Math.min(14, slot * 0.34);
++  const max = list.reduce((m, x) => Math.max(m, x.income, x.expense), 0);
++  const h = x => (max > 0 ? Math.round(x / max * (base - 6) * 10) / 10 : 0);
++  const parts = list.map((m, i) => {
++    const mid = slot * i + slot / 2, hi = h(m.income), he = h(m.expense);
++    return '<rect class="rep-inc" x="' + (mid - bw - 0.5).toFixed(1) + '" y="' + (base - hi) + '" width="' + bw.toFixed(1) + '" height="' + hi + '"/>'
++      + '<rect class="rep-exp" x="' + (mid + 0.5).toFixed(1) + '" y="' + (base - he) + '" width="' + bw.toFixed(1) + '" height="' + he + '"/>'
++      + '<text class="rep-axis" x="' + mid.toFixed(1) + '" y="' + (H - 6) + '" text-anchor="middle">' + SHORT[Number(m.month.slice(5, 7)) - 1] + '</text>';
++  }).join('');
++  const svg = '<svg class="rep-chart" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Receitas e despesas mês a mês" focusable="false">'
++    + '<line class="rep-base" x1="0" x2="' + W + '" y1="' + base + '" y2="' + base + '"/>' + parts + '</svg>'
++    + '<p class="rep-legend"><span class="rep-key is-inc">Receitas</span><span class="rep-key is-exp">Despesas</span></p>';
++  return kit.card({ title: 'Mês a mês', subtitle: label(sel), body: svg });
++}
++
++// Ecrã «Relatórios». sel: {year, period, account, open?}, gerido por main.js.
++function render(ctx, sel, analyse = R.analyse) {
++  const s = { ...initial(ctx.today), ...(sel || {}) };
++  let body;
++  try {
++    const v = view(ctx.ledger, s, analyse);
++    body = tiles(ctx, v, s) + categories(ctx, v, s.open) + months(v, s);
++  } catch (error) {
++    body = kit.errorCard(error.message);
++  }
++  return '<button type="button" class="back" data-page="mais">‹ Mais</button><h1>Relatórios</h1>'
++    + '<p class="sub">' + kit.escape(kit.syncStamp(ctx.lastSync, new Date())) + '</p>'
++    + controls(ctx, s) + body;
++}
++
++module.exports = { initial, shift, switchKind, label, view, render };
+diff --git a/android/app/src/screens/relatorios.test.cjs b/android/app/src/screens/relatorios.test.cjs
+new file mode 100644
+index 0000000..8b4ab74
+--- /dev/null
++++ b/android/app/src/screens/relatorios.test.cjs
+@@ -0,0 +1,132 @@
++'use strict';
++const test = require('node:test');
++const assert = require('node:assert/strict');
++const relatorios = require('./relatorios.cjs');
++const R = require('../../../../equilibrio/reports-model.js');
++const { ctx, demo, empty } = require('./fixtures.cjs');
++
++const AMOUNT = /\d,\d{2}\s?€/;
++const NOV = { year: '2026', period: 'm11', account: '' };
++const realCtx = (ledger, hidden = false) => ctx(ledger, { state: { hidden } });
++
++test('view(demo) coincide com R.analyse e o período anterior é o mês anterior', () => {
++  const ledger = demo();
++  const v = relatorios.view(ledger, { year: '2026', period: 'm10' });
++  assert.deepEqual(v.current, R.analyse(ledger, { year: '2026', period: 'm10' }));
++  assert.deepEqual(v.previous, R.analyse(ledger, { year: '2026', period: 'm09' }));
++});
++
++test('o anterior de m01 é m12 do ano anterior; de q1 é q4; do ano é o ano anterior', () => {
++  const calls = [];
++  const spy = (ledger, sel) => { calls.push(sel); return R.analyse(ledger, sel); };
++  relatorios.view(demo(), { year: '2026', period: 'm01', account: '' }, spy);
++  relatorios.view(demo(), { year: '2026', period: 'q1', account: '' }, spy);
++  relatorios.view(demo(), { year: '2026', period: 'year', account: '' }, spy);
++  assert.deepEqual(calls.filter((_, i) => i % 2 === 1).map(s => s.year + s.period), ['2025m12', '2025q4', '2025year']);
++});
++
++test('shift passa as fronteiras do ano nos dois sentidos', () => {
++  const s = (year, period) => ({ year, period, account: '' });
++  assert.deepEqual(relatorios.shift(s('2026', 'm01'), -1), s('2025', 'm12'));
++  assert.deepEqual(relatorios.shift(s('2026', 'm12'), 1), s('2027', 'm01'));
++  assert.deepEqual(relatorios.shift(s('2026', 'q1'), -1), s('2025', 'q4'));
++  assert.deepEqual(relatorios.shift(s('2026', 'q4'), 1), s('2027', 'q1'));
++  assert.deepEqual(relatorios.shift(s('2026', 'year'), -1), s('2025', 'year'));
++  assert.equal(relatorios.shift({ ...s('2026', 'm05'), account: '7' }, 1).account, '7');
++});
++
++test('switchKind converte entre mês, trimestre e ano', () => {
++  const s = (period, year = '2026') => ({ year, period, account: '' });
++  assert.equal(relatorios.switchKind(s('m11'), 'q', '2026-11-05').period, 'q4');
++  assert.equal(relatorios.switchKind(s('q2'), 'm', '2026-11-05').period, 'm04');
++  assert.equal(relatorios.switchKind(s('m11'), 'year', '2026-11-05').period, 'year');
++  assert.equal(relatorios.switchKind(s('year'), 'm', '2026-11-05').period, 'm11');
++  assert.equal(relatorios.switchKind(s('year', '2025'), 'm', '2026-11-05').period, 'm01');
++  assert.equal(relatorios.switchKind(s('m11'), 'm', '2026-11-05').period, 'm11');
++  assert.deepEqual(relatorios.initial('2026-11-05'), NOV);
++});
++
++test('delta é a diferença do saldo face ao período anterior, com percentagem', () => {
++  const v = relatorios.view(demo(), NOV);
++  assert.equal(v.current.saving, 1385.2);
++  assert.equal(v.previous.saving, -48.5);
++  assert.equal(v.delta.saving, 1433.7);
++  assert.equal(v.delta.income, 1450);
++  assert.equal(v.delta.expense, 16.3);
++  assert.equal(Math.round(v.delta.pct), 2956);
++  assert.equal(relatorios.view(empty(), NOV).delta.pct, null);
++});
++
++test('as categorias trazem a cor do modelo por posição e as subcategorias', () => {
++  const v = relatorios.view(demo(), NOV);
++  assert.deepEqual(v.categories.map(c => c.name), ['Alimentação']);
++  assert.equal(v.categories[0].value, 64.8);
++  assert.equal(v.categories[0].color, R.color(0));
++  assert.equal(R.color(0), '#2f9e83');
++  assert.ok(v.categories[0].children.length > 0);
++  const year = relatorios.view(demo(), { year: '2026', period: 'year', account: '' });
++  year.categories.forEach((c, i) => assert.equal(c.color, R.color(i)));
++});
++
++test('erro do modelo mostra o cartão de erro e mantém os seletores', () => {
++  const boom = () => { throw new Error('Ajuste sem direção impede calcular este saldo.'); };
++  const html = relatorios.render(realCtx(demo()), NOV, boom);
++  assert.match(html, /Não foi possível calcular: Ajuste sem direção/);
++  assert.ok(html.includes('data-pill-repkind="year"'));
++  assert.ok(!html.includes('ch-tile'));
++});
++
++test('ledger vazio e demo não atiram, em todos os períodos', () => {
++  for (const make of [empty, demo]) {
++    for (const period of ['m01', 'm11', 'q4', 'year']) {
++      const html = relatorios.render(realCtx(make()), { year: '2026', period, account: '' });
++      assert.ok(html.includes('Relatórios') && !html.includes('cs-error'), period);
++    }
++  }
++  assert.ok(relatorios.render(realCtx(empty()), NOV).includes('Sem despesas neste período'));
++});
++
++test('seletor de período, contas, mosaicos e carimbo de sincronização', () => {
++  const html = relatorios.render(realCtx(demo()), NOV);
++  for (const part of ['data-pill-repkind="m"', 'data-pill-repkind="q"', 'data-pill-repkind="year"', 'id="rep-prev"', 'id="rep-next"', 'data-pill-repaccount=""', 'novembro de 2026', 'Receitas', 'Despesas', 'Saldo', 'Diferença', 'Onde gastas', 'data-page="mais"', 'Ainda não sincronizado']) {
++    assert.ok(html.includes(part), part);
++  }
++  assert.ok(html.includes('data-pill-repkind="m"') && /data-pill-repkind="m" aria-pressed="true"/.test(html));
++});
++
++test('«Mês a mês» só aparece em trimestre e ano', () => {
++  const at = period => relatorios.render(realCtx(demo()), { year: '2026', period, account: '' });
++  assert.ok(!at('m11').includes('Mês a mês'));
++  assert.ok(at('q4').includes('Mês a mês'));
++  assert.equal((at('year').match(/class="rep-inc"/g) || []).length, 12);
++  assert.equal((at('q4').match(/class="rep-inc"/g) || []).length, 3);
++});
++
++test('tocar numa categoria expande as subcategorias', () => {
++  const closed = relatorios.render(realCtx(demo()), NOV);
++  const open = relatorios.render(realCtx(demo()), { ...NOV, open: 'Alimentação' });
++  assert.ok(closed.includes('aria-expanded="false"') && !closed.includes('rep-kid'));
++  assert.ok(open.includes('aria-expanded="true"') && open.includes('rep-kid'));
++});
++
++test('o ecrã não usa style= (a CSP bloqueia-o) e desenha cores em atributos SVG', () => {
++  for (const period of ['m11', 'q4', 'year']) {
++    const html = relatorios.render(realCtx(demo()), { year: '2026', period, account: '', open: 'Alimentação' });
++    assert.ok(!/style\s*=/i.test(html), period);
++  }
++  assert.ok(relatorios.render(realCtx(demo()), NOV).includes('fill="#2f9e83"'));
++});
++
++test('com valores ocultos não há montantes, nem em aria-label', () => {
++  for (const period of ['m11', 'q4', 'year']) {
++    const sel = { year: '2026', period, account: '', open: 'Alimentação' };
++    // dentes: o mesmo ecrã visível tem montantes e a expressão apanha-os
++    assert.match(relatorios.render(realCtx(demo(), false), sel), AMOUNT, period);
++    const html = relatorios.render(realCtx(demo(), true), sel);
++    assert.doesNotMatch(html, AMOUNT, period);
++    assert.ok(html.includes('•••• €'));
++    for (const label of html.match(/aria-label="[^"]*"/g) || []) assert.doesNotMatch(label, /\d,\d{2}|€/, label);
++  }
++  const emptyHtml = relatorios.render(realCtx(empty(), true), NOV);
++  assert.doesNotMatch(emptyHtml, AMOUNT);
++});
+diff --git a/android/app/src/style.css b/android/app/src/style.css
+index 76dd771..fb3cb78 100644
+--- a/android/app/src/style.css
++++ b/android/app/src/style.css
+@@ -222,10 +222,37 @@ dialog{color:var(--ink)}
+ .shop-name strong,.shop-name small{display:block;overflow-wrap:anywhere}
+ .shop-name small{color:var(--muted);font-size:13px;margin-top:2px}
+ .shop-row .amount{font-weight:600;padding-right:4px;white-space:nowrap}
+ .shop-row.is-done .shop-name strong{text-decoration:line-through;color:var(--muted)}
+ .shop-row.is-missing .shop-name small{color:var(--orange)}
+ .shop-footer{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(var(--nav-h) + 10px + env(safe-area-inset-bottom));width:min(100%,560px);z-index:4;display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:10px 16px;background:var(--paper);border-top:1px solid var(--line)}
+ .shop-footer small{display:block;color:var(--muted);font-size:12px}
+ .shop-footer strong{font-size:18px}
+ #app.has-shop-footer{padding-bottom:calc(var(--nav-h) + 74px + 16px + 56px + 24px + env(safe-area-inset-bottom))}
+ #app.has-shop-footer #quickAdd{bottom:calc(var(--nav-h) + 74px + 16px + env(safe-area-inset-bottom))}
++
++/* ---- Relatórios ---- */
++.rep-step{display:grid;grid-template-columns:44px minmax(0,1fr) 44px;align-items:center;gap:8px;margin:4px 0 10px}
++.rep-step strong{text-align:center;font-size:16px}
++.rep-step strong::first-letter{text-transform:uppercase}
++.rep-step button{min-height:44px;font-size:22px;line-height:1;padding:0}
++.rep-cat{border-bottom:1px solid var(--line)}
++.rep-cat:last-child{border-bottom:0}
++.rep-cat-head{display:grid;gap:6px;width:100%;min-height:44px;padding:10px 0;text-align:left;background:transparent;border:0;border-radius:0;color:var(--text)}
++.rep-cat-line{display:flex;align-items:center;gap:8px;min-width:0}
++.rep-cat-line strong{flex:1;min-width:0;overflow-wrap:anywhere}
++.rep-dot{width:10px;height:10px;flex:none;border-radius:3px}
++.rep-cat-head small{color:var(--muted);font-size:12px}
++.rep-bar{display:block;width:100%;height:8px;border-radius:4px;overflow:hidden}
++.rep-track{fill:var(--surface-soft)}
++.rep-kids{display:grid;gap:2px;padding:0 0 10px 18px}
++.rep-kid{display:flex;justify-content:space-between;gap:12px;font-size:14px;color:var(--muted);padding:4px 0}
++.rep-kid span:first-child{min-width:0;overflow-wrap:anywhere}
++.rep-chart{display:block;width:100%;height:auto}
++.rep-inc{fill:var(--green)}
++.rep-exp{fill:var(--red)}
++.rep-base{stroke:var(--line);stroke-width:1}
++.rep-axis{fill:var(--muted);font-size:9px}
++.rep-legend{display:flex;gap:16px;margin:8px 0 0;font-size:12px;color:var(--muted)}
++.rep-key::before{content:"";display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
++.rep-key.is-inc::before{background:var(--green)}
++.rep-key.is-exp::before{background:var(--red)}
+diff --git a/equilibrio/reports-model.js b/equilibrio/reports-model.js
+index d26e200..df7ac49 100644
+--- a/equilibrio/reports-model.js
++++ b/equilibrio/reports-model.js
+@@ -35,12 +35,14 @@
+   const categories=[...tree.values()].map(n=>({name:n.name,amount:n.amount,count:n.count,share:share(n.amount),average:F.money(n.amount/elapsed),months:n.months,previous:previous?(prevByRoot.get(n.name)||0):null,children:[...n.children.values()].map(c=>({...c,share:n.amount?c.amount/n.amount*100:0,previous:previous?(prevBySub.get(n.name+'\u0000'+c.name)||0):null})).sort((a,b)=>b.amount-a.amount||a.name.localeCompare(b.name,'pt'))})).sort((a,b)=>b.amount-a.amount||a.name.localeCompare(b.name,'pt'));
+   const compareNames=new Set([...prevByRoot.keys(),...tree.keys()]),comparison=previous?[...compareNames].map(name=>{const now=tree.get(name)?.amount||0,before=prevByRoot.get(name)||0;return{name,current:now,previous:before,delta:F.money(now-before),change:before>0?(now-before)/before*100:null};}).sort((a,b)=>Math.abs(b.delta)-Math.abs(a.delta)||a.name.localeCompare(b.name,'pt')):[];
+   const key=s=>String(s||'Sem descrição').toLocaleLowerCase('pt-PT').replace(/\d{2,}/g,'').replace(/[^\p{L}\s]/gu,' ').replace(/\s+/g,' ').trim()||'sem descrição',places=new Map();
+   for(const t of expense){const k=key(t.description);if(!places.has(k))places.set(k,{name:t.description||'Sem descrição',amount:0,ids:new Set(),last:'',categories:new Map()});const p=places.get(k);p.amount=sum(p.amount,t.amount);p.ids.add(String(t.id));p.count=p.ids.size;if(t.date>p.last)p.last=t.date;p.categories.set(root(t.category),(p.categories.get(root(t.category))||0)+1);}
+   const merchants=[...places.values()].map(p=>({name:p.name,amount:p.amount,count:p.count,average:F.money(p.amount/p.count),last:p.last,share:share(p.amount),category:[...p.categories].sort((a,b)=>b[1]-a[1])[0]?.[0]||''})).sort((a,b)=>b.amount-a.amount||b.count-a.count);
+   const incomeMap=new Map();for(const t of income){const name=F.categoryPath(t.category||'Receita');if(!incomeMap.has(name))incomeMap.set(name,{name,amount:0,count:0,months:months.map(()=>0)});const row=incomeMap.get(name);row.amount=sum(row.amount,t.amount);row.count++;const i=monthIndex.get(t.date.slice(0,7));if(i!==undefined)row.months[i]=sum(row.months[i],t.amount);}
+   const incomeRows=[...incomeMap.values()].map(r=>({...r,share:current.income>0?r.amount/current.income*100:0})).sort((a,b)=>b.amount-a.amount);
+   const biggest=expense.slice().sort((a,b)=>b.amount-a.amount).slice(0,10);
+   return{months,elapsed,categories,comparison,previous:previous?{year:previous.year,income:previous.income,expense:previous.expense,saving:previous.saving,monthsWithData:previous.months.filter(x=>x.income||x.expense).length,monthsCompared:previous.months.length}:null,merchants,income:incomeRows,biggest,averageExpense:F.money((current.expense||0)/elapsed),averageIncome:F.money((current.income||0)/elapsed)};
+  }
+- const api={analyse,detail,ranges};root.ReportAnalysis=api;if(typeof module==='object')module.exports=api;
++ const palette=['#2f9e83','#e07a5f','#5b7fd6','#f2b134','#9b6bd3','#3fb4c8','#d4688f','#7a9e3f','#c98a4a','#a7c957','#f08a5d','#7c8ee8','#56b870','#c58fe0'];
++ const color=i=>palette[i%palette.length];
++ const api={analyse,detail,ranges,palette,color};root.ReportAnalysis=api;if(typeof module==='object')module.exports=api;
+ })(globalThis);
+diff --git a/equilibrio/reports-ui.js b/equilibrio/reports-ui.js
+index da3df1f..13210e7 100644
+--- a/equilibrio/reports-ui.js
++++ b/equilibrio/reports-ui.js
+@@ -1,22 +1,21 @@
+ (function(){
+  'use strict';
+  const states=new Map(),I=name=>InterfaceUI.icon(name);
+  const titles={overview:'Visão anual',categories:'Categorias',trend:'Mês a mês',compare:'Comparar anos',merchants:'Onde gastas',income:'Receitas',accounts:'Contas'};
+  const icons={overview:'all',categories:'expense',trend:'calendar',compare:'transfer',merchants:'document',income:'income',accounts:'account'};
+  const periods={year:'Ano completo',h1:'Janeiro–junho',h2:'Julho–dezembro',q1:'Janeiro–março',q2:'Abril–junho',q3:'Julho–setembro',q4:'Outubro–dezembro'};
+- const palette=['#2f9e83','#e07a5f','#5b7fd6','#f2b134','#9b6bd3','#3fb4c8','#d4688f','#7a9e3f','#c98a4a','#a7c957','#f08a5d','#7c8ee8','#56b870','#c58fe0'];
+  let root,last,more;
+  const current=()=>{if(!states.has(key))states.set(key,{mode:'overview',period:'year',account:'',year:F.today().slice(0,4),page:0,merchantQuery:''});return states.get(key);};
+  const pct=(v,digits=0)=>v===null||!Number.isFinite(v)?'—':v.toLocaleString('pt-PT',{maximumFractionDigits:digits})+'%';
+  const shortMonth=m=>new Date(m+'-01T12:00').toLocaleDateString('pt-PT',{month:'short'}).replace('.','');
+- const color=i=>palette[i%palette.length];
++ const color=i=>ReportAnalysis.color(i);
+  function change(now,before,inverse=true){if(before===null||before===undefined)return '';if(!before&&!now)return '<span class="r-delta is-flat">=</span>';if(!before)return '<span class="r-delta is-new">novo</span>';const v=(now-before)/before*100,good=inverse?v<=0:v>=0;return '<span class="r-delta '+(Math.abs(v)<1?'is-flat':good?'is-good':'is-bad')+'" title="Ano anterior: '+eur(before)+'">'+(v>0?'▲ ':v<0?'▼ ':'')+pct(Math.abs(v))+'</span>';}
+  function init(){if(root)return;const host=document.getElementById('reports'),legacy=document.createElement('div');legacy.id='reportsLegacy';legacy.hidden=true;for(const node of [...host.children])legacy.append(node);host.append(legacy);root=document.createElement('div');root.id='reportDesk';root.className='report-desk';host.prepend(root);
+   root.innerHTML='<div class="r-head u-head"><div><h2>Relatórios</h2><p>Explora o teu dinheiro por período, categoria e conta.</p></div><div class="r-head-actions"><label class="r-year-slot">Ano</label><button type="button" class="secondary" id="reportDeskExport" title="Exportar relatório HTML com os filtros selecionados">'+I('document')+'Exportar</button></div></div><div class="r-workspace"><aside class="panel r-sidebar"><h3>Análises</h3><nav aria-label="Análises do relatório">'+Object.entries(titles).map(([id,title])=>'<button type="button" data-report-mode="'+id+'">'+I(icons[id])+title+'</button>').join('')+'</nav><div class="r-filters"><label>Período<select id="reportDeskPeriod">'+Object.entries(periods).map(([id,title])=>'<option value="'+id+'">'+title+'</option>').join('')+'</select></label><label>Conta<select id="reportDeskAccount"></select></label></div></aside><div class="r-main"><div class="r-metrics" id="reportDeskMetrics"></div><p class="r-scope" id="reportDeskScope"></p><div class="r-chart-grid"><section class="panel r-chart-panel"><div class="r-panel-head"><h3>Receitas e despesas por mês</h3><div class="r-legend"><span>● Receitas</span><span>● Despesas</span></div></div><div class="r-chart" id="reportDeskChart" role="img"></div></section><section class="panel r-category-panel"><div class="r-panel-head"><h3>Onde gastaste mais</h3></div><div id="reportDeskCategories"></div></section></div><section class="panel r-record-panel" id="reportDeskRecords"></section><div class="r-detail" id="reportDeskDetail"></div><section class="panel r-month-panel"><h3>Detalhe mensal</h3><div class="r-table-scroll"><table class="r-table"><thead><tr><th>Mês</th><th>Receitas</th><th>Despesas líquidas</th><th>Poupança</th></tr></thead><tbody id="reportDeskMonths"></tbody></table></div></section></div></div>';
+   const year=document.getElementById('reportYear');year.setAttribute('aria-label','Ano do relatório');root.querySelector('.r-year-slot').append(year);year.addEventListener('change',()=>{current().year=year.value;current().page=0;LifeUI.render();render();});
+   for(const [id,field]of [['reportDeskPeriod','period'],['reportDeskAccount','account']])document.getElementById(id).onchange=e=>{current()[field]=e.target.value;current().page=0;render();};
+   root.addEventListener('click',e=>{const b=e.target.closest('button');if(!b||!root.contains(b))return;const d=b.dataset;
+    if(d.reportMode){current().mode=d.reportMode;current().page=0;render();}
+    else if(d.reportMonth&&d.reportPath!==undefined)drill(byPath(d.reportPath,d.reportExact==='1').filter(t=>t.date.startsWith(d.reportMonth)),d.reportPath+' · '+monthLabel(d.reportMonth));
+    else if(d.reportMonth)drill(last.entries.filter(t=>t.date.startsWith(d.reportMonth)),monthLabel(d.reportMonth));
+    else if(d.reportPath!==undefined)drill(byPath(d.reportPath,d.reportExact==='1'),d.reportPath);
+diff --git a/equilibrio/tests/reports-palette.cjs b/equilibrio/tests/reports-palette.cjs
+new file mode 100644
+index 0000000..41669bc
+--- /dev/null
++++ b/equilibrio/tests/reports-palette.cjs
+@@ -0,0 +1,14 @@
++'use strict';
++const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),R=require('../reports-model.js');
++const expected=['#2f9e83','#e07a5f','#5b7fd6','#f2b134','#9b6bd3','#3fb4c8','#d4688f','#7a9e3f','#c98a4a','#a7c957','#f08a5d','#7c8ee8','#56b870','#c58fe0'];
++test('reports palette lives in the model and wraps by rank',()=>{
++ assert.deepEqual(R.palette,expected);
++ expected.forEach((c,i)=>assert.equal(R.color(i),c));
++ assert.equal(R.color(expected.length),expected[0]);
++ assert.equal(R.color(expected.length+3),expected[3]);
++});
++test('reports-ui uses the model colour instead of its own palette',()=>{
++ const ui=fs.readFileSync(path.join(__dirname,'..','reports-ui.js'),'utf8');
++ assert.ok(!/const palette=/.test(ui));
++ assert.ok(/ReportAnalysis\.color/.test(ui));
++});

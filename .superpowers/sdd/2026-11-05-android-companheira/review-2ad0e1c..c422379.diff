@@ -1,0 +1,180 @@
+# Review package: 2ad0e1c..HEAD
+
+## Commits
+c422379 Android: peças comuns de interface
+
+## Files changed
+ android/app/src/ui/icons.cjs    | 30 ++++++++++++++++++++
+ android/app/src/ui/kit.cjs      | 63 +++++++++++++++++++++++++++++++++++++++++
+ android/app/src/ui/kit.test.cjs | 57 +++++++++++++++++++++++++++++++++++++
+ 3 files changed, 150 insertions(+)
+
+## Diff
+diff --git a/android/app/src/ui/icons.cjs b/android/app/src/ui/icons.cjs
+new file mode 100644
+index 0000000..b97e62b
+--- /dev/null
++++ b/android/app/src/ui/icons.cjs
+@@ -0,0 +1,30 @@
++'use strict';
++// Caminhos copiados de equilibrio/interface-ui.js (InterfaceUI.icon).
++// Nomes que não existem lá e o mapeamento usado:
++//   home -> box, list -> document, settings -> gear, link -> recurring, arrow -> transfer
++const P = {
++  plus: 'M12 5v14M5 12h14',
++  transfer: 'M4 7h16m-4-4 4 4-4 4M20 17H4m4-4-4 4 4 4',
++  document: 'M5 3h10l4 4v14H5zM14 3v5h5M8 12h8M8 16h6',
++  calendar: 'M4 5h16v16H4zM4 10h16M8 2v6M16 2v6',
++  recurring: 'M4 7a9 9 0 0 1 15-2M19 2v5h-5M20 17a9 9 0 0 1-15 2M5 22v-5h5',
++  account: 'M3 7h18v13H3zM3 7l3-3h12l3 3M16 13.5h2',
++  check: 'M5 12.5l4.5 4.5L19 7.5',
++  alert: 'M12 3 2 20h20zM12 10v4.5M12 17.5h.01',
++  cart: 'M3 4h2.5l2 11.5h10.5l2-8H6.5M9 20h.01M17 20h.01',
++  box: 'M3 7.5 12 3l9 4.5v9L12 21l-9-4.5zM3 7.5l9 4.5 9-4.5M12 12v9',
++  chart: 'M4 20V11M10 20V5M16 20v-6M2 20h20',
++  bell: 'M6 16v-5a6 6 0 1 1 12 0v5l2 2H4zM10 21h4',
++  gear: 'M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM12 2v3M12 19v3M4.9 4.9 7 7M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1 7 17M17 7l2.1-2.1',
++  search: 'M10.5 4a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13zM15.5 15.5 21 21',
++};
++const ALIAS = { home: 'box', list: 'document', settings: 'gear', link: 'recurring', arrow: 'transfer' };
++const NAMES = ['chart', 'account', 'box', 'alert', 'cart', 'calendar', 'bell', 'home', 'list', 'settings', 'link', 'plus', 'search', 'check', 'arrow'];
++
++function icon(name) {
++  if (!NAMES.includes(name)) return '';
++  const d = P[ALIAS[name] || name];
++  return '<svg class="interface-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="' + d + '"/></svg>';
++}
++
++module.exports = { icon };
+diff --git a/android/app/src/ui/kit.cjs b/android/app/src/ui/kit.cjs
+new file mode 100644
+index 0000000..c3200a5
+--- /dev/null
++++ b/android/app/src/ui/kit.cjs
+@@ -0,0 +1,63 @@
++'use strict';
++const { icon } = require('./icons.cjs');
++
++const ESC = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
++function escape(value) {
++  return String(value == null ? '' : value).replace(/[&<>"']/g, c => ESC[c]);
++}
++
++const eur = new Intl.NumberFormat('pt-PT', { style: 'currency', currency: 'EUR' });
++function money(cents, hidden) {
++  if (hidden) return '•••• €';
++  return eur.format((Number(cents) || 0) / 100);
++}
++
++function tile({ tone, icon: iconName, label, value, detail, page }) {
++  const inner = '<span class="ch-tile-icon">' + icon(iconName) + '</span>'
++    + '<span class="ch-tile-label">' + escape(label) + '</span>'
++    + '<strong class="ch-tile-value">' + escape(value) + '</strong>'
++    + (detail ? '<small class="ch-tile-detail">' + escape(detail) + '</small>' : '');
++  const cls = 'ch-tile is-' + escape(tone);
++  if (page) return '<button type="button" class="' + cls + '" data-page="' + escape(page) + '">' + inner + '</button>';
++  return '<article class="' + cls + '">' + inner + '</article>';
++}
++
++function pills(name, options, selected) {
++  const n = escape(name);
++  return '<div class="cs-pills" role="tablist">' + options.map(o =>
++    '<button type="button" role="tab" data-pill-' + n + '="' + escape(o.value) + '" aria-pressed="'
++    + (o.value === selected ? 'true' : 'false') + '">' + escape(o.label)
++    + (o.count != null ? ' <span class="cs-pill-count">' + escape(o.count) + '</span>' : '') + '</button>'
++  ).join('') + '</div>';
++}
++
++// title/subtitle são escapados; body é HTML já composto pelo chamador.
++function card({ title, subtitle, body, className }) {
++  return '<section class="cs-card' + (className ? ' ' + escape(className) : '') + '">'
++    + '<header><h2>' + escape(title) + '</h2>' + (subtitle ? '<p>' + escape(subtitle) + '</p>' : '') + '</header>'
++    + (body || '') + '</section>';
++}
++
++function search(id, value, placeholder) {
++  return '<label class="cs-search">' + icon('search')
++    + '<input type="search" id="' + escape(id) + '" value="' + escape(value) + '" placeholder="' + escape(placeholder) + '" autocomplete="off"></label>';
++}
++
++function errorCard(message) {
++  return '<section class="cs-card cs-error" role="alert"><p>Não foi possível calcular: ' + escape(message) + '</p></section>';
++}
++
++function syncStamp(iso, now) {
++  if (!iso) return 'Ainda não sincronizado';
++  const t = new Date(iso).getTime();
++  if (Number.isNaN(t)) return 'Ainda não sincronizado';
++  const min = Math.max(0, Math.floor((now.getTime() - t) / 60000));
++  if (min < 1) return 'Dados de agora mesmo';
++  if (min < 60) return 'Dados de há ' + min + ' min';
++  const h = Math.floor(min / 60);
++  if (h < 24) return 'Dados de há ' + h + ' h';
++  if (h < 48) return 'Dados de ontem';
++  return 'Dados de há ' + Math.floor(h / 24) + ' dias';
++}
++
++module.exports = { escape, money, tile, pills, card, search, errorCard, syncStamp };
+diff --git a/android/app/src/ui/kit.test.cjs b/android/app/src/ui/kit.test.cjs
+new file mode 100644
+index 0000000..ef89cfb
+--- /dev/null
++++ b/android/app/src/ui/kit.test.cjs
+@@ -0,0 +1,57 @@
++'use strict';
++const test = require('node:test');
++const assert = require('node:assert/strict');
++const kit = require('./kit.cjs');
++const { icon } = require('./icons.cjs');
++
++const flat = s => s.replace(/[\u00a0\u202f]/g, ' ');
++
++test('money formata em pt-PT e oculta quando pedido', () => {
++  assert.equal(flat(kit.money(123456, false)), '1234,56 €');
++  assert.equal(kit.money(5, true), '•••• €');
++});
++
++test('escape neutraliza HTML', () => {
++  assert.equal(kit.escape('<a "x">'), '&lt;a &quot;x&quot;&gt;');
++  assert.equal(kit.escape(null), '');
++});
++
++test('tile com page passa a botao com icone', () => {
++  const html = kit.tile({ tone: 'red', icon: 'alert', label: 'Avisos', value: '3', page: 'avisos' });
++  assert.match(html, /class="ch-tile is-red"/);
++  assert.match(html, /data-page="avisos"/);
++  assert.match(html, /<svg/);
++  assert.match(html, /^<button/);
++  assert.match(kit.tile({ tone: 'green', icon: 'check', label: 'x', value: '1' }), /^<article/);
++});
++
++test('pills marca so o selecionado', () => {
++  const html = kit.pills('estado', [{ value: 'a', label: 'A' }, { value: 'b', label: 'B', count: 2 }], 'b');
++  assert.match(html, /class="cs-pills" role="tablist"/);
++  assert.equal((html.match(/aria-pressed="true"/g) || []).length, 1);
++  assert.match(html, /data-pill-estado="b"[^>]*aria-pressed="true"/);
++  assert.match(html, /data-pill-estado="a"[^>]*aria-pressed="false"/);
++});
++
++test('card, search e errorCard', () => {
++  assert.match(kit.card({ title: 'T<', body: '<p>b</p>', className: 'x' }), /T&lt;[\s\S]*<p>b<\/p>/);
++  assert.match(kit.search('q', 'a"b', 'Procurar'), /id="q"[^>]*value="a&quot;b"/);
++  const err = kit.errorCard('x<y');
++  assert.match(err, /x&lt;y/);
++  assert.match(err, /Não foi possível calcular: /);
++});
++
++test('syncStamp', () => {
++  const now = new Date('2026-11-05T12:00:00Z');
++  assert.equal(kit.syncStamp(null, now), 'Ainda não sincronizado');
++  assert.equal(kit.syncStamp(new Date(now - 5 * 60e3).toISOString(), now), 'Dados de há 5 min');
++  assert.equal(kit.syncStamp(new Date(now - 2 * 3600e3).toISOString(), now), 'Dados de há 2 h');
++  assert.equal(kit.syncStamp(new Date(now - 26 * 3600e3).toISOString(), now), 'Dados de ontem');
++});
++
++test('icon devolve svg ou vazio', () => {
++  for (const n of ['chart', 'account', 'box', 'alert', 'cart', 'calendar', 'bell', 'home', 'list', 'settings', 'link', 'plus', 'search', 'check', 'arrow']) {
++    assert.match(icon(n), /^<svg[^>]*aria-hidden="true"/, n);
++  }
++  assert.equal(icon('nao-existe'), '');
++});

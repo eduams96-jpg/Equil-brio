@@ -1,0 +1,394 @@
+# Review package: 804195e..HEAD
+
+## Commits
+a399aa3 Android: Resumo e Movimentos com o visual novo
+
+## Files changed
+ android/app/src/main.js                     | 34 ++++---------
+ android/app/src/screens/movimentos.cjs      | 74 +++++++++++++++++++++++++++++
+ android/app/src/screens/movimentos.test.cjs | 45 ++++++++++++++++++
+ android/app/src/screens/resumo.cjs          | 46 ++++++++++++++++++
+ android/app/src/screens/resumo.test.cjs     | 35 ++++++++++++++
+ android/app/src/style.css                   |  1 +
+ 6 files changed, 211 insertions(+), 24 deletions(-)
+
+## Diff
+diff --git a/android/app/src/main.js b/android/app/src/main.js
+index 7606a68..85a58fd 100644
+--- a/android/app/src/main.js
++++ b/android/app/src/main.js
+@@ -39,20 +39,24 @@ import Policy from '../../shared/movement-policy.cjs';
+ import Agenda from './agenda.cjs';
+ 
+ import K from '../../shared/commitment-drafts.cjs';
+ 
+ import Commitments from '../../shared/commitments.cjs';
+ 
+ import Nav from './nav.cjs';
+ 
+ import Mais from './screens/mais.cjs';
+ 
++import Resumo from './screens/resumo.cjs';
++
++import Movimentos from './screens/movimentos.cjs';
++
+ const LAST_SYNC_KEY='equilibrio.mobile.lastSync';
+ 
+ function readLastSync(){try{return localStorage.getItem(LAST_SYNC_KEY);}catch{return null;}}
+ 
+ function markSynced(){try{localStorage.setItem(LAST_SYNC_KEY,new Date().toISOString());}catch{}}
+ 
+ let cf=null,cr=null,cfBaseline=null,commitmentId=null,commitDiscard=null,commitWrite=0;
+ 
+ let showCompletedAgenda=false;
+ 
+@@ -95,41 +99,23 @@ async function rawRequest(url,method,path,data,credential){
+ }
+ 
+ async function request(method,path,data){if(!connection)throw Error('Sem PC associado.');return rawRequest(connection.url,method,path,data,connection.credential);}
+ 
+ const client=new C.Client(adapter,request,{negotiate:true});
+ 
+ const association=new A.Association({read:()=>adapter.read(),replace:(s,r)=>adapter.replace(s,r),restoreWithCheckpoint:(state,revision)=>store.compareAndSet({state,expectedRevision:revision,preservePrevious:true}),importWithArchive:(state,archiveSource,revision)=>store.compareAndSet({state,archiveSource,expectedRevision:revision,preservePrevious:true})},vault,rawRequest);
+ 
+ function money(cents){return current.state.hidden?'•••• €':new Intl.NumberFormat('pt-PT',{style:'currency',currency:'EUR'}).format(cents/100);}
+ 
+-function row(t,accountName=''){
+-
+- const status=V.statuses(current.state)[t.id],info=V.movementInfo(t,accountName),amount=info.amountCents;
+-
+- return `<button type="button" class="row movement-row" data-open="${escape(t.id)}"><div><strong>${escape(t.description)}</strong><small>${escape(V.dateLabel(accountName&&t.targetAccount===accountName?t.targetDate||t.date:t.date))} · ${escape(info.route)}</small><small>${escape(t.category||'')}${status?' · '+(status==='pending'?'Por confirmar':'A rever'):''}</small></div><span class="amount">${info.symbol}${money(amount)}</span></button>`;
+-
+-}
+-
+-const monthNames=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
++function row(t,accountName=''){return Movimentos.row({state:current.state},t,accountName);}
+ 
+-function periodControls(ledger){return `<div class="period-controls" aria-label="Mês e ano"><button type="button" id="period-prev" aria-label="Mês anterior">‹</button><label>Ano<select id="period-year">${V.years(ledger,summaryPeriod,today()).map(y=>`<option value="${y}" ${y===Number(summaryPeriod.slice(0,4))?'selected':''}>${y}</option>`).join('')}</select></label><label>Mês<select id="period-month">${monthNames.map((name,index)=>`<option value="${String(index+1).padStart(2,'0')}" ${index+1===Number(summaryPeriod.slice(5))?'selected':''}>${name}</option>`).join('')}</select></label><button type="button" id="period-next" aria-label="Mês seguinte">›</button></div>`;}
+-
+-function movementList(ledger){
+-
+- const result=V.movements(ledger,current.state,filters,visibleLimit),options=(values,value)=>values.map(([id,label])=>`<option value="${escape(id)}" ${id===value?'selected':''}>${escape(label)}</option>`).join('');
+-
+- const months=[...new Set([summaryPeriod,today().slice(0,7),...ledger.transactions.map(t=>t.date.slice(0,7))])].sort().reverse();
+-
+- return `<h1>Movimentos</h1><p class="sub">Consulta e gere os registos deste dispositivo.</p><button type="button" class="primary full" data-page="novo">+ Novo movimento</button><div class="movement-filters"><label>Pesquisar<input id="movement-search" type="search" placeholder="Descrição, categoria ou conta" maxlength="150" value="${escape(filters.query)}" autocomplete="off"></label><details id="movement-filters" ${filters.period||filters.accountId||filters.type||filters.status?'open':''}><summary>Filtrar movimentos</summary><div class="filter-grid"><label>Período<select id="filter-period">${options([['','Todos os meses'],...months.map(m=>[m,monthNames[Number(m.slice(5))-1]+' '+m.slice(0,4)])],filters.period)}</select></label><label>Conta<select id="filter-account">${options([['','Todas as contas'],...ledger.accounts.map(a=>[a.id,a.name])],filters.accountId)}</select></label><label>Tipo<select id="filter-type">${options([['','Todos'],['expense','Despesas'],['income','Rendimentos'],['transfer','Transferências']],filters.type)}</select></label><label>Estado<select id="filter-status">${options([['','Todos'],['confirmed','Confirmados'],['pending','Por confirmar'],['review','A rever']],filters.status)}</select></label></div></details><button type="button" id="clear-filters" class="text-button">Limpar pesquisa e filtros</button></div><p class="sub result-count" aria-live="polite">${result.total} ${result.total===1?'movimento encontrado':'movimentos encontrados'}</p><div id="movement-results">${result.rows.map(t=>row(t)).join('')||`<p class="empty">${ledger.transactions.length?'Não há movimentos com esta pesquisa. Altera ou limpa os filtros.':'Ainda não existem movimentos. Usa «Novo movimento» para começar.'}</p>`}</div>${result.rows.length<result.total?`<button id="show-more" type="button" class="full">Mostrar mais · ${result.rows.length} de ${result.total}</button>`:''}`;
+-
+-}
++function periodControls(ledger){return Resumo.periodControls(ledger,summaryPeriod,today());}
+ 
+ function simple(t){return Policy.editable(t);}
+ 
+ function today(){const date=new Date();return [date.getFullYear(),String(date.getMonth()+1).padStart(2,'0'),String(date.getDate()).padStart(2,'0')].join('-');}
+ 
+ function metadata(t={}){const [category,subcategory,categoryDetail,categorySubdetail]=D.categoryParts(t.category||'Outros');return {category,subcategory,categoryDetail,categorySubdetail,note:t.note||'',beneficiary:t.beneficiary||'',noteColor:t.noteColor||'',expenseNature:t.expenseNature||'variable',tags:P.copy(t.tags||[])};}
+ 
+ function fromMovement(t,ledger){return {id:t.id,type:t.type,amount:String(t.amount).replace('.',','),description:t.description,accountId:ledger.accounts.find(a=>a.name===t.account)?.id||'',targetId:ledger.accounts.find(a=>a.name===t.targetAccount)?.id||'',...metadata(t),date:t.date,command:t.type==='transfer'?'transfer.update':'movement.update'};}
+ 
+ function newDraft(ledger){return {id:P.id(),type:'expense',amount:'',description:'',accountId:ledger.accounts.filter(a=>!a.archived)[0]?.id||'',targetId:ledger.accounts.filter(a=>!a.archived)[1]?.id||'',...metadata(),date:today(),command:'new'};}
+@@ -227,29 +213,29 @@ async function render(){
+  document.getElementById('storage').textContent=`SQLite local · ${pending?pending+' por sincronizar':'dados guardados'}${state.blocked?' · revisão necessária':''}`;
+ 
+  const privacy=document.getElementById('privacy');privacy.textContent=state.hidden?'Mostrar valores':'Ocultar valores';privacy.setAttribute('aria-pressed',String(state.hidden));
+ 
+  const activeTab=Nav.tabFor(page);document.querySelectorAll('nav button').forEach(b=>{b.removeAttribute('aria-current');if(b.dataset.page===activeTab)b.setAttribute('aria-current','page');});
+ 
+  const total=ledger.accounts.reduce((n,a)=>n+P.Finance.cents(P.Finance.balanceAt(ledger,a)),0);
+ 
+  const stats=V.summary(ledger,summaryPeriod);
+ 
+- const ctx={ledger,state,today:today(),lastSync:readLastSync(),settings:{notifications:false,hour:9,theme:'auto',hideOnOpen:false},money,go:target=>run(async()=>{renderedPage=null;page=target;}),commit:(command,payload,options)=>client.enqueue(command,payload,options)};
++ const ctx={ledger,state,today:today(),lastSync:readLastSync(),settings:{notifications:false,hour:9,theme:'auto',hideOnOpen:false},money,go:target=>run(async()=>{renderedPage=null;page=target;}),commit:(command,payload,options)=>client.enqueue(command,payload,options),counts:{notices:null,shopping:ledger.casa?.shopping?ledger.casa.shopping.filter(s=>!s.done).length:null},pending,release:__RELEASE__,setFilter:(field,value)=>{if(busy)return;filters[field]=value;visibleLimit=40;run(async()=>{});}};
+ 
+  if(page==='mais')main.innerHTML=Mais.render(ctx);
+ 
+  if(Nav.isPlaceholder(page))main.innerHTML=Nav.placeholder(page);
+ 
+- if(page==='resumo')main.innerHTML=`<h1>Resumo</h1>${periodControls(ledger)}<section class="balance"><span>Saldo atual · todas as contas</span><strong>${money(stats.balanceCents)}</strong><small>${pending?'Inclui alterações locais por confirmar':(__RELEASE__?'Contas deste aparelho':'Contas de demonstração')}</small></section><h2>Este mês · ${monthNames[Number(summaryPeriod.slice(5))-1]} ${summaryPeriod.slice(0,4)}</h2><div class="pair"><div class="stat"><small>Rendimentos do mês</small><span class="amount">${money(stats.incomeCents)}</span></div><div class="stat"><small>Despesas do mês</small><span class="amount">${money(stats.expenseCents)}</span></div></div><p class="month-result">Resultado do mês <strong>${money(stats.resultCents)}</strong></p><button type="button" class="primary full" data-page="novo">+ Novo movimento</button><button type="button" class="full agenda-shortcut" data-page="agenda">Ver agenda do mês</button><div class="section-heading"><h2>Movimentos do mês</h2><button type="button" id="see-month" class="text-button">Ver todos</button></div>${V.movements(ledger,state,{period:summaryPeriod},3).rows.map(t=>row(t)).join('')||'<p class="empty">Ainda sem movimentos neste mês.</p>'}`;
++ if(page==='resumo')main.innerHTML=Resumo.render(ctx,{period:summaryPeriod});
+ 
+- if(page==='movimentos')main.innerHTML=movementList(ledger);
++ if(page==='movimentos'){main.innerHTML=Movimentos.render(ctx,{filters,visibleLimit});Movimentos.bind(ctx,main);}
+ 
+  if(page==='casa')main.innerHTML=HouseUI.render(ledger,houseTab,houseId,{escape,money,dateLabel:V.dateLabel});
+ 
+  if(page==='casa-form')main.innerHTML=houseForm(ledger);
+ 
+  if(page==='casa'&&state.houseDraft)main.insertAdjacentHTML('afterbegin','<section class="draft-banner"><strong>Tens um artigo Casa por concluir</strong><button id="resume-house">Retomar preenchimento</button><button id="ask-discard-house">Descartar rascunho</button></section>');
+ 
+  if(page==='descartar-casa')main.innerHTML='<h1>Descartar o preenchimento Casa?</h1><p>Os produtos e o stock guardados mantêm-se.</p><button data-page="casa">Manter rascunho</button><button id="confirm-discard-house">Descartar rascunho</button>';
+ 
+  if(page==='recuperacao')main.innerHTML=recoveryPage();
+@@ -430,21 +416,21 @@ document.addEventListener('click',event=>{
+  if(b.id==='confirm-archive'){run(async()=>{const a=P.view((await client.read()).state).ledger.accounts.find(a=>a.id===selectedAccount);if(!a)throw Error('Conta indisponível.');await client.enqueue('account.archive',{id:a.id,archived:!a.archived},{expectedEntityRevision:archiveRevision});page='conta';message.textContent=a.archived?'Conta reativada.':'Conta arquivada. O histórico foi conservado.';});return;}
+ 
+  if(b.dataset.open){run(async()=>{detailReturn=page==='conta'?'conta':'movimentos';selectedId=b.dataset.open;page='detalhe';});return;}
+ 
+  if(b.dataset.review){run(async()=>{conflictId=b.dataset.review;page='conflito';});return;}
+ 
+  if(b.dataset.account){run(async()=>{selectedAccount=b.dataset.account;visibleLimit=40;page='conta';});return;}
+ 
+  if(b.id==='period-prev'||b.id==='period-next'){run(async()=>{summaryPeriod=V.shiftMonth(summaryPeriod,b.id==='period-prev'?-1:1);});return;}
+ 
+- if(b.id==='see-month'){run(async()=>{filters={query:'',period:summaryPeriod,accountId:'',type:'',status:''};visibleLimit=40;page='movimentos';});return;}
++ if(b.id==='see-month'){run(async()=>{filters={query:'',period:'',accountId:'',type:'',status:''};visibleLimit=40;page='movimentos';});return;}
+ 
+  if(b.id==='clear-filters'){run(async()=>{filters={query:'',period:'',accountId:'',type:'',status:''};visibleLimit=40;});return;}
+ 
+  if(b.id==='show-more'){const y=window.scrollY;run(async()=>{visibleLimit+=40;}).then(()=>window.scrollTo(0,y));return;}
+ 
+  if(b.id==='edit-movement')run(async()=>openEdit(P.view(current.state).ledger.transactions.find(t=>t.id===selectedId)));
+ 
+  if(b.id==='ask-delete')run(async()=>{const view=P.view(current.state);deleteRevision=view.revisions['transaction:'+selectedId]||0;page='eliminar';});
+ 
+  if(b.id==='confirm-delete')run(async()=>{const t=P.view(current.state).ledger.transactions.find(t=>t.id===selectedId);await client.enqueue('movement.delete',{id:selectedId,description:t?.description||'Movimento',amountCents:P.Finance.cents(t?.amount)},{expectedEntityRevision:deleteRevision});page='movimentos';message.textContent='Eliminação guardada. Aguarda sincronização.';});
+diff --git a/android/app/src/screens/movimentos.cjs b/android/app/src/screens/movimentos.cjs
+new file mode 100644
+index 0000000..6879de5
+--- /dev/null
++++ b/android/app/src/screens/movimentos.cjs
+@@ -0,0 +1,74 @@
++'use strict';
++const kit = require('../ui/kit.cjs');
++const V = require('../view-model.cjs');
++
++const MONTHS = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
++const NO_FILTERS = { query: '', period: '', accountId: '', type: '', status: '' };
++const TYPES = [['', 'Todos'], ['expense', 'Despesas'], ['income', 'Rendimentos'], ['transfer', 'Transferências']];
++const STATUSES = [['', 'Todos'], ['confirmed', 'Confirmados'], ['pending', 'Por confirmar'], ['review', 'A rever']];
++
++// O estado dos ecrãs pode vir sem fila de envio (pré-visualização, testes).
++function stateOf(ctx) {
++  return { outbox: [], ...ctx.state };
++}
++
++function statusMap(ctx) {
++  return V.statuses(stateOf(ctx));
++}
++
++// Uma linha de movimento; `accountName` mostra o efeito numa conta (ecrã da conta).
++function row(ctx, t, accountName = '') {
++  const status = statusMap(ctx)[t.id], info = V.movementInfo(t, accountName);
++  const date = accountName && t.targetAccount === accountName ? t.targetDate || t.date : t.date;
++  return '<button type="button" class="row movement-row" data-open="' + kit.escape(t.id) + '"><div><strong>' + kit.escape(t.description) + '</strong>'
++    + '<small>' + kit.escape(V.dateLabel(date)) + ' · ' + kit.escape(info.route) + '</small>'
++    + '<small>' + kit.escape(t.category || '') + (status ? ' · ' + (status === 'pending' ? 'Por confirmar' : 'A rever') : '') + '</small></div>'
++    + '<span class="amount">' + info.symbol + kit.money(info.amountCents, ctx.state.hidden) + '</span></button>';
++}
++
++function options(values, value) {
++  return values.map(([id, label]) => '<option value="' + kit.escape(id) + '"' + (id === value ? ' selected' : '') + '>' + kit.escape(label) + '</option>').join('');
++}
++
++function pillOptions(list) {
++  return list.map(([value, label]) => ({ value, label }));
++}
++
++function render(ctx, view = {}) {
++  const filters = { ...NO_FILTERS, ...(view.filters || {}) };
++  const limit = view.visibleLimit == null ? 40 : view.visibleLimit;
++  const ledger = ctx.ledger;
++  const result = V.movements(ledger, stateOf(ctx), filters, limit);
++  const months = [...new Set([ctx.today.slice(0, 7), ...ledger.transactions.map(t => t.date.slice(0, 7))])].sort().reverse();
++  const open = filters.period || filters.accountId ? ' open' : '';
++  const found = result.total + ' ' + (result.total === 1 ? 'movimento encontrado' : 'movimentos encontrados');
++  const empty = '<p class="empty">' + (ledger.transactions.length
++    ? 'Não há movimentos com esta pesquisa. Altera ou limpa os filtros.'
++    : 'Ainda não existem movimentos. Usa «Novo movimento» para começar.') + '</p>';
++  return '<h1>Movimentos</h1><p class="sub">Consulta e gere os registos deste dispositivo.</p>'
++    + '<button type="button" class="primary full" data-page="novo">+ Novo movimento</button>'
++    + '<div class="movement-filters">'
++    + kit.search('movement-search', filters.query, 'Descrição, categoria ou conta')
++    + kit.pills('type', pillOptions(TYPES), filters.type)
++    + kit.pills('status', pillOptions(STATUSES), filters.status)
++    + '<details id="movement-filters"' + open + '><summary>Período e conta</summary><div class="filter-grid">'
++    + '<label>Período<select id="filter-period">' + options([['', 'Todos os meses'], ...months.map(m => [m, MONTHS[Number(m.slice(5)) - 1] + ' ' + m.slice(0, 4)])], filters.period) + '</select></label>'
++    + '<label>Conta<select id="filter-account">' + options([['', 'Todas as contas'], ...ledger.accounts.map(a => [a.id, a.name])], filters.accountId) + '</select></label>'
++    + '</div></details>'
++    + '<button type="button" id="clear-filters" class="text-button">Limpar pesquisa e filtros</button></div>'
++    + '<p class="sub result-count" aria-live="polite">' + found + '</p>'
++    + '<div id="movement-results">' + (result.rows.map(t => row(ctx, t)).join('') || empty) + '</div>'
++    + (result.rows.length < result.total ? '<button id="show-more" type="button" class="full">Mostrar mais · ' + result.rows.length + ' de ' + result.total + '</button>' : '');
++}
++
++// Os botões são recriados a cada render, por isso os ouvintes não se acumulam.
++function bind(ctx, root) {
++  root.querySelectorAll('[data-pill-type],[data-pill-status]').forEach(button => {
++    button.addEventListener('click', () => {
++      const field = button.hasAttribute('data-pill-type') ? 'type' : 'status';
++      ctx.setFilter(field, button.getAttribute('data-pill-' + field));
++    });
++  });
++}
++
++module.exports = { render, bind, row, stateOf, MONTHS };
+diff --git a/android/app/src/screens/movimentos.test.cjs b/android/app/src/screens/movimentos.test.cjs
+new file mode 100644
+index 0000000..f9b2878
+--- /dev/null
++++ b/android/app/src/screens/movimentos.test.cjs
+@@ -0,0 +1,45 @@
++'use strict';
++const test = require('node:test');
++const assert = require('node:assert/strict');
++const movimentos = require('./movimentos.cjs');
++const { ctx, demo, empty } = require('./fixtures.cjs');
++
++const NONE = { query: '', period: '', accountId: '', type: '', status: '' };
++
++test('Movimentos sem filtro lista todos os movimentos do demo', () => {
++  const html = movimentos.render(ctx(demo()), { filters: NONE, visibleLimit: 40 });
++  assert.equal((html.match(/movement-row/g) || []).length, 5);
++});
++
++test('Movimentos com filtro de tipo despesa só lista despesas', () => {
++  const html = movimentos.render(ctx(demo()), { filters: { ...NONE, type: 'expense' }, visibleLimit: 40 });
++  assert.equal((html.match(/movement-row/g) || []).length, 3);
++  assert.ok(html.includes('Café'));
++  assert.ok(!html.includes('Ordenado'));
++  assert.ok(!html.includes('Levantamento'));
++  assert.match(html, /data-pill-type="expense" aria-pressed="true"/);
++});
++
++test('Movimentos usa pills para tipo e estado em vez de select', () => {
++  const html = movimentos.render(ctx(demo()), { filters: NONE, visibleLimit: 40 });
++  assert.ok(html.includes('data-pill-type="income"'));
++  assert.ok(html.includes('data-pill-status="pending"'));
++  assert.ok(!html.includes('id="filter-type"'));
++  assert.ok(!html.includes('id="filter-status"'));
++});
++
++test('Movimentos vazio não atira e avisa', () => {
++  const html = movimentos.render(ctx(empty()), { filters: NONE, visibleLimit: 40 });
++  assert.ok(html.includes('Ainda não existem movimentos'));
++});
++
++test('Movimentos respeita o limite visível e oferece «Mostrar mais»', () => {
++  const html = movimentos.render(ctx(demo()), { filters: NONE, visibleLimit: 2 });
++  assert.equal((html.match(/movement-row/g) || []).length, 2);
++  assert.ok(html.includes('id="show-more"'));
++});
++
++test('Movimentos com valores ocultos não mostra montantes', () => {
++  const html = movimentos.render(ctx(demo(), { state: { hidden: true } }), { filters: NONE, visibleLimit: 40 });
++  assert.doesNotMatch(html, /\d,\d{2}\s?€/);
++});
+diff --git a/android/app/src/screens/resumo.cjs b/android/app/src/screens/resumo.cjs
+new file mode 100644
+index 0000000..9f27110
+--- /dev/null
++++ b/android/app/src/screens/resumo.cjs
+@@ -0,0 +1,46 @@
++'use strict';
++const kit = require('../ui/kit.cjs');
++const V = require('../view-model.cjs');
++const Agenda = require('../agenda.cjs');
++const { row, stateOf, MONTHS } = require('./movimentos.cjs');
++
++function periodControls(ledger, period, today) {
++  const years = V.years(ledger, period, today).map(y => '<option value="' + y + '"' + (y === Number(period.slice(0, 4)) ? ' selected' : '') + '>' + y + '</option>').join('');
++  const months = MONTHS.map((name, i) => '<option value="' + String(i + 1).padStart(2, '0') + '"' + (i + 1 === Number(period.slice(5)) ? ' selected' : '') + '>' + name + '</option>').join('');
++  return '<div class="period-controls" aria-label="Mês e ano"><button type="button" id="period-prev" aria-label="Mês anterior">‹</button>'
++    + '<label>Ano<select id="period-year">' + years + '</select></label><label>Mês<select id="period-month">' + months + '</select></label>'
++    + '<button type="button" id="period-next" aria-label="Mês seguinte">›</button></div>';
++}
++
++function count(value) {
++  return Number.isFinite(value) ? String(value) : '—';
++}
++
++function render(ctx, view = {}) {
++  const hidden = ctx.state.hidden;
++  const period = view.period || ctx.today.slice(0, 7);
++  const ledger = ctx.ledger;
++  const stats = V.summary(ledger, period);
++  const counts = ctx.counts || {};
++  let agendaCount = null;
++  try { agendaCount = Agenda.agenda(ledger, period, ctx.today, false).pendingCount; } catch { agendaCount = null; }
++  const recent = V.movements(ledger, stateOf(ctx), {}, 5).rows;
++  const note = ctx.pending ? 'Inclui alterações locais por confirmar' : (ctx.release ? 'Contas deste aparelho' : 'Contas de demonstração');
++  const tiles = [
++    kit.tile({ tone: counts.notices > 0 ? 'red' : 'amber', icon: 'bell', label: 'Avisos', value: count(counts.notices), detail: 'O que merece atenção', page: 'avisos' }),
++    kit.tile({ tone: 'blue', icon: 'calendar', label: 'Agenda', value: count(agendaCount), detail: 'Por tratar em ' + MONTHS[Number(period.slice(5)) - 1], page: 'agenda' }),
++    kit.tile({ tone: 'green', icon: 'cart', label: 'Lista de compras', value: count(counts.shopping), detail: 'Artigos por comprar', page: 'compras' }),
++  ].join('');
++  return '<h1>Resumo</h1><p class="sub">' + kit.escape(kit.syncStamp(ctx.lastSync, new Date())) + '</p>'
++    + periodControls(ledger, period, ctx.today)
++    + '<section class="balance"><span>Saldo total · todas as contas</span><strong>' + kit.money(stats.balanceCents, hidden) + '</strong><small>' + kit.escape(note) + '</small></section>'
++    + '<div class="pair"><div class="stat"><small>Gastos do mês</small><span class="amount">' + kit.money(stats.expenseCents, hidden) + '</span></div>'
++    + '<div class="stat"><small>Rendimentos do mês</small><span class="amount">' + kit.money(stats.incomeCents, hidden) + '</span></div></div>'
++    + '<p class="month-result">Resultado do mês <strong>' + kit.money(stats.resultCents, hidden) + '</strong></p>'
++    + '<div class="ch-tiles is-three">' + tiles + '</div>'
++    + '<button type="button" class="primary full" data-page="novo">+ Novo movimento</button>'
++    + '<div class="section-heading"><h2>Últimos movimentos</h2><button type="button" id="see-month" class="text-button">Ver todos</button></div>'
++    + (recent.map(t => row(ctx, t)).join('') || '<p class="empty">Ainda não há movimentos.</p>');
++}
++
++module.exports = { render, periodControls };
+diff --git a/android/app/src/screens/resumo.test.cjs b/android/app/src/screens/resumo.test.cjs
+new file mode 100644
+index 0000000..cc23ed6
+--- /dev/null
++++ b/android/app/src/screens/resumo.test.cjs
+@@ -0,0 +1,35 @@
++'use strict';
++const test = require('node:test');
++const assert = require('node:assert/strict');
++const resumo = require('./resumo.cjs');
++const { ctx, demo, empty } = require('./fixtures.cjs');
++
++test('Resumo com dados vazios não atira e explica que não há movimentos', () => {
++  const html = resumo.render(ctx(empty()));
++  assert.ok(html.includes('Ainda não há movimentos'));
++});
++
++test('Resumo com dados de demonstração tem 3 mosaicos e no máximo 5 movimentos', () => {
++  const html = resumo.render(ctx(demo()));
++  assert.equal((html.match(/class="ch-tile /g) || []).length, 3);
++  const rows = (html.match(/movement-row/g) || []).length;
++  assert.ok(rows >= 1 && rows <= 5, 'linhas: ' + rows);
++  const pages = [...html.matchAll(/class="ch-tile [^"]*" data-page="([^"]+)"/g)].map(m => m[1]);
++  assert.deepEqual(pages, ['avisos', 'agenda', 'compras']);
++});
++
++test('Resumo mostra «—» quando os contadores são nulos e o número quando existem', () => {
++  const nulls = resumo.render(ctx(demo(), { counts: { notices: null, shopping: null } }));
++  assert.equal((nulls.match(/ch-tile-value">—</g) || []).length, 2);
++  const withCounts = resumo.render(ctx(demo(), { counts: { notices: 4, shopping: 2 } }));
++  assert.ok(withCounts.includes('ch-tile-value">4<'));
++  assert.ok(withCounts.includes('ch-tile-value">2<'));
++  const missing = ctx(demo());
++  delete missing.counts;
++  assert.doesNotThrow(() => resumo.render(missing));
++});
++
++test('Resumo com valores ocultos não mostra montantes', () => {
++  const html = resumo.render(ctx(demo(), { state: { hidden: true } }));
++  assert.doesNotMatch(html, /\d,\d{2}\s?€/);
++});
+diff --git a/android/app/src/style.css b/android/app/src/style.css
+index d71779a..cac27a0 100644
+--- a/android/app/src/style.css
++++ b/android/app/src/style.css
+@@ -74,20 +74,21 @@ nav button[aria-current]{background:color-mix(in srgb,var(--blue) 14%,transparen
+ 
+ /* ---- Cartões e mosaicos (identidade do PC) ---- */
+ .card,.cs-card{border:1px solid var(--line);background:var(--paper);border-radius:var(--radius);padding:16px;margin:14px 0;min-width:0}
+ .cs-card>header{display:block;padding:0 0 10px}
+ .cs-card>header h2{margin:0;font-size:16px}
+ .cs-card>header p{margin:2px 0 0;font-size:13px;color:var(--muted)}
+ .cs-error{border-color:color-mix(in srgb,var(--red) 50%,var(--line))}
+ .cs-error p{margin:0;color:var(--red);font-size:14px}
+ 
+ .ch-tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:14px 0}
++.ch-tiles.is-three .ch-tile:last-child{grid-column:1/-1}
+ .ch-tile{display:grid;grid-template-columns:minmax(0,1fr);row-gap:2px;align-content:start;justify-items:start;text-align:left;width:100%;min-height:44px;padding:14px;border-radius:var(--radius);background:var(--paper);border:1px solid var(--line);min-width:0;color:var(--ink)}
+ .ch-tile-icon{margin-bottom:6px;display:grid;place-items:center;width:40px;height:40px;border-radius:12px;background:color-mix(in srgb,var(--blue) 14%,transparent);color:var(--blue-text)}
+ .ch-tile-icon svg{width:20px;height:20px}
+ .ch-tile-label{font-size:12px;color:var(--muted)}
+ .ch-tile-value{max-width:100%;font-size:19px;font-weight:700;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+ .ch-tile-detail{font-size:12px;color:var(--muted)}
+ .is-green .ch-tile-icon{background:color-mix(in srgb,var(--green) 15%,transparent);color:var(--green)}
+ .is-amber .ch-tile-icon{background:color-mix(in srgb,var(--orange) 16%,transparent);color:var(--orange)}
+ .is-red .ch-tile-icon{background:color-mix(in srgb,var(--red) 14%,transparent);color:var(--red)}
+ .is-purple .ch-tile-icon{background:color-mix(in srgb,var(--purple) 16%,transparent);color:var(--purple)}

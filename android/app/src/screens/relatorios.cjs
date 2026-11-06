@@ -96,7 +96,7 @@ function tiles(ctx, v, sel) {
     + kit.tile({ tone: 'green', icon: 'plus', label: 'Receitas', value: money(v.current.income) })
     + kit.tile({ tone: 'red', icon: 'cart', label: 'Despesas', value: money(v.current.expense) })
     + kit.tile({ tone: v.current.saving < 0 ? 'red' : 'blue', icon: 'account', label: 'Saldo', value: money(v.current.saving) })
-    + kit.tile({ tone: 'purple', icon: 'chart', label: 'Diferença', value: diff, detail: (p ? p + ' ' : '') + 'face a ' + label(shift(sel, -1)) })
+    + kit.tile({ tone: 'purple', icon: 'chart', label: 'Diferença do saldo', value: diff, detail: (p && !hidden ? p + ' ' : '') + 'face a ' + label(shift(sel, -1)) })
     + '</div>';
 }
 

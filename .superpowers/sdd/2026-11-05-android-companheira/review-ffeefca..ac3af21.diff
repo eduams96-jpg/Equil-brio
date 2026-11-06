@@ -1,0 +1,1313 @@
+# Review package: ffeefca..HEAD
+
+## Commits
+ac3af21 Android: Contas, Agenda, Casa e Ligação com o visual novo
+
+## Files changed
+ android/app/scripts/preview.cjs          |  10 ++-
+ android/app/src/house-ui.cjs             |  14 +--
+ android/app/src/main.js                  | 108 ++++++-----------------
+ android/app/src/screens/agenda.cjs       | 126 +++++++++++++++++++++++++++
+ android/app/src/screens/agenda.test.cjs  |  79 +++++++++++++++++
+ android/app/src/screens/casa.cjs         | 144 +++++++++++++++++++++++++++++++
+ android/app/src/screens/casa.test.cjs    |  79 +++++++++++++++++
+ android/app/src/screens/contas.cjs       |  92 ++++++++++++++++++++
+ android/app/src/screens/contas.test.cjs  |  70 +++++++++++++++
+ android/app/src/screens/fixtures.cjs     |   5 ++
+ android/app/src/screens/ligacao.cjs      | 121 ++++++++++++++++++++++++++
+ android/app/src/screens/ligacao.test.cjs |  70 +++++++++++++++
+ 12 files changed, 825 insertions(+), 93 deletions(-)
+
+## Diff
+diff --git a/android/app/scripts/preview.cjs b/android/app/scripts/preview.cjs
+index b16f789..6387c45 100644
+--- a/android/app/scripts/preview.cjs
++++ b/android/app/scripts/preview.cjs
+@@ -10,20 +10,26 @@ const fixtures = require('../src/screens/fixtures.cjs');
+ 
+ const root = path.resolve(__dirname, '..');
+ const out = path.join(root, 'www-preview');
+ 
+ const SCREENS = [
+   { name: 'moldura', module: null },
+   { name: 'resumo', module: '../src/screens/resumo.cjs' },
+   { name: 'movimentos', module: '../src/screens/movimentos.cjs' },
+   { name: 'casa', module: '../src/screens/casa.cjs' },
+   { name: 'mais', module: '../src/screens/mais.cjs' },
++  { name: 'contas', module: '../src/screens/contas.cjs' },
++  { name: 'agenda', module: '../src/screens/agenda.cjs' },
++  { name: 'ligacao', module: '../src/screens/ligacao.cjs', page: 'sync' },
++  { name: 'casa-stock', module: '../src/screens/casa.cjs', page: 'casa', view: { tab: 'stock' } },
++  { name: 'casa-compras', module: '../src/screens/casa.cjs', page: 'casa', view: { tab: 'compras' } },
++  { name: 'ligacao-ligada', module: '../src/screens/ligacao.cjs', page: 'sync', view: { connection: {} } },
+ ];
+ const DATA = [['demo', fixtures.demo], ['vazio', fixtures.empty]];
+ const THEMES = [['claro', 'light'], ['escuro', 'dark']];
+ const CSP = "default-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'";
+ 
+ function frame(title, theme, active, body) {
+   return '<!doctype html>\n<html lang="pt-PT" data-theme="' + theme + '"><head><meta charset="utf-8">'
+     + '<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">'
+     + '<meta http-equiv="Content-Security-Policy" content="' + CSP + '">'
+     + '<title>' + kit.escape(title) + '</title><link rel="stylesheet" href="style.css"></head><body>'
+@@ -59,22 +65,22 @@ function build() {
+     let render = frameBody;
+     if (screen.module) {
+       const file = path.resolve(__dirname, screen.module);
+       if (!fs.existsSync(file)) continue;
+       render = require(file).render;
+     }
+     for (const [dataName, make] of DATA) {
+       for (const [themeName, theme] of THEMES) {
+         const file = screen.name + '-' + dataName + '-' + themeName + '.html';
+         let body;
+-        try { body = render(fixtures.ctx(make())); } catch (error) { body = kit.errorCard(error.message); }
+-        fs.writeFileSync(path.join(out, file), frame('Equilíbrio · ' + screen.name, theme, screen.name, body));
++        try { body = render(fixtures.ctx(make()), screen.view); } catch (error) { body = kit.errorCard(error.message); }
++        fs.writeFileSync(path.join(out, file), frame('Equilíbrio · ' + screen.name, theme, screen.page || screen.name, body));
+         links.push(file);
+       }
+     }
+   }
+   const items = links.map(f => '<li><a href="' + f + '">' + f.replace('.html', '') + '</a></li>').join('');
+   fs.writeFileSync(path.join(out, 'index.html'), '<!doctype html>\n<html lang="pt-PT"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pré-visualização</title><link rel="stylesheet" href="style.css"></head><body><div id="app"><main><h1>Pré-visualização</h1><ul>' + items + '</ul></main></div></body></html>\n');
+   return links;
+ }
+ 
+ if (require.main === module) console.log(build().length + ' páginas em ' + out);
+diff --git a/android/app/src/house-ui.cjs b/android/app/src/house-ui.cjs
+index f94bfbd..80831e3 100644
+--- a/android/app/src/house-ui.cjs
++++ b/android/app/src/house-ui.cjs
+@@ -1,13 +1,5 @@
+ 'use strict';
+-const H=require('../../shared/house.cjs');
+-function render(ledger,tab,id,{escape:e,money:m,dateLabel:date}){const c=H.Casa.state(ledger),p=c.catalog.find(p=>p.id===id),lot=c.stock.find(l=>l.id===id);const productCard=p=>`<button class="row movement-row" data-product="${e(p.id)}"><div><strong>${e(p.name)}</strong><small>${e(p.category||'Sem categoria')} · ${H.Life.available(c,p.id)} ${e(p.unit)}</small></div><span>›</span></button>`;
+- if(tab==='produto')return `<button class="back" data-house-tab="produtos">‹ Produtos</button><h1>${e(p?.name||'Produto indisponível')}</h1>${p?`<p>${[p.brand,p.category,p.unit].filter(Boolean).map(e).join(' · ')}</p>${p.url?`<a class="product-link" href="${e(p.url)}" target="_blank" rel="noopener noreferrer">Abrir link do produto ↗</a>`:''}<button class="full" data-edit-product="${e(p.id)}">Editar produto e preços</button><h2>Preços por supermercado</h2>${Object.entries(p.offers||{}).map(([storeId,offer])=>({storeId,...offer,per:offer.price/offer.packageQty})).sort((a,b)=>(a.price>0?0:1)-(b.price>0?0:1)||a.per-b.per).map(o=>`<section class="review-card"><strong>${e(c.stores.find(s=>s.id===o.storeId)?.name||'Supermercado')}</strong><p>${o.packageQty} ${e(p.unit)} · ${o.price>0?m(Math.round(o.price*100)):'Falta colocar preço'}</p><small>${o.price>0?priceLabel(p.unit,o,m,e):'Sem comparação por unidade'} · ${e(date(o.date))}</small>${o.url?`<a class="product-link" href="${e(o.url)}" target="_blank" rel="noopener noreferrer">Abrir neste supermercado ↗</a>`:''}</section>`).join('')||'<p class="empty">Sem preços registados. Adiciona-os ao editar o produto.</p>'}<h2>Lotes e destinos</h2><button class="primary full" data-new-lot="${e(p.id)}">+ Adicionar stock</button>${c.stock.filter(l=>l.catalogId===p.id).map(l=>`<button class="row movement-row" data-lot="${e(l.id)}"><div><strong>${e(l.location||'Sem local definido')}</strong><small>${l.expiry?e(date(l.expiry)):'Sem validade indicada'}</small></div><span>${H.Life.remaining(c,l)} ${e(l.unit)}</span></button>`).join('')}`:''}`;
+- if(tab==='lote'){const product=c.catalog.find(p=>p.id===lot?.catalogId);return `<button class="back" data-product="${e(product?.id||'')}">‹ Produto</button><h1>${e(product?.name||'Lote indisponível')}</h1>${lot?`<section class="review-card"><p class="review-value">${H.Life.remaining(c,lot)} ${e(lot.unit)}</p><p>${e(lot.location||'Sem local definido')}</p><p>${lot.expiry?'Validade: '+e(date(lot.expiry)):'Sem validade indicada'}</p></section><div class="review-actions"><button data-edit-lot="${e(lot.id)}">Alterar destino e validade</button><button data-consume-lot="${e(lot.id)}" class="primary">Consumir / desperdício</button></div><h2>Histórico do lote</h2>${c.stockEvents.filter(x=>x.lotId===lot.id).map(x=>`<div class="info-line"><span>${e(date(x.date))} · ${e(x.type==='consume'?'Consumo':x.type==='waste'?'Desperdício':'Acerto')}<small>${e(x.note||'')}</small></span><strong>${x.delta} ${e(lot.unit)}</strong></div>`).join('')||'<p class="empty">Ainda sem consumo.</p>'}`:''}`;}
+- let body='';if(tab==='produtos')body='<button id="new-product" class="primary full">+ Criar produto</button>'+c.catalog.filter(p=>!p.archived).map(productCard).join('');
+- if(tab==='despensa'){const places=[...new Set(c.stock.map(l=>l.location||'Sem local definido'))].sort();body=places.map(place=>`<h2>${e(place)}</h2>${c.stock.filter(l=>(l.location||'Sem local definido')===place&&H.Life.remaining(c,l)>0).map(l=>`<button class="row movement-row" data-lot="${e(l.id)}"><div><strong>${e(c.catalog.find(p=>p.id===l.catalogId)?.name||'Produto')}</strong><small>${l.expiry?'Validade: '+e(date(l.expiry)):'Sem validade indicada'}</small></div><span>${H.Life.remaining(c,l)} ${e(l.unit)}</span></button>`).join('')}`).join('');}
+- if(tab==='compras')body=c.purchases.map(p=>`<section class="review-card"><strong>${e(p.store)}</strong><small>${e(date(p.date))}</small><p>${m(Math.round(p.total*100))}</p>${p.items.map(i=>`<div class="info-line"><span>${e(i.name)}</span><span>${i.qty??''} ${e(i.unit||'')}</span></div>`).join('')}</section>`).join('');
+- if(tab==='lista')body=c.shopping.map(s=>`<button class="row movement-row" data-shopping="${e(s.id)}"><div><strong>${s.done?'✓ ':''}${e(s.name)}</strong><small>${e(s.qty||'')}</small></div><span>${s.done?'Concluído':'Por comprar'}</span></button>`).join('');
+- return `<h1>Casa</h1><p class="sub">Compras e stock · dados guardados neste dispositivo</p><div class="house-tabs">${[['produtos','Produtos'],['despensa','Despensa'],['lista','Lista'],['compras','Compras']].map(([t,label])=>`<button data-house-tab="${t}" aria-pressed="${t===tab}">${label}</button>`).join('')}</div>${body||'<p class="empty">Ainda sem registos nesta vista. Começa por criar um produto.</p>'}`;}
++const kit=require('./ui/kit.cjs');
+ function priceReference(unit,offer){const normal={g:[1000,'kg'],ml:[1000,'L'],cl:[100,'L']}[unit]||[1,unit];return {per:offer.per*normal[0],unit:normal[1]};}
+-function priceLabel(unit,offer,m,e){const q=priceReference(unit,offer),text=m(Math.round(q.per*100));return (q.per>0&&q.per<.01&&!text.includes('••••')?'&lt; '+m(1):text)+'/'+e(q.unit);}
+-module.exports={render,priceReference};
++function priceLabel(unit,offer,hidden){const q=priceReference(unit,offer),text=kit.money(Math.round(q.per*100),hidden);return (q.per>0&&q.per<.01&&!hidden?'&lt; '+kit.money(1):text)+'/'+kit.escape(q.unit);}
++module.exports={priceReference,priceLabel};
+diff --git a/android/app/src/main.js b/android/app/src/main.js
+index c45ae36..f528ecd 100644
+--- a/android/app/src/main.js
++++ b/android/app/src/main.js
+@@ -3,21 +3,21 @@ let accountDraftRecord=null;
+ import Recovery from '../../shared/recovery.cjs';
+ 
+ let recoveryFile=null,recoveryCandidate=null,recoveryExpected=null,recoveryPoints=[],portableMode=false;
+ 
+ const backupFiles=registerPlugin('BackupFiles');
+ 
+ import House from '../../shared/house.cjs';
+ 
+ import HouseForm from '../../shared/house-form.cjs';
+ 
+-import HouseUI from './house-ui.cjs';
++import Casa from './screens/casa.cjs';
+ 
+ let houseTab='produtos',houseId=null,hf=null,hr=null,houseDiscard=null;
+ 
+ import Consult from './financial-consultation.cjs';
+ 
+ import Forms from '../../shared/form-drafts.cjs';
+ 
+ let pf=null,pr=null,paymentDiscard=null;
+ 
+ import {registerPlugin,Capacitor,CapacitorHttp} from '@capacitor/core';
+@@ -29,34 +29,38 @@ import C from '../../shared/client.cjs';
+ import A from '../../shared/association.cjs';
+ 
+ import V from './view-model.cjs';
+ 
+ import D from '../../shared/drafts.cjs';
+ 
+ import Accounts from '../../shared/accounts.cjs';
+ 
+ import Policy from '../../shared/movement-policy.cjs';
+ 
+-import Agenda from './agenda.cjs';
++import Agenda from './screens/agenda.cjs';
+ 
+ import K from '../../shared/commitment-drafts.cjs';
+ 
+ import Commitments from '../../shared/commitments.cjs';
+ 
+ import Nav from './nav.cjs';
+ 
+ import Mais from './screens/mais.cjs';
+ 
+ import Resumo from './screens/resumo.cjs';
+ 
+ import Movimentos from './screens/movimentos.cjs';
+ 
++import Contas from './screens/contas.cjs';
++
++import Ligacao from './screens/ligacao.cjs';
++
+ const LAST_SYNC_KEY='equilibrio.mobile.lastSync';
+ 
+ function readLastSync(){try{return localStorage.getItem(LAST_SYNC_KEY);}catch{return null;}}
+ 
+ function markSynced(){try{localStorage.setItem(LAST_SYNC_KEY,new Date().toISOString());}catch{}}
+ 
+ let cf=null,cr=null,cfBaseline=null,commitmentId=null,commitDiscard=null,commitWrite=0;
+ 
+ let showCompletedAgenda=false;
+ 
+@@ -99,22 +103,20 @@ async function rawRequest(url,method,path,data,credential){
+ }
+ 
+ async function request(method,path,data){if(!connection)throw Error('Sem PC associado.');return rawRequest(connection.url,method,path,data,connection.credential);}
+ 
+ const client=new C.Client(adapter,request,{negotiate:true});
+ 
+ const association=new A.Association({read:()=>adapter.read(),replace:(s,r)=>adapter.replace(s,r),restoreWithCheckpoint:(state,revision)=>store.compareAndSet({state,expectedRevision:revision,preservePrevious:true}),importWithArchive:(state,archiveSource,revision)=>store.compareAndSet({state,archiveSource,expectedRevision:revision,preservePrevious:true})},vault,rawRequest);
+ 
+ function money(cents){return current.state.hidden?'•••• €':new Intl.NumberFormat('pt-PT',{style:'currency',currency:'EUR'}).format(cents/100);}
+ 
+-function row(t,accountName=''){return Movimentos.row({state:current.state},t,accountName);}
+-
+ function periodControls(ledger){return Resumo.periodControls(ledger,summaryPeriod,today());}
+ 
+ function simple(t){return Policy.editable(t);}
+ 
+ function today(){const date=new Date();return [date.getFullYear(),String(date.getMonth()+1).padStart(2,'0'),String(date.getDate()).padStart(2,'0')].join('-');}
+ 
+ function metadata(t={}){const [category,subcategory,categoryDetail,categorySubdetail]=D.categoryParts(t.category||'Outros');return {category,subcategory,categoryDetail,categorySubdetail,note:t.note||'',beneficiary:t.beneficiary||'',noteColor:t.noteColor||'',expenseNature:t.expenseNature||'variable',tags:P.copy(t.tags||[])};}
+ 
+ function fromMovement(t,ledger){return {id:t.id,type:t.type,amount:String(t.amount).replace('.',','),description:t.description,accountId:ledger.accounts.find(a=>a.name===t.account)?.id||'',targetId:ledger.accounts.find(a=>a.name===t.targetAccount)?.id||'',...metadata(t),date:t.date,command:t.type==='transfer'?'transfer.update':'movement.update'};}
+ 
+@@ -129,60 +131,36 @@ function recovery(){const record=current.state.movementDraft;if(!record)return '
+ 
+ 
+ function movementForm(ledger){
+ 
+  if(!draft)draft=newDraft(ledger);if(!draftRecord)draftRecord=D.create(current.state,draft,formRevision,'',resolvingId);
+ 
+  return Movimentos.form({ledger,state:current.state},{draft,draftRecord,resolvingId});
+ 
+ }
+ 
+-function conflictPanel(state){
+-
+- const entry=state.outbox.find(r=>r.operation.operationId===conflictId);if(!entry||entry.resolution)return '<h1>Proposta já revista</h1><button data-page="sync">Voltar à ligação</button>';
+-
+- const proposed=entry.operation.payload,confirmed=state.confirmed.ledger.transactions.find(t=>t.id===proposed.id);
+-
+- const canRevise=entry.operation.command.endsWith('.add')||!!confirmed;
+-
+- return `<button class="back" data-page="sync">‹ Voltar</button><h1>Rever diferença</h1><p class="sub">Escolhe explicitamente o que queres manter. As propostas anteriores ficam no histórico.</p><div class="comparison"><section class="review-card"><h2>Versão confirmada no PC</h2>${confirmed?`<strong>${escape(confirmed.description)}</strong><p class="review-value">${money(P.Finance.cents(confirmed.amount))}</p><small>${escape(confirmed.date)} · ${escape(confirmed.account)}${confirmed.targetAccount?' → '+escape(confirmed.targetAccount):''}</small>`:'<p>O movimento não existe no estado confirmado.</p>'}</section><section class="review-card"><h2>A tua proposta</h2><strong>${escape(proposed.description||'Movimento')}</strong><p class="review-value">${entry.operation.command==='movement.delete'?'Eliminar movimento':money(proposed.amountCents)}</p><small>${escape(proposed.date||'')}</small></section></div><p class="sub">${escape(entry.receipt?.message||'A alteração precisa de revisão.')}</p><div class="review-actions"><button class="primary" id="keep-server">Manter versão do PC</button>${canRevise?`<button id="revise-local">${entry.operation.command==='movement.delete'?'Repetir eliminação':'Rever minha proposta'}</button>`:'<p class="sub">Uma edição antiga não pode recriar um movimento eliminado.</p>'}</div>`;
+-
+-}
+-
+-function accountCard(a,state,ledger){const confirmed=state.confirmed.ledger.accounts.find(c=>c.id===a.id);return `<button type="button" class="review-card account-card" data-account="${escape(a.id)}"><div><h2>${escape(a.name)}</h2><small>${escape(a.type)}${a.archived?' · Arquivada':''}</small></div><div><strong class="review-value" data-balance="${escape(a.id)}">${money(P.Finance.cents(P.Finance.balanceAt(ledger,a)))}</strong><small>${confirmed?'Confirmado: '+money(P.Finance.cents(P.Finance.balanceAt(state.confirmed.ledger,confirmed))):'Criada neste dispositivo'}</small></div></button>`;}
+-
+ function preserveAccount(){const form=document.getElementById('account-form');if(page!=='editar-conta'||!form||!accountForm)return;const values=new FormData(form);accountForm.name=String(values.get('name')||'');accountForm.type=String(values.get('type')||'');if(accountForm.command==='account.add')accountForm.opening=String(values.get('opening')||'');}
+ 
+ function accountFingerprint(){preserveAccount();return JSON.stringify(accountForm);}
+ 
+-function accountEditor(){const a=accountForm;if(!a)return '<h1>Conta indisponível</h1><button data-page="contas">Voltar</button>';return `<button class="back" data-page="contas">‹ Contas</button><h1>${a.command==='account.add'?'Nova conta':'Editar conta'}</h1><p class="sub">${a.command==='account.add'?'Define o saldo anterior aos movimentos que vais registar.':'Mudar o nome mantém os movimentos e os saldos desta conta.'}</p><form id="account-form"><label>Nome<input name="name" value="${escape(a.name)}" maxlength="80" required autocomplete="off"></label><label>Tipo<select name="type">${[...new Set([...Accounts.types,a.type])].map(t=>`<option ${t===a.type?'selected':''}>${escape(t)}</option>`).join('')}</select></label>${a.command==='account.add'?`<label>Saldo inicial (€)<input name="opening" value="${escape(a.opening)}" inputmode="decimal" required></label>`:'<p class="note">O saldo inicial é conservado. Esta edição não altera valores.</p>'}<p class="sub">Só fica guardado depois de tocares em Guardar conta.</p><button class="primary full" id="save-account" type="button">Guardar conta</button></form>`;}
+-
+ async function saveAccount(){const form=document.getElementById('account-form');if(!form||!form.reportValidity())return;preserveAccount();await run(async()=>{const a=accountForm,p={id:a.id,name:a.name,type:a.type};if(a.command==='account.add')p.openingCents=Accounts.openingCents(a.opening);const record=await persistAccount();await client.enqueue(a.command,p,{expectedEntityRevision:accountRevision,accountDraft:{token:record.token,sequence:record.sequence}});accountDraftRecord=null;selectedAccount=a.id;accountForm=null;page='conta';message.textContent='Conta guardada neste dispositivo.';});}
+ 
+-function agendaPage(ledger){const result=Agenda.agenda(ledger,summaryPeriod,today(),showCompletedAgenda);return `<button class="back" data-page="resumo">‹ Resumo</button><h1>Agenda</h1><p class="sub">Compromissos, recorrências e subscrições deste mês.</p>${periodControls(ledger)}<button type="button" id="new-commitment" class="primary full">+ Novo compromisso</button>${commitBanner()}<div class="pair"><section class="stat"><small>A pagar</small><strong data-agenda-pay>${money(result.payCents)}</strong></section><section class="stat"><small>A receber</small><strong data-agenda-receive>${money(result.receiveCents)}</strong></section></div><p class="sub">${result.pendingCount} por concluir${result.estimated?' · Inclui estimativas':''}. Valores previstos; o saldo só muda com movimentos registados.</p><label class="agenda-check"><input id="agenda-completed" type="checkbox" ${showCompletedAgenda?'checked':''}> Mostrar recorrências e subscrições concluídas</label><div class="agenda-list">${result.rows.map(t=>`<article class="review-card agenda-entry"><div><strong>${escape(t.description||'Compromisso')}</strong><small>${escape(V.dateLabel(t.date))} · ${escape(t.agendaSource)}</small><small>${escape(t.account||'Conta não indicada')}${t.targetAccount?' → '+escape(t.targetAccount):''}</small><small class="agenda-state">${escape(t.status)}${t.estimated?' · Estimativa':''}</small>${t.occurrenceNote?`<p class="sub">${escape(t.occurrenceNote)}</p>`:''}${t.agendaSource==='Compromisso'?`<button type="button" class="commit-open" data-commitment="${escape(t.id)}">Abrir compromisso</button>`:''}</div><span class="amount">${t.type==='transfer'?'↔ ':t.type==='expense'?'−':'+'}${money(t.amountCents)}</span></article>`).join('')||'<p class="empty">Sem compromissos previstos neste mês.</p>'}</div>`;}
+-
+-function commitBanner(){return current.state.commitmentDraft?'<section class="draft-banner"><strong>Tens um compromisso por concluir</strong><p>O preenchimento está guardado neste dispositivo.</p><button type="button" id="resume-commitment">Retomar compromisso</button><button type="button" id="ask-discard-commitment">Descartar rascunho</button></section>':'';}
+-
+ function preserveCommit(){const form=document.getElementById('commitment-form');if(page!=='novo-compromisso'||!form||!cf)return;const values=new FormData(form);for(const k of ['type','amount','description','accountId','date','category','reason'])cf[k]=String(values.get(k)??'');}
+ 
+ async function persistCommit(){preserveCommit();if(!cf||!cr)return null;const saved=await commitmentDrafts.save({...cr,form:P.copy(cf)});if(cr?.token===saved.token)cr=saved;return saved;}
+ 
+ function autoCommit(){if(page!=='novo-compromisso'||busy||!cr)return;preserveCommit();if(!cr.sequence&&JSON.stringify(cf)===cfBaseline)return;const number=++commitWrite,token=cr.token;const status=document.getElementById('commitment-status');if(status)status.textContent='A guardar rascunho…';persistCommit().then(()=>{if(cr?.token===token&&number===commitWrite&&document.getElementById('commitment-status'))document.getElementById('commitment-status').textContent='Rascunho guardado neste dispositivo.';}).catch(e=>{message.textContent=e.message;if(document.getElementById('commitment-status'))document.getElementById('commitment-status').textContent='Não foi possível guardar. Mantém o formulário aberto.';});}
+ 
+ async function resumeCommit(){await adapter.idle();const state=(await adapter.read()).state,record=state.commitmentDraft;K.valid(record);cf=P.copy(record.form);cr=P.copy(record);cfBaseline=JSON.stringify(cf);page='novo-compromisso';}
+ 
+ async function openCommitForm(id=null,action='edit'){await adapter.idle();const state=(await adapter.read()).state;if(state.commitmentDraft){await resumeCommit();return;}const v=P.view(state),old=id?v.ledger.pendingPayments.find(t=>t.id===id):null;if(id&&!Commitments.editable(v.ledger,old))throw Error('Este compromisso exige gestão especializada.');cf=old?{id:old.id,command:'commitment.update',action,type:old.type,amount:String(old.amount).replace('.',','),description:old.description,accountId:v.ledger.accounts.find(a=>a.name===old.account)?.id||'',date:old.date,category:old.category||'Outros',reason:'',changedOn:today()}:{id:P.id(),command:'commitment.add',action:'new',type:'expense',amount:'',description:'',accountId:v.ledger.accounts.find(a=>!a.archived)?.id||'',date:today(),category:'Outros',reason:'',changedOn:today()};cr=K.create(state,cf,v.revisions['commitment:'+cf.id]||0);cfBaseline=JSON.stringify(cf);page='novo-compromisso';}
+ 
+-function commitForm(ledger){if(!cf||!cr)return '<p>Compromisso indisponível.</p>';const accounts=ledger.accounts.filter(a=>!a.archived),available=accounts.some(a=>a.id===cf.accountId),reason=K.reason(current.state,cr);return `<button class="back" data-page="agenda">‹ Agenda</button><h1>${cf.command==='commitment.add'?'Novo compromisso':cf.action==='reschedule'?'Reagendar compromisso':'Editar compromisso'}</h1><p class="sub">Guardar atualiza a previsão. O saldo mantém-se até registares o pagamento ou recebimento.</p><form id="commitment-form"><label>Tipo<select name="type"><option value="expense" ${cf.type==='expense'?'selected':''}>Despesa</option><option value="income" ${cf.type==='income'?'selected':''}>Receita</option></select></label><label>Descrição<input name="description" maxlength="120" required value="${escape(cf.description)}"></label><label>Valor (€)<input name="amount" inputmode="decimal" required value="${escape(cf.amount)}"></label><label>Conta<select name="accountId">${!available?`<option value="${escape(cf.accountId)}" selected>Conta indisponível · escolhe outra</option>`:''}${accounts.map(a=>`<option value="${escape(a.id)}" ${a.id===cf.accountId?'selected':''}>${escape(a.name)}</option>`).join('')}</select></label><label>Data prevista<input name="date" type="date" required value="${escape(cf.date)}"></label><label>Categoria<input name="category" maxlength="120" required value="${escape(cf.category)}" placeholder="Ex.: Casa / Renda"></label>${cf.command==='commitment.update'?`<label>Motivo do reagendamento (se mudares a data)<textarea name="reason" maxlength="500" rows="3">${escape(cf.reason)}</textarea></label>`:'<input name="reason" type="hidden" value="">'}<p id="commitment-status" role="status">${cr.sequence?'Rascunho guardado neste dispositivo.':'O preenchimento é guardado como rascunho.'}</p>${reason?`<p class="note">${escape(reason)}</p>`:''}<button type="button" class="primary full" id="save-commitment">Guardar compromisso</button><button id="ask-discard-commitment" class="full" type="button">Descartar rascunho</button></form>`;}
+-
+-function originalCommitmentDetail(ledger){const row=ledger.pendingPayments.find(t=>t.id===commitmentId);if(!row)return '<button data-page="agenda">‹ Agenda</button><h1>Compromisso indisponível</h1>';return `<button class="back" data-page="agenda">‹ Agenda</button><h1>${escape(row.description)}</h1><section class="review-card"><p class="review-value">${money(P.Finance.cents(row.amount))}</p><p>${escape(V.dateLabel(row.date))} · ${escape(row.account||'Conta não indicada')}</p><small>${escape(row.category||'Outros')}</small></section>${Commitments.editable(ledger,row)?'<div class="review-actions"><button id="edit-commitment" class="primary">Editar compromisso</button><button id="reschedule-commitment">Reagendar</button></div>':'<p class="note">Este compromisso exige gestão especializada.</p>'}${row.reschedules?.length?`<h2>Histórico de reagendamento</h2><ul class="commit-history">${row.reschedules.map(r=>`<li>${escape(V.dateLabel(r.from))} → ${escape(V.dateLabel(r.to))}<p>${escape(r.reason)}</p></li>`).join('')}</ul>`:''}`;}
+-
+ async function saveCommit(){const form=document.getElementById('commitment-form');if(!form||!form.reportValidity())return;preserveCommit();await run(async()=>{await adapter.idle();cf.changedOn=today();const record=await persistCommit(),p=K.payload(cf);await client.enqueue(cf.command,p,{expectedEntityRevision:cr.expectedRevision,commitmentDraft:{token:record.token,sequence:record.sequence}});commitmentId=p.id;summaryPeriod=p.date.slice(0,7);cf=null;cr=null;cfBaseline=null;page='compromisso';message.textContent='Compromisso guardado. O saldo não foi alterado.';});}
+ 
+ async function leaveCommit(next){await adapter.idle();const s=(await adapter.read()).state;if(cf&&cr&&!K.reason(s,cr)&&(cr.sequence||JSON.stringify(cf)!==cfBaseline))await persistCommit();cf=null;cr=null;cfBaseline=null;page=next==='novo'&&current.state.movementDraft?'rascunho':next;renderedPage=null;}
+ 
+ async function render(){
+ 
+  preserveHouse();
+ 
+  preservePayment();
+ 
+@@ -207,111 +185,89 @@ async function render(){
+  const ctx={ledger,state,today:today(),lastSync:readLastSync(),settings:{notifications:false,hour:9,theme:'auto',hideOnOpen:false},money,go:target=>run(async()=>{renderedPage=null;page=target;}),commit:(command,payload,options)=>client.enqueue(command,payload,options),counts:{notices:null,shopping:ledger.casa?.shopping?ledger.casa.shopping.filter(s=>!s.done).length:null},pending,release:__RELEASE__,setFilter:(field,value)=>{if(busy)return;filters[field]=value;visibleLimit=40;run(async()=>{});}};
+ 
+  if(page==='mais')main.innerHTML=Mais.render(ctx);
+ 
+  if(Nav.isPlaceholder(page))main.innerHTML=Nav.placeholder(page);
+ 
+  if(page==='resumo')main.innerHTML=Resumo.render(ctx,{period:summaryPeriod});
+ 
+  if(page==='movimentos'){main.innerHTML=Movimentos.render(ctx,{filters,visibleLimit});Movimentos.bind(ctx,main);}
+ 
+- if(page==='casa')main.innerHTML=HouseUI.render(ledger,houseTab,houseId,{escape,money,dateLabel:V.dateLabel});
+-
+- if(page==='casa-form')main.innerHTML=houseForm(ledger);
++ if(page==='casa')main.innerHTML=Casa.render(ctx,{tab:houseTab,id:houseId});
+ 
+- if(page==='casa'&&state.houseDraft)main.insertAdjacentHTML('afterbegin','<section class="draft-banner"><strong>Tens um artigo Casa por concluir</strong><button id="resume-house">Retomar preenchimento</button><button id="ask-discard-house">Descartar rascunho</button></section>');
++ if(page==='casa-form')main.innerHTML=Casa.form(ctx,{form:hf,record:hr});
+ 
+- if(page==='descartar-casa')main.innerHTML='<h1>Descartar o preenchimento Casa?</h1><p>Os produtos e o stock guardados mantêm-se.</p><button data-page="casa">Manter rascunho</button><button id="confirm-discard-house">Descartar rascunho</button>';
++ if(page==='descartar-casa')main.innerHTML=Casa.discard();
+ 
+- if(page==='recuperacao')main.innerHTML=recoveryPage();
++ if(page==='recuperacao')main.innerHTML=Ligacao.recovery(ctx,{points:recoveryPoints,file:recoveryFile});
+ 
+- if(page==='confirmar-recuperacao')main.innerHTML='<button class="back" data-page="recuperacao">‹ Cancelar</button><h1>Rever recuperação</h1><p>O restauro substitui os dados locais e guarda o estado anterior. Só é permitido diretamente na mesma associação.</p><button id="confirm-recovery" class="primary full">Restaurar nesta associação</button><h2>Outro aparelho</h2><p>Num aparelho vazio, podes importar os dados para uso offline. Os registos antigos não são reenviados ao PC. A origem completa fica arquivada e os rascunhos que dependiam da associação anterior exigem revisão.</p><button id="portable-import" class="full">Preparar passagem para este aparelho</button><label>Palavra-passe para exportar a origem<input id="backup-password" type="password" minlength="10" maxlength="512" autocomplete="off"></label><button id="export-recovery-candidate">Guardar esta origem encriptada</button>';
++ if(page==='confirmar-recuperacao')main.innerHTML=Ligacao.confirmRecovery();
+ 
+- if(page==='confirmar-desligar')main.innerHTML='<button class="back" data-page="sync">‹ Cancelar</button><h1>Preparar nova ligação?</h1><p>Os dados atuais ficam disponíveis offline. O histórico original fica num ponto anterior e as operações antigas não serão reenviadas. A ligação antiga deixa de ser usada neste aparelho; revoga-a no PC se já não for necessária. A associação seguinte exige escolher os dados do PC.</p><button id="confirm-detach" class="primary full">Conservar dados e desligar associação</button>';
+- if(page==='confirmar-passagem')main.innerHTML='<button class="back" data-page="recuperacao">‹ Cancelar</button><h1>Confirmar passagem offline?</h1><p>Os dados da cópia passam a ser a base local deste aparelho. O histórico original fica arquivado, sem credenciais e sem reenviar operações antigas. A ligação ao PC é feita separadamente e exige escolher os dados do PC.</p><button id="confirm-portable" class="primary full">Confirmar passagem</button>';
++ if(page==='confirmar-desligar')main.innerHTML=Ligacao.confirmDetach();
++ if(page==='confirmar-passagem')main.innerHTML=Ligacao.confirmPassage();
+ 
+- if(page==='agenda')main.innerHTML=agendaPage(ledger);
++ if(page==='agenda')main.innerHTML=Agenda.render(ctx,{period:summaryPeriod,showCompleted:showCompletedAgenda});
+ 
+- if(page==='pagar-compromisso')main.innerHTML=paymentForm(ledger);
++ if(page==='pagar-compromisso')main.innerHTML=Agenda.payment(ctx,{form:pf,record:pr});
+ 
+- if(page==='descartar-pagamento')main.innerHTML='<h1>Descartar o pagamento por concluir?</h1><p>O compromisso e os pagamentos guardados mantêm-se.</p><button data-page="agenda">Manter rascunho</button><button id="confirm-discard-payment">Descartar rascunho</button>';
++ if(page==='descartar-pagamento')main.innerHTML=Agenda.discardPayment();
+ 
+- if(['agenda','resumo'].includes(page)&&state.paymentDraft)main.insertAdjacentHTML('afterbegin','<section class="draft-banner"><strong>Tens um pagamento por concluir</strong><button id="resume-payment">Retomar pagamento</button><button id="ask-discard-payment">Descartar rascunho</button></section>');
++ if(page==='resumo'&&state.paymentDraft)main.insertAdjacentHTML('afterbegin','<section class="draft-banner"><strong>Tens um pagamento por concluir</strong><button id="resume-payment">Retomar pagamento</button><button id="ask-discard-payment">Descartar rascunho</button></section>');
+ 
+- if(page==='novo-compromisso')main.innerHTML=commitForm(ledger);
++ if(page==='novo-compromisso')main.innerHTML=Agenda.form(ctx,{form:cf,record:cr});
+ 
+- if(page==='compromisso')main.innerHTML=commitmentDetail(ledger);
++ if(page==='compromisso')main.innerHTML=Agenda.commitment(ctx,{commitmentId});
+ 
+- if(page==='descartar-compromisso')main.innerHTML='<h1>Descartar o rascunho do compromisso?</h1><p>O preenchimento por concluir será removido. Os compromissos e movimentos guardados mantêm-se.</p><div class="review-actions"><button data-page="agenda">Manter rascunho</button><button id="confirm-discard-commitment">Descartar rascunho</button></div>';
++ if(page==='descartar-compromisso')main.innerHTML=Agenda.discardCommitment();
+ 
+  if(page==='resumo'&&state.commitmentDraft)main.insertAdjacentHTML('afterbegin','<section class="draft-banner"><strong>Tens um compromisso por concluir</strong><button data-page="agenda">Abrir Agenda</button></section>');
+ 
+  if(['resumo','movimentos'].includes(page)&&state.movementDraft)main.insertAdjacentHTML('afterbegin',draftBanner());
+ 
+  if(page==='rascunho')main.innerHTML=recovery();
+ 
+  if(page==='descartar-rascunho')main.innerHTML='<h1>Descartar o rascunho?</h1><p>O texto por concluir será removido deste dispositivo. Os movimentos guardados mantêm-se.</p><div class="review-actions"><button id="cancel-discard-draft" class="primary">Manter rascunho</button><button id="confirm-discard-draft">Descartar rascunho</button></div>';
+ 
+  if(page==='novo')main.innerHTML=movementForm(ledger);
+ 
+- if(page==='contas')main.innerHTML=`<h1>Contas</h1><p class="sub">Os saldos incluem alterações locais. Arquivar conserva o histórico e o saldo.</p><button class="primary full" id="new-account">+ Nova conta</button>${ledger.accounts.filter(a=>!a.archived).map(a=>accountCard(a,state,ledger)).join('')||'<p class="empty">Sem contas ativas. Cria ou reativa uma conta.</p>'}${ledger.accounts.some(a=>a.archived)?`<details class="archived-accounts"><summary>Contas arquivadas · ${ledger.accounts.filter(a=>a.archived).length}</summary>${ledger.accounts.filter(a=>a.archived).map(a=>accountCard(a,state,ledger)).join('')}</details>`:''}`;
++ if(page==='contas')main.innerHTML=Contas.render(ctx);
+ 
+- if(page==='contas'&&state.accountDraft)main.insertAdjacentHTML('afterbegin','<section class="draft-banner"><strong>Tens uma conta por concluir</strong><button id="resume-account">Retomar conta</button></section>');
++ if(page==='editar-conta')main.innerHTML=Contas.editor(ctx,{form:accountForm});
+ 
+- if(page==='editar-conta')main.innerHTML=accountEditor();
++ if(page==='sair-conta')main.innerHTML=Contas.leave();
+ 
+- if(page==='sair-conta')main.innerHTML='<h1>Sair sem guardar a conta?</h1><p>O preenchimento desta conta ainda não foi guardado. Os movimentos e os rascunhos existentes mantêm-se.</p><div class="review-actions"><button id="stay-account" class="primary">Continuar a preencher</button><button id="leave-account">Sair sem guardar</button></div>';
++ if(page==='arquivar-conta')main.innerHTML=Contas.archive(ctx,{accountId:selectedAccount});
+ 
+- if(page==='arquivar-conta'){const a=ledger.accounts.find(a=>a.id===selectedAccount);main.innerHTML=`<h1>${a?.archived?'Reativar':'Arquivar'} conta?</h1><p>${escape(a?.name||'Conta indisponível')}</p><p>O saldo e todos os movimentos são conservados. Uma conta arquivada deixa de estar disponível para novos movimentos.</p><div class="review-actions"><button data-page="conta">Cancelar</button><button id="confirm-archive" class="primary">${a?.archived?'Reativar':'Arquivar'} conta</button></div>`;}
+-
+- if(page==='conta'){
+-
+-  const account=ledger.accounts.find(a=>a.id===selectedAccount);
+-
+-  const rows=account?V.movements(ledger,state,{accountId:account.id},visibleLimit):{rows:[],total:0};
+-
+-  main.innerHTML=`<button class="back" data-page="contas">‹ Contas</button><h1>${account?escape(account.name):'Conta indisponível'}</h1>${account?`<section class="balance"><span>Saldo atual</span><strong>${money(P.Finance.cents(P.Finance.balanceAt(ledger,account)))}</strong><small>${escape(account.type)}${account.archived?' · Arquivada':''}</small></section><div class="review-actions"><button id="edit-account">Editar conta</button><button id="ask-archive">${account.archived?'Reativar conta':'Arquivar conta'}</button></div><h2>Movimentos desta conta</h2><p class="sub">Transferências mostram o efeito nesta conta.</p>${rows.rows.map(t=>row(t,account.name)).join('')||'<p class="empty">Ainda não existem movimentos nesta conta.</p>'}${rows.rows.length<rows.total?'<button id="show-more" class="full">Mostrar mais movimentos</button>':''}`:''}`;
+-
+- }
++ if(page==='conta')main.innerHTML=Contas.detail(ctx,{accountId:selectedAccount,visibleLimit});
+ 
+  if(page==='consulta-financeira')main.innerHTML=financialConsultation(ledger);
+ 
+  if(page==='resumo')main.insertAdjacentHTML('beforeend','<button class="full agenda-shortcut" data-page="consulta-financeira">Créditos e prestações · consulta</button>');
+ 
+  if(page==='detalhe'){
+ 
+   main.innerHTML=Movimentos.detail(ctx,{movementId:selectedId,returnPage:detailReturn});
+  }
+ 
+ 
+ 
+  if(page==='eliminar'){
+ 
+   const t=ledger.transactions.find(t=>t.id===selectedId);
+ 
+   main.innerHTML=`<button class="back" data-page="movimentos">‹ Cancelar</button><h1>Eliminar movimento?</h1>${t?`<section class="review-card"><h2>${escape(t.description)}</h2><p>${money(P.Finance.cents(t.amount))}</p><small>${t.type==='transfer'?'O efeito nas duas contas será retirado em conjunto.':'A alteração fica por confirmar até sincronizares.'}</small></section><button id="confirm-delete" class="primary full">Eliminar movimento</button>`:'<p>O movimento já foi eliminado.</p>'}`;
+ 
+  }
+ 
+- if(page==='conflito')main.innerHTML=conflictPanel(state);
+-
+- if(page==='sync'){
+-
+-  const pairing=connection?`<div class="note">PC associado · ligação guardada com proteção do Android. Podes continuar a registar sem rede.</div><button type="button" id="sync" class="primary full">Sincronizar</button><button type="button" id="review-detach" class="full">Preparar nova ligação</button>`:savedConnection?.kind==='pairing'?`<div class="note">Existe uma associação por concluir. O código e a credencial estão guardados com proteção do Android.</div><button type="button" id="resume-pair" class="primary full">Retomar associação</button><button type="button" id="cancel-pair" class="full">Cancelar tentativa</button>`:`<div class="note">No PC de ensaio, cria um código para este dispositivo. Podes associar uma base vazia ou confirmar a substituição pelos dados do PC. Nesse caso, o estado local fica conservado num ponto anterior.</div><form id="pairing"><label>Endereço apresentado no PC<input name="server" id="pair-server" type="url" placeholder="https://pc:…" required autocomplete="off"></label><label>Código do PC<input name="code" id="pair-code" maxlength="19" placeholder="XXXX-XXXX-XXXX-XXXX" required autocomplete="off" autocapitalize="characters"></label><label class="note"><input type="checkbox" name="replaceLocal" value="yes" ${state.outbox.length||state.confirmed.ledger.transactions.length||state.confirmed.ledger.pendingPayments?.length||state.confirmed.ledger.casa?.catalog?.length||state.movementDraft||state.commitmentDraft||state.paymentDraft||state.accountDraft||state.houseDraft?'required':''}> Se este aparelho já tiver dados, confirmo substituí-los pelos dados do PC e conservar o estado local num ponto anterior. Esta ação não junta as duas bases.</label><button type="button" id="pair" class="primary">Associar este dispositivo</button></form>`;
+-
+-  main.innerHTML=`<h1>Ligação</h1><p class="sub">Ensaio local · associação e sincronização</p>${pairing}<h2>Alterações deste dispositivo</h2><div class="queue">${state.outbox.map(x=>`<section class="queue-entry"><strong>${escape(x.operation.payload.description||x.operation.payload.name||(x.operation.command.startsWith('account.')?'Conta':'Movimento'))}</strong><small>${x.resolution?(x.resolution.choice==='server'?'Revisto · versão do PC mantida':'Revisto · nova proposta conservada'):({pending:'Por enviar',sending:'Envio por confirmar',acknowledged:'Confirmado pelo servidor',conflict:'Conflito — proposta local preservada',rejected:'Recusado — proposta local preservada',blocked:'Bloqueado por dependência'})[x.status]||'Revisão necessária'}</small>${!x.resolution&&['conflict','rejected','blocked'].includes(x.status)?`<button data-review="${escape(x.operation.operationId)}">Rever</button>`:''}</section>`).join('')||'<p class="sub">Sem alterações pendentes.</p>'}</div>`;
+-
+- }
+-
+- if(page==='conflito'){const entry=state.outbox.find(x=>x.operation.operationId===conflictId);if(entry&&(entry.operation.command.startsWith('commitment.')||entry.operation.command.startsWith('house.')||entry.operation.command.startsWith('account.'))){const p=entry.operation.payload;main.innerHTML=`<button class="back" data-page="sync">‹ Ligação</button><h1>Rever proposta</h1><p>${escape(entry.receipt?.message||'Os dados mudaram.')}</p><h2>Proposta conservada</h2><pre class="proposal">${state.hidden?'Valores ocultos':escape(JSON.stringify(p,null,2))}</pre><p class="sub">Manter a versão do PC conserva a proposta no histórico. Repetir envia os mesmos campos apresentados com novas pré-condições; um pagamento nunca pode exceder o restante.</p><div class="review-actions"><button id="keep-server">Manter versão do PC</button><button id="repeat-extended">Repetir proposta apresentada</button></div>`;}}
++ if(page==='conflito')main.innerHTML=Ligacao.conflict(ctx,{conflictId});
+ 
+- if(page==='sync')main.insertAdjacentHTML('afterbegin','<button data-page="recuperacao" class="full">Cópia e recuperação</button>');
++ if(page==='sync')main.innerHTML=Ligacao.render(ctx,{connection,savedConnection});
+ 
+  if(page==='novo'&&draftBaseline===null){draftBaseline=formFingerprint();draftRecord.baseline=draftBaseline;}
+ 
+  main.setAttribute('aria-busy',String(busy));
+ 
+  if(renderedPage!==page){renderedPage=page;await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));window.scrollTo(0,0);}
+ 
+ }
+ 
+ function formFingerprint(){const form=document.getElementById('movement');return form?JSON.stringify([...new FormData(form).entries()]):null;}
+@@ -507,56 +463,48 @@ document.addEventListener('change',event=>{if(event.target.closest('#movement'))
+ document.addEventListener('input',e=>{if(e.target.closest('#commitment-form'))autoCommit();});
+ 
+ document.addEventListener('change',e=>{if(e.target.closest('#commitment-form'))autoCommit();});
+ 
+ function preservePayment(){const f=document.getElementById('payment-form');if(page==='pagar-compromisso'&&pf&&f){const d=new FormData(f);pf.amount=String(d.get('amount')||'');pf.date=String(d.get('date')||'');}}
+ 
+ async function persistPayment(){preservePayment();if(!pr)return;const saved=await Forms.save(adapter,'paymentDraft',{...pr,form:P.copy(pf)});if(pr?.token===saved.token)pr=saved;return saved;}
+ 
+ async function openPayment(){await adapter.idle();const s=(await adapter.read()).state;if(s.paymentDraft){pr=P.copy(s.paymentDraft);pf=P.copy(pr.form);}else{const v=P.view(s),t=v.ledger.pendingPayments.find(t=>t.id===commitmentId);if(!Commitments.payable(v.ledger,t))throw Error('Compromisso indisponível ou especializado.');pf={id:t.id,transactionId:P.id(),amount:String(t.amount).replace('.',','),date:today(),changedOn:today()};pr=Forms.create(s,pf,'commitment:'+t.id,v.revisions['commitment:'+t.id]||0);}page='pagar-compromisso';}
+ 
+-function paymentForm(ledger){if(!pf)return '<p>Pagamento indisponível.</p>';const t=ledger.pendingPayments.find(t=>t.id===pf.id),reason=Forms.staleReason(current.state,pr);return `<button class="back" data-page="agenda">‹ Agenda</button><h1>${t?.type==='income'?'Registar recebimento':'Registar pagamento'}</h1><p>${escape(t?.description||'Compromisso indisponível')}</p><p>Por liquidar: <strong>${t?money(P.Finance.cents(t.amount)):'Indisponível'}</strong></p><p class="sub">Confirma apenas dinheiro que já entrou ou saiu. Num pagamento parcial, o restante continua na Agenda.</p><form id="payment-form"><label>Valor (€)<input name="amount" inputmode="decimal" required value="${escape(pf.amount)}"></label><label>Data efetiva<input name="date" type="date" required max="${today()}" value="${escape(pf.date)}"></label><p id="payment-status" role="status">${pr.sequence?'Rascunho guardado neste dispositivo.':'O preenchimento será guardado neste dispositivo.'}</p>${reason?`<p class="note">${escape(reason)}</p>`:''}<button id="save-payment" type="button" class="primary full">Confirmar registo</button><button id="ask-discard-payment" class="full" type="button">Descartar rascunho</button></form>`;}
+-
+-function commitmentDetail(ledger){const t=ledger.pendingPayments.find(t=>t.id===commitmentId),paid=ledger.transactions.filter(t=>t.pendingId===commitmentId);let html=t?originalCommitmentDetail(ledger):`<button data-page="agenda">‹ Agenda</button><h1>${paid.length?'Compromisso liquidado':'Compromisso indisponível'}</h1>`;if(t&&Commitments.payable(ledger,t))html+='<button id="open-payment" class="primary full">'+(t.type==='income'?'Registar recebimento':'Registar pagamento')+'</button>';if(paid.length)html+='<h2>Pagamentos registados</h2>'+paid.map(t=>row(t)).join('');return html;}
+-
+ document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b||busy)return;if(b.id==='open-payment'||b.id==='resume-payment'){e.stopImmediatePropagation();run(()=>openPayment());}else if(b.id==='save-payment'){e.stopImmediatePropagation();const f=document.getElementById('payment-form');if(!f.reportValidity())return;run(async()=>{const r=await persistPayment(),p=Forms.paymentPayload(pf);await client.enqueue('commitment.settle',p,{expectedEntityRevision:pr.expectedRevision,paymentDraft:{token:r.token,sequence:r.sequence}});commitmentId=p.id;pf=null;pr=null;page='compromisso';message.textContent='Registo guardado. O saldo e o restante foram atualizados em conjunto.';});}else if(b.id==='ask-discard-payment'){e.stopImmediatePropagation();run(async()=>{paymentDiscard=P.copy((await adapter.read()).state.paymentDraft);page='descartar-pagamento';});}else if(b.id==='confirm-discard-payment'){e.stopImmediatePropagation();run(async()=>{await Forms.discard(adapter,'paymentDraft',paymentDiscard);pf=null;pr=null;page='agenda';});}else if(page==='pagar-compromisso'&&b.dataset.page){e.stopImmediatePropagation();run(async()=>{if(pr&&!Forms.staleReason((await adapter.read()).state,pr))await persistPayment();pf=null;pr=null;page=b.dataset.page;});}},true);
+ 
+ for(const name of ['input','change'])document.addEventListener(name,e=>{if(e.target.closest('#payment-form')&&!busy)persistPayment().then(()=>{const el=document.getElementById('payment-status');if(el)el.textContent='Rascunho guardado neste dispositivo.';}).catch(e=>message.textContent=e.message);});
+ 
+ // The Android back action follows the same form exits as the visible controls.
+ 
+ window.EquilibrioBack=()=>{if(busy)return true;const dialog=document.getElementById('leaveDialog');if(dialog.open){dialog.close();pendingPage=null;return true;}if(page==='resumo')return false;const visibleBack=main.querySelector('button.back,button[data-page]');if(visibleBack){visibleBack.click();return true;}document.querySelector('nav [data-page="resumo"]').click();return true;};
+ 
+ document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'){if(page==='novo')persistDraft().catch(e=>message.textContent=e.message);if(page==='novo-compromisso')persistCommit().catch(e=>message.textContent=e.message);if(page==='pagar-compromisso')persistPayment().catch(e=>message.textContent=e.message);}});
+ 
+ 
+ 
+ function financialConsultation(ledger){const c=Consult.debts(ledger,summaryPeriod);return `<button class="back" data-page="resumo">‹ Resumo</button><h1>Créditos e prestações</h1><p class="sub">Consulta dos registos existentes. Alterações e pagamentos especializados mantêm o percurso no PC.</p>${periodControls(ledger)}<h2>Créditos</h2>${c.debts.map(d=>`<section class="review-card"><h3>${escape(d.name)}</h3><small>Capital em dívida</small><p class="review-value">${money(d.balanceCents)}</p><p>Prestação: ${money(d.paymentCents)}</p></section>`).join('')||'<p class="empty">Sem créditos registados.</p>'}<h2>Prestações estimadas do mês</h2><p class="sub">Estimativas do modelo Windows; não são pagamentos registados.</p>${c.estimates.map(e=>`<section class="review-card"><strong>${escape(e.description)}</strong><p>${escape(V.dateLabel(e.date))} · ${money(P.Finance.cents(e.amount))}</p></section>`).join('')||'<p class="empty">Sem prestações estimadas neste mês.</p>'}<h2>Compras em prestações</h2>${c.plans.map(p=>`<section class="review-card"><h3>${escape(p.description)}</h3>${p.payments.map(x=>`<div class="info-line"><span>${escape(V.dateLabel(x.date))}</span><strong>${money(x.remainingCents)} por liquidar</strong></div>`).join('')}</section>`).join('')||'<p class="empty">Sem planos de prestações.</p>'}`;}
+ 
+ function preserveHouse(){const f=document.getElementById('house-form');if(page!=='casa-form'||!hf||!f)return;const d=new FormData(f);for(const [k,v] of d.entries())if(!k.startsWith('offer-'))hf[k]=String(v);if(hf.command==='house.product')hf.offers=[...f.querySelectorAll('[data-offer-row]')].map(el=>({...Object.fromEntries(['storeName','packageQty','price','url'].map(k=>[k,el.querySelector('[data-offer-field="'+k+'"]').value]))}));}
+ 
+ async function persistHouse(){preserveHouse();if(!hr)return;const r=await Forms.save(adapter,'houseDraft',{...hr,form:P.copy(hf)});if(hr?.token===r.token)hr=r;return r;}
+ 
+ async function openHouseForm(kind,id=null){await adapter.idle();const s=(await adapter.read()).state;if(s.houseDraft){hr=P.copy(s.houseDraft);hf=P.copy(hr.form);page='casa-form';return;}const v=P.view(s),c=House.Casa.state(v.ledger),old=kind==='product'?c.catalog.find(x=>x.id===id):c.stock.find(x=>x.id===id);hf={id:old?.id||P.id(),command:'house.'+kind,mode:old?'update':'create',seed:P.id(),changedOn:today()};if(kind==='product'){const cats=P.Finance.categoryParts(old?.category||'');Object.assign(hf,{name:old?.name||'',brand:old?.brand||'',category:cats[0]||'',sub1:cats[1]||'',sub2:cats[2]||'',sub3:cats[3]||'',unit:old?.unit||'un',url:old?.url||'',offers:old?Object.entries(old.offers).map(([storeId,o])=>({storeName:c.stores.find(s=>s.id===storeId)?.name||'',packageQty:String(o.packageQty),price:String(o.price).replace('.',','),...(o.url?{url:o.url}:{})})) :[]});}else if(kind==='lot'){Object.assign(hf,{catalogId:old?.catalogId||id||'',qty:String(old?.qty||''),location:old?.location||'',expiry:old?.expiry||'',opened:old?.opened===true});}else {if(!old)throw Error('Lote indisponível.');Object.assign(hf,{id:old.id,qty:'',type:'consume',note:''});}hr=Forms.create(s,hf,'house',v.revisions.house||0);page='casa-form';}
+ 
+-function houseForm(ledger){if(!hf)return '<p>Formulário indisponível.</p>';const f=hf,reason=Forms.staleReason(current.state,hr),field=(name,label,extra='')=>`<label>${label}<input name="${name}" value="${escape(f[name]||'')}" ${extra}></label>`;let body='';if(f.command==='house.product'){body=field('name','Nome','required maxlength="160"')+field('brand','Marca','maxlength="80"')+field('category','Categoria','required')+field('sub1','Subcategoria 1')+field('sub2','Subcategoria 2')+field('sub3','Subcategoria 3')+`<label>Unidade de stock<select name="unit">${House.Casa.stockUnits.map(([id,label])=>`<option value="${id}" ${f.unit===id?'selected':''}>${escape(label)}</option>`).join('')}</select></label>`+`<h2>Preços por supermercado</h2><p class="sub">A quantidade usa a unidade de stock escolhida. Deixa o preço vazio se ainda não o sabes; o link pertence a este supermercado.</p>${f.offers.map((o,i)=>`<fieldset data-offer-row><legend>Preço ${i+1}</legend>${[['storeName','Supermercado'],['packageQty','Quantidade da embalagem'],['price','Preço (€), opcional'],['url','Link neste supermercado']].map(([k,label])=>`<label>${label}<input name="offer-${i}-${k}" data-offer-field="${k}" value="${escape(o[k]??'')}" ${k==='storeName'?'maxlength="160"':k==='url'?'type="url" maxlength="2048" placeholder="https://…"':'inputmode="decimal"'}></label>`).join('')}<button data-remove-offer="${i}" type="button">Retirar este preço do formulário</button></fieldset>`).join('')}<button id="add-offer" type="button">+ Adicionar supermercado</button>`;}else if(f.command==='house.lot'){body=(f.mode==='create'?field('qty','Quantidade','inputmode="decimal" required'):'<p>Alterar o destino mantém a quantidade original e os consumos.</p>')+field('location','Destino do produto','required maxlength="80" list="stock-places"')+'<datalist id="stock-places"><option>Despensa</option><option>Frigorífico</option><option>Congelador</option></datalist>'+field('expiry','Validade (opcional)','type="date"');}else body='<label>Registo<select name="type"><option value="consume" '+(f.type==='consume'?'selected':'')+'>Consumo</option><option value="waste" '+(f.type==='waste'?'selected':'')+'>Desperdício</option></select></label>'+field('qty','Quantidade','inputmode="decimal" required')+field('note','Motivo (opcional)','maxlength="500"');return `<button class="back" data-page="casa">‹ Casa</button><h1>${f.command==='house.product'?'Produto e preços':f.command==='house.lot'?'Lote de stock':'Registar consumo'}</h1><form id="house-form">${body}<p id="house-status" role="status">${hr.sequence?'Rascunho guardado neste dispositivo.':'O preenchimento será guardado neste dispositivo.'}</p>${reason?`<p class="note">${escape(reason)}</p>`:''}<button class="primary full" id="save-house" type="button">Guardar</button><button id="ask-discard-house" class="full" type="button">Descartar rascunho</button></form>`;}
+-
+-document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b||busy)return;let task=null;if(b.dataset.houseTab)task=async()=>{houseTab=b.dataset.houseTab;page='casa';};if(b.dataset.product)task=async()=>{houseId=b.dataset.product;houseTab='produto';page='casa';};if(b.dataset.lot)task=async()=>{houseId=b.dataset.lot;houseTab='lote';page='casa';};if(b.id==='new-product'||b.dataset.editProduct)task=()=>openHouseForm('product',b.dataset.editProduct||null);if(b.dataset.newLot)task=()=>openHouseForm('lot',b.dataset.newLot);if(b.dataset.editLot)task=()=>openHouseForm('lot',b.dataset.editLot);if(b.dataset.consumeLot)task=()=>openHouseForm('consume',b.dataset.consumeLot);if(b.id==='resume-house')task=()=>openHouseForm('product');if(b.id==='add-offer')task=async()=>{preserveHouse();hf.offers.push({storeName:'',packageQty:'',price:''});document.getElementById('house-form').remove();await persistHouse();};if(b.dataset.removeOffer!==undefined)task=async()=>{preserveHouse();hf.offers.splice(Number(b.dataset.removeOffer),1);document.getElementById('house-form').remove();await persistHouse();};if(b.id==='ask-discard-house')task=async()=>{houseDiscard=P.copy((await adapter.read()).state.houseDraft);page='descartar-casa';};if(b.id==='confirm-discard-house')task=async()=>{await Forms.discard(adapter,'houseDraft',houseDiscard);hr=null;hf=null;page='casa';};if(b.dataset.shopping)task=async()=>{const p={id:b.dataset.shopping,seed:P.id(),changedOn:today(),values:{operation:'toggle'}};await client.enqueue('house.shopping',p);};if(b.id==='save-house'){if(!document.getElementById('house-form').reportValidity())return;task=async()=>{const r=await persistHouse(),p=HouseForm.payload(hf);await client.enqueue(hf.command,p,{houseDraft:{token:r.token,sequence:r.sequence}});houseId=p.id;houseTab=hf.command==='house.product'?'produto':hf.command==='house.lot'?'lote':'despensa';hf=null;hr=null;page='casa';message.textContent='Casa guardada neste dispositivo.';};}if(page==='casa-form'&&b.dataset.page)task=async()=>{if(hr&&!Forms.staleReason((await adapter.read()).state,hr))await persistHouse();hf=null;hr=null;page=b.dataset.page;};if(task){e.stopImmediatePropagation();run(task);}},true);
++document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b||busy)return;let task=null;if(b.dataset.houseTab)task=async()=>{houseTab=b.dataset.houseTab;page='casa';};if(b.dataset.product)task=async()=>{houseId=b.dataset.product;houseTab='produto';page='casa';};if(b.dataset.lot)task=async()=>{houseId=b.dataset.lot;houseTab='lote';page='casa';};if(b.id==='new-product'||b.dataset.editProduct)task=()=>openHouseForm('product',b.dataset.editProduct||null);if(b.dataset.newLot)task=()=>openHouseForm('lot',b.dataset.newLot);if(b.dataset.editLot)task=()=>openHouseForm('lot',b.dataset.editLot);if(b.dataset.consumeLot)task=()=>openHouseForm('consume',b.dataset.consumeLot);if(b.id==='resume-house')task=()=>openHouseForm('product');if(b.id==='add-offer')task=async()=>{preserveHouse();hf.offers.push({storeName:'',packageQty:'',price:''});document.getElementById('house-form').remove();await persistHouse();};if(b.dataset.removeOffer!==undefined)task=async()=>{preserveHouse();hf.offers.splice(Number(b.dataset.removeOffer),1);document.getElementById('house-form').remove();await persistHouse();};if(b.id==='ask-discard-house')task=async()=>{houseDiscard=P.copy((await adapter.read()).state.houseDraft);page='descartar-casa';};if(b.id==='confirm-discard-house')task=async()=>{await Forms.discard(adapter,'houseDraft',houseDiscard);hr=null;hf=null;page='casa';};if(b.dataset.shopping)task=async()=>{const p={id:b.dataset.shopping,seed:P.id(),changedOn:today(),values:{operation:'toggle'}};await client.enqueue('house.shopping',p);};if(b.id==='save-house'){if(!document.getElementById('house-form').reportValidity())return;task=async()=>{const r=await persistHouse(),p=HouseForm.payload(hf);await client.enqueue(hf.command,p,{houseDraft:{token:r.token,sequence:r.sequence}});houseId=p.id;houseTab=hf.command==='house.product'?'produto':hf.command==='house.lot'?'lote':'stock';hf=null;hr=null;page='casa';message.textContent='Casa guardada neste dispositivo.';};}if(page==='casa-form'&&b.dataset.page)task=async()=>{if(hr&&!Forms.staleReason((await adapter.read()).state,hr))await persistHouse();hf=null;hr=null;page=b.dataset.page;};if(task){e.stopImmediatePropagation();run(task);}},true);
+ 
+ for(const name of ['input','change'])document.addEventListener(name,e=>{if(e.target.closest('#house-form')&&!busy)persistHouse().then(()=>{const el=document.getElementById('house-status');if(el)el.textContent='Rascunho guardado neste dispositivo.';}).catch(e=>message.textContent=e.message);});
+ 
+ document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'&&page==='casa-form')persistHouse().catch(e=>message.textContent=e.message);});
+ 
+ document.addEventListener('click',e=>{const b=e.target.closest('button');if(b?.id==='repeat-extended'&&!busy){e.stopImmediatePropagation();run(async()=>{await client.resolve(conflictId,'local');page='sync';message.textContent='Nova proposta guardada; a anterior ficou no histórico.';});}},true);
+ 
+-function recoveryPage(){return `<section><h2>Estados anteriores</h2><p class="sub">Conservamos até três pontos. Uma origem importada pode ser exportada novamente; só se restaura diretamente a mesma associação.</p><button id="list-checkpoints">Ver pontos guardados</button>${recoveryPoints.map(r=>`<article class="review-card"><strong>${r.revision===0?'Origem da passagem':'Estado anterior · revisão '+r.revision}</strong><p>${r.transactions} movimentos confirmados · ${r.operations} operações no histórico</p><button data-checkpoint="${r.id}">Abrir e rever</button></article>`).join('')}</section>`+`<button class="back" data-page="sync">‹ Ligação</button><h1>Cópia e recuperação</h1><p class="sub">Cópia encriptada dos dados e rascunhos locais. Guarda a palavra-passe: será necessária para recuperar. As credenciais da ligação ficam na proteção do Android e não são exportadas.</p><label>Palavra-passe da cópia<input id="backup-password" type="password" minlength="10" maxlength="512" autocomplete="off"></label><div class="review-actions"><button id="export-backup" class="primary">Guardar cópia encriptada</button><button id="choose-backup">Escolher cópia para recuperar</button>${recoveryFile?'<button id="open-backup">Abrir cópia escolhida</button>':''}</div>`;}
+-
+ const recoveryAdapter={read:()=>adapter.read(),restoreWithCheckpoint:(state,revision)=>store.compareAndSet({state,expectedRevision:revision,preservePrevious:true})};
+ 
+ document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b||busy)return;let task=null;const password=()=>document.getElementById('backup-password')?.value||'';if(b.id==='export-backup'){const pass=password();task=async()=>{await adapter.idle();const s=(await adapter.read()).state,data=await Recovery.encrypt(s,pass);await backupFiles.exportBackup({data});message.textContent='Cópia encriptada guardada.';};}if(b.id==='choose-backup')task=async()=>{recoveryFile=(await backupFiles.importBackup()).data;message.textContent='Cópia escolhida. Indica a palavra-passe e abre-a para rever o restauro.';};if(b.id==='review-detach')task=async()=>{recoveryExpected=await adapter.read();page='confirmar-desligar';};if(b.id==='confirm-detach')task=async()=>{await adapter.idle();await association.detach(recoveryExpected.revision);connection=null;savedConnection=null;recoveryExpected=null;page='sync';message.textContent='Dados conservados offline. Podes preparar a nova associação.';};if(b.id==='list-checkpoints')task=async()=>{recoveryPoints=(await store.listCheckpoints()).checkpoints;};if(b.dataset.checkpoint)task=async()=>{recoveryCandidate=(await store.readCheckpoint({id:Number(b.dataset.checkpoint)})).state;recoveryExpected=await adapter.read();portableMode=false;page='confirmar-recuperacao';};if(b.id==='portable-import')task=async()=>{Recovery.portable(recoveryCandidate,(await adapter.read()).state);recoveryExpected=await adapter.read();portableMode=true;page='confirmar-passagem';};if(b.id==='export-recovery-candidate'){const pass=password();task=async()=>{await backupFiles.exportBackup({data:await Recovery.encrypt(recoveryCandidate,pass)});message.textContent='Origem exportada com encriptação.';};}if(b.id==='confirm-portable')task=async()=>{await adapter.idle();await Recovery.transfer({...recoveryAdapter,importWithArchive:(state,archiveSource,revision)=>store.compareAndSet({state,archiveSource,expectedRevision:revision,preservePrevious:true})},recoveryCandidate,recoveryExpected);recoveryCandidate=null;recoveryExpected=null;page='resumo';message.textContent='Dados recuperados para consulta e uso offline. A origem ficou arquivada; as operações antigas não serão reenviadas ao PC.';};if(b.id==='open-backup'){const pass=password();task=async()=>{recoveryCandidate=await Recovery.decrypt(recoveryFile,pass);recoveryExpected=await adapter.read();page='confirmar-recuperacao';recoveryFile=null;};}if(b.id==='confirm-recovery')task=async()=>{await adapter.idle();await Recovery.restore(recoveryAdapter,recoveryCandidate,recoveryExpected);recoveryCandidate=null;recoveryExpected=null;draft=null;cf=null;pf=null;hf=null;draftRecord=null;cr=null;pr=null;hr=null;page='resumo';message.textContent='Cópia recuperada. O estado anterior foi conservado neste dispositivo.';};if(task){e.stopImmediatePropagation();run(task);}},true);
+ 
+ if(!__RELEASE__)window.EquilibrioRecoveryTest={encrypt:Recovery.encrypt,decrypt:Recovery.decrypt,restore:async(state,expected)=>{await Recovery.restore(recoveryAdapter,state,expected);await render();}};
+ 
+ async function persistAccount(){preserveAccount();if(!accountForm||!accountDraftRecord)return null;const r=await Forms.save(adapter,'accountDraft',{...accountDraftRecord,form:P.copy(accountForm)});if(accountDraftRecord?.token===r.token)accountDraftRecord=r;return r;}
+ 
+ async function resumeAccount(){await adapter.idle();const s=(await adapter.read()).state,r=s.accountDraft;Forms.valid('accountDraft',r);accountDraftRecord=P.copy(r);accountForm=P.copy(r.form);accountRevision=P.copy(r.expectedRevision);accountBaseline=JSON.stringify(accountForm);page='editar-conta';}
+ 
+diff --git a/android/app/src/screens/agenda.cjs b/android/app/src/screens/agenda.cjs
+new file mode 100644
+index 0000000..a5c3d72
+--- /dev/null
++++ b/android/app/src/screens/agenda.cjs
+@@ -0,0 +1,126 @@
++'use strict';
++const kit = require('../ui/kit.cjs');
++const { icon } = require('../ui/icons.cjs');
++const V = require('../view-model.cjs');
++const Agenda = require('../agenda.cjs');
++const K = require('../../../shared/commitment-drafts.cjs');
++const Forms = require('../../../shared/form-drafts.cjs');
++const Commitments = require('../../../shared/commitments.cjs');
++const P = require('../../../shared/protocol.cjs');
++const { row } = require('./movimentos.cjs');
++const { periodControls } = require('./resumo.cjs');
++
++function back(page, label) {
++  return '<button type="button" class="back" data-page="' + page + '">' + label + '</button>';
++}
++
++function banners(state) {
++  return (state.paymentDraft
++    ? '<section class="draft-banner"><strong>Tens um pagamento por concluir</strong><button id="resume-payment">Retomar pagamento</button><button id="ask-discard-payment">Descartar rascunho</button></section>' : '')
++    + (state.commitmentDraft
++      ? '<section class="draft-banner"><strong>Tens um compromisso por concluir</strong><p>O preenchimento está guardado neste dispositivo.</p><button type="button" id="resume-commitment">Retomar compromisso</button><button type="button" id="ask-discard-commitment">Descartar rascunho</button></section>' : '');
++}
++
++function entry(ctx, t) {
++  const e = kit.escape;
++  return '<article class="review-card agenda-entry"><div><strong>' + e(t.description || 'Compromisso') + '</strong>'
++    + '<small>' + e(V.dateLabel(t.date)) + ' · ' + e(t.agendaSource) + '</small>'
++    + '<small>' + e(t.account || 'Conta não indicada') + (t.targetAccount ? ' → ' + e(t.targetAccount) : '') + '</small>'
++    + '<small class="agenda-state">' + e(t.status) + (t.estimated ? ' · Estimativa' : '') + '</small>'
++    + (t.occurrenceNote ? '<p class="sub">' + e(t.occurrenceNote) + '</p>' : '')
++    + (t.agendaSource === 'Compromisso' ? '<button type="button" class="commit-open" data-commitment="' + e(t.id) + '">Abrir compromisso</button>' : '') + '</div>'
++    + '<span class="amount">' + (t.type === 'transfer' ? '↔ ' : t.type === 'expense' ? '−' : '+') + kit.money(t.amountCents, ctx.state.hidden) + '</span></article>';
++}
++
++// Agenda do mês. view: {period, showCompleted}.
++function render(ctx, view = {}) {
++  const period = view.period || ctx.today.slice(0, 7), showCompleted = !!view.showCompleted, hidden = ctx.state.hidden;
++  const result = Agenda.agenda(ctx.ledger, period, ctx.today, showCompleted);
++  const tiles = '<div class="ch-tiles">'
++    + '<article class="ch-tile is-red"><span class="ch-tile-icon">' + icon('alert') + '</span><span class="ch-tile-label">A pagar</span><strong class="ch-tile-value" data-agenda-pay>' + kit.money(result.payCents, hidden) + '</strong></article>'
++    + '<article class="ch-tile is-green"><span class="ch-tile-icon">' + icon('check') + '</span><span class="ch-tile-label">A receber</span><strong class="ch-tile-value" data-agenda-receive>' + kit.money(result.receiveCents, hidden) + '</strong></article>'
++    + '</div>';
++  return banners(ctx.state) + back('mais', '‹ Mais') + '<h1>Agenda</h1><p class="sub">Compromissos, recorrências e subscrições deste mês.</p>'
++    + periodControls(ctx.ledger, period, ctx.today)
++    + '<button type="button" id="new-commitment" class="primary full">+ Novo compromisso</button>'
++    + tiles
++    + '<p class="sub">' + result.pendingCount + ' por concluir' + (result.estimated ? ' · Inclui estimativas' : '') + '. Valores previstos; o saldo só muda com movimentos registados.</p>'
++    + '<label class="agenda-check"><input id="agenda-completed" type="checkbox" ' + (showCompleted ? 'checked' : '') + '> Mostrar recorrências e subscrições concluídas</label>'
++    + '<div class="agenda-list">' + (result.rows.map(t => entry(ctx, t)).join('') || '<p class="empty">Sem compromissos previstos neste mês.</p>') + '</div>';
++}
++
++function originalDetail(ctx, commitmentId) {
++  const e = kit.escape, ledger = ctx.ledger, r = ledger.pendingPayments.find(t => t.id === commitmentId);
++  if (!r) return '<button data-page="agenda">‹ Agenda</button><h1>Compromisso indisponível</h1>';
++  return back('agenda', '‹ Agenda') + '<h1>' + e(r.description) + '</h1>'
++    + '<section class="review-card"><p class="review-value">' + kit.money(P.Finance.cents(r.amount), ctx.state.hidden) + '</p>'
++    + '<p>' + e(V.dateLabel(r.date)) + ' · ' + e(r.account || 'Conta não indicada') + '</p><small>' + e(r.category || 'Outros') + '</small></section>'
++    + (Commitments.editable(ledger, r)
++      ? '<div class="review-actions"><button id="edit-commitment" class="primary">Editar compromisso</button><button id="reschedule-commitment">Reagendar</button></div>'
++      : '<p class="note">Este compromisso exige gestão especializada.</p>')
++    + (r.reschedules && r.reschedules.length
++      ? '<h2>Histórico de reagendamento</h2><ul class="commit-history">' + r.reschedules.map(x => '<li>' + e(V.dateLabel(x.from)) + ' → ' + e(V.dateLabel(x.to)) + '<p>' + e(x.reason) + '</p></li>').join('') + '</ul>' : '');
++}
++
++// Detalhe do compromisso e pagamentos já registados. view: {commitmentId}.
++function commitment(ctx, view = {}) {
++  const ledger = ctx.ledger, id = view.commitmentId;
++  const t = ledger.pendingPayments.find(x => x.id === id), paid = ledger.transactions.filter(x => x.pendingId === id);
++  let html = t ? originalDetail(ctx, id) : '<button data-page="agenda">‹ Agenda</button><h1>' + (paid.length ? 'Compromisso liquidado' : 'Compromisso indisponível') + '</h1>';
++  if (t && Commitments.payable(ledger, t)) html += '<button id="open-payment" class="primary full">' + (t.type === 'income' ? 'Registar recebimento' : 'Registar pagamento') + '</button>';
++  if (paid.length) html += '<h2>Pagamentos registados</h2>' + paid.map(x => row(ctx, x)).join('');
++  return html;
++}
++
++// Formulário de compromisso (novo, editar, reagendar). view: {form, record}.
++function form(ctx, view = {}) {
++  const e = kit.escape, cf = view.form, cr = view.record;
++  if (!cf || !cr) return '<p>Compromisso indisponível.</p>';
++  const accounts = ctx.ledger.accounts.filter(a => !a.archived), available = accounts.some(a => a.id === cf.accountId), reason = K.reason(ctx.state, cr);
++  const sel = (value, mine) => value === mine ? 'selected' : '';
++  return back('agenda', '‹ Agenda') + '<h1>' + (cf.command === 'commitment.add' ? 'Novo compromisso' : cf.action === 'reschedule' ? 'Reagendar compromisso' : 'Editar compromisso') + '</h1>'
++    + '<p class="sub">Guardar atualiza a previsão. O saldo mantém-se até registares o pagamento ou recebimento.</p>'
++    + '<form id="commitment-form"><label>Tipo<select name="type"><option value="expense" ' + sel(cf.type, 'expense') + '>Despesa</option><option value="income" ' + sel(cf.type, 'income') + '>Receita</option></select></label>'
++    + '<label>Descrição<input name="description" maxlength="120" required value="' + e(cf.description) + '"></label>'
++    + '<label>Valor (€)<input name="amount" inputmode="decimal" required value="' + e(cf.amount) + '"></label>'
++    + '<label>Conta<select name="accountId">' + (!available ? '<option value="' + e(cf.accountId) + '" selected>Conta indisponível · escolhe outra</option>' : '')
++    + accounts.map(a => '<option value="' + e(a.id) + '" ' + sel(a.id, cf.accountId) + '>' + e(a.name) + '</option>').join('') + '</select></label>'
++    + '<label>Data prevista<input name="date" type="date" required value="' + e(cf.date) + '"></label>'
++    + '<label>Categoria<input name="category" maxlength="120" required value="' + e(cf.category) + '" placeholder="Ex.: Casa / Renda"></label>'
++    + (cf.command === 'commitment.update'
++      ? '<label>Motivo do reagendamento (se mudares a data)<textarea name="reason" maxlength="500" rows="3">' + e(cf.reason) + '</textarea></label>'
++      : '<input name="reason" type="hidden" value="">')
++    + '<p id="commitment-status" role="status">' + (cr.sequence ? 'Rascunho guardado neste dispositivo.' : 'O preenchimento é guardado como rascunho.') + '</p>'
++    + (reason ? '<p class="note">' + e(reason) + '</p>' : '')
++    + '<button type="button" class="primary full" id="save-commitment">Guardar compromisso</button>'
++    + '<button id="ask-discard-commitment" class="full" type="button">Descartar rascunho</button></form>';
++}
++
++// Registo de pagamento ou recebimento. view: {form, record}.
++function payment(ctx, view = {}) {
++  const e = kit.escape, pf = view.form, pr = view.record;
++  if (!pf) return '<p>Pagamento indisponível.</p>';
++  const t = ctx.ledger.pendingPayments.find(x => x.id === pf.id), reason = Forms.staleReason(ctx.state, pr);
++  return back('agenda', '‹ Agenda') + '<h1>' + (t && t.type === 'income' ? 'Registar recebimento' : 'Registar pagamento') + '</h1>'
++    + '<p>' + e(t ? t.description : 'Compromisso indisponível') + '</p>'
++    + '<p>Por liquidar: <strong>' + (t ? kit.money(P.Finance.cents(t.amount), ctx.state.hidden) : 'Indisponível') + '</strong></p>'
++    + '<p class="sub">Confirma apenas dinheiro que já entrou ou saiu. Num pagamento parcial, o restante continua na Agenda.</p>'
++    + '<form id="payment-form"><label>Valor (€)<input name="amount" inputmode="decimal" required value="' + e(pf.amount) + '"></label>'
++    + '<label>Data efetiva<input name="date" type="date" required max="' + e(ctx.today) + '" value="' + e(pf.date) + '"></label>'
++    + '<p id="payment-status" role="status">' + (pr.sequence ? 'Rascunho guardado neste dispositivo.' : 'O preenchimento será guardado neste dispositivo.') + '</p>'
++    + (reason ? '<p class="note">' + e(reason) + '</p>' : '')
++    + '<button id="save-payment" type="button" class="primary full">Confirmar registo</button>'
++    + '<button id="ask-discard-payment" class="full" type="button">Descartar rascunho</button></form>';
++}
++
++function discardCommitment() {
++  return '<h1>Descartar o rascunho do compromisso?</h1><p>O preenchimento por concluir será removido. Os compromissos e movimentos guardados mantêm-se.</p>'
++    + '<div class="review-actions"><button data-page="agenda">Manter rascunho</button><button id="confirm-discard-commitment">Descartar rascunho</button></div>';
++}
++
++function discardPayment() {
++  return '<h1>Descartar o pagamento por concluir?</h1><p>O compromisso e os pagamentos guardados mantêm-se.</p>'
++    + '<button data-page="agenda">Manter rascunho</button><button id="confirm-discard-payment">Descartar rascunho</button>';
++}
++
++module.exports = { render, commitment, form, payment, discardCommitment, discardPayment };
+diff --git a/android/app/src/screens/agenda.test.cjs b/android/app/src/screens/agenda.test.cjs
+new file mode 100644
+index 0000000..babad7a
+--- /dev/null
++++ b/android/app/src/screens/agenda.test.cjs
+@@ -0,0 +1,79 @@
++'use strict';
++const test = require('node:test');
++const assert = require('node:assert/strict');
++const agenda = require('./agenda.cjs');
++const { ctx, demo, empty } = require('./fixtures.cjs');
++const P = require('../../../shared/protocol.cjs');
++const K = require('../../../shared/commitment-drafts.cjs');
++const Forms = require('../../../shared/form-drafts.cjs');
++
++const AMOUNT = /\d,\d{2}\s?€/;
++const view = { period: '2026-11', showCompleted: false };
++const realCtx = (ledger, hidden = false) => ctx(ledger, { state: { ...P.offlineFixture(), hidden } });
++
++test('Agenda não atira com dados vazios e de demonstração', () => {
++  for (const make of [empty, demo]) {
++    const c = realCtx(make());
++    assert.ok(agenda.render(c, view).includes('id="new-commitment"'));
++    assert.ok(agenda.commitment(c, { commitmentId: 'pp-rent' }).length > 0);
++    assert.ok(agenda.discardCommitment().includes('id="confirm-discard-commitment"'));
++    assert.ok(agenda.discardPayment().includes('id="confirm-discard-payment"'));
++  }
++});
++
++test('Agenda do demo lista os compromissos do mês e volta a Mais', () => {
++  const html = agenda.render(realCtx(demo()), view);
++  assert.ok(html.includes('Renda') && html.includes('Internet'));
++  assert.equal((html.match(/data-commitment="/g) || []).length, 2);
++  assert.ok(html.includes('data-agenda-pay') && html.includes('data-agenda-receive'));
++  assert.ok(html.includes('data-page="mais"'));
++  assert.ok(html.includes('id="agenda-completed"'));
++  assert.doesNotMatch(html, /id="agenda-completed"[^>]*checked/);
++  assert.match(agenda.render(realCtx(demo()), { ...view, showCompleted: true }), /id="agenda-completed"[^>]*checked/);
++});
++
++test('Agenda vazia avisa que não há compromissos', () => {
++  assert.ok(agenda.render(realCtx(empty()), view).includes('Sem compromissos previstos'));
++});
++
++test('Agenda com valores ocultos não mostra montantes (e mostra-os quando visíveis)', () => {
++  assert.match(agenda.render(realCtx(demo()), view), AMOUNT);
++  assert.doesNotMatch(agenda.render(realCtx(demo(), true), view), AMOUNT);
++  assert.match(agenda.commitment(realCtx(demo()), { commitmentId: 'pp-rent' }), AMOUNT);
++  assert.doesNotMatch(agenda.commitment(realCtx(demo(), true), { commitmentId: 'pp-rent' }), AMOUNT);
++});
++
++test('Detalhe do compromisso tem ações e trata compromisso em falta', () => {
++  const html = agenda.commitment(realCtx(demo()), { commitmentId: 'pp-rent' });
++  for (const s of ['Renda', 'id="edit-commitment"', 'id="reschedule-commitment"', 'id="open-payment"', 'data-page="agenda"']) assert.ok(html.includes(s), s);
++  assert.ok(agenda.commitment(realCtx(demo()), { commitmentId: 'nao-existe' }).includes('Compromisso indisponível'));
++});
++
++test('Formulário de compromisso tem os campos e ids usados pelos manipuladores', () => {
++  const c = realCtx(demo());
++  const form = { id: 'c1', command: 'commitment.add', action: 'edit', type: 'expense', description: 'Seguro', amount: '12,50', accountId: c.ledger.accounts[0].id, date: '2026-11-20', category: 'Casa', reason: '', changedOn: '2026-11-05' };
++  const html = agenda.form(c, { form, record: K.create(c.state, form, 0) });
++  for (const s of ['id="commitment-form"', 'id="save-commitment"', 'id="ask-discard-commitment"', 'id="commitment-status"', 'name="accountId"', 'name="reason"', 'Novo compromisso']) assert.ok(html.includes(s), s);
++  const upd = agenda.form(c, { form: { ...form, command: 'commitment.update', action: 'reschedule' }, record: K.create(c.state, form, 0) });
++  assert.ok(upd.includes('Reagendar compromisso') && upd.includes('<textarea name="reason"'));
++  assert.ok(agenda.form(c, { form: null, record: null }).includes('Compromisso indisponível'));
++});
++
++test('Formulário de pagamento tem os campos e ids usados pelos manipuladores', () => {
++  const c = realCtx(demo());
++  const form = { id: 'pp-rent', transactionId: 't1', amount: '520,00', date: '2026-11-05', changedOn: '2026-11-05' };
++  const html = agenda.payment(c, { form, record: Forms.create(c.state, form, 'commitment:pp-rent', 0) });
++  for (const s of ['id="payment-form"', 'id="save-payment"', 'id="ask-discard-payment"', 'id="payment-status"', 'name="amount"', 'name="date"', 'max="2026-11-05"', 'Renda']) assert.ok(html.includes(s), s);
++  assert.ok(agenda.payment(c, { form: null, record: null }).includes('Pagamento indisponível'));
++  // o valor por liquidar fora do campo de edição respeita a ocultação
++  const strip = h => h.replace(/value="[^"]*"/g, '');
++  assert.match(strip(html), AMOUNT);
++  const hc = realCtx(demo(), true);
++  assert.doesNotMatch(strip(agenda.payment(hc, { form, record: Forms.create(hc.state, form, 'commitment:pp-rent', 0) })), AMOUNT);
++});
++
++test('Banners de rascunho de pagamento e compromisso aparecem na Agenda', () => {
++  const state = { ...P.offlineFixture(), hidden: false, paymentDraft: { token: 't' }, commitmentDraft: { token: 'c' } };
++  const html = agenda.render(ctx(demo(), { state }), view);
++  assert.ok(html.includes('id="resume-payment"') && html.includes('id="resume-commitment"'));
++});
+diff --git a/android/app/src/screens/casa.cjs b/android/app/src/screens/casa.cjs
+new file mode 100644
+index 0000000..c11c377
+--- /dev/null
++++ b/android/app/src/screens/casa.cjs
+@@ -0,0 +1,144 @@
++'use strict';
++const kit = require('../ui/kit.cjs');
++const V = require('../view-model.cjs');
++const H = require('../../../shared/house.cjs');
++const Forms = require('../../../shared/form-drafts.cjs');
++const { priceLabel } = require('../house-ui.cjs');
++
++const NO_PLACE = 'Sem local definido';
++
++// Pills do topo: «Lista de compras» abre o seu próprio ecrã; as outras trocam o separador desta página.
++const PILLS = [
++  ['compras', 'Lista de compras', 'data-page="compras"'],
++  ['produtos', 'Produtos', 'data-house-tab="produtos"'],
++  ['stock', 'Stock', 'data-house-tab="stock"'],
++];
++
++function pills(tab) {
++  return '<div class="cs-pills" role="tablist">' + PILLS.map(([id, label, attr]) =>
++    '<button type="button" role="tab" ' + attr + ' aria-pressed="' + (id === tab ? 'true' : 'false') + '">' + label + '</button>').join('') + '</div>';
++}
++
++function rowButton(attr, id, title, detail, aside) {
++  const e = kit.escape;
++  return '<button type="button" class="row movement-row" ' + attr + '="' + e(id) + '"><div><strong>' + e(title) + '</strong><small>' + e(detail) + '</small></div><span>' + e(aside) + '</span></button>';
++}
++
++function banner(state) {
++  return state.houseDraft
++    ? '<section class="draft-banner"><strong>Tens um artigo Casa por concluir</strong><button id="resume-house">Retomar preenchimento</button><button id="ask-discard-house">Descartar rascunho</button></section>' : '';
++}
++
++function productPage(ctx, c, p) {
++  const e = kit.escape, hidden = ctx.state.hidden;
++  const back = '<button class="back" data-house-tab="produtos">‹ Produtos</button>';
++  if (!p) return back + '<h1>Produto indisponível</h1>';
++  const offers = Object.entries(p.offers || {}).map(([storeId, offer]) => ({ storeId, ...offer, per: offer.price / offer.packageQty }))
++    .sort((a, b) => (a.price > 0 ? 0 : 1) - (b.price > 0 ? 0 : 1) || a.per - b.per);
++  const offerCards = offers.map(o => '<section class="review-card"><strong>' + e((c.stores.find(s => s.id === o.storeId) || {}).name || 'Supermercado') + '</strong>'
++    + '<p>' + o.packageQty + ' ' + e(p.unit) + ' · ' + (o.price > 0 ? kit.money(Math.round(o.price * 100), hidden) : 'Falta colocar preço') + '</p>'
++    + '<small>' + (o.price > 0 ? priceLabel(p.unit, o, hidden) : 'Sem comparação por unidade') + ' · ' + e(V.dateLabel(o.date)) + '</small>'
++    + (o.url ? '<a class="product-link" href="' + e(o.url) + '" target="_blank" rel="noopener noreferrer">Abrir neste supermercado ↗</a>' : '') + '</section>').join('');
++  const lots = c.stock.filter(l => l.catalogId === p.id).map(l =>
++    rowButton('data-lot', l.id, l.location || NO_PLACE, l.expiry ? V.dateLabel(l.expiry) : 'Sem validade indicada', H.Life.remaining(c, l) + ' ' + l.unit)).join('');
++  return back + '<h1>' + e(p.name) + '</h1><p>' + [p.brand, p.category, p.unit].filter(Boolean).map(e).join(' · ') + '</p>'
++    + (p.url ? '<a class="product-link" href="' + e(p.url) + '" target="_blank" rel="noopener noreferrer">Abrir link do produto ↗</a>' : '')
++    + '<button class="full" data-edit-product="' + e(p.id) + '">Editar produto e preços</button>'
++    + '<h2>Preços por supermercado</h2>' + (offerCards || '<p class="empty">Sem preços registados. Adiciona-os ao editar o produto.</p>')
++    + '<h2>Lotes e destinos</h2><button class="primary full" data-new-lot="' + e(p.id) + '">+ Adicionar stock</button>' + lots;
++}
++
++function lotPage(ctx, c, lot) {
++  const e = kit.escape;
++  const product = lot && c.catalog.find(p => p.id === lot.catalogId);
++  const back = '<button class="back" data-product="' + e(product ? product.id : '') + '">‹ Produto</button>';
++  if (!lot) return back + '<h1>Lote indisponível</h1>';
++  const labels = { consume: 'Consumo', waste: 'Desperdício' };
++  const events = c.stockEvents.filter(x => x.lotId === lot.id).map(x =>
++    '<div class="info-line"><span>' + e(V.dateLabel(x.date)) + ' · ' + e(labels[x.type] || 'Acerto') + '<small>' + e(x.note || '') + '</small></span><strong>' + x.delta + ' ' + e(lot.unit) + '</strong></div>').join('');
++  return back + '<h1>' + e(product ? product.name : 'Lote indisponível') + '</h1>'
++    + '<section class="review-card"><p class="review-value">' + H.Life.remaining(c, lot) + ' ' + e(lot.unit) + '</p><p>' + e(lot.location || NO_PLACE) + '</p>'
++    + '<p>' + (lot.expiry ? 'Validade: ' + e(V.dateLabel(lot.expiry)) : 'Sem validade indicada') + '</p></section>'
++    + '<div class="review-actions"><button data-edit-lot="' + e(lot.id) + '">Alterar destino e validade</button><button data-consume-lot="' + e(lot.id) + '" class="primary">Consumir / desperdício</button></div>'
++    + '<h2>Histórico do lote</h2>' + (events || '<p class="empty">Ainda sem consumo.</p>');
++}
++
++function productsBody(c) {
++  const list = c.catalog.filter(p => !p.archived).map(p => rowButton('data-product', p.id, p.name, (p.category || 'Sem categoria') + ' · ' + H.Life.available(c, p.id) + ' ' + p.unit, '›')).join('');
++  return '<button id="new-product" class="primary full">+ Criar produto</button>'
++    + (list ? kit.card({ title: 'Produtos', subtitle: c.catalog.filter(p => !p.archived).length + ' no catálogo', body: list }) : '<p class="empty">Ainda sem produtos. Começa por criar um produto.</p>');
++}
++
++function stockBody(c) {
++  const places = [...new Set(c.stock.map(l => l.location || NO_PLACE))].sort();
++  return places.map(place => {
++    const lots = c.stock.filter(l => (l.location || NO_PLACE) === place && H.Life.remaining(c, l) > 0);
++    return lots.length ? kit.card({
++      title: place, subtitle: lots.length + (lots.length === 1 ? ' artigo' : ' artigos'),
++      body: lots.map(l => rowButton('data-lot', l.id, (c.catalog.find(p => p.id === l.catalogId) || {}).name || 'Produto',
++        l.expiry ? 'Validade: ' + V.dateLabel(l.expiry) : 'Sem validade indicada', H.Life.remaining(c, l) + ' ' + l.unit)).join(''),
++    }) : '';
++  }).join('');
++}
++
++function shoppingBody(c) {
++  const open = c.shopping.filter(s => !s.done).length;
++  return kit.card({
++    title: 'Lista de compras', subtitle: open + (open === 1 ? ' artigo por comprar' : ' artigos por comprar'),
++    body: '<button type="button" class="primary full" data-page="compras">Abrir lista de compras</button>',
++  });
++}
++
++// Ecrã Casa. view: {tab: 'compras'|'produtos'|'stock' (ou 'produto'|'lote' nos detalhes), id}.
++function render(ctx, view = {}) {
++  const tab = view.tab || 'produtos', id = view.id;
++  const c = H.Casa.state(ctx.ledger);
++  if (tab === 'produto') return banner(ctx.state) + productPage(ctx, c, c.catalog.find(p => p.id === id));
++  if (tab === 'lote') return banner(ctx.state) + lotPage(ctx, c, c.stock.find(l => l.id === id));
++  const body = tab === 'compras' ? shoppingBody(c) : tab === 'stock' ? stockBody(c) : productsBody(c);
++  return banner(ctx.state) + '<h1>Casa</h1><p class="sub">Compras e stock · dados guardados neste dispositivo</p>' + pills(tab)
++    + (body || '<p class="empty">Ainda sem registos nesta vista. Começa por criar um produto.</p>');
++}
++
++// Formulário de produto, lote ou consumo. view: {form, record}. Os ids e names são os que main.js já usa.
++function form(ctx, view = {}) {
++  const e = kit.escape, f = view.form, hr = view.record;
++  if (!f) return '<p>Formulário indisponível.</p>';
++  const reason = Forms.staleReason(ctx.state, hr);
++  const field = (name, label, extra = '') => '<label>' + label + '<input name="' + name + '" value="' + e(f[name] || '') + '" ' + extra + '></label>';
++  let body = '';
++  if (f.command === 'house.product') {
++    const units = H.Casa.stockUnits.map(([id, label]) => '<option value="' + id + '" ' + (f.unit === id ? 'selected' : '') + '>' + e(label) + '</option>').join('');
++    const offers = f.offers.map((o, i) => '<fieldset data-offer-row><legend>Preço ' + (i + 1) + '</legend>'
++      + [['storeName', 'Supermercado'], ['packageQty', 'Quantidade da embalagem'], ['price', 'Preço (€), opcional'], ['url', 'Link neste supermercado']].map(([k, label]) =>
++        '<label>' + label + '<input name="offer-' + i + '-' + k + '" data-offer-field="' + k + '" value="' + e(o[k] == null ? '' : o[k]) + '" '
++        + (k === 'storeName' ? 'maxlength="160"' : k === 'url' ? 'type="url" maxlength="2048" placeholder="https://…"' : 'inputmode="decimal"') + '></label>').join('')
++      + '<button data-remove-offer="' + i + '" type="button">Retirar este preço do formulário</button></fieldset>').join('');
++    body = field('name', 'Nome', 'required maxlength="160"') + field('brand', 'Marca', 'maxlength="80"') + field('category', 'Categoria', 'required')
++      + field('sub1', 'Subcategoria 1') + field('sub2', 'Subcategoria 2') + field('sub3', 'Subcategoria 3')
++      + '<label>Unidade de stock<select name="unit">' + units + '</select></label>'
++      + '<h2>Preços por supermercado</h2><p class="sub">A quantidade usa a unidade de stock escolhida. Deixa o preço vazio se ainda não o sabes; o link pertence a este supermercado.</p>'
++      + offers + '<button id="add-offer" type="button">+ Adicionar supermercado</button>';
++  } else if (f.command === 'house.lot') {
++    body = (f.mode === 'create' ? field('qty', 'Quantidade', 'inputmode="decimal" required') : '<p>Alterar o destino mantém a quantidade original e os consumos.</p>')
++      + field('location', 'Destino do produto', 'required maxlength="80" list="stock-places"')
++      + '<datalist id="stock-places"><option>Despensa</option><option>Frigorífico</option><option>Congelador</option></datalist>'
++      + field('expiry', 'Validade (opcional)', 'type="date"');
++  } else {
++    body = '<label>Registo<select name="type"><option value="consume" ' + (f.type === 'consume' ? 'selected' : '') + '>Consumo</option><option value="waste" ' + (f.type === 'waste' ? 'selected' : '') + '>Desperdício</option></select></label>'
++      + field('qty', 'Quantidade', 'inputmode="decimal" required') + field('note', 'Motivo (opcional)', 'maxlength="500"');
++  }
++  return '<button class="back" data-page="casa">‹ Casa</button><h1>' + (f.command === 'house.product' ? 'Produto e preços' : f.command === 'house.lot' ? 'Lote de stock' : 'Registar consumo') + '</h1>'
++    + '<form id="house-form">' + body
++    + '<p id="house-status" role="status">' + (hr.sequence ? 'Rascunho guardado neste dispositivo.' : 'O preenchimento será guardado neste dispositivo.') + '</p>'
++    + (reason ? '<p class="note">' + e(reason) + '</p>' : '')
++    + '<button class="primary full" id="save-house" type="button">Guardar</button>'
++    + '<button id="ask-discard-house" class="full" type="button">Descartar rascunho</button></form>';
++}
++
++function discard() {
++  return '<h1>Descartar o preenchimento Casa?</h1><p>Os produtos e o stock guardados mantêm-se.</p>'
++    + '<button data-page="casa">Manter rascunho</button><button id="confirm-discard-house">Descartar rascunho</button>';
++}
++
++module.exports = { render, form, discard };
+diff --git a/android/app/src/screens/casa.test.cjs b/android/app/src/screens/casa.test.cjs
+new file mode 100644
+index 0000000..295e44c
+--- /dev/null
++++ b/android/app/src/screens/casa.test.cjs
+@@ -0,0 +1,79 @@
++'use strict';
++const test = require('node:test');
++const assert = require('node:assert/strict');
++const casa = require('./casa.cjs');
++const H = require('../../../shared/house.cjs');
++const P = require('../../../shared/protocol.cjs');
++const Forms = require('../../../shared/form-drafts.cjs');
++const { ctx, demo, empty } = require('./fixtures.cjs');
++
++const AMOUNT = /\d,\d{2}\s?€/;
++const realCtx = (ledger, hidden = false) => ctx(ledger, { state: { ...P.offlineFixture(), hidden } });
++
++test('Casa não atira com dados vazios e de demonstração em nenhum separador', () => {
++  for (const make of [empty, demo]) {
++    const c = realCtx(make());
++    for (const tab of ['compras', 'produtos', 'stock']) assert.ok(casa.render(c, { tab }).includes('Casa'));
++    assert.ok(casa.render(c).includes('Casa'));
++    assert.ok(casa.discard().includes('id="confirm-discard-house"'));
++  }
++});
++
++test('Casa tem as pills Lista de compras, Produtos e Stock e marca a ativa', () => {
++  const html = casa.render(realCtx(demo()), { tab: 'compras' });
++  assert.match(html, /<button[^>]*data-page="compras"[^>]*aria-pressed="true"[^>]*>Lista de compras/);
++  assert.match(html, /data-house-tab="produtos"[^>]*aria-pressed="false"/);
++  assert.match(html, /data-house-tab="stock"[^>]*aria-pressed="false"/);
++  assert.ok(!html.includes('data-house-tab="lista"') && !html.includes('data-shopping='));
++  const prod = casa.render(realCtx(demo()), { tab: 'produtos' });
++  assert.match(prod, /data-house-tab="produtos"[^>]*aria-pressed="true"/);
++  assert.match(prod, /data-page="compras"[^>]*aria-pressed="false"/);
++});
++
++test('Produtos e stock listam o catálogo do demo', () => {
++  const c = realCtx(demo());
++  const prod = casa.render(c, { tab: 'produtos' });
++  assert.ok(prod.includes('id="new-product"') && prod.includes('Arroz agulha') && prod.includes('data-product="'));
++  const stock = casa.render(c, { tab: 'stock' });
++  assert.ok(stock.includes('Despensa') && stock.includes('data-lot="'));
++  assert.ok(casa.render(realCtx(empty()), { tab: 'produtos' }).includes('Ainda sem produtos'));
++});
++
++test('Produto e lote mostram preços, lotes e ações; ids em falta são tratados', () => {
++  const c = realCtx(demo());
++  const cat = H.Casa.state(c.ledger);
++  const p = cat.catalog[0], lot = cat.stock[0];
++  const prod = casa.render(c, { tab: 'produto', id: p.id });
++  for (const s of ['Arroz agulha', 'data-edit-product="' + p.id + '"', 'data-new-lot="' + p.id + '"', 'data-lot="' + lot.id + '"', 'Continente', 'data-house-tab="produtos"']) assert.ok(prod.includes(s), s);
++  const l = casa.render(c, { tab: 'lote', id: lot.id });
++  for (const s of ['data-edit-lot="' + lot.id + '"', 'data-consume-lot="' + lot.id + '"', 'data-product="' + p.id + '"']) assert.ok(l.includes(s), s);
++  assert.ok(casa.render(c, { tab: 'produto', id: 'nao' }).includes('Produto indisponível'));
++  assert.ok(casa.render(c, { tab: 'lote', id: 'nao' }).includes('Lote indisponível'));
++});
++
++test('Casa com valores ocultos não mostra montantes (e mostra-os quando visíveis)', () => {
++  const ledger = demo(), id = H.Casa.state(ledger).catalog[0].id;
++  assert.match(casa.render(realCtx(ledger), { tab: 'produto', id }), AMOUNT);
++  assert.doesNotMatch(casa.render(realCtx(ledger, true), { tab: 'produto', id }), AMOUNT);
++});
++
++test('Formulários de produto, lote e consumo têm os ids e names usados pelos manipuladores', () => {
++  const c = realCtx(demo());
++  const base = { id: 'h1', mode: 'create', seed: 's', changedOn: '2026-11-05' };
++  const rec = f => Forms.create(c.state, f, 'house', 0);
++  const product = { ...base, command: 'house.product', name: 'Leite', brand: '', category: 'Alimentação', sub1: '', sub2: '', sub3: '', unit: 'un', url: '', offers: [{ storeName: 'Continente', packageQty: '1', price: '0,89' }] };
++  let html = casa.form(c, { form: product, record: rec(product) });
++  for (const s of ['id="house-form"', 'id="save-house"', 'id="ask-discard-house"', 'id="house-status"', 'name="name"', 'name="unit"', 'name="offer-0-storeName"', 'data-remove-offer="0"', 'id="add-offer"', 'Produto e preços']) assert.ok(html.includes(s), s);
++  const lot = { ...base, command: 'house.lot', catalogId: 'p', qty: '1', location: 'Despensa', expiry: '', opened: false };
++  html = casa.form(c, { form: lot, record: rec(lot) });
++  for (const s of ['name="qty"', 'name="location"', 'id="stock-places"', 'name="expiry"', 'Lote de stock']) assert.ok(html.includes(s), s);
++  const consume = { ...base, command: 'house.consume', qty: '', type: 'consume', note: '' };
++  html = casa.form(c, { form: consume, record: rec(consume) });
++  for (const s of ['name="type"', 'name="note"', 'Registar consumo']) assert.ok(html.includes(s), s);
++  assert.ok(casa.form(c, { form: null, record: null }).includes('Formulário indisponível'));
++});
++
++test('Banner de rascunho Casa aparece com houseDraft', () => {
++  const c = ctx(demo(), { state: { ...P.offlineFixture(), hidden: false, houseDraft: { token: 't' } } });
++  assert.ok(casa.render(c, { tab: 'produtos' }).includes('id="resume-house"'));
++});
+diff --git a/android/app/src/screens/contas.cjs b/android/app/src/screens/contas.cjs
+new file mode 100644
+index 0000000..cf7b122
+--- /dev/null
++++ b/android/app/src/screens/contas.cjs
+@@ -0,0 +1,92 @@
++'use strict';
++const kit = require('../ui/kit.cjs');
++const V = require('../view-model.cjs');
++const P = require('../../../shared/protocol.cjs');
++const Accounts = require('../../../shared/accounts.cjs');
++const { row, stateOf } = require('./movimentos.cjs');
++
++// O estado dos ecrãs pode vir sem o razão confirmado (pré-visualização, testes).
++function fullState(ctx) {
++  return { ...stateOf(ctx), confirmed: { ledger: ctx.ledger }, ...ctx.state };
++}
++
++function balance(ledger, account) {
++  return P.Finance.cents(P.Finance.balanceAt(ledger, account));
++}
++
++function accountCard(ctx, a) {
++  const e = kit.escape, hidden = ctx.state.hidden, confirmedLedger = fullState(ctx).confirmed.ledger;
++  const confirmed = confirmedLedger.accounts.find(c => c.id === a.id);
++  return '<button type="button" class="review-card account-card" data-account="' + e(a.id) + '"><div><h2>' + e(a.name) + '</h2>'
++    + '<small>' + e(a.type) + (a.archived ? ' · Arquivada' : '') + '</small></div>'
++    + '<div><strong class="review-value" data-balance="' + e(a.id) + '">' + kit.money(balance(ctx.ledger, a), hidden) + '</strong>'
++    + '<small>' + (confirmed ? 'Confirmado: ' + kit.money(balance(confirmedLedger, confirmed), hidden) : 'Criada neste dispositivo') + '</small></div></button>';
++}
++
++function back(page, label) {
++  return '<button type="button" class="back" data-page="' + page + '">' + label + '</button>';
++}
++
++function render(ctx) {
++  const ledger = ctx.ledger, hidden = ctx.state.hidden;
++  const active = ledger.accounts.filter(a => !a.archived), archived = ledger.accounts.filter(a => a.archived);
++  const total = active.reduce((sum, a) => sum + balance(ledger, a), 0);
++  const tiles = '<div class="ch-tiles">'
++    + kit.tile({ tone: 'blue', icon: 'account', label: 'Saldo das contas ativas', value: kit.money(total, hidden), detail: 'Inclui alterações locais' })
++    + kit.tile({ tone: 'green', icon: 'check', label: 'Contas ativas', value: String(active.length), detail: archived.length ? archived.length + ' arquivada' + (archived.length === 1 ? '' : 's') : 'Nenhuma arquivada' })
++    + '</div>';
++  const banner = ctx.state.accountDraft
++    ? '<section class="draft-banner"><strong>Tens uma conta por concluir</strong><button id="resume-account">Retomar conta</button></section>' : '';
++  return banner + back('mais', '‹ Mais') + '<h1>Contas</h1><p class="sub">Os saldos incluem alterações locais. Arquivar conserva o histórico e o saldo.</p>'
++    + tiles
++    + '<button class="primary full" id="new-account">+ Nova conta</button>'
++    + (active.map(a => accountCard(ctx, a)).join('') || '<p class="empty">Sem contas ativas. Cria ou reativa uma conta.</p>')
++    + (archived.length ? '<details class="archived-accounts"><summary>Contas arquivadas · ' + archived.length + '</summary>' + archived.map(a => accountCard(ctx, a)).join('') + '</details>' : '');
++}
++
++// Detalhe da conta. view: {accountId, visibleLimit}.
++function detail(ctx, view = {}) {
++  const e = kit.escape, ledger = ctx.ledger;
++  const account = ledger.accounts.find(a => a.id === view.accountId);
++  const rows = account ? V.movements(ledger, stateOf(ctx), { accountId: account.id }, view.visibleLimit == null ? 40 : view.visibleLimit) : { rows: [], total: 0 };
++  const body = account
++    ? '<section class="balance"><span>Saldo atual</span><strong>' + kit.money(balance(ledger, account), ctx.state.hidden) + '</strong><small>' + e(account.type) + (account.archived ? ' · Arquivada' : '') + '</small></section>'
++      + '<div class="review-actions"><button id="edit-account">Editar conta</button><button id="ask-archive">' + (account.archived ? 'Reativar conta' : 'Arquivar conta') + '</button></div>'
++      + '<h2>Movimentos desta conta</h2><p class="sub">Transferências mostram o efeito nesta conta.</p>'
++      + (rows.rows.map(t => row(ctx, t, account.name)).join('') || '<p class="empty">Ainda não existem movimentos nesta conta.</p>')
++      + (rows.rows.length < rows.total ? '<button id="show-more" class="full">Mostrar mais movimentos</button>' : '')
++    : '';
++  return back('contas', '‹ Contas') + '<h1>' + (account ? e(account.name) : 'Conta indisponível') + '</h1>' + body;
++}
++
++// Editor de conta nova/existente. view: {form}. Os ids e names são os que main.js já usa.
++function editor(ctx, view = {}) {
++  const e = kit.escape, a = view.form;
++  if (!a) return '<h1>Conta indisponível</h1><button data-page="contas">Voltar</button>';
++  const add = a.command === 'account.add';
++  const types = [...new Set([...Accounts.types, a.type])].map(t => '<option ' + (t === a.type ? 'selected' : '') + '>' + e(t) + '</option>').join('');
++  return back('contas', '‹ Contas') + '<h1>' + (add ? 'Nova conta' : 'Editar conta') + '</h1>'
++    + '<p class="sub">' + (add ? 'Define o saldo anterior aos movimentos que vais registar.' : 'Mudar o nome mantém os movimentos e os saldos desta conta.') + '</p>'
++    + '<form id="account-form"><label>Nome<input name="name" value="' + e(a.name) + '" maxlength="80" required autocomplete="off"></label>'
++    + '<label>Tipo<select name="type">' + types + '</select></label>'
++    + (add ? '<label>Saldo inicial (€)<input name="opening" value="' + e(a.opening) + '" inputmode="decimal" required></label>' : '<p class="note">O saldo inicial é conservado. Esta edição não altera valores.</p>')
++    + '<p class="sub">Só fica guardado depois de tocares em Guardar conta.</p>'
++    + '<button class="primary full" id="save-account" type="button">Guardar conta</button></form>';
++}
++
++// Confirmação de arquivo/reativação. view: {accountId}.
++function archive(ctx, view = {}) {
++  const e = kit.escape, a = ctx.ledger.accounts.find(x => x.id === view.accountId);
++  const verb = a && a.archived ? 'Reativar' : 'Arquivar';
++  return '<h1>' + verb + ' conta?</h1><p>' + e(a ? a.name : 'Conta indisponível') + '</p>'
++    + '<p>O saldo e todos os movimentos são conservados. Uma conta arquivada deixa de estar disponível para novos movimentos.</p>'
++    + '<div class="review-actions"><button data-page="conta">Cancelar</button><button id="confirm-archive" class="primary">' + verb + ' conta</button></div>';
++}
++
++// Saída de um formulário de conta por guardar.
++function leave() {
++  return '<h1>Sair sem guardar a conta?</h1><p>O preenchimento desta conta ainda não foi guardado. Os movimentos e os rascunhos existentes mantêm-se.</p>'
++    + '<div class="review-actions"><button id="stay-account" class="primary">Continuar a preencher</button><button id="leave-account">Sair sem guardar</button></div>';
++}
++
++module.exports = { render, detail, editor, archive, leave };
+diff --git a/android/app/src/screens/contas.test.cjs b/android/app/src/screens/contas.test.cjs
+new file mode 100644
+index 0000000..8ab53e2
+--- /dev/null
++++ b/android/app/src/screens/contas.test.cjs
+@@ -0,0 +1,70 @@
++'use strict';
++const test = require('node:test');
++const assert = require('node:assert/strict');
++const contas = require('./contas.cjs');
++const { ctx, demo, empty } = require('./fixtures.cjs');
++
++const AMOUNT = /\d,\d{2}\s?€/;
++const hiddenCtx = ledger => ctx(ledger, { state: { hidden: true } });
++
++test('Contas não atira com dados vazios e de demonstração', () => {
++  for (const make of [empty, demo]) {
++    const c = ctx(make());
++    const id = c.ledger.accounts[0].id;
++    assert.ok(contas.render(c).includes('id="new-account"'));
++    assert.ok(contas.detail(c, { accountId: id, visibleLimit: 40 }).length > 0);
++    assert.ok(contas.editor(c, { form: { command: 'account.add', id: 'x', name: '', type: 'Banco', opening: '' } }).includes('id="account-form"'));
++    assert.ok(contas.archive(c, { accountId: id }).includes('id="confirm-archive"'));
++    assert.ok(contas.leave(c).includes('id="leave-account"'));
++  }
++});
++
++test('Contas lista cada conta com data-account e o botão de arquivar volta a Mais', () => {
++  const html = contas.render(ctx(demo()));
++  assert.equal((html.match(/data-account="/g) || []).length, 2);
++  assert.ok(html.includes('data-page="mais"'));
++});
++
++test('Contas arquivadas ficam numa secção própria', () => {
++  const ledger = demo();
++  ledger.accounts[1].archived = true;
++  const html = contas.render(ctx(ledger));
++  assert.match(html, /Contas arquivadas · 1/);
++});
++
++test('Contas com valores ocultos não mostra montantes (e mostra-os quando visíveis)', () => {
++  assert.match(contas.render(ctx(demo())), AMOUNT);
++  assert.doesNotMatch(contas.render(hiddenCtx(demo())), AMOUNT);
++  const id = demo().accounts[0].id;
++  assert.match(contas.detail(ctx(demo()), { accountId: id, visibleLimit: 40 }), AMOUNT);
++  assert.doesNotMatch(contas.detail(hiddenCtx(demo()), { accountId: id, visibleLimit: 40 }), AMOUNT);
++});
++
++test('Detalhe da conta lista movimentos, ações e trata conta em falta', () => {
++  const c = ctx(demo());
++  const html = contas.detail(c, { accountId: c.ledger.accounts[0].id, visibleLimit: 40 });
++  assert.ok(html.includes('id="edit-account"') && html.includes('id="ask-archive"') && html.includes('movement-row'));
++  assert.ok(html.includes('data-page="contas"'));
++  assert.ok(contas.detail(c, { accountId: 'nao-existe', visibleLimit: 40 }).includes('Conta indisponível'));
++});
++
++test('Editor da conta distingue nova de existente e trata ausência de formulário', () => {
++  const c = ctx(demo());
++  const add = contas.editor(c, { form: { command: 'account.add', id: 'x', name: 'N', type: 'Banco', opening: '10,00' } });
++  assert.ok(add.includes('Nova conta') && add.includes('name="opening"') && add.includes('id="save-account"'));
++  const upd = contas.editor(c, { form: { command: 'account.update', id: 'x', name: 'N', type: 'Banco', opening: '10,00' } });
++  assert.ok(upd.includes('Editar conta') && !upd.includes('name="opening"'));
++  assert.ok(contas.editor(c, { form: null }).includes('Conta indisponível'));
++});
++
++test('Arquivar propõe reativar numa conta arquivada', () => {
++  const ledger = demo();
++  ledger.accounts[0].archived = true;
++  assert.ok(contas.archive(ctx(ledger), { accountId: ledger.accounts[0].id }).includes('Reativar conta?'));
++  assert.ok(contas.archive(ctx(demo()), { accountId: demo().accounts[0].id }).includes('Arquivar conta?'));
++});
++
++test('Banner de rascunho de conta aparece com accountDraft', () => {
++  const html = contas.render(ctx(demo(), { state: { hidden: false, accountDraft: { token: 't' } } }));
++  assert.ok(html.includes('id="resume-account"'));
++});
+diff --git a/android/app/src/screens/fixtures.cjs b/android/app/src/screens/fixtures.cjs
+index 813083e..6b78322 100644
+--- a/android/app/src/screens/fixtures.cjs
++++ b/android/app/src/screens/fixtures.cjs
+@@ -1,13 +1,14 @@
+ 'use strict';
+ // Dados fictícios partilhados pelos ecrãs, pelos testes e pela pré-visualização.
+ const P = require('../../../shared/protocol.cjs');
++const H = require('../../../shared/house.cjs');
+ 
+ function empty() {
+   return P.fixture();
+ }
+ 
+ function demo() {
+   const d = P.fixture();
+   const bank = d.accounts[0].name;
+   const cash = d.accounts[1].name;
+   const rows = [
+@@ -19,20 +20,24 @@ function demo() {
+   ];
+   for (const t of rows) P.Finance.add(d, t);
+   d.casa = {
+     version: 1, purchases: [], catalog: [], stores: [], stock: [],
+     shopping: [
+       { id: 'sh-1', name: 'Leite', qty: '6 un', done: false },
+       { id: 'sh-2', name: 'Pão', qty: '1', done: true },
+       { id: 'sh-3', name: 'Detergente', qty: '2', done: false },
+     ],
+   };
++  H.Casa.saveProductOffers(d, { name: 'Arroz agulha', brand: 'Cigala', category: 'Alimentação', unit: 'un' }, [
++    { storeName: 'Continente', packageQty: 1, price: 1.29 }, { storeName: 'Pingo Doce', packageQty: 1, price: 1.35 },
++  ]);
++  H.Life.lot(d, { catalogId: H.Casa.state(d).catalog[0].id, qty: 3, location: 'Despensa', expiry: '2027-03-01', opened: false });
+   d.pendingPayments = [
+     { id: 'pp-rent', description: 'Renda', date: '2026-11-08', type: 'expense', amount: 520, account: bank, category: 'Habitação' },
+     { id: 'pp-net', description: 'Internet', date: '2026-11-20', type: 'expense', amount: 34.9, account: bank, category: 'Serviços' },
+   ];
+   d.investments = [{ id: 'inv-1', name: 'Fundo Poupança', type: 'Fundo', account: bank, invested: 1500, value: 1620 }];
+   d.assets = [{ id: 'as-1', name: 'Automóvel', kind: 'Veículo', valuations: [{ date: '2026-10-01', value: 6500 }] }];
+   d.debts = [{ id: 'db-1', name: 'Crédito automóvel', account: bank, balance: 3200, payment: 150 }];
+   d.wealthHistory = [
+     { id: 'w-1', date: '2026-09-30', cash: 2100, investments: 1600, assets: 6500, debts: 3350, net: 6850 },
+     { id: 'w-2', date: '2026-10-31', cash: 2300, investments: 1620, assets: 6500, debts: 3200, net: 7220 },
+diff --git a/android/app/src/screens/ligacao.cjs b/android/app/src/screens/ligacao.cjs
+new file mode 100644
+index 0000000..a8ea6a5
+--- /dev/null
++++ b/android/app/src/screens/ligacao.cjs
+@@ -0,0 +1,121 @@
++'use strict';
++const kit = require('../ui/kit.cjs');
++const P = require('../../../shared/protocol.cjs');
++
++// O estado dos ecrãs pode vir sem fila de envio nem razão confirmado (pré-visualização, testes).
++function fullState(ctx) {
++  return { outbox: [], confirmed: { ledger: ctx.ledger }, ...ctx.state };
++}
++
++function back(page, label) {
++  return '<button type="button" class="back" data-page="' + page + '">' + label + '</button>';
++}
++
++const STATUS = {
++  pending: 'Por enviar', sending: 'Envio por confirmar', acknowledged: 'Confirmado pelo servidor',
++  conflict: 'Conflito — proposta local preservada', rejected: 'Recusado — proposta local preservada', blocked: 'Bloqueado por dependência',
++};
++
++function queueEntry(x) {
++  const e = kit.escape, op = x.operation;
++  const state = x.resolution ? (x.resolution.choice === 'server' ? 'Revisto · versão do PC mantida' : 'Revisto · nova proposta conservada') : STATUS[x.status] || 'Revisão necessária';
++  return '<section class="queue-entry"><strong>' + e(op.payload.description || op.payload.name || (op.command.startsWith('account.') ? 'Conta' : 'Movimento')) + '</strong>'
++    + '<small>' + e(state) + '</small>'
++    + (!x.resolution && ['conflict', 'rejected', 'blocked'].includes(x.status) ? '<button data-review="' + e(op.operationId) + '">Rever</button>' : '') + '</section>';
++}
++
++function pairing(state, connection, savedConnection) {
++  if (connection) {
++    return '<div class="note">PC associado · ligação guardada com proteção do Android. Podes continuar a registar sem rede.</div>'
++      + '<button type="button" id="sync" class="primary full">Sincronizar</button><button type="button" id="review-detach" class="full">Preparar nova ligação</button>';
++  }
++  if (savedConnection && savedConnection.kind === 'pairing') {
++    return '<div class="note">Existe uma associação por concluir. O código e a credencial estão guardados com proteção do Android.</div>'
++      + '<button type="button" id="resume-pair" class="primary full">Retomar associação</button><button type="button" id="cancel-pair" class="full">Cancelar tentativa</button>';
++  }
++  const L = state.confirmed.ledger;
++  const needsConfirm = state.outbox.length || L.transactions.length || (L.pendingPayments && L.pendingPayments.length) || (L.casa && L.casa.catalog && L.casa.catalog.length)
++    || state.movementDraft || state.commitmentDraft || state.paymentDraft || state.accountDraft || state.houseDraft;
++  return '<div class="note">No PC de ensaio, cria um código para este dispositivo. Podes associar uma base vazia ou confirmar a substituição pelos dados do PC. Nesse caso, o estado local fica conservado num ponto anterior.</div>'
++    + '<form id="pairing"><label>Endereço apresentado no PC<input name="server" id="pair-server" type="url" placeholder="https://pc:…" required autocomplete="off"></label>'
++    + '<label>Código do PC<input name="code" id="pair-code" maxlength="19" placeholder="XXXX-XXXX-XXXX-XXXX" required autocomplete="off" autocapitalize="characters"></label>'
++    + '<label class="note"><input type="checkbox" name="replaceLocal" value="yes" ' + (needsConfirm ? 'required' : '') + '> Se este aparelho já tiver dados, confirmo substituí-los pelos dados do PC e conservar o estado local num ponto anterior. Esta ação não junta as duas bases.</label>'
++    + '<button type="button" id="pair" class="primary">Associar este dispositivo</button></form>';
++}
++
++// Ligação ao PC. view: {connection, savedConnection} (estado de ligação que main.js possui).
++function render(ctx, view = {}) {
++  const state = fullState(ctx);
++  const status = view.connection ? 'PC associado' : view.savedConnection && view.savedConnection.kind === 'pairing' ? 'Associação por concluir' : 'Sem PC associado';
++  return back('mais', '‹ Mais') + '<h1>Ligação</h1><p class="sub">Ensaio local · associação e sincronização</p>'
++    + '<button data-page="recuperacao" class="full">Cópia e recuperação</button>'
++    + kit.card({ title: 'Associação', subtitle: status, body: pairing(state, view.connection, view.savedConnection) })
++    + kit.card({ title: 'Alterações deste dispositivo', subtitle: state.outbox.length ? state.outbox.length + ' na fila' : '', body: '<div class="queue">' + (state.outbox.map(queueEntry).join('') || '<p class="sub">Sem alterações pendentes.</p>') + '</div>' });
++}
++
++// Rever uma diferença de sincronização. view: {conflictId}.
++function conflict(ctx, view = {}) {
++  const e = kit.escape, state = fullState(ctx), hidden = ctx.state.hidden;
++  const entry = state.outbox.find(r => r.operation.operationId === view.conflictId);
++  if (!entry || entry.resolution) return '<h1>Proposta já revista</h1><button data-page="sync">Voltar à ligação</button>';
++  const op = entry.operation, proposed = op.payload;
++  if (op.command.startsWith('commitment.') || op.command.startsWith('house.') || op.command.startsWith('account.')) {
++    return back('sync', '‹ Ligação') + '<h1>Rever proposta</h1><p>' + e((entry.receipt && entry.receipt.message) || 'Os dados mudaram.') + '</p>'
++      + '<h2>Proposta conservada</h2><pre class="proposal">' + (hidden ? 'Valores ocultos' : e(JSON.stringify(proposed, null, 2))) + '</pre>'
++      + '<p class="sub">Manter a versão do PC conserva a proposta no histórico. Repetir envia os mesmos campos apresentados com novas pré-condições; um pagamento nunca pode exceder o restante.</p>'
++      + '<div class="review-actions"><button id="keep-server">Manter versão do PC</button><button id="repeat-extended">Repetir proposta apresentada</button></div>';
++  }
++  const confirmed = state.confirmed.ledger.transactions.find(t => t.id === proposed.id);
++  const isDelete = op.command === 'movement.delete';
++  const canRevise = op.command.endsWith('.add') || !!confirmed;
++  return back('sync', '‹ Voltar') + '<h1>Rever diferença</h1><p class="sub">Escolhe explicitamente o que queres manter. As propostas anteriores ficam no histórico.</p>'
++    + '<div class="comparison"><section class="review-card"><h2>Versão confirmada no PC</h2>'
++    + (confirmed
++      ? '<strong>' + e(confirmed.description) + '</strong><p class="review-value">' + kit.money(P.Finance.cents(confirmed.amount), hidden) + '</p>'
++        + '<small>' + e(confirmed.date) + ' · ' + e(confirmed.account) + (confirmed.targetAccount ? ' → ' + e(confirmed.targetAccount) : '') + '</small>'
++      : '<p>O movimento não existe no estado confirmado.</p>')
++    + '</section><section class="review-card"><h2>A tua proposta</h2><strong>' + e(proposed.description || 'Movimento') + '</strong>'
++    + '<p class="review-value">' + (isDelete ? 'Eliminar movimento' : kit.money(proposed.amountCents, hidden)) + '</p><small>' + e(proposed.date || '') + '</small></section></div>'
++    + '<p class="sub">' + e((entry.receipt && entry.receipt.message) || 'A alteração precisa de revisão.') + '</p>'
++    + '<div class="review-actions"><button class="primary" id="keep-server">Manter versão do PC</button>'
++    + (canRevise ? '<button id="revise-local">' + (isDelete ? 'Repetir eliminação' : 'Rever minha proposta') + '</button>' : '<p class="sub">Uma edição antiga não pode recriar um movimento eliminado.</p>')
++    + '</div>';
++}
++
++// Cópia e recuperação. view: {points, file} (pontos guardados e cópia escolhida, estado que main.js possui).
++function recovery(ctx, view = {}) {
++  const points = view.points || [], file = view.file;
++  return back('sync', '‹ Ligação') + '<h1>Cópia e recuperação</h1>'
++    + '<p class="sub">Cópia encriptada dos dados e rascunhos locais. Guarda a palavra-passe: será necessária para recuperar. As credenciais da ligação ficam na proteção do Android e não são exportadas.</p>'
++    + '<label>Palavra-passe da cópia<input id="backup-password" type="password" minlength="10" maxlength="512" autocomplete="off"></label>'
++    + '<div class="review-actions"><button id="export-backup" class="primary">Guardar cópia encriptada</button><button id="choose-backup">Escolher cópia para recuperar</button>'
++    + (file ? '<button id="open-backup">Abrir cópia escolhida</button>' : '') + '</div>'
++    + '<section><h2>Estados anteriores</h2><p class="sub">Conservamos até três pontos. Uma origem importada pode ser exportada novamente; só se restaura diretamente a mesma associação.</p>'
++    + '<button id="list-checkpoints">Ver pontos guardados</button>'
++    + points.map(r => '<article class="review-card"><strong>' + (r.revision === 0 ? 'Origem da passagem' : 'Estado anterior · revisão ' + kit.escape(r.revision)) + '</strong>'
++      + '<p>' + kit.escape(r.transactions) + ' movimentos confirmados · ' + kit.escape(r.operations) + ' operações no histórico</p>'
++      + '<button data-checkpoint="' + kit.escape(r.id) + '">Abrir e rever</button></article>').join('') + '</section>';
++}
++
++function confirmRecovery() {
++  return '<button class="back" data-page="recuperacao">‹ Cancelar</button><h1>Rever recuperação</h1><p>O restauro substitui os dados locais e guarda o estado anterior. Só é permitido diretamente na mesma associação.</p>'
++    + '<button id="confirm-recovery" class="primary full">Restaurar nesta associação</button><h2>Outro aparelho</h2>'
++    + '<p>Num aparelho vazio, podes importar os dados para uso offline. Os registos antigos não são reenviados ao PC. A origem completa fica arquivada e os rascunhos que dependiam da associação anterior exigem revisão.</p>'
++    + '<button id="portable-import" class="full">Preparar passagem para este aparelho</button>'
++    + '<label>Palavra-passe para exportar a origem<input id="backup-password" type="password" minlength="10" maxlength="512" autocomplete="off"></label>'
++    + '<button id="export-recovery-candidate">Guardar esta origem encriptada</button>';
++}
++
++function confirmDetach() {
++  return '<button class="back" data-page="sync">‹ Cancelar</button><h1>Preparar nova ligação?</h1>'
++    + '<p>Os dados atuais ficam disponíveis offline. O histórico original fica num ponto anterior e as operações antigas não serão reenviadas. A ligação antiga deixa de ser usada neste aparelho; revoga-a no PC se já não for necessária. A associação seguinte exige escolher os dados do PC.</p>'
++    + '<button id="confirm-detach" class="primary full">Conservar dados e desligar associação</button>';
++}
++
++function confirmPassage() {
++  return '<button class="back" data-page="recuperacao">‹ Cancelar</button><h1>Confirmar passagem offline?</h1>'
++    + '<p>Os dados da cópia passam a ser a base local deste aparelho. O histórico original fica arquivado, sem credenciais e sem reenviar operações antigas. A ligação ao PC é feita separadamente e exige escolher os dados do PC.</p>'
++    + '<button id="confirm-portable" class="primary full">Confirmar passagem</button>';
++}
++
++module.exports = { render, conflict, recovery, confirmRecovery, confirmDetach, confirmPassage };
+diff --git a/android/app/src/screens/ligacao.test.cjs b/android/app/src/screens/ligacao.test.cjs
+new file mode 100644
+index 0000000..e8c5b66
+--- /dev/null
++++ b/android/app/src/screens/ligacao.test.cjs
+@@ -0,0 +1,70 @@
++'use strict';
++const test = require('node:test');
++const assert = require('node:assert/strict');
++const ligacao = require('./ligacao.cjs');
++const { ctx, demo, empty } = require('./fixtures.cjs');
++
++const AMOUNT = /\d,\d{2}\s?€/;
++const entry = (command, payload, extra = {}) => ({ operation: { operationId: 'op1', command, payload }, status: 'conflict', receipt: { message: 'Os dados mudaram.' }, ...extra });
++const withOutbox = (ledger, outbox, hidden = false) => ctx(ledger, { state: { hidden, outbox, confirmed: { ledger } } });
++
++test('Ligação sem associação mostra o formulário de endereço e código', () => {
++  const html = ligacao.render(ctx(empty()), { connection: null, savedConnection: null });
++  for (const s of ['id="pairing"', 'name="server"', 'name="code"', 'id="pair"', 'data-page="mais"', 'data-page="recuperacao"']) assert.ok(html.includes(s), s);
++  assert.ok(!html.includes('id="sync"'));
++  assert.ok(ligacao.render(ctx(empty())).includes('id="pairing"'));
++});
++
++test('Ligação associada oferece sincronizar; associação por concluir oferece retomar', () => {
++  const paired = ligacao.render(ctx(demo()), { connection: { url: 'x' }, savedConnection: null });
++  assert.ok(paired.includes('id="sync"') && paired.includes('id="review-detach"') && !paired.includes('id="pairing"'));
++  const pending = ligacao.render(ctx(demo()), { connection: null, savedConnection: { kind: 'pairing' } });
++  assert.ok(pending.includes('id="resume-pair"') && pending.includes('id="cancel-pair"'));
++});
++
++test('Ligação exige confirmar a substituição quando há dados locais', () => {
++  assert.doesNotMatch(ligacao.render(ctx(empty()), {}), /name="replaceLocal" value="yes" required/);
++  const some = ligacao.render(withOutbox(empty(), [entry('movement.add', { description: 'X' }, { status: 'pending' })]), {});
++  assert.match(some, /name="replaceLocal" value="yes" required/);
++});
++
++test('Ligação lista a fila e oferece Rever nos conflitos', () => {
++  const html = ligacao.render(withOutbox(demo(), [entry('movement.update', { description: 'Café' })]), {});
++  assert.ok(html.includes('Café') && html.includes('Conflito') && html.includes('data-review="op1"'));
++  assert.ok(ligacao.render(ctx(empty()), {}).includes('Sem alterações pendentes'));
++});
++
++test('Conflito de movimento compara versões e oferece manter ou rever', () => {
++  const ledger = demo(), t = ledger.transactions[0];
++  const c = withOutbox(ledger, [entry('movement.update', { id: t.id, description: 'Outro', amountCents: 999, date: '2026-11-05' })]);
++  const html = ligacao.conflict(c, { conflictId: 'op1' });
++  for (const s of ['id="keep-server"', 'id="revise-local"', 'Versão confirmada no PC', 'Outro', 'data-page="sync"']) assert.ok(html.includes(s), s);
++  assert.ok(ligacao.conflict(c, { conflictId: 'outro' }).includes('Proposta já revista'));
++});
++
++test('Conflito com valores ocultos não mostra montantes (e mostra-os quando visíveis)', () => {
++  const ledger = demo(), t = ledger.transactions[0];
++  const outbox = [entry('movement.update', { id: t.id, description: 'Outro', amountCents: 999, date: '2026-11-05' })];
++  assert.match(ligacao.conflict(withOutbox(ledger, outbox), { conflictId: 'op1' }), AMOUNT);
++  assert.doesNotMatch(ligacao.conflict(withOutbox(ledger, outbox, true), { conflictId: 'op1' }), AMOUNT);
++});
++
++test('Conflito de conta, compromisso ou Casa usa a proposta conservada e esconde valores', () => {
++  const outbox = [entry('account.update', { id: 'a1', name: 'Conta nova' })];
++  const html = ligacao.conflict(withOutbox(demo(), outbox), { conflictId: 'op1' });
++  assert.ok(html.includes('id="repeat-extended"') && html.includes('Conta nova'));
++  const hidden = ligacao.conflict(withOutbox(demo(), outbox, true), { conflictId: 'op1' });
++  assert.ok(hidden.includes('Valores ocultos') && !hidden.includes('Conta nova'));
++});
++
++test('Recuperação e confirmações têm os ids usados pelos manipuladores', () => {
++  const c = ctx(demo());
++  const rec = ligacao.recovery(c, { points: [{ id: 3, revision: 0, transactions: 5, operations: 2 }], file: null });
++  for (const s of ['id="export-backup"', 'id="choose-backup"', 'id="list-checkpoints"', 'data-checkpoint="3"', 'id="backup-password"', 'data-page="sync"']) assert.ok(rec.includes(s), s);
++  assert.ok(!rec.includes('id="open-backup"'));
++  assert.ok(ligacao.recovery(c, { points: [], file: 'x' }).includes('id="open-backup"'));
++  assert.ok(ligacao.recovery(c).includes('id="export-backup"'));
++  assert.ok(ligacao.confirmRecovery().includes('id="confirm-recovery"') && ligacao.confirmRecovery().includes('id="portable-import"'));
++  assert.ok(ligacao.confirmDetach().includes('id="confirm-detach"'));
++  assert.ok(ligacao.confirmPassage().includes('id="confirm-portable"'));
++});

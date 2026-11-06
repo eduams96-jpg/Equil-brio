@@ -1,0 +1,87 @@
+# Review package: 6843bc4..HEAD
+
+## Commits
+5405f19 Android: foco visível nas pills e deslocamento da pill ativa no fim do render
+
+## Files changed
+ android/app/src/main.js   | 4 ++--
+ android/app/src/style.css | 1 +
+ 2 files changed, 3 insertions(+), 2 deletions(-)
+
+## Diff
+diff --git a/android/app/src/main.js b/android/app/src/main.js
+index e7c9b07..915ca19 100644
+--- a/android/app/src/main.js
++++ b/android/app/src/main.js
+@@ -206,22 +206,20 @@ async function render(){
+  if(page==='novo-compromisso')main.innerHTML=Agenda.form(ctx,{form:cf,record:cr});
+ 
+  if(page==='compromisso')main.innerHTML=Agenda.commitment(ctx,{commitmentId});
+ 
+  if(page==='descartar-compromisso')main.innerHTML=Agenda.discardCommitment();
+ 
+  if(page==='rascunho')main.innerHTML=Movimentos.recovery(ctx);
+ 
+  if(page==='descartar-rascunho')main.innerHTML=Movimentos.discardDraft();
+ 
+- main.querySelectorAll('.cs-pills [aria-pressed=true]').forEach(b=>{const p=b.parentElement,r=b.getBoundingClientRect(),c=p.getBoundingClientRect();if(r.right>c.right||r.left<c.left)p.scrollLeft+=r.left-c.left-8;});
+-
+  if(page==='novo')main.innerHTML=movementForm(ledger);
+ 
+  if(page==='contas')main.innerHTML=Contas.render(ctx);
+ 
+  if(page==='editar-conta')main.innerHTML=Contas.editor(ctx,{form:accountForm});
+ 
+  if(page==='sair-conta')main.innerHTML=Contas.leave();
+ 
+  if(page==='arquivar-conta')main.innerHTML=Contas.archive(ctx,{accountId:selectedAccount});
+ 
+@@ -235,20 +233,22 @@ async function render(){
+  }
+ 
+ 
+ 
+  if(page==='eliminar')main.innerHTML=Movimentos.remove(ctx,{movementId:selectedId});
+ 
+  if(page==='conflito')main.innerHTML=Ligacao.conflict(ctx,{conflictId});
+ 
+  if(page==='sync')main.innerHTML=Ligacao.render(ctx,{connection,savedConnection});
+ 
++ main.querySelectorAll('.cs-pills').forEach(p=>{const b=p.querySelector('[aria-pressed="true"]');if(!b)return;const r=b.getBoundingClientRect(),c=p.getBoundingClientRect();if(r.right>c.right||r.left<c.left)p.scrollLeft+=r.left-c.left-8;});
++
+  if(page==='novo'&&draftBaseline===null){draftBaseline=formFingerprint();draftRecord.baseline=draftBaseline;}
+ 
+  main.setAttribute('aria-busy',String(busy));
+ 
+  if(renderedPage!==page){renderedPage=page;await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));window.scrollTo(0,0);}
+ 
+ }
+ 
+ function formFingerprint(){const form=document.getElementById('movement');return form?JSON.stringify([...new FormData(form).entries()]):null;}
+ 
+diff --git a/android/app/src/style.css b/android/app/src/style.css
+index 2da6808..e49d625 100644
+--- a/android/app/src/style.css
++++ b/android/app/src/style.css
+@@ -88,20 +88,21 @@ nav button[aria-current]{background:color-mix(in srgb,var(--blue) 14%,transparen
+ .ch-tile-label{font-size:12px;color:var(--muted)}
+ .ch-tile-value{max-width:100%;font-size:19px;font-weight:700;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+ .ch-tile-detail{font-size:12px;color:var(--muted)}
+ .is-green .ch-tile-icon{background:color-mix(in srgb,var(--green) 15%,transparent);color:var(--green)}
+ .is-amber .ch-tile-icon{background:color-mix(in srgb,var(--orange) 16%,transparent);color:var(--orange)}
+ .is-red .ch-tile-icon{background:color-mix(in srgb,var(--red) 14%,transparent);color:var(--red)}
+ .is-purple .ch-tile-icon{background:color-mix(in srgb,var(--purple) 16%,transparent);color:var(--purple)}
+ 
+ .cs-pills{display:flex;gap:6px;flex-wrap:nowrap;overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x proximity;scrollbar-width:none;-webkit-overflow-scrolling:touch;margin:12px 0;padding:3px 2px}
+ .cs-pills::-webkit-scrollbar{display:none}
++.cs-pills button:focus-visible{outline-offset:-3px}
+ .cs-pills button{flex:0 0 auto;white-space:nowrap;scroll-snap-align:start;display:inline-flex;align-items:center;gap:7px;min-height:44px;padding:6px 14px;border-radius:99px;border:1px solid var(--line);background:transparent;color:var(--muted);font-size:13px;font-weight:600;width:auto}
+ .cs-pills button .cs-pill-count{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:99px;background:var(--surface-soft);font-size:11px}
+ .cs-pills button[aria-pressed=true]{background:var(--blue);border-color:var(--blue);color:var(--on-blue)}
+ .cs-pills button[aria-pressed=true] .cs-pill-count{background:rgba(255,255,255,.22);color:#fff}
+ 
+ .cs-search{position:relative;display:flex;align-items:center;margin:12px 0;min-width:0}
+ .cs-search svg{position:absolute;left:12px;width:16px;height:16px;color:var(--muted);pointer-events:none}
+ .cs-search input{width:100%;min-height:44px;padding-left:36px;border-radius:99px}
+ 
+ /* ---- Cartões e linhas dos ecrãs atuais ---- */

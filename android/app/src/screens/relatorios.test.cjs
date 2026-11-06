@@ -88,7 +88,7 @@ test('ledger vazio e demo não atiram, em todos os períodos', () => {
 
 test('seletor de período, contas, mosaicos e carimbo de sincronização', () => {
   const html = relatorios.render(realCtx(demo()), NOV);
-  for (const part of ['data-pill-repkind="m"', 'data-pill-repkind="q"', 'data-pill-repkind="year"', 'id="rep-prev"', 'id="rep-next"', 'data-pill-repaccount=""', 'novembro de 2026', 'Receitas', 'Despesas', 'Saldo', 'Diferença', 'Onde gastas', 'data-page="mais"', 'Ainda não sincronizado']) {
+  for (const part of ['data-pill-repkind="m"', 'data-pill-repkind="q"', 'data-pill-repkind="year"', 'id="rep-prev"', 'id="rep-next"', 'data-pill-repaccount=""', 'novembro de 2026', 'Receitas', 'Despesas', 'Saldo', 'Diferença do saldo', 'Onde gastas', 'data-page="mais"', 'Ainda não sincronizado']) {
     assert.ok(html.includes(part), part);
   }
   assert.ok(html.includes('data-pill-repkind="m"') && /data-pill-repkind="m" aria-pressed="true"/.test(html));
@@ -117,6 +117,8 @@ test('o ecrã não usa style= (a CSP bloqueia-o) e desenha cores em atributos SV
   assert.ok(relatorios.render(realCtx(demo()), NOV).includes('fill="#2f9e83"'));
 });
 
+const tile = (html, name) => (html.match(new RegExp('<article[^>]*>(?:(?!</article>).)*' + name + '(?:(?!</article>).)*</article>')) || [''])[0];
+
 test('com valores ocultos não há montantes, nem em aria-label', () => {
   for (const period of ['m11', 'q4', 'year']) {
     const sel = { year: '2026', period, account: '', open: 'Alimentação' };
@@ -125,6 +127,8 @@ test('com valores ocultos não há montantes, nem em aria-label', () => {
     const html = relatorios.render(realCtx(demo(), true), sel);
     assert.doesNotMatch(html, AMOUNT, period);
     assert.ok(html.includes('•••• €'));
+    assert.doesNotMatch(tile(html, 'Diferença do saldo'), /%/, period);
+    if (period === 'm11') assert.match(tile(relatorios.render(realCtx(demo(), false), sel), 'Diferença do saldo'), /%/);
     for (const label of html.match(/aria-label="[^"]*"/g) || []) assert.doesNotMatch(label, /\d,\d{2}|€/, label);
   }
   const emptyHtml = relatorios.render(realCtx(empty(), true), NOV);

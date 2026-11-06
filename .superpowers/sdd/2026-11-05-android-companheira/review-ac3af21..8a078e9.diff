@@ -1,0 +1,653 @@
+# Review package: ac3af21..HEAD
+
+## Commits
+8a078e9 Android: Histórico de compras na Casa e restante HTML de main.js para screens/
+
+## Files changed
+ android/app/scripts/preview.cjs             |  1 +
+ android/app/src/main.js                     | 32 +++--------------------
+ android/app/src/screens/casa.cjs            | 14 +++++++++--
+ android/app/src/screens/casa.test.cjs       | 13 +++++++++-
+ android/app/src/screens/contas.cjs          |  6 +----
+ android/app/src/screens/fixtures.cjs        |  2 +-
+ android/app/src/screens/ligacao.cjs         |  6 +----
+ android/app/src/screens/movimentos.cjs      | 39 +++++++++++++++++++++++++++--
+ android/app/src/screens/movimentos.test.cjs | 27 ++++++++++++++++++++
+ android/app/src/screens/resumo.cjs          | 32 ++++++++++++++++++++---
+ android/app/src/screens/resumo.test.cjs     | 16 ++++++++++++
+ android/app/src/screens/state.cjs           |  7 ++++++
+ 12 files changed, 147 insertions(+), 48 deletions(-)
+
+## Diff
+diff --git a/android/app/scripts/preview.cjs b/android/app/scripts/preview.cjs
+index 6387c45..f4ba873 100644
+--- a/android/app/scripts/preview.cjs
++++ b/android/app/scripts/preview.cjs
+@@ -14,20 +14,21 @@ const out = path.join(root, 'www-preview');
+ const SCREENS = [
+   { name: 'moldura', module: null },
+   { name: 'resumo', module: '../src/screens/resumo.cjs' },
+   { name: 'movimentos', module: '../src/screens/movimentos.cjs' },
+   { name: 'casa', module: '../src/screens/casa.cjs' },
+   { name: 'mais', module: '../src/screens/mais.cjs' },
+   { name: 'contas', module: '../src/screens/contas.cjs' },
+   { name: 'agenda', module: '../src/screens/agenda.cjs' },
+   { name: 'ligacao', module: '../src/screens/ligacao.cjs', page: 'sync' },
+   { name: 'casa-stock', module: '../src/screens/casa.cjs', page: 'casa', view: { tab: 'stock' } },
++  { name: 'casa-historico', module: '../src/screens/casa.cjs', page: 'casa', view: { tab: 'historico' } },
+   { name: 'casa-compras', module: '../src/screens/casa.cjs', page: 'casa', view: { tab: 'compras' } },
+   { name: 'ligacao-ligada', module: '../src/screens/ligacao.cjs', page: 'sync', view: { connection: {} } },
+ ];
+ const DATA = [['demo', fixtures.demo], ['vazio', fixtures.empty]];
+ const THEMES = [['claro', 'light'], ['escuro', 'dark']];
+ const CSP = "default-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'";
+ 
+ function frame(title, theme, active, body) {
+   return '<!doctype html>\n<html lang="pt-PT" data-theme="' + theme + '"><head><meta charset="utf-8">'
+     + '<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">'
+diff --git a/android/app/src/main.js b/android/app/src/main.js
+index f528ecd..50112ba 100644
+--- a/android/app/src/main.js
++++ b/android/app/src/main.js
+@@ -7,22 +7,20 @@ let recoveryFile=null,recoveryCandidate=null,recoveryExpected=null,recoveryPoint
+ const backupFiles=registerPlugin('BackupFiles');
+ 
+ import House from '../../shared/house.cjs';
+ 
+ import HouseForm from '../../shared/house-form.cjs';
+ 
+ import Casa from './screens/casa.cjs';
+ 
+ let houseTab='produtos',houseId=null,hf=null,hr=null,houseDiscard=null;
+ 
+-import Consult from './financial-consultation.cjs';
+-
+ import Forms from '../../shared/form-drafts.cjs';
+ 
+ let pf=null,pr=null,paymentDiscard=null;
+ 
+ import {registerPlugin,Capacitor,CapacitorHttp} from '@capacitor/core';
+ 
+ import P from '../../shared/protocol.cjs';
+ 
+ import C from '../../shared/client.cjs';
+ 
+@@ -103,38 +101,32 @@ async function rawRequest(url,method,path,data,credential){
+ }
+ 
+ async function request(method,path,data){if(!connection)throw Error('Sem PC associado.');return rawRequest(connection.url,method,path,data,connection.credential);}
+ 
+ const client=new C.Client(adapter,request,{negotiate:true});
+ 
+ const association=new A.Association({read:()=>adapter.read(),replace:(s,r)=>adapter.replace(s,r),restoreWithCheckpoint:(state,revision)=>store.compareAndSet({state,expectedRevision:revision,preservePrevious:true}),importWithArchive:(state,archiveSource,revision)=>store.compareAndSet({state,archiveSource,expectedRevision:revision,preservePrevious:true})},vault,rawRequest);
+ 
+ function money(cents){return current.state.hidden?'•••• €':new Intl.NumberFormat('pt-PT',{style:'currency',currency:'EUR'}).format(cents/100);}
+ 
+-function periodControls(ledger){return Resumo.periodControls(ledger,summaryPeriod,today());}
+-
+ function simple(t){return Policy.editable(t);}
+ 
+ function today(){const date=new Date();return [date.getFullYear(),String(date.getMonth()+1).padStart(2,'0'),String(date.getDate()).padStart(2,'0')].join('-');}
+ 
+ function metadata(t={}){const [category,subcategory,categoryDetail,categorySubdetail]=D.categoryParts(t.category||'Outros');return {category,subcategory,categoryDetail,categorySubdetail,note:t.note||'',beneficiary:t.beneficiary||'',noteColor:t.noteColor||'',expenseNature:t.expenseNature||'variable',tags:P.copy(t.tags||[])};}
+ 
+ function fromMovement(t,ledger){return {id:t.id,type:t.type,amount:String(t.amount).replace('.',','),description:t.description,accountId:ledger.accounts.find(a=>a.name===t.account)?.id||'',targetId:ledger.accounts.find(a=>a.name===t.targetAccount)?.id||'',...metadata(t),date:t.date,command:t.type==='transfer'?'transfer.update':'movement.update'};}
+ 
+ function newDraft(ledger){return {id:P.id(),type:'expense',amount:'',description:'',accountId:ledger.accounts.filter(a=>!a.archived)[0]?.id||'',targetId:ledger.accounts.filter(a=>!a.archived)[1]?.id||'',...metadata(),date:today(),command:'new'};}
+ 
+ function openEdit(t){if(current.state.movementDraft){page='rascunho';return;}if(!simple(t))throw Error('Este movimento exige o percurso especializado do programa.');const view=P.view(current.state);draft=fromMovement(t,view.ledger);formRevision=view.revisions['transaction:'+t.id]||0;resolvingId=null;draftRecord=null;draftBaseline=null;page='novo';}
+ 
+-function draftBanner(){return current.state.movementDraft?'<section class="draft-banner"><strong>Tens um movimento por concluir</strong><p>O rascunho está guardado neste dispositivo.</p><button type="button" id="resume-draft">Retomar rascunho</button></section>':'';}
+-
+-function recovery(){const record=current.state.movementDraft;if(!record)return '<h1>Sem rascunho</h1><button data-page="movimentos">Voltar aos movimentos</button>';let error='',reason='';try{D.valid(record);reason=D.staleReason(current.state,record);}catch(e){error=e.message;}return `<h1>Movimento por concluir</h1><p class="sub">Guardado neste dispositivo. Ainda não é um movimento financeiro.</p>${error?`<p class="note">${escape(error)}</p>`:`<section class="review-card"><h2>${escape(record.form.description||'Descrição por preencher')}</h2><p>${record.form.command==='new'?'Novo movimento':'Edição de movimento'}</p><small>${escape(record.savedAt?V.dateLabel(record.savedAt.slice(0,10)):'')}</small></section>${reason?`<p class="note">${escape(reason)}</p>`:''}`}<div class="review-actions">${!error?'<button id="resume-edit" class="primary">Retomar preenchimento</button>':''}<button id="ask-discard-draft">Descartar rascunho</button><button data-page="resumo">Voltar ao Resumo</button></div>`;}
+-
+ 
+ 
+ function movementForm(ledger){
+ 
+  if(!draft)draft=newDraft(ledger);if(!draftRecord)draftRecord=D.create(current.state,draft,formRevision,'',resolvingId);
+ 
+  return Movimentos.form({ledger,state:current.state},{draft,draftRecord,resolvingId});
+ 
+ }
+ 
+@@ -204,66 +196,52 @@ async function render(){
+ 
+  if(page==='confirmar-desligar')main.innerHTML=Ligacao.confirmDetach();
+  if(page==='confirmar-passagem')main.innerHTML=Ligacao.confirmPassage();
+ 
+  if(page==='agenda')main.innerHTML=Agenda.render(ctx,{period:summaryPeriod,showCompleted:showCompletedAgenda});
+ 
+  if(page==='pagar-compromisso')main.innerHTML=Agenda.payment(ctx,{form:pf,record:pr});
+ 
+  if(page==='descartar-pagamento')main.innerHTML=Agenda.discardPayment();
+ 
+- if(page==='resumo'&&state.paymentDraft)main.insertAdjacentHTML('afterbegin','<section class="draft-banner"><strong>Tens um pagamento por concluir</strong><button id="resume-payment">Retomar pagamento</button><button id="ask-discard-payment">Descartar rascunho</button></section>');
+-
+  if(page==='novo-compromisso')main.innerHTML=Agenda.form(ctx,{form:cf,record:cr});
+ 
+  if(page==='compromisso')main.innerHTML=Agenda.commitment(ctx,{commitmentId});
+ 
+  if(page==='descartar-compromisso')main.innerHTML=Agenda.discardCommitment();
+ 
+- if(page==='resumo'&&state.commitmentDraft)main.insertAdjacentHTML('afterbegin','<section class="draft-banner"><strong>Tens um compromisso por concluir</strong><button data-page="agenda">Abrir Agenda</button></section>');
+-
+- if(['resumo','movimentos'].includes(page)&&state.movementDraft)main.insertAdjacentHTML('afterbegin',draftBanner());
+-
+- if(page==='rascunho')main.innerHTML=recovery();
++ if(page==='rascunho')main.innerHTML=Movimentos.recovery(ctx);
+ 
+- if(page==='descartar-rascunho')main.innerHTML='<h1>Descartar o rascunho?</h1><p>O texto por concluir será removido deste dispositivo. Os movimentos guardados mantêm-se.</p><div class="review-actions"><button id="cancel-discard-draft" class="primary">Manter rascunho</button><button id="confirm-discard-draft">Descartar rascunho</button></div>';
++ if(page==='descartar-rascunho')main.innerHTML=Movimentos.discardDraft();
+ 
+  if(page==='novo')main.innerHTML=movementForm(ledger);
+ 
+  if(page==='contas')main.innerHTML=Contas.render(ctx);
+ 
+  if(page==='editar-conta')main.innerHTML=Contas.editor(ctx,{form:accountForm});
+ 
+  if(page==='sair-conta')main.innerHTML=Contas.leave();
+ 
+  if(page==='arquivar-conta')main.innerHTML=Contas.archive(ctx,{accountId:selectedAccount});
+ 
+  if(page==='conta')main.innerHTML=Contas.detail(ctx,{accountId:selectedAccount,visibleLimit});
+ 
+- if(page==='consulta-financeira')main.innerHTML=financialConsultation(ledger);
+-
+- if(page==='resumo')main.insertAdjacentHTML('beforeend','<button class="full agenda-shortcut" data-page="consulta-financeira">Créditos e prestações · consulta</button>');
++ if(page==='consulta-financeira')main.innerHTML=Resumo.financial(ctx,{period:summaryPeriod});
+ 
+  if(page==='detalhe'){
+ 
+   main.innerHTML=Movimentos.detail(ctx,{movementId:selectedId,returnPage:detailReturn});
+  }
+ 
+ 
+ 
+- if(page==='eliminar'){
+-
+-  const t=ledger.transactions.find(t=>t.id===selectedId);
+-
+-  main.innerHTML=`<button class="back" data-page="movimentos">‹ Cancelar</button><h1>Eliminar movimento?</h1>${t?`<section class="review-card"><h2>${escape(t.description)}</h2><p>${money(P.Finance.cents(t.amount))}</p><small>${t.type==='transfer'?'O efeito nas duas contas será retirado em conjunto.':'A alteração fica por confirmar até sincronizares.'}</small></section><button id="confirm-delete" class="primary full">Eliminar movimento</button>`:'<p>O movimento já foi eliminado.</p>'}`;
+-
+- }
++ if(page==='eliminar')main.innerHTML=Movimentos.remove(ctx,{movementId:selectedId});
+ 
+  if(page==='conflito')main.innerHTML=Ligacao.conflict(ctx,{conflictId});
+ 
+  if(page==='sync')main.innerHTML=Ligacao.render(ctx,{connection,savedConnection});
+ 
+  if(page==='novo'&&draftBaseline===null){draftBaseline=formFingerprint();draftRecord.baseline=draftBaseline;}
+ 
+  main.setAttribute('aria-busy',String(busy));
+ 
+  if(renderedPage!==page){renderedPage=page;await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));window.scrollTo(0,0);}
+@@ -475,22 +453,20 @@ document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b||
+ for(const name of ['input','change'])document.addEventListener(name,e=>{if(e.target.closest('#payment-form')&&!busy)persistPayment().then(()=>{const el=document.getElementById('payment-status');if(el)el.textContent='Rascunho guardado neste dispositivo.';}).catch(e=>message.textContent=e.message);});
+ 
+ // The Android back action follows the same form exits as the visible controls.
+ 
+ window.EquilibrioBack=()=>{if(busy)return true;const dialog=document.getElementById('leaveDialog');if(dialog.open){dialog.close();pendingPage=null;return true;}if(page==='resumo')return false;const visibleBack=main.querySelector('button.back,button[data-page]');if(visibleBack){visibleBack.click();return true;}document.querySelector('nav [data-page="resumo"]').click();return true;};
+ 
+ document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'){if(page==='novo')persistDraft().catch(e=>message.textContent=e.message);if(page==='novo-compromisso')persistCommit().catch(e=>message.textContent=e.message);if(page==='pagar-compromisso')persistPayment().catch(e=>message.textContent=e.message);}});
+ 
+ 
+ 
+-function financialConsultation(ledger){const c=Consult.debts(ledger,summaryPeriod);return `<button class="back" data-page="resumo">‹ Resumo</button><h1>Créditos e prestações</h1><p class="sub">Consulta dos registos existentes. Alterações e pagamentos especializados mantêm o percurso no PC.</p>${periodControls(ledger)}<h2>Créditos</h2>${c.debts.map(d=>`<section class="review-card"><h3>${escape(d.name)}</h3><small>Capital em dívida</small><p class="review-value">${money(d.balanceCents)}</p><p>Prestação: ${money(d.paymentCents)}</p></section>`).join('')||'<p class="empty">Sem créditos registados.</p>'}<h2>Prestações estimadas do mês</h2><p class="sub">Estimativas do modelo Windows; não são pagamentos registados.</p>${c.estimates.map(e=>`<section class="review-card"><strong>${escape(e.description)}</strong><p>${escape(V.dateLabel(e.date))} · ${money(P.Finance.cents(e.amount))}</p></section>`).join('')||'<p class="empty">Sem prestações estimadas neste mês.</p>'}<h2>Compras em prestações</h2>${c.plans.map(p=>`<section class="review-card"><h3>${escape(p.description)}</h3>${p.payments.map(x=>`<div class="info-line"><span>${escape(V.dateLabel(x.date))}</span><strong>${money(x.remainingCents)} por liquidar</strong></div>`).join('')}</section>`).join('')||'<p class="empty">Sem planos de prestações.</p>'}`;}
+-
+ function preserveHouse(){const f=document.getElementById('house-form');if(page!=='casa-form'||!hf||!f)return;const d=new FormData(f);for(const [k,v] of d.entries())if(!k.startsWith('offer-'))hf[k]=String(v);if(hf.command==='house.product')hf.offers=[...f.querySelectorAll('[data-offer-row]')].map(el=>({...Object.fromEntries(['storeName','packageQty','price','url'].map(k=>[k,el.querySelector('[data-offer-field="'+k+'"]').value]))}));}
+ 
+ async function persistHouse(){preserveHouse();if(!hr)return;const r=await Forms.save(adapter,'houseDraft',{...hr,form:P.copy(hf)});if(hr?.token===r.token)hr=r;return r;}
+ 
+ async function openHouseForm(kind,id=null){await adapter.idle();const s=(await adapter.read()).state;if(s.houseDraft){hr=P.copy(s.houseDraft);hf=P.copy(hr.form);page='casa-form';return;}const v=P.view(s),c=House.Casa.state(v.ledger),old=kind==='product'?c.catalog.find(x=>x.id===id):c.stock.find(x=>x.id===id);hf={id:old?.id||P.id(),command:'house.'+kind,mode:old?'update':'create',seed:P.id(),changedOn:today()};if(kind==='product'){const cats=P.Finance.categoryParts(old?.category||'');Object.assign(hf,{name:old?.name||'',brand:old?.brand||'',category:cats[0]||'',sub1:cats[1]||'',sub2:cats[2]||'',sub3:cats[3]||'',unit:old?.unit||'un',url:old?.url||'',offers:old?Object.entries(old.offers).map(([storeId,o])=>({storeName:c.stores.find(s=>s.id===storeId)?.name||'',packageQty:String(o.packageQty),price:String(o.price).replace('.',','),...(o.url?{url:o.url}:{})})) :[]});}else if(kind==='lot'){Object.assign(hf,{catalogId:old?.catalogId||id||'',qty:String(old?.qty||''),location:old?.location||'',expiry:old?.expiry||'',opened:old?.opened===true});}else {if(!old)throw Error('Lote indisponível.');Object.assign(hf,{id:old.id,qty:'',type:'consume',note:''});}hr=Forms.create(s,hf,'house',v.revisions.house||0);page='casa-form';}
+ 
+ document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b||busy)return;let task=null;if(b.dataset.houseTab)task=async()=>{houseTab=b.dataset.houseTab;page='casa';};if(b.dataset.product)task=async()=>{houseId=b.dataset.product;houseTab='produto';page='casa';};if(b.dataset.lot)task=async()=>{houseId=b.dataset.lot;houseTab='lote';page='casa';};if(b.id==='new-product'||b.dataset.editProduct)task=()=>openHouseForm('product',b.dataset.editProduct||null);if(b.dataset.newLot)task=()=>openHouseForm('lot',b.dataset.newLot);if(b.dataset.editLot)task=()=>openHouseForm('lot',b.dataset.editLot);if(b.dataset.consumeLot)task=()=>openHouseForm('consume',b.dataset.consumeLot);if(b.id==='resume-house')task=()=>openHouseForm('product');if(b.id==='add-offer')task=async()=>{preserveHouse();hf.offers.push({storeName:'',packageQty:'',price:''});document.getElementById('house-form').remove();await persistHouse();};if(b.dataset.removeOffer!==undefined)task=async()=>{preserveHouse();hf.offers.splice(Number(b.dataset.removeOffer),1);document.getElementById('house-form').remove();await persistHouse();};if(b.id==='ask-discard-house')task=async()=>{houseDiscard=P.copy((await adapter.read()).state.houseDraft);page='descartar-casa';};if(b.id==='confirm-discard-house')task=async()=>{await Forms.discard(adapter,'houseDraft',houseDiscard);hr=null;hf=null;page='casa';};if(b.dataset.shopping)task=async()=>{const p={id:b.dataset.shopping,seed:P.id(),changedOn:today(),values:{operation:'toggle'}};await client.enqueue('house.shopping',p);};if(b.id==='save-house'){if(!document.getElementById('house-form').reportValidity())return;task=async()=>{const r=await persistHouse(),p=HouseForm.payload(hf);await client.enqueue(hf.command,p,{houseDraft:{token:r.token,sequence:r.sequence}});houseId=p.id;houseTab=hf.command==='house.product'?'produto':hf.command==='house.lot'?'lote':'stock';hf=null;hr=null;page='casa';message.textContent='Casa guardada neste dispositivo.';};}if(page==='casa-form'&&b.dataset.page)task=async()=>{if(hr&&!Forms.staleReason((await adapter.read()).state,hr))await persistHouse();hf=null;hr=null;page=b.dataset.page;};if(task){e.stopImmediatePropagation();run(task);}},true);
+ 
+ for(const name of ['input','change'])document.addEventListener(name,e=>{if(e.target.closest('#house-form')&&!busy)persistHouse().then(()=>{const el=document.getElementById('house-status');if(el)el.textContent='Rascunho guardado neste dispositivo.';}).catch(e=>message.textContent=e.message);});
+ 
+diff --git a/android/app/src/screens/casa.cjs b/android/app/src/screens/casa.cjs
+index c11c377..13bcd45 100644
+--- a/android/app/src/screens/casa.cjs
++++ b/android/app/src/screens/casa.cjs
+@@ -5,20 +5,21 @@ const H = require('../../../shared/house.cjs');
+ const Forms = require('../../../shared/form-drafts.cjs');
+ const { priceLabel } = require('../house-ui.cjs');
+ 
+ const NO_PLACE = 'Sem local definido';
+ 
+ // Pills do topo: «Lista de compras» abre o seu próprio ecrã; as outras trocam o separador desta página.
+ const PILLS = [
+   ['compras', 'Lista de compras', 'data-page="compras"'],
+   ['produtos', 'Produtos', 'data-house-tab="produtos"'],
+   ['stock', 'Stock', 'data-house-tab="stock"'],
++  ['historico', 'Histórico', 'data-house-tab="historico"'],
+ ];
+ 
+ function pills(tab) {
+   return '<div class="cs-pills" role="tablist">' + PILLS.map(([id, label, attr]) =>
+     '<button type="button" role="tab" ' + attr + ' aria-pressed="' + (id === tab ? 'true' : 'false') + '">' + label + '</button>').join('') + '</div>';
+ }
+ 
+ function rowButton(attr, id, title, detail, aside) {
+   const e = kit.escape;
+   return '<button type="button" class="row movement-row" ' + attr + '="' + e(id) + '"><div><strong>' + e(title) + '</strong><small>' + e(detail) + '</small></div><span>' + e(aside) + '</span></button>';
+@@ -74,35 +75,44 @@ function stockBody(c) {
+   return places.map(place => {
+     const lots = c.stock.filter(l => (l.location || NO_PLACE) === place && H.Life.remaining(c, l) > 0);
+     return lots.length ? kit.card({
+       title: place, subtitle: lots.length + (lots.length === 1 ? ' artigo' : ' artigos'),
+       body: lots.map(l => rowButton('data-lot', l.id, (c.catalog.find(p => p.id === l.catalogId) || {}).name || 'Produto',
+         l.expiry ? 'Validade: ' + V.dateLabel(l.expiry) : 'Sem validade indicada', H.Life.remaining(c, l) + ' ' + l.unit)).join(''),
+     }) : '';
+   }).join('');
+ }
+ 
++function historyBody(ctx, c) {
++  const e = kit.escape;
++  return c.purchases.map(p => kit.card({
++    title: p.store, subtitle: V.dateLabel(p.date),
++    body: '<p class="review-value">' + kit.money(Math.round(p.total * 100), ctx.state.hidden) + '</p>'
++      + p.items.map(i => '<div class="info-line"><span>' + e(i.name) + '</span><span>' + e(i.qty == null ? '' : i.qty) + ' ' + e(i.unit || '') + '</span></div>').join(''),
++  })).join('') || '<p class="empty">Ainda sem compras registadas.</p>';
++}
++
+ function shoppingBody(c) {
+   const open = c.shopping.filter(s => !s.done).length;
+   return kit.card({
+     title: 'Lista de compras', subtitle: open + (open === 1 ? ' artigo por comprar' : ' artigos por comprar'),
+     body: '<button type="button" class="primary full" data-page="compras">Abrir lista de compras</button>',
+   });
+ }
+ 
+-// Ecrã Casa. view: {tab: 'compras'|'produtos'|'stock' (ou 'produto'|'lote' nos detalhes), id}.
++// Ecrã Casa. view: {tab: 'compras'|'produtos'|'stock'|'historico' (ou 'produto'|'lote' nos detalhes), id}.
+ function render(ctx, view = {}) {
+   const tab = view.tab || 'produtos', id = view.id;
+   const c = H.Casa.state(ctx.ledger);
+   if (tab === 'produto') return banner(ctx.state) + productPage(ctx, c, c.catalog.find(p => p.id === id));
+   if (tab === 'lote') return banner(ctx.state) + lotPage(ctx, c, c.stock.find(l => l.id === id));
+-  const body = tab === 'compras' ? shoppingBody(c) : tab === 'stock' ? stockBody(c) : productsBody(c);
++  const body = tab === 'compras' ? shoppingBody(c) : tab === 'stock' ? stockBody(c) : tab === 'historico' ? historyBody(ctx, c) : productsBody(c);
+   return banner(ctx.state) + '<h1>Casa</h1><p class="sub">Compras e stock · dados guardados neste dispositivo</p>' + pills(tab)
+     + (body || '<p class="empty">Ainda sem registos nesta vista. Começa por criar um produto.</p>');
+ }
+ 
+ // Formulário de produto, lote ou consumo. view: {form, record}. Os ids e names são os que main.js já usa.
+ function form(ctx, view = {}) {
+   const e = kit.escape, f = view.form, hr = view.record;
+   if (!f) return '<p>Formulário indisponível.</p>';
+   const reason = Forms.staleReason(ctx.state, hr);
+   const field = (name, label, extra = '') => '<label>' + label + '<input name="' + name + '" value="' + e(f[name] || '') + '" ' + extra + '></label>';
+diff --git a/android/app/src/screens/casa.test.cjs b/android/app/src/screens/casa.test.cjs
+index 295e44c..60de517 100644
+--- a/android/app/src/screens/casa.test.cjs
++++ b/android/app/src/screens/casa.test.cjs
+@@ -6,37 +6,48 @@ const H = require('../../../shared/house.cjs');
+ const P = require('../../../shared/protocol.cjs');
+ const Forms = require('../../../shared/form-drafts.cjs');
+ const { ctx, demo, empty } = require('./fixtures.cjs');
+ 
+ const AMOUNT = /\d,\d{2}\s?€/;
+ const realCtx = (ledger, hidden = false) => ctx(ledger, { state: { ...P.offlineFixture(), hidden } });
+ 
+ test('Casa não atira com dados vazios e de demonstração em nenhum separador', () => {
+   for (const make of [empty, demo]) {
+     const c = realCtx(make());
+-    for (const tab of ['compras', 'produtos', 'stock']) assert.ok(casa.render(c, { tab }).includes('Casa'));
++    for (const tab of ['compras', 'produtos', 'stock', 'historico']) assert.ok(casa.render(c, { tab }).includes('Casa'));
+     assert.ok(casa.render(c).includes('Casa'));
+     assert.ok(casa.discard().includes('id="confirm-discard-house"'));
+   }
+ });
+ 
+ test('Casa tem as pills Lista de compras, Produtos e Stock e marca a ativa', () => {
+   const html = casa.render(realCtx(demo()), { tab: 'compras' });
+   assert.match(html, /<button[^>]*data-page="compras"[^>]*aria-pressed="true"[^>]*>Lista de compras/);
+   assert.match(html, /data-house-tab="produtos"[^>]*aria-pressed="false"/);
+   assert.match(html, /data-house-tab="stock"[^>]*aria-pressed="false"/);
+   assert.ok(!html.includes('data-house-tab="lista"') && !html.includes('data-shopping='));
+   const prod = casa.render(realCtx(demo()), { tab: 'produtos' });
+   assert.match(prod, /data-house-tab="produtos"[^>]*aria-pressed="true"/);
+   assert.match(prod, /data-page="compras"[^>]*aria-pressed="false"/);
+ });
+ 
++test('Histórico lista as compras do demo, avisa quando vazio e esconde montantes', () => {
++  const html = casa.render(realCtx(demo()), { tab: 'historico' });
++  assert.ok(html.includes('Continente') && html.includes('Leite'));
++  assert.match(html, /data-house-tab="historico"[^>]*aria-pressed="true"/);
++  assert.match(html, AMOUNT);
++  assert.doesNotMatch(casa.render(realCtx(demo(), true), { tab: 'historico' }), AMOUNT);
++  assert.ok(casa.render(realCtx(empty()), { tab: 'historico' }).includes('Ainda sem compras'));
++  const order = [...casa.render(realCtx(demo()), { tab: 'produtos' }).matchAll(/>(Lista de compras|Produtos|Stock|Histórico)<\/button>/g)].map(m => m[1]);
++  assert.deepEqual(order, ['Lista de compras', 'Produtos', 'Stock', 'Histórico']);
++});
++
+ test('Produtos e stock listam o catálogo do demo', () => {
+   const c = realCtx(demo());
+   const prod = casa.render(c, { tab: 'produtos' });
+   assert.ok(prod.includes('id="new-product"') && prod.includes('Arroz agulha') && prod.includes('data-product="'));
+   const stock = casa.render(c, { tab: 'stock' });
+   assert.ok(stock.includes('Despensa') && stock.includes('data-lot="'));
+   assert.ok(casa.render(realCtx(empty()), { tab: 'produtos' }).includes('Ainda sem produtos'));
+ });
+ 
+ test('Produto e lote mostram preços, lotes e ações; ids em falta são tratados', () => {
+diff --git a/android/app/src/screens/contas.cjs b/android/app/src/screens/contas.cjs
+index cf7b122..ecace31 100644
+--- a/android/app/src/screens/contas.cjs
++++ b/android/app/src/screens/contas.cjs
+@@ -1,22 +1,18 @@
+ 'use strict';
+ const kit = require('../ui/kit.cjs');
++const { fullState } = require('./state.cjs');
+ const V = require('../view-model.cjs');
+ const P = require('../../../shared/protocol.cjs');
+ const Accounts = require('../../../shared/accounts.cjs');
+ const { row, stateOf } = require('./movimentos.cjs');
+ 
+-// O estado dos ecrãs pode vir sem o razão confirmado (pré-visualização, testes).
+-function fullState(ctx) {
+-  return { ...stateOf(ctx), confirmed: { ledger: ctx.ledger }, ...ctx.state };
+-}
+-
+ function balance(ledger, account) {
+   return P.Finance.cents(P.Finance.balanceAt(ledger, account));
+ }
+ 
+ function accountCard(ctx, a) {
+   const e = kit.escape, hidden = ctx.state.hidden, confirmedLedger = fullState(ctx).confirmed.ledger;
+   const confirmed = confirmedLedger.accounts.find(c => c.id === a.id);
+   return '<button type="button" class="review-card account-card" data-account="' + e(a.id) + '"><div><h2>' + e(a.name) + '</h2>'
+     + '<small>' + e(a.type) + (a.archived ? ' · Arquivada' : '') + '</small></div>'
+     + '<div><strong class="review-value" data-balance="' + e(a.id) + '">' + kit.money(balance(ctx.ledger, a), hidden) + '</strong>'
+diff --git a/android/app/src/screens/fixtures.cjs b/android/app/src/screens/fixtures.cjs
+index 6b78322..6c07ed8 100644
+--- a/android/app/src/screens/fixtures.cjs
++++ b/android/app/src/screens/fixtures.cjs
+@@ -13,21 +13,21 @@ function demo() {
+   const cash = d.accounts[1].name;
+   const rows = [
+     { id: 'm-salary', date: '2026-11-02', description: 'Ordenado', type: 'income', amount: 1450, account: bank, category: 'Rendimentos' },
+     { id: 'm-super', date: '2026-11-03', description: 'Compras no supermercado', type: 'expense', amount: 63.2, account: bank, category: 'Alimentação', beneficiary: 'Continente' },
+     { id: 'm-coffee', date: '2026-11-04', description: 'Café', type: 'expense', amount: 1.6, account: cash, category: 'Alimentação' },
+     { id: 'm-fuel', date: '2026-10-28', description: 'Combustível', type: 'expense', amount: 48.5, account: bank, category: 'Transportes' },
+     { id: 'm-move', date: '2026-11-01', description: 'Levantamento', type: 'transfer', amount: 40, account: bank, targetAccount: cash, category: 'Transferências' },
+   ];
+   for (const t of rows) P.Finance.add(d, t);
+   d.casa = {
+-    version: 1, purchases: [], catalog: [], stores: [], stock: [],
++    version: 1, purchases: [{ id: 'pu-1', store: 'Continente', date: '2026-11-03', total: 63.2, items: [{ name: 'Leite', qty: 6, unit: 'un', total: 5.4 }, { name: 'Pão', qty: 1, unit: 'un', total: 57.8 }] }], catalog: [], stores: [], stock: [],
+     shopping: [
+       { id: 'sh-1', name: 'Leite', qty: '6 un', done: false },
+       { id: 'sh-2', name: 'Pão', qty: '1', done: true },
+       { id: 'sh-3', name: 'Detergente', qty: '2', done: false },
+     ],
+   };
+   H.Casa.saveProductOffers(d, { name: 'Arroz agulha', brand: 'Cigala', category: 'Alimentação', unit: 'un' }, [
+     { storeName: 'Continente', packageQty: 1, price: 1.29 }, { storeName: 'Pingo Doce', packageQty: 1, price: 1.35 },
+   ]);
+   H.Life.lot(d, { catalogId: H.Casa.state(d).catalog[0].id, qty: 3, location: 'Despensa', expiry: '2027-03-01', opened: false });
+diff --git a/android/app/src/screens/ligacao.cjs b/android/app/src/screens/ligacao.cjs
+index a8ea6a5..5541858 100644
+--- a/android/app/src/screens/ligacao.cjs
++++ b/android/app/src/screens/ligacao.cjs
+@@ -1,19 +1,15 @@
+ 'use strict';
+ const kit = require('../ui/kit.cjs');
++const { fullState } = require('./state.cjs');
+ const P = require('../../../shared/protocol.cjs');
+ 
+-// O estado dos ecrãs pode vir sem fila de envio nem razão confirmado (pré-visualização, testes).
+-function fullState(ctx) {
+-  return { outbox: [], confirmed: { ledger: ctx.ledger }, ...ctx.state };
+-}
+-
+ function back(page, label) {
+   return '<button type="button" class="back" data-page="' + page + '">' + label + '</button>';
+ }
+ 
+ const STATUS = {
+   pending: 'Por enviar', sending: 'Envio por confirmar', acknowledged: 'Confirmado pelo servidor',
+   conflict: 'Conflito — proposta local preservada', rejected: 'Recusado — proposta local preservada', blocked: 'Bloqueado por dependência',
+ };
+ 
+ function queueEntry(x) {
+diff --git a/android/app/src/screens/movimentos.cjs b/android/app/src/screens/movimentos.cjs
+index c667eaa..b84452c 100644
+--- a/android/app/src/screens/movimentos.cjs
++++ b/android/app/src/screens/movimentos.cjs
+@@ -42,21 +42,21 @@ function render(ctx, view = {}) {
+   const filters = { ...NO_FILTERS, ...(view.filters || {}) };
+   const limit = view.visibleLimit == null ? 40 : view.visibleLimit;
+   const ledger = ctx.ledger;
+   const result = V.movements(ledger, stateOf(ctx), filters, limit);
+   const months = [...new Set([ctx.today.slice(0, 7), ...ledger.transactions.map(t => t.date.slice(0, 7))])].sort().reverse();
+   const open = filters.period || filters.accountId ? ' open' : '';
+   const found = result.total + ' ' + (result.total === 1 ? 'movimento encontrado' : 'movimentos encontrados');
+   const empty = '<p class="empty">' + (ledger.transactions.length
+     ? 'Não há movimentos com esta pesquisa. Altera ou limpa os filtros.'
+     : 'Ainda não existem movimentos. Usa «Novo movimento» para começar.') + '</p>';
+-  return '<h1>Movimentos</h1><p class="sub">Consulta e gere os registos deste dispositivo.</p>'
++  return draftBanner(ctx) + '<h1>Movimentos</h1><p class="sub">Consulta e gere os registos deste dispositivo.</p>'
+     + '<button type="button" class="primary full" data-page="novo">+ Novo movimento</button>'
+     + '<div class="movement-filters">'
+     + kit.search('movement-search', filters.query, 'Descrição, categoria ou conta')
+     + kit.pills('type', pillOptions(TYPES), filters.type)
+     + kit.pills('status', pillOptions(STATUSES), filters.status)
+     + '<details id="movement-filters"' + open + '><summary>Período e conta</summary><div class="filter-grid">'
+     + '<label>Período<select id="filter-period">' + options([['', 'Todos os meses'], ...months.map(m => [m, MONTHS[Number(m.slice(5)) - 1] + ' ' + m.slice(0, 4)])], filters.period) + '</select></label>'
+     + '<label>Conta<select id="filter-account">' + options([['', 'Todas as contas'], ...ledger.accounts.map(a => [a.id, a.name])], filters.accountId) + '</select></label>'
+     + '</div></details>'
+     + '<button type="button" id="clear-filters" class="text-button">Limpar pesquisa e filtros</button></div>'
+@@ -130,11 +130,46 @@ function form(ctx, view) {
+     + '<details class="movement-options"' + (d.note || d.beneficiary || d.noteColor ? ' open' : '') + '><summary>Estabelecimento, nota e cor</summary>'
+     + '<label>Estabelecimento<input name="beneficiary" maxlength="160" value="' + e(d.beneficiary) + '" autocomplete="off"></label>'
+     + '<label>Nota<textarea name="note" maxlength="1000" rows="3">' + e(d.note) + '</textarea></label>'
+     + '<label>Cor da nota<select name="noteColor">' + opts([['', 'Automática'], ['default', 'Sem destaque'], ['blue', 'Azul'], ['green', 'Verde'], ['purple', 'Roxo'], ['orange', 'Laranja'], ['red', 'Vermelho']], d.noteColor) + '</select></label>'
+     + '<label>Classificação<select name="expenseNature">' + opts([['variable', 'Variável'], ['fixed', 'Fixa'], ['exceptional', 'Extraordinária']], d.expenseNature) + '</select></label></details>'
+     + '<p id="draft-status" role="status" aria-live="polite">' + (record.sequence ? 'Rascunho guardado neste dispositivo.' : 'O preenchimento é guardado como rascunho.') + '</p>'
+     + (reason ? '<p class="note">' + e(reason) + '</p>' : '')
+     + '<button type="button" class="primary" id="save">' + (resolvingId ? 'Guardar proposta revista' : 'Guardar no dispositivo') + '</button></form>';
+ }
+ 
+-module.exports = { render, bind, row, stateOf, detail, form, categorySuggestions, MONTHS };
++// Banner do rascunho de movimento por concluir (Resumo e Movimentos).
++function draftBanner(ctx) {
++  return ctx.state.movementDraft
++    ? '<section class="draft-banner"><strong>Tens um movimento por concluir</strong><p>O rascunho está guardado neste dispositivo.</p><button type="button" id="resume-draft">Retomar rascunho</button></section>' : '';
++}
++
++// Página do rascunho guardado. Só constrói HTML; retomar/descartar ficam em main.js.
++function recovery(ctx) {
++  const e = kit.escape, record = ctx.state.movementDraft;
++  if (!record) return '<h1>Sem rascunho</h1><button data-page="movimentos">Voltar aos movimentos</button>';
++  let error = '', reason = '';
++  try { D.valid(record); reason = D.staleReason(ctx.state, record); } catch (err) { error = err.message; }
++  return '<h1>Movimento por concluir</h1><p class="sub">Guardado neste dispositivo. Ainda não é um movimento financeiro.</p>'
++    + (error ? '<p class="note">' + e(error) + '</p>'
++      : '<section class="review-card"><h2>' + e(record.form.description || 'Descrição por preencher') + '</h2><p>' + (record.form.command === 'new' ? 'Novo movimento' : 'Edição de movimento') + '</p>'
++        + '<small>' + e(record.savedAt ? V.dateLabel(record.savedAt.slice(0, 10)) : '') + '</small></section>' + (reason ? '<p class="note">' + e(reason) + '</p>' : ''))
++    + '<div class="review-actions">' + (!error ? '<button id="resume-edit" class="primary">Retomar preenchimento</button>' : '')
++    + '<button id="ask-discard-draft">Descartar rascunho</button><button data-page="resumo">Voltar ao Resumo</button></div>';
++}
++
++function discardDraft() {
++  return '<h1>Descartar o rascunho?</h1><p>O texto por concluir será removido deste dispositivo. Os movimentos guardados mantêm-se.</p>'
++    + '<div class="review-actions"><button id="cancel-discard-draft" class="primary">Manter rascunho</button><button id="confirm-discard-draft">Descartar rascunho</button></div>';
++}
++
++// Confirmação de eliminação. view: {movementId}.
++function remove(ctx, view = {}) {
++  const t = ctx.ledger.transactions.find(x => x.id === view.movementId);
++  return '<button class="back" data-page="movimentos">‹ Cancelar</button><h1>Eliminar movimento?</h1>'
++    + (t ? '<section class="review-card"><h2>' + kit.escape(t.description) + '</h2><p>' + kit.money(P.Finance.cents(t.amount), ctx.state.hidden) + '</p>'
++      + '<small>' + (t.type === 'transfer' ? 'O efeito nas duas contas será retirado em conjunto.' : 'A alteração fica por confirmar até sincronizares.') + '</small></section>'
++      + '<button id="confirm-delete" class="primary full">Eliminar movimento</button>'
++      : '<p>O movimento já foi eliminado.</p>');
++}
++
++module.exports = { render, bind, row, stateOf, detail, form, draftBanner, recovery, discardDraft, remove, categorySuggestions, MONTHS };
+diff --git a/android/app/src/screens/movimentos.test.cjs b/android/app/src/screens/movimentos.test.cjs
+index 82ef324..52bdfdf 100644
+--- a/android/app/src/screens/movimentos.test.cjs
++++ b/android/app/src/screens/movimentos.test.cjs
+@@ -88,10 +88,37 @@ test('Formulário novo tem os campos e ids usados pelos manipuladores', () => {
+ test('Formulário de edição mostra os dados do movimento e limita os tipos', () => {
+   const ledger = demo();
+   const d = { ...draftFor(ledger), command: 'movement.update', amount: '63,20', description: 'Compras no supermercado', category: 'Alimentação' };
+   const c = formCtx(ledger);
+   const html = movimentos.form(c, { draft: d, draftRecord: record(c, d, 1), resolvingId: null });
+   assert.ok(html.includes('Editar movimento'));
+   assert.ok(html.includes('value="63,20"') && html.includes('Compras no supermercado'));
+   assert.ok(!html.includes('value="transfer"'));
+   assert.ok(html.includes('Rascunho guardado'));
+ });
++
++test('Rascunho, descarte e eliminação não atiram com empty() e demo()', () => {
++  for (const make of [empty, demo]) {
++    const c = formCtx(make());
++    assert.equal(movimentos.draftBanner(c), '');
++    assert.ok(movimentos.recovery(c).includes('Sem rascunho'));
++    assert.ok(movimentos.discardDraft().includes('id="confirm-discard-draft"'));
++    assert.ok(movimentos.remove(c, { movementId: 'x' }).includes('já foi eliminado'));
++  }
++});
++
++test('Banner e página do rascunho de movimento', () => {
++  const ledger = demo(), c = formCtx(ledger), d = draftFor(ledger);
++  const withDraft = ctx(ledger, { state: { ...c.state, movementDraft: record(c, { ...d, description: 'Pizza' }, 1) } });
++  assert.ok(movimentos.draftBanner(withDraft).includes('id="resume-draft"'));
++  assert.ok(movimentos.render(withDraft, { filters: NONE, visibleLimit: 40 }).includes('id="resume-draft"'));
++  const page = movimentos.recovery(withDraft);
++  assert.ok(page.includes('Pizza') && page.includes('id="resume-edit"') && page.includes('id="ask-discard-draft"'));
++});
++
++test('Eliminar mostra o movimento e esconde o valor quando oculto (com dentes)', () => {
++  const ledger = demo(), id = ledger.transactions[0].id;
++  const visible = movimentos.remove(ctx(ledger), { movementId: id });
++  assert.ok(visible.includes('id="confirm-delete"'));
++  assert.match(visible, /\d,\d{2}\s?€/);
++  assert.doesNotMatch(movimentos.remove(ctx(ledger, { state: { hidden: true } }), { movementId: id }), /\d,\d{2}\s?€/);
++});
+diff --git a/android/app/src/screens/resumo.cjs b/android/app/src/screens/resumo.cjs
+index 08b99a2..a4a0e71 100644
+--- a/android/app/src/screens/resumo.cjs
++++ b/android/app/src/screens/resumo.cjs
+@@ -1,45 +1,69 @@
+ 'use strict';
+ const kit = require('../ui/kit.cjs');
+ const V = require('../view-model.cjs');
+ const Agenda = require('../agenda.cjs');
+-const { row, stateOf, MONTHS } = require('./movimentos.cjs');
++const { row, stateOf, draftBanner, MONTHS } = require('./movimentos.cjs');
++const Consult = require('../financial-consultation.cjs');
++const P = require('../../../shared/protocol.cjs');
+ 
+ function periodControls(ledger, period, today) {
+   const years = V.years(ledger, period, today).map(y => '<option value="' + y + '"' + (y === Number(period.slice(0, 4)) ? ' selected' : '') + '>' + y + '</option>').join('');
+   const months = MONTHS.map((name, i) => '<option value="' + String(i + 1).padStart(2, '0') + '"' + (i + 1 === Number(period.slice(5)) ? ' selected' : '') + '>' + name + '</option>').join('');
+   return '<div class="period-controls" aria-label="Mês e ano"><button type="button" id="period-prev" aria-label="Mês anterior">‹</button>'
+     + '<label>Ano<select id="period-year">' + years + '</select></label><label>Mês<select id="period-month">' + months + '</select></label>'
+     + '<button type="button" id="period-next" aria-label="Mês seguinte">›</button></div>';
+ }
+ 
+ function count(value) {
+   return Number.isFinite(value) ? String(value) : '—';
+ }
+ 
++// Rascunhos por concluir (movimento, compromisso, pagamento), do mais ao menos recente.
++function banners(ctx) {
++  return draftBanner(ctx)
++    + (ctx.state.commitmentDraft ? '<section class="draft-banner"><strong>Tens um compromisso por concluir</strong><button data-page="agenda">Abrir Agenda</button></section>' : '')
++    + (ctx.state.paymentDraft ? '<section class="draft-banner"><strong>Tens um pagamento por concluir</strong><button id="resume-payment">Retomar pagamento</button><button id="ask-discard-payment">Descartar rascunho</button></section>' : '');
++}
++
+ function render(ctx, view = {}) {
+   const hidden = ctx.state.hidden;
+   const period = view.period || ctx.today.slice(0, 7);
+   const ledger = ctx.ledger;
+   const stats = V.summary(ledger, period);
+   const counts = ctx.counts || {};
+   const agendaCount = Agenda.agenda(ledger, period, ctx.today, false).pendingCount;
+   const recent = V.movements(ledger, stateOf(ctx), {}, 5).rows;
+   const note = ctx.pending ? 'Inclui alterações locais por confirmar' : (ctx.release ? 'Contas deste aparelho' : 'Contas de demonstração');
+   const tiles = [
+     kit.tile({ tone: counts.notices > 0 ? 'red' : 'amber', icon: 'bell', label: 'Avisos', value: count(counts.notices), detail: 'O que merece atenção', page: 'avisos' }),
+     kit.tile({ tone: 'blue', icon: 'calendar', label: 'Agenda', value: count(agendaCount), detail: 'Por tratar em ' + MONTHS[Number(period.slice(5)) - 1], page: 'agenda' }),
+     kit.tile({ tone: 'green', icon: 'cart', label: 'Lista de compras', value: count(counts.shopping), detail: 'Artigos por comprar', page: 'compras' }),
+   ].join('');
+-  return '<h1>Resumo</h1><p class="sub">' + kit.escape(kit.syncStamp(ctx.lastSync, new Date())) + '</p>'
++  return banners(ctx) + '<h1>Resumo</h1><p class="sub">' + kit.escape(kit.syncStamp(ctx.lastSync, new Date())) + '</p>'
+     + periodControls(ledger, period, ctx.today)
+     + '<section class="balance"><span>Saldo total · todas as contas</span><strong>' + kit.money(stats.balanceCents, hidden) + '</strong><small>' + kit.escape(note) + '</small></section>'
+     + '<div class="pair"><div class="stat"><small>Gastos do mês</small><span class="amount">' + kit.money(stats.expenseCents, hidden) + '</span></div>'
+     + '<div class="stat"><small>Rendimentos do mês</small><span class="amount">' + kit.money(stats.incomeCents, hidden) + '</span></div></div>'
+     + '<p class="month-result">Resultado do mês <strong>' + kit.money(stats.resultCents, hidden) + '</strong></p>'
+     + '<div class="ch-tiles is-three">' + tiles + '</div>'
+     + '<button type="button" class="primary full" data-page="novo">+ Novo movimento</button>'
+     + '<div class="section-heading"><h2>Últimos movimentos</h2><button type="button" id="see-month" class="text-button">Ver todos</button></div>'
+-    + (recent.map(t => row(ctx, t)).join('') || '<p class="empty">Ainda não há movimentos.</p>');
++    + (recent.map(t => row(ctx, t)).join('') || '<p class="empty">Ainda não há movimentos.</p>')
++    + '<button class="full agenda-shortcut" data-page="consulta-financeira">Créditos e prestações · consulta</button>';
++}
++
++// Créditos e prestações (consulta). view: {period}.
++function financial(ctx, view = {}) {
++  const e = kit.escape, hidden = ctx.state.hidden, period = view.period || ctx.today.slice(0, 7);
++  const c = Consult.debts(ctx.ledger, period), m = cents => kit.money(cents, hidden);
++  return '<button class="back" data-page="resumo">‹ Resumo</button><h1>Créditos e prestações</h1>'
++    + '<p class="sub">Consulta dos registos existentes. Alterações e pagamentos especializados mantêm o percurso no PC.</p>'
++    + periodControls(ctx.ledger, period, ctx.today)
++    + '<h2>Créditos</h2>' + (c.debts.map(d => '<section class="review-card"><h3>' + e(d.name) + '</h3><small>Capital em dívida</small><p class="review-value">' + m(d.balanceCents) + '</p><p>Prestação: ' + m(d.paymentCents) + '</p></section>').join('') || '<p class="empty">Sem créditos registados.</p>')
++    + '<h2>Prestações estimadas do mês</h2><p class="sub">Estimativas do modelo Windows; não são pagamentos registados.</p>'
++    + (c.estimates.map(x => '<section class="review-card"><strong>' + e(x.description) + '</strong><p>' + e(V.dateLabel(x.date)) + ' · ' + m(P.Finance.cents(x.amount)) + '</p></section>').join('') || '<p class="empty">Sem prestações estimadas neste mês.</p>')
++    + '<h2>Compras em prestações</h2>'
++    + (c.plans.map(p => '<section class="review-card"><h3>' + e(p.description) + '</h3>' + p.payments.map(x => '<div class="info-line"><span>' + e(V.dateLabel(x.date)) + '</span><strong>' + m(x.remainingCents) + ' por liquidar</strong></div>').join('') + '</section>').join('') || '<p class="empty">Sem planos de prestações.</p>');
+ }
+ 
+-module.exports = { render, periodControls };
++module.exports = { render, periodControls, financial };
+diff --git a/android/app/src/screens/resumo.test.cjs b/android/app/src/screens/resumo.test.cjs
+index cc23ed6..a678f45 100644
+--- a/android/app/src/screens/resumo.test.cjs
++++ b/android/app/src/screens/resumo.test.cjs
+@@ -26,10 +26,26 @@ test('Resumo mostra «—» quando os contadores são nulos e o número quando e
+   assert.ok(withCounts.includes('ch-tile-value">2<'));
+   const missing = ctx(demo());
+   delete missing.counts;
+   assert.doesNotThrow(() => resumo.render(missing));
+ });
+ 
+ test('Resumo com valores ocultos não mostra montantes', () => {
+   const html = resumo.render(ctx(demo(), { state: { hidden: true } }));
+   assert.doesNotMatch(html, /\d,\d{2}\s?€/);
+ });
++
++test('Banners do Resumo e atalho de consulta', () => {
++  const state = { hidden: false, commitmentDraft: { t: 1 }, paymentDraft: { t: 1 } };
++  const html = resumo.render(ctx(demo(), { state }));
++  assert.ok(html.includes('data-page="agenda">Abrir Agenda') && html.includes('id="resume-payment"'));
++  assert.ok(html.includes('data-page="consulta-financeira"'));
++  assert.ok(!resumo.render(ctx(demo())).includes('draft-banner'));
++});
++
++test('Consulta financeira não atira e esconde montantes (com dentes)', () => {
++  for (const make of [empty, demo]) assert.ok(resumo.financial(ctx(make())).includes('Créditos e prestações'));
++  const re = /\d,\d{2}\s?€/;
++  const visible = resumo.financial(ctx(demo()), { period: '2026-11' });
++  assert.match(visible, re);
++  assert.doesNotMatch(resumo.financial(ctx(demo(), { state: { hidden: true } }), { period: '2026-11' }), re);
++});
+diff --git a/android/app/src/screens/state.cjs b/android/app/src/screens/state.cjs
+new file mode 100644
+index 0000000..745fd64
+--- /dev/null
++++ b/android/app/src/screens/state.cjs
+@@ -0,0 +1,7 @@
++'use strict';
++// O estado dos ecrãs pode vir sem fila de envio nem razão confirmado (pré-visualização, testes).
++function fullState(ctx) {
++  return { outbox: [], confirmed: { ledger: ctx.ledger }, ...ctx.state };
++}
++
++module.exports = { fullState };
