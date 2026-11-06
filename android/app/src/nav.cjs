@@ -21,7 +21,7 @@ function tabFor(page) {
 
 // Páginas cujo ecrã ainda não existe: mostram «Em breve». Quando uma tarefa registar o ecrã
 // real, basta retirar o nome daqui.
-const PLACEHOLDERS = { patrimonio: 'Património', relatorios: 'Relatórios', avisos: 'Avisos', definicoes: 'Definições' };
+const PLACEHOLDERS = { patrimonio: 'Património', avisos: 'Avisos', definicoes: 'Definições' };
 
 function isPlaceholder(page) {
   return Object.prototype.hasOwnProperty.call(PLACEHOLDERS, page);

@@ -51,6 +51,7 @@ import Resumo from './screens/resumo.cjs';
 import Movimentos from './screens/movimentos.cjs';
 
 import Compras from './screens/compras.cjs';
+import Relatorios from './screens/relatorios.cjs';
 
 import Contas from './screens/contas.cjs';
 
@@ -65,6 +66,8 @@ function markSynced(){try{localStorage.setItem(LAST_SYNC_KEY,new Date().toISOStr
 let cf=null,cr=null,cfBaseline=null,commitmentId=null,commitDiscard=null,commitWrite=0;
 
 let showCompletedAgenda=false;
+
+let repSel=null;
 
 let accountForm=null,accountRevision=null,accountBaseline=null,accountNext=null,archiveRevision=null;
 
@@ -197,6 +200,8 @@ async function render(){
  if(page==='compras-artigo')main.innerHTML=Compras.item(ctx,{id:shopId,form:shopForm});
 
  if(page==='compras-novo')main.innerHTML=Compras.add(ctx,shopAdd);
+
+ if(page==='relatorios'){repSel=repSel||{...Relatorios.initial(ctx.today),open:''};main.innerHTML=Relatorios.render(ctx,repSel);}
 
  if(page==='descartar-casa')main.innerHTML=Casa.discard();
 
@@ -516,5 +521,7 @@ function shopRead(){const f=document.getElementById('shop-item-form');return f?O
 function preserveShop(){if(page!=='compras-artigo')return;const f=shopRead();if(f)shopForm=f;}
 
 document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b||busy)return;const d=b.dataset;let task=null;if(d.shoppingDone)task=()=>shopSend(d.shoppingDone,Compras.setDone(d.next==='true'));else if(d.pillShopstatus!==undefined)task=async()=>{shopFilters.status=d.pillShopstatus;};else if(d.pillShopstore!==undefined)task=async()=>{shopFilters.storeId=d.pillShopstore;};else if(b.id==='shop-instore')task=async()=>{shopFilters.inStore=!shopFilters.inStore;if(!shopFilters.inStore)shopFilters.storeId='';};else if(b.id==='shop-add')task=async()=>{shopAdd={query:'',qty:'1',name:''};page='compras-novo';};else if(d.shoppingOpen)task=async()=>{shopId=d.shoppingOpen;shopForm=null;page='compras-artigo';};else if(b.id==='shop-item-save')task=async()=>{const f=shopRead(),id=shopId;try{const defaults=f.packages===undefined?null:Compras.offerDefaults(P.view((await adapter.read()).state).ledger,id);await shopSend(id,Compras.updateValues(f,f.packages!==undefined,defaults));}catch(error){shopForm=f;throw error;}shopForm=null;page='compras';message.textContent='Artigo guardado neste dispositivo.';};else if(b.id==='shop-item-remove')task=async()=>{await shopSend(shopId,{operation:'remove'});shopId=null;shopForm=null;page='compras';message.textContent='Artigo retirado da lista.';};else if(d.queueCatalog)task=async()=>{const values=Compras.queueValues({catalogId:d.queueCatalog,storeId:d.queueStore,qty:document.getElementById('shop-add-qty').value});await shopSend(P.id(),values);shopFilters.status='todo';page='compras';message.textContent='Artigo acrescentado à lista.';};else if(b.id==='shop-add-free')task=async()=>{const values=Compras.addValues({name:document.getElementById('shop-add-name').value,qty:document.getElementById('shop-add-qty').value});await shopSend(P.id(),values);shopFilters.status='todo';page='compras';message.textContent='Artigo acrescentado à lista.';};if(task){e.stopImmediatePropagation();run(task);}},true);
+
+document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b||busy||page!=='relatorios')return;const d=b.dataset;let task=null;if(d.pillRepkind!==undefined)task=async()=>{repSel={...Relatorios.switchKind(repSel,d.pillRepkind,today()),open:''};};else if(b.id==='rep-prev'||b.id==='rep-next')task=async()=>{repSel={...Relatorios.shift(repSel,b.id==='rep-prev'?-1:1),open:''};};else if(d.pillRepaccount!==undefined)task=async()=>{repSel={...repSel,account:d.pillRepaccount};};else if(d.repCat!==undefined)task=async()=>{repSel={...repSel,open:repSel.open===d.repCat?'':d.repCat};};if(task){e.stopImmediatePropagation();run(task);}},true);
 
 document.addEventListener('input',event=>{const id=event.target.id,value=event.target.value;if(id==='shop-add-qty'){shopAdd.qty=value;return;}if(id==='shop-add-name'){shopAdd.name=value;return;}if(id!=='shop-search'&&id!=='shop-add-query')return;if(id==='shop-search')shopFilters.query=value;else shopAdd.query=value;const start=event.target.selectionStart,end=event.target.selectionEnd;clearTimeout(shopTimer);shopTimer=setTimeout(async()=>{if(busy||(page!=='compras'&&page!=='compras-novo'))return;const y=window.scrollY;await run(async()=>{});const input=document.getElementById(id);if(input){input.focus({preventScroll:true});input.setSelectionRange(start,end);window.scrollTo(0,y);}},180);});

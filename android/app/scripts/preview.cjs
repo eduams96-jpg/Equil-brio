@@ -27,6 +27,9 @@ const SCREENS = [
   { name: 'compras-artigo', module: '../src/screens/compras.cjs', fn: 'item', page: 'compras', view: ledger => ({ id: ((ledger.casa && ledger.casa.shopping.find(x => x.catalogId)) || {}).id }) },
   { name: 'compras-novo', module: '../src/screens/compras.cjs', fn: 'add', page: 'compras', view: { query: 'arroz' } },
   { name: 'casa-compras', module: '../src/screens/casa.cjs', page: 'casa', view: { tab: 'compras' } },
+  { name: 'relatorios', module: '../src/screens/relatorios.cjs', page: 'relatorios', view: { year: '2026', period: 'm11', account: '', open: 'Alimentação' } },
+  { name: 'relatorios-ano', module: '../src/screens/relatorios.cjs', page: 'relatorios', view: { year: '2026', period: 'year', account: '' } },
+  { name: 'relatorios-trimestre', module: '../src/screens/relatorios.cjs', page: 'relatorios', view: { year: '2026', period: 'q4', account: '' } },
   { name: 'ligacao-ligada', module: '../src/screens/ligacao.cjs', page: 'sync', view: { connection: {} } },
 ];
 const DATA = [['demo', fixtures.demo], ['vazio', fixtures.empty]];
