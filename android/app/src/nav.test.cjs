@@ -15,18 +15,9 @@ test('tabFor devolve resumo para páginas desconhecidas', () => {
   assert.equal(nav.tabFor(undefined), 'resumo');
 });
 
-test('placeholder «Em breve» só para páginas sem ecrã próprio', () => {
-  for (const p of ['definicoes']) {
-    assert.equal(nav.isPlaceholder(p), true, p);
-    const html = nav.placeholder(p);
-    assert.match(html, /Em breve/);
-    assert.match(html, /data-page="mais"/);
-  }
-  assert.equal(nav.isPlaceholder('contas'), false);
-  assert.equal(nav.isPlaceholder('mais'), false);
-  assert.equal(nav.isPlaceholder('compras'), false);
-  assert.equal(nav.isPlaceholder('relatorios'), false);
-  assert.equal(nav.isPlaceholder('patrimonio'), false);
+test('já não há páginas «Em breve»: o mecanismo de placeholder foi retirado', () => {
+  assert.equal(nav.isPlaceholder, undefined);
+  assert.equal(nav.placeholder, undefined);
 });
 
 test('index.html usa a mesma navegação que a pré-visualização', () => {

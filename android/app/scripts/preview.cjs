@@ -32,6 +32,8 @@ const SCREENS = [
   { name: 'relatorios-trimestre', module: '../src/screens/relatorios.cjs', page: 'relatorios', view: { year: '2026', period: 'q4', account: '' } },
   { name: 'patrimonio', module: '../src/screens/patrimonio.cjs', page: 'patrimonio' },
   { name: 'avisos', module: '../src/screens/avisos.cjs', page: 'avisos', demo: fixtures.avisos },
+  { name: 'definicoes', module: '../src/screens/definicoes.cjs', page: 'definicoes', view: { version: { app: '1.0.0', core: '1.0.21' } } },
+  { name: 'definicoes-recusada', module: '../src/screens/definicoes.cjs', page: 'definicoes', view: { permissionDenied: true } },
   { name: 'ligacao-ligada', module: '../src/screens/ligacao.cjs', page: 'sync', view: { connection: {} } },
 ];
 const DATA = [['demo', fixtures.demo], ['vazio', fixtures.empty]];

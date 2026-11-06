@@ -55,6 +55,8 @@ import Relatorios from './screens/relatorios.cjs';
 import Patrimonio from './screens/patrimonio.cjs';
 import Avisos from './screens/avisos.cjs';
 import Notifier from './notifier.cjs';
+import Settings from './settings.cjs';
+import Definicoes from './screens/definicoes.cjs';
 import {LocalNotifications} from '@capacitor/local-notifications';
 import Dossiers from '../../../equilibrio/dossiers-model.js';
 
@@ -118,11 +120,15 @@ const client=new C.Client(adapter,request,{negotiate:true});
 
 // Avisos calculados uma vez por estado: a cache cai em cada gravação ou sincronização e quando muda o dia ou a revisão.
 let noticesCache=null;
-// Definições locais (a Tarefa 13 trá-las para o ecrã); a notificação diária fica dormente enquanto `notifications` for falso.
-const settings={notifications:false,hour:9,theme:'auto',hideOnOpen:false};
+// Definições locais, lidas do armazenamento no arranque; o objeto é partilhado com `ctx.settings` e só é mutado no lugar.
+const settings=Settings.read(localStorage);
+let settingsDenied=false;
+function applyTheme(){if(settings.theme==='light'||settings.theme==='dark')document.documentElement.dataset.theme=settings.theme;else document.documentElement.removeAttribute('data-theme');}
+applyTheme();
 // Reagenda a notificação diária: em série, só se ativa, e uma falha nunca estraga a app.
 let notifyChain=Promise.resolve();
-function rescheduleNotifications(){if(!settings.notifications)return notifyChain;notifyChain=notifyChain.then(async()=>{const saved=await adapter.read();if(!saved.state)return;await Notifier.schedule(P.view(saved.state).ledger,settings,{hidden:!!saved.state.hidden,now:new Date()},LocalNotifications);}).catch(()=>{});return notifyChain;}
+// Com as notificações desligadas só cancela quando se pede (`cancelWhenOff`, ao desligar); ligadas, reagenda a partir do estado atual (inclui «Ocultar valores»).
+function rescheduleNotifications(cancelWhenOff=false){if(!settings.notifications&&!cancelWhenOff)return notifyChain;notifyChain=notifyChain.then(async()=>{if(!settings.notifications){await Notifier.cancelAll(LocalNotifications);return;}const saved=await adapter.read();if(!saved.state)return;await Notifier.schedule(P.view(saved.state).ledger,settings,{hidden:!!saved.state.hidden,now:new Date()},LocalNotifications);}).catch(()=>{});return notifyChain;}
 for(const name of ['enqueue','sync','resolve']){const original=client[name]&&client[name].bind(client);if(original)client[name]=async(...args)=>{noticesCache=null;try{return await original(...args);}finally{noticesCache=null;rescheduleNotifications();}};}
 try{LocalNotifications.addListener('localNotificationActionPerformed',event=>{const target=event&&event.notification&&event.notification.extra&&event.notification.extra.page;if(typeof target!=='string'||!target)return;const go=n=>{if(!busy)run(async()=>{renderedPage=null;page=target;});else if(n>0)setTimeout(()=>go(n-1),300);};go(20);}).catch(()=>{});}catch{}
 function noticesFor(ledger,day,revision){const key=day+':'+String(revision??'');if(noticesCache&&noticesCache.key===key)return noticesCache.value;let value=null;try{value=Dossiers.notices(ledger,{today:day});}catch{value=null;}noticesCache={key,value};return value;}
@@ -201,7 +207,8 @@ async function render(){
 
  if(page==='mais')main.innerHTML=Mais.render(ctx);
 
- if(Nav.isPlaceholder(page))main.innerHTML=Nav.placeholder(page);
+ if(page!=='definicoes')settingsDenied=false;
+ if(page==='definicoes')main.innerHTML=Definicoes.render(ctx,{permissionDenied:settingsDenied,version:{app:__APP_VERSION__,core:__CORE_VERSION__}});
 
  if(page==='resumo')main.innerHTML=Resumo.render(ctx,{period:summaryPeriod});
 
@@ -401,7 +408,7 @@ document.addEventListener('click',event=>{
 
  });
 
- if(b.id==='privacy')run(()=>client.change(state=>{state.hidden=!state.hidden;}));
+ if(b.id==='privacy')run(async()=>{await client.change(state=>{state.hidden=!state.hidden;});await rescheduleNotifications();});
 
  if(b.id==='save')save();
 
@@ -452,6 +459,8 @@ run(async()=>{
  const saved=await adapter.read();if(!saved.state)await adapter.replace(__RELEASE__?P.local({serverId:'unpaired',epoch:'unpaired',spaceId:'casa',snapshot:{ledger:{...P.Finance.empty(),ledgerCoreVersion:1},revisions:{},cursor:0}},P.id()):P.offlineFixture(),0);
 
  savedConnection=await association.restore();if(savedConnection?.kind==='paired')connection=savedConnection;
+
+ if(settings.hideOnOpen){const open=(await adapter.read()).state;if(open&&!open.hidden)await client.change(state=>{state.hidden=true;});}
 
  rescheduleNotifications();
 
@@ -550,3 +559,8 @@ document.addEventListener('input',event=>{const id=event.target.id,value=event.t
 
 // Avisos: o botão de um aviso leva ao ecrã certo com o estado já preparado.
 document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b||busy||page!=='avisos')return;if(b.dataset.noticePay){e.stopImmediatePropagation();run(async()=>{commitmentId=b.dataset.noticePay;await openPayment();});}else if(b.dataset.noticeTab){e.stopImmediatePropagation();run(async()=>{houseTab=b.dataset.noticeTab;houseId=null;page='casa';});}},true);
+
+// Definições: cada alteração grava no armazenamento e, quando mexe nos avisos, reagenda de imediato (também respeita «Ocultar valores»).
+const saveSettings=()=>Settings.write(localStorage,settings);
+document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b||busy||page!=='definicoes')return;let task=null;if(b.id==='set-notifications'){task=async()=>{if(settings.notifications){settings.notifications=false;settingsDenied=false;saveSettings();await rescheduleNotifications(true);return;}let granted=false;try{granted=await Notifier.enable(LocalNotifications);}catch{granted=false;}settingsDenied=!granted;settings.notifications=granted;saveSettings();if(granted)await rescheduleNotifications();};}else if(b.id==='set-hide-open'){task=async()=>{settings.hideOnOpen=!settings.hideOnOpen;saveSettings();};}else if(b.dataset.pillTheme!==undefined){task=async()=>{const theme=b.dataset.pillTheme;if(!Settings.THEMES.includes(theme))return;settings.theme=theme;saveSettings();applyTheme();};}if(task){e.stopImmediatePropagation();run(task);}},true);
+document.addEventListener('change',e=>{if(e.target.id!=='set-hour'||busy||page!=='definicoes')return;const hour=Number(e.target.value);if(!Number.isInteger(hour)||hour<0||hour>23)return;run(async()=>{settings.hour=hour;settingsDenied=false;saveSettings();await rescheduleNotifications();});});

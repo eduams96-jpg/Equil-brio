@@ -7,10 +7,16 @@ const DAYS = 7;
 const pad = n => String(n).padStart(2, '0');
 const dayOf = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
 
+const allIds = () => Array.from({ length: DAYS }, (_, k) => ({ id: BASE_ID + k }));
+
+// Cancela tudo o que a app agendou (ids fixos 9001-9007).
+async function cancelAll(plugin) {
+  await plugin.cancel({ notifications: allIds() });
+}
+
 // Substitui as notificações dos próximos 7 dias; ids fixos 9001-9007 para poder cancelar tudo.
 async function schedule(ledger, settings, { hidden = false, now = new Date() } = {}, plugin, notices = require('../../../equilibrio/dossiers-model.js').notices) {
-  const ids = Array.from({ length: DAYS }, (_, k) => ({ id: BASE_ID + k }));
-  await plugin.cancel({ notifications: ids });
+  await cancelAll(plugin);
   const hour = Number.isInteger(settings && settings.hour) ? settings.hour : 9;
   const list = [];
   for (let k = 0; k < DAYS; k++) {
@@ -31,4 +37,4 @@ async function enable(plugin) {
   return !!r && r.display === 'granted';
 }
 
-module.exports = { schedule, enable };
+module.exports = { schedule, enable, cancelAll };
