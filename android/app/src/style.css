@@ -95,6 +95,7 @@ nav button[aria-current]{background:color-mix(in srgb,var(--blue) 14%,transparen
 
 .cs-pills{display:flex;gap:6px;flex-wrap:nowrap;overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x proximity;scrollbar-width:none;-webkit-overflow-scrolling:touch;margin:12px 0;padding:3px 2px}
 .cs-pills::-webkit-scrollbar{display:none}
+.cs-pills button:focus-visible{outline-offset:-3px}
 .cs-pills button{flex:0 0 auto;white-space:nowrap;scroll-snap-align:start;display:inline-flex;align-items:center;gap:7px;min-height:44px;padding:6px 14px;border-radius:99px;border:1px solid var(--line);background:transparent;color:var(--muted);font-size:13px;font-weight:600;width:auto}
 .cs-pills button .cs-pill-count{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:99px;background:var(--surface-soft);font-size:11px}
 .cs-pills button[aria-pressed=true]{background:var(--blue);border-color:var(--blue);color:var(--on-blue)}

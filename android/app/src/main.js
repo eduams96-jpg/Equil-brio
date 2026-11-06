@@ -213,8 +213,6 @@ async function render(){
 
  if(page==='descartar-rascunho')main.innerHTML=Movimentos.discardDraft();
 
- main.querySelectorAll('.cs-pills [aria-pressed=true]').forEach(b=>{const p=b.parentElement,r=b.getBoundingClientRect(),c=p.getBoundingClientRect();if(r.right>c.right||r.left<c.left)p.scrollLeft+=r.left-c.left-8;});
-
  if(page==='novo')main.innerHTML=movementForm(ledger);
 
  if(page==='contas')main.innerHTML=Contas.render(ctx);
@@ -241,6 +239,8 @@ async function render(){
  if(page==='conflito')main.innerHTML=Ligacao.conflict(ctx,{conflictId});
 
  if(page==='sync')main.innerHTML=Ligacao.render(ctx,{connection,savedConnection});
+
+ main.querySelectorAll('.cs-pills').forEach(p=>{const b=p.querySelector('[aria-pressed="true"]');if(!b)return;const r=b.getBoundingClientRect(),c=p.getBoundingClientRect();if(r.right>c.right||r.left<c.left)p.scrollLeft+=r.left-c.left-8;});
 
  if(page==='novo'&&draftBaseline===null){draftBaseline=formFingerprint();draftRecord.baseline=draftBaseline;}
 
