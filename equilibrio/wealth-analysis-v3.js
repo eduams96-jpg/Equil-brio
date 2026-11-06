@@ -53,11 +53,9 @@
     page.append(more);
   }
 
-  function wealthHistoryChart(current) {
-    const history = [...(data.wealthHistory || [])]
-      .filter((point) => Number.isFinite(Number(point.net)) && /^\d{4}-\d{2}-\d{2}$/.test(point.date || "") && point.date <= F.today())
-      .sort((a, b) => a.date.localeCompare(b.date))
-      .slice(-12);
+  function wealthHistoryChart(wealth) {
+    const current = wealth.net;
+    const history = wealth.history;
     if (!history.length)
       return '<div class="wealth-v3-chart-empty">Ainda não há valores guardados. Usa «Guardar valor de hoje» para começares a acompanhar a tendência.</div>';
     const points = history.length === 1
@@ -80,21 +78,12 @@
     const host = byId("wealthV3Overview");
     if (!host) return;
     const today = F.today();
+    const wealth = WealthModel.summary(data, today);
     const I = (name) => window.InterfaceUI?.icon ? InterfaceUI.icon(name) : "";
     const accounts = (data.accounts || []).filter((item) => !item.archived);
     const investments = data.investments || [];
     const assets = data.assets || [];
-    const debts = data.debts || [];
-    const cash = total(data.accounts || [], (item) => F.balanceAt(data, item, today));
-    const investmentValue = total(investments, (item) => item.value);
-    const assetValue = window.LifeFinance?.assetTotal?.(data) || 0;
-    const debtValue = total(debts, (item) => item.balance);
-    const monthlyPayments = total(debts.filter((item) => item.balance > 0), (item) => item.payment);
-    const net = F.money(cash + investmentValue + assetValue - debtValue);
-    const positive = Math.max(0, cash) + Math.max(0, investmentValue) + Math.max(0, assetValue);
-    const historical = [...(data.wealthHistory || [])].filter((item) => Number.isFinite(Number(item.net)) && item.date <= today).sort((a, b) => a.date.localeCompare(b.date));
-    const previous = historical.at(-1);
-    const delta = previous ? F.money(net - Number(previous.net)) : null;
+    const { cash, investments: investmentValue, assets: assetValue, debts: debtValue, monthlyPayments, net, positive, delta, previousDate, historyCount, debtCount, unchecked } = wealth;
     const share = (value) => positive ? Math.max(0, value) / positive * 100 : 0;
     const pct = (value) => `${Math.round(share(value))}%`;
     const pending = ["Por conferir", "Rever avaliação", "Sem avaliação"];
@@ -111,7 +100,6 @@
       }),
     ];
     const review = entries.filter((item) => pending.includes(item.status));
-    const unchecked = review.filter((item) => item.kind === "account").length;
     // productivity-ui.js adds "Ver composição" to this card; keep it across redraws.
     const contribution = byId("wealthContributionButton");
     const tile = (tone, icon, label, value, detail) => `<article class="ch-tile is-${tone}"><span class="ch-tile-icon">${I(icon)}</span><div><span>${label}</span><strong class="amount">${value}</strong><small>${detail}</small></div></article>`;
@@ -127,22 +115,22 @@
     };
     host.innerHTML = `
       <div class="wl-tiles">
-        ${tile(net >= 0 ? "green" : "red", "chart", "Património líquido", money(net), delta === null ? "Sem valores guardados para comparar" : `${delta >= 0 ? "+" : "−"}${money(Math.abs(delta))} desde ${dateLabel(previous.date)}`)}
+        ${tile(net >= 0 ? "green" : "red", "chart", "Património líquido", money(net), delta === null ? "Sem valores guardados para comparar" : `${delta >= 0 ? "+" : "−"}${money(Math.abs(delta))} desde ${dateLabel(previousDate)}`)}
         ${tile("blue", "account", "Contas", money(cash), unchecked ? plural(unchecked, "conta por conferir", "contas por conferir") : "Todas conferidas")}
         ${tile("purple", "box", "Bens e investimentos", money(investmentValue + assetValue), `${plural(assets.length, "bem", "bens")} · ${plural(investments.length, "posição", "posições")}`)}
         ${tile(debtValue ? "amber" : "green", "alert", "Créditos", money(-debtValue), debtValue ? `Prestações de ${money(monthlyPayments)}/mês` : "Sem créditos em dívida")}
       </div>
       <div class="wl-grid">
         <article class="wl-card wl-evolution">
-          <header class="wl-card-head"><div><h3>Evolução</h3><p>${delta === null ? "Guarda o valor de hoje para começares a acompanhar a tendência." : `<span class="amount ${delta >= 0 ? "positive" : "negative"}">${delta >= 0 ? "+" : "−"}${money(Math.abs(delta))}</span> face ao último valor guardado (${plural(historical.length, "registo", "registos")})`}</p></div><button type="button" class="secondary" data-action="snapshot">${I("history")}Guardar valor de hoje</button></header>
-          ${wealthHistoryChart(net)}
+          <header class="wl-card-head"><div><h3>Evolução</h3><p>${delta === null ? "Guarda o valor de hoje para começares a acompanhar a tendência." : `<span class="amount ${delta >= 0 ? "positive" : "negative"}">${delta >= 0 ? "+" : "−"}${money(Math.abs(delta))}</span> face ao último valor guardado (${plural(historyCount, "registo", "registos")})`}</p></div><button type="button" class="secondary" data-action="snapshot">${I("history")}Guardar valor de hoje</button></header>
+          ${wealthHistoryChart(wealth)}
         </article>
         <article class="wl-card wl-composition wealth-v3-composition">
           <header class="wl-card-head"><div><h3>Composição</h3><p>Ativos de ${money(positive)}</p></div></header>
           <div class="wl-stack" role="img" aria-label="Composição dos ativos: ${parts.map(([, label, value]) => `${label} ${money(value)}`).join(", ")}">${parts.map(([key, , value]) => `<i class="part-${key}" style="width:${share(value).toFixed(2)}%"></i>`).join("")}</div>
           <ul class="wl-parts">
             ${parts.map(([key, label, value, detail]) => `<li><span class="wl-dot part-${key}"></span><div><b>${label}</b><small>${detail}</small></div><strong class="amount">${money(value)}</strong><em>${pct(value)}</em></li>`).join("")}
-            <li class="is-debt"><span class="wl-dot part-debts"></span><div><b>Créditos</b><small>${plural(debts.filter((item) => item.balance > 0).length, "crédito em dívida", "créditos em dívida")}</small></div><strong class="amount">${debtValue ? "−" : ""}${money(debtValue)}</strong><em>${positive ? Math.round(debtValue / positive * 100) + "%" : "—"}</em></li>
+            <li class="is-debt"><span class="wl-dot part-debts"></span><div><b>Créditos</b><small>${plural(debtCount, "crédito em dívida", "créditos em dívida")}</small></div><strong class="amount">${debtValue ? "−" : ""}${money(debtValue)}</strong><em>${positive ? Math.round(debtValue / positive * 100) + "%" : "—"}</em></li>
           </ul>
           <button type="button" class="wa-v3-link" data-wa-route="wealthMoneyHub">Ver inventário <span aria-hidden="true">→</span></button>
         </article>

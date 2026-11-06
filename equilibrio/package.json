@@ -47,6 +47,7 @@
       "life-model.js",
       "life-ui.js",
       "analysis-page-ui.js",
+      "wealth-model.js",
       "wealth-analysis-v3.js",
       "welcome-ui.js",
       "planning-model.js",

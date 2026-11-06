@@ -62,6 +62,7 @@ const publicFiles = new Set(["Equilibrio.ico","entry-tips-ui.js","dossiers-model
 
 
 
+  "wealth-model.js",
   "wealth-analysis-v3.js",
   "welcome-ui.js",
 ]);
