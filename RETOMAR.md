@@ -7,7 +7,7 @@ Estado em 05/11/2026. Lê isto primeiro quando voltares a pegar no projeto.
 - **Windows 1.0.21** pronto em `entrega-v1.0.21/` (atualização `.fpupdate`, hash e instruções). Aceita a instalação 1.0.20. Validado com instalação incremental e reposição automática numa cópia isolada.
 - **Instalado neste PC:** 1.0.20 (instaladas e revistas a 1.0.17 a 1.0.20).
 - **1.0.21:** Ler Fatura retirado; Património redesenhado; `workbench-ui.js` e 136 regras de CSS mortas removidos; navegação sem rotas duplicadas. Falta instalar neste PC.
-- **Android:** RC4, sem alterações desde a 1.0.15 (`entrega-v1.0.15/`).
+- **Android 1.0.0** entregue em `entrega-android-1.0.0/` (APK assinado com a mesma chave da RC4, `INSTALAR.md`, hash). Ramo `android-1.0.0` ainda não integrado no `main`. Próximo: instalar no telemóvel e fazer o piloto (`PILOTO-FINAL.md`). A Windows 1.0.22 deve levar as mudanças de `wealth-model`, `reports-model` e `house.cjs`.
 - **Código:** tudo gravado no `main`. Não enviado para o GitHub.
 - **Testes:** 683 a passar (`npm test` em `equilibrio/`); saíram os 26 testes da leitura de faturas.
 - **`historico/`:** baselines 1.0.16 a 1.0.21 em `historico/baselines/`. As entregas até 1.0.14 e a baseline 0.39.79 perderam-se em 30/10/2026.
