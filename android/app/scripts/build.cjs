@@ -13,7 +13,7 @@ const crypto=require('node:crypto');
 fs.writeFileSync(path.join(root,'www/build-info.json'),JSON.stringify({appVersion:JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8')).version,coreVersion:JSON.parse(fs.readFileSync(path.join(core,'package.json'),'utf8')).version,release:process.env.EQUILIBRIO_BUILD_CHANNEL==='release',bundleSha256:crypto.createHash('sha256').update(fs.readFileSync(path.join(root,'www/main.js'))).digest('hex')},null,2));
 
 if(process.env.EQUILIBRIO_BUILD_CHANNEL==='release'){
- const file=path.join(root,'www/index.html');fs.writeFileSync(file,fs.readFileSync(file,'utf8').replace('Equilíbrio — Ensaio','Equilíbrio').replace('Ensaio Android · dados fictícios','Android · candidata de validação'));
+ const file=path.join(root,'www/index.html');fs.writeFileSync(file,fs.readFileSync(file,'utf8').replace('Equilíbrio — Ensaio','Equilíbrio').replace('Ensaio Android · dados fictícios','Android'));
 }
 }
 build().catch(error=>{console.error(error);process.exitCode=1;});

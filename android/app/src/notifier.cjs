@@ -27,7 +27,7 @@ async function schedule(ledger, settings, { hidden = false, now = new Date() } =
     try { result = notices(ledger, { today: day }); } catch { result = null; }
     const digest = dailyDigest(result, { hidden, today: day });
     if (!digest) continue;
-    list.push({ id: BASE_ID + k, title: digest.title, body: digest.body, schedule: { at, allowWhileIdle: true }, extra: { page: 'avisos' } });
+    list.push({ id: BASE_ID + k, title: digest.title, body: digest.body, isExactNotification: false, schedule: { at, allowWhileIdle: true }, extra: { page: 'avisos' } });
   }
   if (list.length) await plugin.schedule({ notifications: list });
 }

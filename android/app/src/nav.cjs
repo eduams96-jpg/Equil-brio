@@ -17,4 +17,16 @@ function tabFor(page) {
   return 'resumo';
 }
 
-module.exports = { tabFor };
+const TAB_ROOTS = ['mais', 'casa', 'movimentos'];
+
+// Destino do botão «voltar» do Android: fecha o diálogo aberto, usa o botão «voltar» do ecrã,
+// leva as raízes de separador ao Resumo; no Resumo não trata (sai da app).
+function backTarget(page, { hasBackButton = false, dialogOpen = false } = {}) {
+  if (dialogOpen) return 'close-dialog';
+  if (page === 'resumo') return 'exit';
+  if (hasBackButton) return 'back';
+  if (TAB_ROOTS.includes(page)) return 'resumo';
+  return 'resumo';
+}
+
+module.exports = { tabFor, backTarget };

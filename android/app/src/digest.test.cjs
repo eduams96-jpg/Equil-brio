@@ -58,6 +58,7 @@ test('schedule cancela 9001-9007 e só agenda os dias com avisos, à hora certa'
   assert.equal(list[0].title, '1 aviso hoje');
   assert.equal(list[0].body, 'Hoje (vence hoje)');
   assert.equal(list[0].schedule.allowWhileIdle, true);
+  for (const n of list) assert.equal(n.isExactNotification, false);
   assert.equal(list[0].schedule.at.getTime(), new Date(2026, 10, 5, 9, 0).getTime());
   assert.equal(list[1].schedule.at.getTime(), new Date(2026, 10, 7, 9, 0).getTime());
   assert.equal(list[1].body, 'Dia 7 (em 1 dia)');

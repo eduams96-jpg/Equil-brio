@@ -26,3 +26,12 @@ test('index.html usa a mesma navegação que a pré-visualização', () => {
   assert.ok(html.includes(shell.navHtml('resumo') + shell.fabHtml()));
   assert.match(shell.fabHtml(), /id="quickAdd" data-page="novo"/);
 });
+
+test('backTarget decide o destino do botão voltar', () => {
+  for (const p of ['mais', 'casa', 'movimentos']) assert.equal(nav.backTarget(p, { hasBackButton: false, dialogOpen: false }), 'resumo', p);
+  assert.equal(nav.backTarget('contas', { hasBackButton: true }), 'back');
+  assert.equal(nav.backTarget('mais', { hasBackButton: true }), 'back');
+  assert.equal(nav.backTarget('contas', { dialogOpen: true, hasBackButton: true }), 'close-dialog');
+  assert.equal(nav.backTarget('resumo', { dialogOpen: true }), 'close-dialog');
+  assert.equal(nav.backTarget('resumo', {}), 'exit');
+});
