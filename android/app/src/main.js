@@ -14,6 +14,8 @@ import Casa from './screens/casa.cjs';
 
 let houseTab='produtos',houseId=null,hf=null,hr=null,houseDiscard=null;
 
+let shopFilters={status:'todo',storeId:'',query:'',inStore:false},shopId=null,shopForm=null,shopAdd={query:'',qty:'1',name:''},shopTimer=null;
+
 import Forms from '../../shared/form-drafts.cjs';
 
 let pf=null,pr=null,paymentDiscard=null;
@@ -47,6 +49,8 @@ import Mais from './screens/mais.cjs';
 import Resumo from './screens/resumo.cjs';
 
 import Movimentos from './screens/movimentos.cjs';
+
+import Compras from './screens/compras.cjs';
 
 import Contas from './screens/contas.cjs';
 
@@ -188,6 +192,12 @@ async function render(){
 
  if(page==='casa-form')main.innerHTML=Casa.form(ctx,{form:hf,record:hr});
 
+ if(page==='compras')main.innerHTML=Compras.render(ctx,shopFilters);
+
+ if(page==='compras-artigo')main.innerHTML=Compras.item(ctx,{id:shopId,form:shopForm});
+
+ if(page==='compras-novo')main.innerHTML=Compras.add(ctx,shopAdd);
+
  if(page==='descartar-casa')main.innerHTML=Casa.discard();
 
  if(page==='recuperacao')main.innerHTML=Ligacao.recovery(ctx,{points:recoveryPoints,file:recoveryFile});
@@ -260,7 +270,7 @@ function autoSaveDraft(){if(page!=='novo'||!draftRecord||busy)return;preserveDra
 
 async function leaveForm(next,discard){await adapter.idle();const s=(await adapter.read()).state,saved=s.movementDraft;if(discard&&saved){if(!draftRecord||saved.token!==draftRecord.token)throw Error('Existe outro rascunho. Foi preservado.');await drafts.discard(saved);}else if(!discard&&draftRecord&&!D.staleReason(s,draftRecord))await persistDraft();draft=null;draftRecord=null;draftBaseline=null;formRevision=null;resolvingId=null;renderedPage=null;page=next;}
 
-async function run(fn){if(busy)return;preserveHouse();preservePayment();preserveCommit();preserveAccount();preserveDraft();busy=true;main.inert=true;main.setAttribute('aria-busy','true');message.textContent='';document.querySelectorAll('button').forEach(b=>b.disabled=true);try{await fn();await render();}catch(error){message.textContent=error.message;try{await render();}catch{main.textContent='Não foi possível abrir os dados. Nenhum ficheiro foi substituído.';}}finally{busy=false;main.inert=false;main.setAttribute('aria-busy','false');document.getElementById('privacy').disabled=false;document.querySelectorAll('nav button,#leaveDialog button').forEach(b=>b.disabled=false);}}
+async function run(fn){if(busy)return;preserveHouse();preserveShop();preservePayment();preserveCommit();preserveAccount();preserveDraft();busy=true;main.inert=true;main.setAttribute('aria-busy','true');message.textContent='';document.querySelectorAll('button').forEach(b=>b.disabled=true);try{await fn();await render();}catch(error){message.textContent=error.message;try{await render();}catch{main.textContent='Não foi possível abrir os dados. Nenhum ficheiro foi substituído.';}}finally{busy=false;main.inert=false;main.setAttribute('aria-busy','false');document.getElementById('privacy').disabled=false;document.querySelectorAll('nav button,#leaveDialog button').forEach(b=>b.disabled=false);}}
 
 async function save(){
 
@@ -468,7 +478,7 @@ async function persistHouse(){preserveHouse();if(!hr)return;const r=await Forms.
 
 async function openHouseForm(kind,id=null){await adapter.idle();const s=(await adapter.read()).state;if(s.houseDraft){hr=P.copy(s.houseDraft);hf=P.copy(hr.form);page='casa-form';return;}const v=P.view(s),c=House.Casa.state(v.ledger),old=kind==='product'?c.catalog.find(x=>x.id===id):c.stock.find(x=>x.id===id);hf={id:old?.id||P.id(),command:'house.'+kind,mode:old?'update':'create',seed:P.id(),changedOn:today()};if(kind==='product'){const cats=P.Finance.categoryParts(old?.category||'');Object.assign(hf,{name:old?.name||'',brand:old?.brand||'',category:cats[0]||'',sub1:cats[1]||'',sub2:cats[2]||'',sub3:cats[3]||'',unit:old?.unit||'un',url:old?.url||'',offers:old?Object.entries(old.offers).map(([storeId,o])=>({storeName:c.stores.find(s=>s.id===storeId)?.name||'',packageQty:String(o.packageQty),price:String(o.price).replace('.',','),...(o.url?{url:o.url}:{})})) :[]});}else if(kind==='lot'){Object.assign(hf,{catalogId:old?.catalogId||id||'',qty:String(old?.qty||''),location:old?.location||'',expiry:old?.expiry||'',opened:old?.opened===true});}else {if(!old)throw Error('Lote indisponível.');Object.assign(hf,{id:old.id,qty:'',type:'consume',note:''});}hr=Forms.create(s,hf,'house',v.revisions.house||0);page='casa-form';}
 
-document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b||busy)return;let task=null;if(b.dataset.houseTab)task=async()=>{houseTab=b.dataset.houseTab;page='casa';};if(b.dataset.product)task=async()=>{houseId=b.dataset.product;houseTab='produto';page='casa';};if(b.dataset.lot)task=async()=>{houseId=b.dataset.lot;houseTab='lote';page='casa';};if(b.id==='new-product'||b.dataset.editProduct)task=()=>openHouseForm('product',b.dataset.editProduct||null);if(b.dataset.newLot)task=()=>openHouseForm('lot',b.dataset.newLot);if(b.dataset.editLot)task=()=>openHouseForm('lot',b.dataset.editLot);if(b.dataset.consumeLot)task=()=>openHouseForm('consume',b.dataset.consumeLot);if(b.id==='resume-house')task=()=>openHouseForm('product');if(b.id==='add-offer')task=async()=>{preserveHouse();hf.offers.push({storeName:'',packageQty:'',price:''});document.getElementById('house-form').remove();await persistHouse();};if(b.dataset.removeOffer!==undefined)task=async()=>{preserveHouse();hf.offers.splice(Number(b.dataset.removeOffer),1);document.getElementById('house-form').remove();await persistHouse();};if(b.id==='ask-discard-house')task=async()=>{houseDiscard=P.copy((await adapter.read()).state.houseDraft);page='descartar-casa';};if(b.id==='confirm-discard-house')task=async()=>{await Forms.discard(adapter,'houseDraft',houseDiscard);hr=null;hf=null;page='casa';};if(b.dataset.shopping)task=async()=>{const p={id:b.dataset.shopping,seed:P.id(),changedOn:today(),values:{operation:'toggle'}};await client.enqueue('house.shopping',p);};if(b.id==='save-house'){if(!document.getElementById('house-form').reportValidity())return;task=async()=>{const r=await persistHouse(),p=HouseForm.payload(hf);await client.enqueue(hf.command,p,{houseDraft:{token:r.token,sequence:r.sequence}});houseId=p.id;houseTab=hf.command==='house.product'?'produto':hf.command==='house.lot'?'lote':'stock';hf=null;hr=null;page='casa';message.textContent='Casa guardada neste dispositivo.';};}if(page==='casa-form'&&b.dataset.page)task=async()=>{if(hr&&!Forms.staleReason((await adapter.read()).state,hr))await persistHouse();hf=null;hr=null;page=b.dataset.page;};if(task){e.stopImmediatePropagation();run(task);}},true);
+document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b||busy)return;let task=null;if(b.dataset.houseTab)task=async()=>{houseTab=b.dataset.houseTab;page='casa';};if(b.dataset.product)task=async()=>{houseId=b.dataset.product;houseTab='produto';page='casa';};if(b.dataset.lot)task=async()=>{houseId=b.dataset.lot;houseTab='lote';page='casa';};if(b.id==='new-product'||b.dataset.editProduct)task=()=>openHouseForm('product',b.dataset.editProduct||null);if(b.dataset.newLot)task=()=>openHouseForm('lot',b.dataset.newLot);if(b.dataset.editLot)task=()=>openHouseForm('lot',b.dataset.editLot);if(b.dataset.consumeLot)task=()=>openHouseForm('consume',b.dataset.consumeLot);if(b.id==='resume-house')task=()=>openHouseForm('product');if(b.id==='add-offer')task=async()=>{preserveHouse();hf.offers.push({storeName:'',packageQty:'',price:''});document.getElementById('house-form').remove();await persistHouse();};if(b.dataset.removeOffer!==undefined)task=async()=>{preserveHouse();hf.offers.splice(Number(b.dataset.removeOffer),1);document.getElementById('house-form').remove();await persistHouse();};if(b.id==='ask-discard-house')task=async()=>{houseDiscard=P.copy((await adapter.read()).state.houseDraft);page='descartar-casa';};if(b.id==='confirm-discard-house')task=async()=>{await Forms.discard(adapter,'houseDraft',houseDiscard);hr=null;hf=null;page='casa';};if(b.id==='save-house'){if(!document.getElementById('house-form').reportValidity())return;task=async()=>{const r=await persistHouse(),p=HouseForm.payload(hf);await client.enqueue(hf.command,p,{houseDraft:{token:r.token,sequence:r.sequence}});houseId=p.id;houseTab=hf.command==='house.product'?'produto':hf.command==='house.lot'?'lote':'stock';hf=null;hr=null;page='casa';message.textContent='Casa guardada neste dispositivo.';};}if(page==='casa-form'&&b.dataset.page)task=async()=>{if(hr&&!Forms.staleReason((await adapter.read()).state,hr))await persistHouse();hf=null;hr=null;page=b.dataset.page;};if(task){e.stopImmediatePropagation();run(task);}},true);
 
 for(const name of ['input','change'])document.addEventListener(name,e=>{if(e.target.closest('#house-form')&&!busy)persistHouse().then(()=>{const el=document.getElementById('house-status');if(el)el.textContent='Rascunho guardado neste dispositivo.';}).catch(e=>message.textContent=e.message);});
 
@@ -492,3 +502,13 @@ for(const event of ['input','change'])document.addEventListener(event,e=>{if(e.t
 
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'&&page==='editar-conta')persistAccount().catch(e=>message.textContent=e.message);});
 
+
+const shopSend=(id,values)=>client.enqueue('house.shopping',{id,seed:P.id(),changedOn:today(),values});
+
+function shopRead(){const f=document.getElementById('shop-item-form');return f?Object.fromEntries([...new FormData(f).entries()].map(([k,v])=>[k,String(v)])):null;}
+
+function preserveShop(){if(page!=='compras-artigo')return;const f=shopRead();if(f)shopForm=f;}
+
+document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b||busy)return;const d=b.dataset;let task=null;if(d.shoppingDone)task=()=>shopSend(d.shoppingDone,Compras.setDone(d.next==='true'));else if(d.pillShopstatus!==undefined)task=async()=>{shopFilters.status=d.pillShopstatus;};else if(d.pillShopstore!==undefined)task=async()=>{shopFilters.storeId=d.pillShopstore;};else if(b.id==='shop-instore')task=async()=>{shopFilters.inStore=!shopFilters.inStore;if(!shopFilters.inStore)shopFilters.storeId='';};else if(b.id==='shop-add')task=async()=>{shopAdd={query:'',qty:'1',name:''};page='compras-novo';};else if(d.shoppingOpen)task=async()=>{shopId=d.shoppingOpen;shopForm=null;page='compras-artigo';};else if(b.id==='shop-item-save')task=async()=>{const f=shopRead(),id=shopId;try{const defaults=f.packages===undefined?null:Compras.offerDefaults(P.view((await adapter.read()).state).ledger,id);await shopSend(id,Compras.updateValues(f,f.packages!==undefined,defaults));}catch(error){shopForm=f;throw error;}shopForm=null;page='compras';message.textContent='Artigo guardado neste dispositivo.';};else if(b.id==='shop-item-remove')task=async()=>{await shopSend(shopId,{operation:'remove'});shopId=null;shopForm=null;page='compras';message.textContent='Artigo retirado da lista.';};else if(d.queueCatalog)task=async()=>{const values=Compras.queueValues({catalogId:d.queueCatalog,storeId:d.queueStore,qty:document.getElementById('shop-add-qty').value});await shopSend(P.id(),values);shopFilters.status='todo';page='compras';message.textContent='Artigo acrescentado à lista.';};else if(b.id==='shop-add-free')task=async()=>{const values=Compras.addValues({name:document.getElementById('shop-add-name').value,qty:document.getElementById('shop-add-qty').value});await shopSend(P.id(),values);shopFilters.status='todo';page='compras';message.textContent='Artigo acrescentado à lista.';};if(task){e.stopImmediatePropagation();run(task);}},true);
+
+document.addEventListener('input',event=>{const id=event.target.id,value=event.target.value;if(id==='shop-add-qty'){shopAdd.qty=value;return;}if(id==='shop-add-name'){shopAdd.name=value;return;}if(id!=='shop-search'&&id!=='shop-add-query')return;if(id==='shop-search')shopFilters.query=value;else shopAdd.query=value;const start=event.target.selectionStart,end=event.target.selectionEnd;clearTimeout(shopTimer);shopTimer=setTimeout(async()=>{if(busy||(page!=='compras'&&page!=='compras-novo'))return;const y=window.scrollY;await run(async()=>{});const input=document.getElementById(id);if(input){input.focus({preventScroll:true});input.setSelectionRange(start,end);window.scrollTo(0,y);}},180);});

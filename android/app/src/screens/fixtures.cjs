@@ -31,6 +31,14 @@ function demo() {
     { storeName: 'Continente', packageQty: 1, price: 1.29 }, { storeName: 'Pingo Doce', packageQty: 1, price: 1.35 },
   ]);
   H.Life.lot(d, { catalogId: H.Casa.state(d).catalog[0].id, qty: 3, location: 'Despensa', expiry: '2027-03-01', opened: false });
+  // Artigos ligados ao catálogo: um por comprar, um já no carrinho e um que não se encontrou.
+  const casa = H.Casa.state(d), rice = casa.catalog[0].id;
+  const continente = casa.stores.find(s => s.name === 'Continente').id, pingo = casa.stores.find(s => s.name === 'Pingo Doce').id;
+  H.Casa.queueProduct(d, { catalogId: rice, storeId: continente, requestedQty: 3 });
+  const inCart = H.Casa.queueProduct(d, { catalogId: rice, storeId: continente, requestedQty: 2 });
+  const missing = H.Casa.queueProduct(d, { catalogId: rice, storeId: pingo, requestedQty: 4 });
+  d.casa.shopping.find(s => s.id === inCart).done = true;
+  d.casa.shopping.find(s => s.id === missing).notFound = true;
   d.pendingPayments = [
     { id: 'pp-rent', description: 'Renda', date: '2026-11-08', type: 'expense', amount: 520, account: bank, category: 'Habitação' },
     { id: 'pp-net', description: 'Internet', date: '2026-11-20', type: 'expense', amount: 34.9, account: bank, category: 'Serviços' },

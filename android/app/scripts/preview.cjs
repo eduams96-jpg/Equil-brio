@@ -22,6 +22,10 @@ const SCREENS = [
   { name: 'ligacao', module: '../src/screens/ligacao.cjs', page: 'sync' },
   { name: 'casa-stock', module: '../src/screens/casa.cjs', page: 'casa', view: { tab: 'stock' } },
   { name: 'casa-historico', module: '../src/screens/casa.cjs', page: 'casa', view: { tab: 'historico' } },
+  { name: 'compras', module: '../src/screens/compras.cjs', view: { status: 'all' } },
+  { name: 'compras-na-loja', module: '../src/screens/compras.cjs', page: 'compras', view: ledger => ({ status: 'todo', inStore: true, storeId: (ledger.casa && ledger.casa.stores[0] || {}).id || '' }) },
+  { name: 'compras-artigo', module: '../src/screens/compras.cjs', fn: 'item', page: 'compras', view: ledger => ({ id: ((ledger.casa && ledger.casa.shopping.find(x => x.catalogId)) || {}).id }) },
+  { name: 'compras-novo', module: '../src/screens/compras.cjs', fn: 'add', page: 'compras', view: { query: 'arroz' } },
   { name: 'casa-compras', module: '../src/screens/casa.cjs', page: 'casa', view: { tab: 'compras' } },
   { name: 'ligacao-ligada', module: '../src/screens/ligacao.cjs', page: 'sync', view: { connection: {} } },
 ];
@@ -67,13 +71,13 @@ function build() {
     if (screen.module) {
       const file = path.resolve(__dirname, screen.module);
       if (!fs.existsSync(file)) continue;
-      render = require(file).render;
+      render = require(file)[screen.fn || 'render'];
     }
     for (const [dataName, make] of DATA) {
       for (const [themeName, theme] of THEMES) {
         const file = screen.name + '-' + dataName + '-' + themeName + '.html';
         let body;
-        try { body = render(fixtures.ctx(make()), screen.view); } catch (error) { body = kit.errorCard(error.message); }
+        try { body = (() => { const ledger = make(); return render(fixtures.ctx(ledger), typeof screen.view === 'function' ? screen.view(ledger) : screen.view); })(); } catch (error) { body = kit.errorCard(error.message); }
         fs.writeFileSync(path.join(out, file), frame('Equilíbrio · ' + screen.name, theme, screen.page || screen.name, body));
         links.push(file);
       }

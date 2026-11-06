@@ -206,3 +206,26 @@ dialog{color:var(--ink)}
 .mais-text{display:grid;gap:2px;flex:1;min-width:0}
 .mais-text small{color:var(--muted);font-size:12px}
 .mais-go{color:var(--muted);font-size:22px;line-height:1;flex:none}
+
+/* ---- Lista de compras ---- */
+.shop-actions{display:flex;gap:8px;margin:12px 0 0}
+.shop-actions button{flex:1 1 0;display:inline-flex;align-items:center;justify-content:center;gap:8px;min-width:0}
+.shop-actions .interface-icon{width:18px;height:18px}
+.shop-actions button[aria-pressed=true]{background:color-mix(in srgb,var(--blue) 14%,transparent);border-color:var(--blue);color:var(--blue-text)}
+.shop-list{margin:4px 0 8px}
+.shop-row{display:grid;grid-template-columns:44px minmax(0,1fr) auto;align-items:center;gap:4px;border-bottom:1px solid var(--line)}
+.shop-check{position:relative;width:44px;height:44px;min-height:44px;padding:0;border:0;background:transparent;display:grid;place-items:center;color:var(--on-blue)}
+.shop-check::before{content:"";position:absolute;inset:10px;border:2px solid var(--muted);border-radius:8px}
+.shop-check[aria-checked=true]::before{background:var(--blue);border-color:var(--blue)}
+.shop-check .interface-icon{position:relative;width:18px;height:18px}
+.shop-name{text-align:left;border:0;background:transparent;border-radius:0;padding:10px 4px;min-width:0}
+.shop-name strong,.shop-name small{display:block;overflow-wrap:anywhere}
+.shop-name small{color:var(--muted);font-size:13px;margin-top:2px}
+.shop-row .amount{font-weight:600;padding-right:4px;white-space:nowrap}
+.shop-row.is-done .shop-name strong{text-decoration:line-through;color:var(--muted)}
+.shop-row.is-missing .shop-name small{color:var(--orange)}
+.shop-footer{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(var(--nav-h) + 10px + env(safe-area-inset-bottom));width:min(100%,560px);z-index:4;display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:10px 16px;background:var(--paper);border-top:1px solid var(--line)}
+.shop-footer small{display:block;color:var(--muted);font-size:12px}
+.shop-footer strong{font-size:18px}
+#app:has(.shop-footer){padding-bottom:calc(var(--nav-h) + 74px + 16px + 56px + 24px + env(safe-area-inset-bottom))}
+#app:has(.shop-footer) #quickAdd{bottom:calc(var(--nav-h) + 74px + 16px + env(safe-area-inset-bottom))}
