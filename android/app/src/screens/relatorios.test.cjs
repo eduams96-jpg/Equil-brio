@@ -46,15 +46,33 @@ test('switchKind converte entre mês, trimestre e ano', () => {
   assert.deepEqual(relatorios.initial('2026-11-05'), NOV);
 });
 
-test('delta é a diferença do saldo face ao período anterior, com percentagem', () => {
+test('delta é a diferença do saldo face ao período anterior', () => {
   const v = relatorios.view(demo(), NOV);
   assert.equal(v.current.saving, 1385.2);
   assert.equal(v.previous.saving, -48.5);
   assert.equal(v.delta.saving, 1433.7);
   assert.equal(v.delta.income, 1450);
   assert.equal(v.delta.expense, 16.3);
-  assert.equal(Math.round(v.delta.pct), 2956);
   assert.equal(relatorios.view(empty(), NOV).delta.pct, null);
+});
+
+test('sem percentagem quando o saldo anterior é negativo ou zero', () => {
+  const v = relatorios.view(demo(), NOV);
+  assert.ok(v.previous.saving < 0);
+  assert.equal(v.delta.pct, null);
+  assert.doesNotMatch(tile(relatorios.render(realCtx(demo()), NOV), 'Diferença do saldo'), /%/);
+  const zero = relatorios.view(demo(), { year: '2026', period: 'm10', account: '' });
+  assert.equal(zero.previous.saving, 0);
+  assert.equal(zero.delta.pct, null);
+});
+
+test('com saldo anterior positivo a percentagem é um número e aparece no mosaico', () => {
+  const sel = { year: '2026', period: 'm12', account: '' };
+  const v = relatorios.view(demo(), sel);
+  assert.ok(v.previous.saving > 0);
+  assert.equal(typeof v.delta.pct, 'number');
+  assert.equal(Math.round(v.delta.pct), -100);
+  assert.match(tile(relatorios.render(realCtx(demo()), sel), 'Diferença do saldo'), /%/);
 });
 
 test('as categorias trazem a cor do modelo por posição e as subcategorias', () => {
@@ -128,7 +146,7 @@ test('com valores ocultos não há montantes, nem em aria-label', () => {
     assert.doesNotMatch(html, AMOUNT, period);
     assert.ok(html.includes('•••• €'));
     assert.doesNotMatch(tile(html, 'Diferença do saldo'), /%/, period);
-    if (period === 'm11') assert.match(tile(relatorios.render(realCtx(demo(), false), sel), 'Diferença do saldo'), /%/);
+    if (period === 'm12') assert.match(tile(relatorios.render(realCtx(demo(), false), sel), 'Diferença do saldo'), /%/);
     for (const label of html.match(/aria-label="[^"]*"/g) || []) assert.doesNotMatch(label, /\d,\d{2}|€/, label);
   }
   const emptyHtml = relatorios.render(realCtx(empty(), true), NOV);

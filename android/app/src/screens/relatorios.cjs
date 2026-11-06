@@ -62,7 +62,7 @@ function view(ledger, sel, analyse = R.analyse) {
     income: diff(current.income, previous.income),
     expense: diff(current.expense, previous.expense),
     saving,
-    pct: previous.saving ? saving / Math.abs(previous.saving) * 100 : null,
+    pct: previous.saving > 0 ? saving / previous.saving * 100 : null,
   };
   const categories = R.detail(ledger, { ...sel, result: current }).categories.map((c, i) => ({
     name: c.name,
