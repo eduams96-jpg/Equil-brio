@@ -1,8 +1,8 @@
 {
   "name": "financas-pessoais-desktop",
-  "version": "1.0.22",
+  "version": "1.0.23",
   "private": true,
-  "description": "Equilíbrio v1.0.22 — Lista de compras no telemóvel",
+  "description": "Equilíbrio v1.0.23 — Refeições, receitas com unidades e Casa mais rápida",
   "main": "desktop/main.cjs",
   "scripts": {
     "test": "node --test tests/*.cjs",

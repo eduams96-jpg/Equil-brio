@@ -18,6 +18,8 @@ const eur = (n) => euroFormatter.format(n || 0);
 const sum = (items, f = (x) => x) =>
   F.money(items.reduce((s, x) => s + f(x), 0));
 let key = "equilibrioData";
+// Há páginas fora da Casa por atualizar depois de gravações com redesenho leve.
+let pendingFullRender = false;
 const dateLabel = (s) =>
   F.validDate(s) ? new Date(s + "T12:00").toLocaleDateString("pt-PT") : "—";
 const monthLabel = (m) =>
@@ -300,7 +302,7 @@ function commit(fn, message = "Alterações guardadas.") {
     window.CompleteUI?.updatedFromDisk();
     window.FileProtection?.saved(data);
     undoState = before;
-    render();
+    render({ light: JSON.stringify([before.accounts, before.transactions]) === JSON.stringify([data.accounts, data.transactions]) });
     restoreMovementContext();
     notice(message);
     return true;
@@ -514,6 +516,8 @@ function navigate(v, skipEnhancement = false) {
   }
   try { return navigateCore(v, skipEnhancement); }
   finally {
+    // Ao sair da Casa depois de gravações com redesenho leve, atualiza o resto do programa.
+    if (!skipEnhancement && pendingFullRender && window.CasaRenderUI?.lightView?.(view) !== true) { pendingFullRender = false; render(); }
     if (ownsCaches) { activeRenderTotalsCache=null;activeRenderSpentCache=null;activeRenderScheduleCache=null;activeRenderScheduleTextCache=null; }
     F.renderCache?.end(); window.InterfaceUI?.endRender();
   }
@@ -1862,8 +1866,9 @@ function renderVisibleCore(v) {
   if (['reports','insights','weeklyHub'].includes(v)) renderReports();
   if (['wealth','wealthAccountsHub','wealthHoldingsHub','assets','investments','debts'].includes(v)) renderWealth();
 }
-function render() {
+function render(options) {
   if (window.equilibrioStartup?.awaitingChoice) { window.equilibrioStartup.deferredRenders++; return; }
+  const light = options?.light === true && typeof window.UILifecycle?.renderLight === "function" && window.CasaRenderUI?.lightView?.(view) === true;
   window.InterfaceUI?.beginRender(); F.renderCache?.begin();
   // Caches estritamente limitadas a um ciclo de render: evitam repetir cálculos
   // pesados sem poder ficar desatualizadas entre alterações aos dados.
@@ -1881,6 +1886,8 @@ function render() {
   $("#accountFilter").value = selected;
   $("#demoBanner").hidden = !data.isDemo;
   $("#undo").disabled = !undoState;
+  if (light) { pendingFullRender = true; window.UILifecycle.renderLight(); return; }
+  pendingFullRender = false;
   renderVisibleCore(view);
   if (view === "transactions") renderTransactions();
   renderCollections();

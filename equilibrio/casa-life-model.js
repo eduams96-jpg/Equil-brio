@@ -4,6 +4,12 @@
  const finance=()=>typeof module==='object'&&module.exports?require('./finance.js'):root.Finance;
  const units=n=>Math.round(n*1000),q=n=>units(n)/1000;
  const valid=n=>Number.isFinite(n)&&Number.isSafeInteger(units(n))&&Math.abs(n*1000-units(n))<1e-6;
+ const MEALS=[['breakfast','Pequeno-almoço'],['morningSnack','Lanche da manhã'],['lunch','Almoço'],['afternoonSnack','Lanche da tarde'],['dinner','Jantar'],['supper','Ceia']];
+ const mealLabel=id=>MEALS.find(m=>m[0]===id)?.[1]||String(id);
+ const UNIT_SCALE={kg:['mass',1],g:['mass',.001],L:['volume',1],ml:['volume',.001],cl:['volume',.01]};
+ function ingredientUnits(unit){const kind=UNIT_SCALE[unit]?.[0];return kind?Object.keys(UNIT_SCALE).filter(u=>UNIT_SCALE[u][0]===kind):[unit];}
+ function convert(value,from,to){if(from===to)return value;const a=UNIT_SCALE[from],b=UNIT_SCALE[to];if(!a||!b||a[0]!==b[0])throw Error('Unidades incompatíveis.');return Math.round(value*a[1]/b[1]*1e6)/1e6;}
+ function ingredientQty(i,productUnit){const unit=i.unit&&ingredientUnits(productUnit).includes(i.unit)?i.unit:productUnit;return {qty:convert(i.qty,productUnit,unit),unit};}
  function remaining(c,lot){return (units(lot.qty)+c.stockEvents.filter(e=>e.lotId===lot.id).reduce((s,e)=>s+units(e.delta),0))/1000;}
  function available(c,productId,date=finance().today()){return c.stock.filter(l=>l.catalogId===productId&&(!l.expiry||l.expiry>=date)).reduce((s,l)=>s+units(remaining(c,l)),0)/1000;}
  function validate(d){
@@ -24,10 +30,10 @@
   for(const l of c.stock){if((l.expiry!==undefined&&l.expiry!==''&&!F.validDate(l.expiry))||(l.location!==undefined&&(typeof l.location!=='string'||l.location.length>80))||(l.opened!==undefined&&typeof l.opened!=='boolean'))throw Error('Dados do lote inválidos.');}
   for(const r of c.recipes){
    if(typeof r.name!=='string'||!r.name.trim()||r.name.length>160||!Number.isInteger(r.servings)||r.servings<1||r.servings>1000||typeof r.notes!=='string'||r.notes.length>10000||!Array.isArray(r.ingredients)||!r.ingredients.length)throw Error('Receita inválida.');
-   const seen=new Set();for(const i of r.ingredients){if(!c.catalog.some(p=>p.id===i.catalogId)||seen.has(i.catalogId)||!valid(i.qty)||i.qty<=0)throw Error('Ingrediente inválido ou repetido.');seen.add(i.catalogId);}
+   const seen=new Set();for(const i of r.ingredients){if(!c.catalog.some(p=>p.id===i.catalogId)||seen.has(i.catalogId)||!valid(i.qty)||i.qty<=0||(i.unit!==undefined&&(typeof i.unit!=='string'||!i.unit||i.unit.length>20)))throw Error('Ingrediente inválido ou repetido.');seen.add(i.catalogId);}
   }
   const slots=new Set();
-  for(const p of c.plans){const key=p.date+':'+p.meal;if(!F.validDate(p.date)||!['lunch','dinner'].includes(p.meal)||slots.has(key)||!c.recipes.some(r=>r.id===p.recipeId)||!Number.isInteger(p.servings)||p.servings<1||p.servings>1000||typeof p.done!=='boolean')throw Error('Refeição planeada inválida/repetida.');slots.add(key);if(p.done&&!c.stockEvents.some(e=>e.planId===p.id))throw Error('Refeição sem registo de consumo.');}
+  for(const p of c.plans){const key=p.date+':'+p.meal;if(!F.validDate(p.date)||!MEALS.some(m=>m[0]===p.meal)||slots.has(key)||!c.recipes.some(r=>r.id===p.recipeId)||!Number.isInteger(p.servings)||p.servings<1||p.servings>1000||typeof p.done!=='boolean')throw Error('Refeição planeada inválida/repetida.');slots.add(key);if(p.done&&!c.stockEvents.some(e=>e.planId===p.id))throw Error('Refeição sem registo de consumo.');}
   for(const h of c.priceHistory){if(!c.catalog.some(p=>p.id===h.catalogId)||!c.stores.some(s=>s.id===h.storeId)||!valid(h.packageQty)||h.packageQty<=0||!Number.isFinite(h.price)||h.price<=0||F.money(h.price)!==h.price||!F.validDate(h.date))throw Error('Histórico de preço inválido.');}
   for(const i of c.imports)if(!/^[a-f0-9]{64}$/.test(i.fingerprint)||!i.archive||typeof i.archive!=='object')throw Error('Origem da importação inválida.');
   for(const e of c.legacyActivity)if(!['consume','waste'].includes(e.type)||!c.catalog.some(p=>p.id===e.catalogId)||!valid(e.qty)||e.qty<=0||!F.validDate(e.date))throw Error('Histórico Casa importado inválido.');
@@ -67,7 +73,7 @@
   }return count;
  });}
  function replenish(d){return queueNeeds(d,suggestions(d));}
- function saveRecipe(d,input){return base().change(d,(draft,F)=>{let r=draft.casa.recipes.find(r=>r.id===input.id);if(input.id&&!r)throw Error('Receita não encontrada.');const next={id:r?.id||F.id(),name:String(input.name||'').trim(),servings:input.servings,notes:String(input.notes||''),ingredients:structuredClone(input.ingredients||[])};if(r)Object.assign(r,next);else draft.casa.recipes.push(next);return next.id;});}
+ function saveRecipe(d,input){return base().change(d,(draft,F)=>{let r=draft.casa.recipes.find(r=>r.id===input.id);if(input.id&&!r)throw Error('Receita não encontrada.');const next={id:r?.id||F.id(),name:String(input.name||'').trim(),servings:input.servings,notes:String(input.notes||''),ingredients:(input.ingredients||[]).map(i=>{if(i.amount===undefined)return structuredClone(i);const p=draft.casa.catalog.find(p=>p.id===i.catalogId);if(!p)throw Error('Ingrediente inválido ou repetido.');const unit=i.unit||p.unit;if(!ingredientUnits(p.unit).includes(unit))throw Error('Unidade incompatível com '+p.name+' ('+p.unit+').');const n=convert(i.amount,unit,p.unit);if(!valid(n)||n<=0)throw Error('Quantidade de '+p.name+' inválida ou demasiado pequena.');return unit===p.unit?{catalogId:p.id,qty:n}:{catalogId:p.id,qty:n,unit};})};if(r)Object.assign(r,next);else draft.casa.recipes.push(next);return next.id;});}
  function plan(d,input){return base().change(d,(draft,F)=>{const old=draft.casa.plans.find(p=>p.id===input.id);if(input.id&&!old)throw Error('Refeição não encontrada.');if(old?.done)throw Error('Esta refeição já foi preparada.');if(input.remove){draft.casa.plans=draft.casa.plans.filter(p=>p.id!==input.id);return;}const row={id:old?.id||F.id(),recipeId:input.recipeId,date:input.date,meal:input.meal,servings:input.servings,done:false};if(old)Object.assign(old,row);else draft.casa.plans.push(row);return row.id;});}
  function recipeNeeds(c,id,servings){const r=c.recipes.find(r=>r.id===id);if(!r||!Number.isInteger(servings)||servings<1||servings>1000)throw Error('Receita ou porções inválidas.');return r.ingredients.map(i=>{const n=q(i.qty*servings/r.servings);if(!valid(n)||n<=0)throw Error('Quantidade por porção demasiado pequena.');return {catalogId:i.catalogId,qty:n};});}
  function requirements(d,recipeId,servings){const c=base().state(d);return recipeNeeds(c,recipeId,servings).map(i=>({...i,available:available(c,i.catalogId),missing:Math.max(0,q(i.qty-available(c,i.catalogId)-pending(c,i.catalogId)))}));}
@@ -83,6 +89,6 @@
   return [...missing].map(([catalogId,n])=>({catalogId,qty:Math.max(0,q(n/1000-pending(c,catalogId)))})).filter(n=>n.qty>0);
  }
 
- const api={validate,remaining,available,lot,record,policy,prices,missingPriceOffers,pending,suggestions,queueNeeds,replenish,saveRecipe,plan,requirements,cookQuote,cook,planNeeds};
+ const api={meals:MEALS,mealLabel,ingredientUnits,ingredientQty,validate,remaining,available,lot,record,policy,prices,missingPriceOffers,pending,suggestions,queueNeeds,replenish,saveRecipe,plan,requirements,cookQuote,cook,planNeeds};
  if(typeof module==='object'&&module.exports)module.exports=api;else root.CasaLife=Object.freeze(api);
 })(globalThis);

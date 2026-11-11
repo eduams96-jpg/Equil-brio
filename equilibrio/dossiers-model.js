@@ -640,7 +640,7 @@
       const list = ensureCasaReadings(draft);
       const existing = list.find((r) => String(r.id) === String(input.id || ""));
       const utility = String(input.utility || existing?.utility || "water");
-      if (!Object.hasOwn(UTILITIES, utility)) throw Error("Escolhe água, eletricidade ou gás.");
+      if (!Object.hasOwn(UTILITIES, utility)) throw Error("Escolhe água ou eletricidade.");
       const meter = String(input.meter ?? existing?.meter ?? "Contador principal").trim() || "Contador principal";
       const unit = String(input.unit || existing?.unit || UTILITIES[utility].defaultUnit);
       if (!UTILITIES[utility].units.includes(unit))
@@ -676,6 +676,15 @@
       validateUtilities(draft);
       return row;
     });
+  }
+
+  /* Grava várias leituras de uma vez (ex.: Vazio, Ponta e Cheio); ou entram todas ou nenhuma. */
+  function saveUtilityReadings(d, inputs = []) {
+    if (!Array.isArray(inputs) || !inputs.length) throw Error("Indica pelo menos uma leitura.");
+    const draft = clone(d);
+    const rows = inputs.map((input) => saveUtilityReading(draft, input));
+    Object.assign(d, draft);
+    return rows;
   }
 
   function removeUtilityReading(d, readingId) {
@@ -2202,6 +2211,7 @@
     removeRoutine,
     utilityReadings,
     saveUtilityReading,
+    saveUtilityReadings,
     removeUtilityReading,
     utilityComparison,
     vehicles,

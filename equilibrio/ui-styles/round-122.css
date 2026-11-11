@@ -1,0 +1,50 @@
+/* @order 47100 */
+#casaRecipes .cr-toolbar{display:grid!important;gap:12px!important;margin:4px 0 6px!important}
+/* @order 47101 */
+#casaRecipes .cr-toolbar .cs-search{margin:0!important}
+/* @order 47102 */
+#casaAnalytics .u-split-period{display:inline-flex!important;align-items:stretch!important;gap:0!important;flex-wrap:nowrap!important;height:42px;border:1px solid var(--line);border-radius:12px;background:var(--paper);overflow:hidden}
+/* @order 47103 */
+#casaAnalytics .u-split-period label{display:flex!important;align-items:center;gap:0!important;margin:0!important;font-size:0!important;color:transparent}
+/* @order 47104 */
+#casaAnalytics .u-split-period label:nth-of-type(2){order:1}
+/* @order 47105 */
+#casaAnalytics .u-split-period label:nth-of-type(1){order:2}
+/* @order 47106 */
+#casaAnalytics .u-split-period button:first-of-type{order:0;border-right:1px solid var(--line)!important}
+/* @order 47107 */
+#casaAnalytics .u-split-period button:last-of-type{order:3;border-left:1px solid var(--line)!important}
+/* @order 47108 */
+body #mainContent #casaAnalytics .u-split-period button.secondary{display:grid!important;place-items:center;width:42px!important;min-width:42px!important;height:100%!important;min-height:0!important;padding:0 0 3px!important;border:0;border-radius:0!important;background:transparent!important;box-shadow:none!important;color:var(--ink)!important;font-size:22px!important;line-height:1!important;overflow:visible!important}
+/* @order 47109 */
+body #mainContent #casaAnalytics .u-split-period button.secondary:hover{background:color-mix(in srgb,var(--blue) 14%,transparent)!important}
+/* @order 47110 */
+#casaAnalytics .u-split-period select{height:100%!important;min-height:0!important;width:auto!important;border:0!important;border-radius:0!important;background-color:transparent!important;box-shadow:none!important;font-size:14px!important;font-weight:700;color:var(--ink);padding:0 26px 0 12px!important;text-transform:capitalize;cursor:pointer}
+/* @order 47111 */
+#casaAnalytics .u-split-period label:nth-of-type(1) select{padding-left:2px!important}
+/* @order 47112 */
+#casaAnalytics .casa-analytics-actions{align-items:center!important;gap:10px!important}
+/* @order 47113 */
+#casaMeals .cm-grid .cm-slot.is-empty{display:flex!important;align-items:center;justify-content:space-between;gap:8px;padding:5px 10px!important;min-height:34px}
+/* @order 47114 */
+#casaMeals .cm-grid .cm-slot.is-empty>*{grid-column:auto!important}
+/* @order 47115 */
+#casaMeals .cm-grid .cm-slot.is-empty .cm-add{width:auto!important;min-height:24px!important;padding:0!important;white-space:nowrap}
+/* @order 47116 */
+#casaMeals .cm-grid .cm-slot.is-light.is-empty{border-color:transparent!important;padding-block:2px!important;min-height:28px}
+/* @order 47117 */
+#casaMeals .cm-grid .cm-slot.is-light.is-empty>b{font-weight:600;opacity:.8}
+/* @order 47118 */
+#casaShopping .cs-add{grid-template-columns:auto minmax(0,2fr) minmax(0,1fr) auto auto!important}
+/* @order 47119 */
+#casaShopping .cs-add .cs-add-catalog{display:inline-flex;align-items:center;gap:7px;white-space:nowrap}
+/* @order 47120 */
+#casaShopping .cs-add .cs-add-catalog svg{width:16px;height:16px}
+/* @order 47121 */
+#casaConsumos .utility-summary-grid{grid-template-columns:repeat(auto-fit,minmax(320px,1fr))!important}
+/* @order 47122 */
+#casaConsumos .consumos-form-grid label[hidden]{display:none!important}
+/* @order 47123 */
+#modal .casa-ingredient-row{display:grid;grid-template-columns:minmax(0,2fr) minmax(90px,1fr) minmax(80px,.7fr) auto;gap:10px;align-items:end}
+/* @order 47124 */
+@media (max-width:900px){#casaShopping .cs-add{grid-template-columns:1fr!important}#modal .casa-ingredient-row{grid-template-columns:1fr 1fr}}

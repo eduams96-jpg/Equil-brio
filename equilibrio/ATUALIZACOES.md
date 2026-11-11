@@ -1,3 +1,7 @@
+# 1.0.23 — Refeições, receitas com unidades e Casa mais rápida
+
+Refeições com Pequeno-almoço, Lanche da manhã, Lanche da tarde e Ceia. Receitas com unidade por ingrediente (g, ml, cl) e custo convertido. Lista de compras com «Escolher do catálogo» e gravação mais rápida nas páginas da Casa. Análises com um só controlo de mês. Consumos com Vazio, Ponta e Cheio na eletricidade e sem gás. Atualização desde 1.0.20, 1.0.21 e 1.0.22.
+
 # 1.0.22 — Lista de compras no telemóvel
 
 O PC central aceita as alterações à lista de compras feitas na app Android 1.0.0: marcar, acrescentar e conferir artigos. Sem mudanças visíveis no PC. Interno: cálculo do Património partilhado com o telemóvel e períodos mensais nos Relatórios. Atualização desde 1.0.20 e 1.0.21.

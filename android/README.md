@@ -1,6 +1,6 @@
 # Android — fonte canónica
 
-Versão **1.0.0**, versão interna (versionCode) **5**, identificador **pt.equilibrio.mobile**. Mesma chave da RC4: atualizar por cima, sem desinstalar. Piloto físico ainda pendente. Entrega em entrega-android-1.0.0/.
+Versão **1.0.1**, versão interna (versionCode) **6**, identificador **pt.equilibrio.mobile**. Mesma chave da RC4: atualizar por cima, sem desinstalar. Piloto físico ainda pendente. Entrega em entrega-android-1.0.1/. Requer o PC central na 1.0.23 (tipos de refeição novos).
 
 `app/` contém interface Capacitor e projeto Android nativo. `shared/` e `server/` adaptam as regras únicas de `../equilibrio/mobile-sync/` e incluem testes. Não há dependência de fontes em work/, de baselines de ensaio ou de outro projeto. É necessário o diretório equilibrio/ do mesmo checkout.
 
@@ -24,7 +24,7 @@ Requer JDK 21 e SDK Android com as plataformas indicadas pelo projeto. Configura
 powershell -NoProfile -ExecutionPolicy Bypass -File android/scripts/build-release.ps1
 ```
 
-O script prepara recursos e executa assembleRelease e lintRelease. Resultado: app/android/app/build/outputs/apk/release/app-release.apk. Acumular alterações antes de compilar. Última compilação (1.0.0): lintRelease com 0 erros e 18 avisos (dependências com versão mais recente).
+O script prepara recursos e executa assembleRelease e lintRelease. Resultado: app/android/app/build/outputs/apk/release/app-release.apk. Acumular alterações antes de compilar. Última compilação (1.0.1): lintRelease com 0 erros e 18 avisos (dependências com versão mais recente).
 
 A chave existente pode ser fornecida por EQUILIBRIO_MOBILE_KEYSTORE e EQUILIBRIO_MOBILE_KEY_PASSWORD, ou pelo cofre local protegido do Windows. Nunca gerar outra chave para atualizar esta identidade. Não colocar palavras-passe em argumentos, logs ou Git. Uma cópia externa recuperável precisa do PKCS#12 e de uma palavra-passe independente deste Windows; password.dpapi sozinho não é portátil.
 

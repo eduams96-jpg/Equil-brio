@@ -20,5 +20,5 @@
     const last=rendered.get(v);if(last?.data===data&&last.key===key)return;
     renderCasa();
   };
-  window.CasaRenderUI = Object.freeze({ render: renderCasa, modules: Object.freeze(modules), counts });
+  window.CasaRenderUI = Object.freeze({ render: renderCasa, refresh: () => { rendered.clear(); renderCasa(); }, lightView: v => Boolean(owners[v]) || v === 'casaConsumos', modules: Object.freeze(modules), counts });
 })();

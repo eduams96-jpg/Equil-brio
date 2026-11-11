@@ -460,6 +460,10 @@
   const utilityLabels = { water: 'Água', electricity: 'Eletricidade', gas: 'Gás' };
   const utilityIcons = { water: '💧', electricity: '⚡', gas: '🔥' };
   const utilityUnitsDefault = { water: 'm³', electricity: 'kWh', gas: 'm³ / kWh' };
+  // O gás só aparece se já existirem leituras antigas de gás neste espaço.
+  const utilityList = () => ['water', 'electricity', ...(D.utilityReadings(data).some(r => r.utility === 'gas') ? ['gas'] : [])];
+  const utilityUnit = u => (u === 'electricity' ? 'kWh' : 'm3');
+  const electricityPeriods = [['vazio', 'Vazio'], ['ponta', 'Ponta'], ['cheio', 'Cheio']];
   const kindLabels = {
     reading: 'Leitura acumulada',
     reset: 'Substituição / reinício de contador',
@@ -470,9 +474,20 @@
     const s = uiState();
     const comp = D.utilityComparison(data, { utility: s.utilityFilter });
 
-    const summaryCards = (['water', 'electricity', 'gas']).map(u => {
+    const summaryCards = utilityList().map(u => {
       const fullComp = D.utilityComparison(data, { utility: u });
-      const latestInterval = fullComp.intervals[0] || null;
+      let latestInterval = fullComp.intervals[0] || null;
+      // Vários contadores ou períodos lidos no mesmo dia (Vazio, Ponta, Cheio): mostra o total e o detalhe.
+      const sameDay = latestInterval ? fullComp.intervals.filter(r => r.date === latestInterval.date) : [];
+      let breakdown = '';
+      if (sameDay.length > 1) {
+        const known = sameDay.filter(r => r.consumption !== null);
+        const sum = k => Math.round(known.reduce((n, r) => n + (r[k] || 0), 0) * 1000) / 1000;
+        const periodOf = r => electricityPeriods.findIndex(([, label]) => r.meter.endsWith(' · ' + label));
+        const short = r => (periodOf(r) >= 0 ? electricityPeriods[periodOf(r)][1] : r.meter);
+        breakdown = sameDay.slice().sort((a, b) => periodOf(a) - periodOf(b) || a.meter.localeCompare(b.meter, 'pt-PT')).map(r => `${esc(short(r))}: <b>${r.consumption !== null ? r.consumption : r.reading} ${esc(r.unitLabel)}</b>`).join(' · ');
+        latestInterval = { ...latestInterval, meter: `${sameDay.length} leituras no mesmo dia`, consumption: known.length ? sum('consumption') : null, deltaConsumption: known.some(r => r.deltaConsumption !== null) ? sum('deltaConsumption') : null, deltaPercent: null };
+      }
       const uMonthly = fullComp.monthly;
       if (!latestInterval) {
         return `<article class="panel utility-summary-card utility-card-${u} is-empty" data-utility-card="${u}">` +
@@ -489,7 +504,7 @@
         `<div class="utility-card-kpi">` +
           `<span>Último consumo apurado</span>` +
           `<strong class="amount">${latestInterval.consumption !== null ? `${latestInterval.consumption} ${esc(latestInterval.unitLabel)}` : esc(latestInterval.intervalLabel)}</strong>` +
-          `<small>Leitura de <b>${latestInterval.reading} ${esc(latestInterval.unitLabel)}</b> em ${dateLabel(latestInterval.date)}</small>` +
+          (breakdown ? `<small>${breakdown} · ${dateLabel(latestInterval.date)}</small>` : `<small>Leitura de <b>${latestInterval.reading} ${esc(latestInterval.unitLabel)}</b> em ${dateLabel(latestInterval.date)}</small>`) +
         `</div>` +
         `<p class="utility-delta ${deltaClass}">${latestInterval.deltaConsumption !== null ? `Variação face ao intervalo anterior: <b>${latestInterval.deltaConsumption >= 0 ? '+' : ''}${latestInterval.deltaConsumption} ${esc(latestInterval.unitLabel)}</b>${latestInterval.deltaPercent !== null ? ` (${latestInterval.deltaPercent >= 0 ? '+' : ''}${latestInterval.deltaPercent}%)` : ''}` : 'Regista mais uma leitura para comparar a evolução entre períodos.'}</p>` +
         (uMonthly.length
@@ -504,19 +519,20 @@
 
     consumosHost.innerHTML =
       `<div class="section-head consumos-hero-head">` +
-        `<div><p class="eyebrow">CASA · CONSUMOS DOMÉSTICOS</p><h2>Consumos de água, eletricidade e gás</h2>` +
+        `<div><p class="eyebrow">CASA · CONSUMOS DOMÉSTICOS</p><h2>Consumos de água e eletricidade</h2>` +
         `<p>Regista leituras de contador e acompanha a evolução física mensal (m³ e kWh). As leituras são independentes dos movimentos bancários e nunca criam despesas duplicadas.</p></div>` +
-        `<div class="row-actions">${btn('+ Registar leitura em janela', 'utility-form', '', '', 'primary')}</div>` +
+        
       `</div>` +
       `<div class="utility-summary-grid" id="utilityMonthlyComparison">${summaryCards}</div>` +
       `<section class="panel consumos-form-panel">` +
         `<div class="u-head"><div><h3>Registar nova leitura de contador</h3><p>Introduz o valor acumulado visível no visor do contador. Para um contador novo que começou do zero, escolhe "Substituição / reinício de contador".</p></div></div>` +
         `<form id="utilityReadingForm" class="form-grid consumos-form-grid">` +
-          select('Serviço', 'utility', [['water', '💧 Água'], ['electricity', '⚡ Eletricidade'], ['gas', '🔥 Gás']], 'water') +
-          select('Unidade', 'unit', [['m3', 'm³ (Água / Gás)'], ['kWh', 'kWh (Eletricidade / Gás)']], 'm3') +
+          select('Serviço', 'utility', utilityList().map(u => [u, `${utilityIcons[u]} ${utilityLabels[u]}`]), s.utilityDraft || 'water') +
+          select('Contagem', 'mode', [['tri', 'Tri-horária (Vazio, Ponta e Cheio)'], ['single', 'Simples (uma leitura)']], s.utilityMode || 'tri') +
           field('Contador', 'meter', 'Contador principal', 'text', 'maxlength="80"') +
           field('Data da leitura', 'date', F.today(), 'date', 'required') +
-          field('Leitura acumulada no visor', 'reading', '', 'number', 'required min="0" step="0.001" placeholder="Ex.: 142.5"') +
+          field('Leitura acumulada no visor', 'reading', '', 'number', 'min="0" step="0.001" placeholder="Ex.: 142.5"') +
+          electricityPeriods.map(([id, label]) => field(`${label} (kWh acumulados)`, 'reading_' + id, '', 'number', 'min="0" step="0.001" placeholder="Leitura do visor"')).join('') +
           select('Tipo de registo', 'kind', Object.entries(kindLabels), 'reading') +
           field('Nota ou observação (opcional)', 'note', '', 'text', 'maxlength="500" placeholder="Ex.: Leitura comunicada ao fornecedor"') +
           `<div class="row-actions consumos-submit-row"><button type="submit" class="primary">Guardar leitura</button></div>` +
@@ -525,7 +541,7 @@
       `<section class="panel consumos-history-panel">` +
         `<div class="u-head"><div><h3>Histórico de leituras e intervalos apurados</h3><p>Diferença real entre leituras consecutivas do mesmo contador e média diária.</p></div>` +
         `<div class="u-filter-bar">` +
-          [['all', 'Todos os serviços'], ['water', '💧 Água (m³)'], ['electricity', '⚡ Eletricidade (kWh)'], ['gas', '🔥 Gás (m³ / kWh)']].map(([id, label]) =>
+          [['all', 'Todos os serviços'], ...utilityList().map(u => [u, `${utilityIcons[u]} ${utilityLabels[u]} (${utilityUnitsDefault[u]})`])].map(([id, label]) =>
             `<button type="button" class="secondary ${s.utilityFilter === id ? 'active' : ''}" data-utility-filter="${id}" aria-pressed="${s.utilityFilter === id}">${label}</button>`
           ).join('') +
         `</div></div>` +
@@ -550,28 +566,35 @@
     const inlineForm = $('#utilityReadingForm', consumosHost);
     if (inlineForm) {
       const uSel = $('[name=utility]', inlineForm);
-      const unitSel = $('[name=unit]', inlineForm);
-      if (uSel && unitSel) {
-        uSel.onchange = () => {
-          if (uSel.value === 'water') unitSel.value = 'm3';
-          else if (uSel.value === 'electricity') unitSel.value = 'kWh';
-        };
-      }
+      const modeSel = $('[name=mode]', inlineForm);
+      const row = name => $(`[name=${name}]`, inlineForm).closest('label');
+      const isTri = () => uSel.value === 'electricity' && modeSel.value === 'tri';
+      const syncFields = () => {
+        const tri = isTri();
+        row('mode').hidden = uSel.value !== 'electricity';
+        row('reading').hidden = tri;
+        $('[name=reading]', inlineForm).required = !tri;
+        for (const [id] of electricityPeriods) row('reading_' + id).hidden = !tri;
+        s.utilityDraft = uSel.value;
+        s.utilityMode = modeSel.value;
+      };
+      uSel.onchange = syncFields;
+      modeSel.onchange = syncFields;
+      syncFields();
       inlineForm.onsubmit = e => {
         e.preventDefault();
         const fd = new FormData(inlineForm);
         try {
+          const utility = fd.get('utility');
+          const meter = String(fd.get('meter') || '').trim() || 'Contador principal';
+          const base = { utility, unit: utilityUnit(utility), date: fd.get('date'), kind: fd.get('kind'), note: fd.get('note') };
+          const inputs = isTri()
+            ? electricityPeriods.filter(([id]) => String(fd.get('reading_' + id)).trim() !== '').map(([id, label]) => ({ ...base, meter: `${meter} · ${label}`, reading: Number(fd.get('reading_' + id)) }))
+            : [{ ...base, meter, reading: Number(fd.get('reading')) }];
+          if (!inputs.length) throw Error('Indica pelo menos uma leitura: Vazio, Ponta ou Cheio.');
           commit(() => {
-            D.saveUtilityReading(data, {
-              utility: fd.get('utility'),
-              unit: fd.get('unit'),
-              meter: fd.get('meter'),
-              date: fd.get('date'),
-              reading: Number(fd.get('reading')),
-              kind: fd.get('kind'),
-              note: fd.get('note'),
-            });
-          }, 'Leitura de consumo guardada. Nenhum movimento financeiro foi criado.');
+            D.saveUtilityReadings(data, inputs);
+          }, inputs.length > 1 ? `${inputs.length} leituras guardadas. Nenhum movimento financeiro foi criado.` : 'Leitura de consumo guardada. Nenhum movimento financeiro foi criado.');
         } catch (err) {
           notice(err.message, true);
         }
@@ -599,13 +622,13 @@
     }
     const readings = D.utilityReadings(data);
     const count = readings.length;
-    const byUtil = (['water', 'electricity', 'gas']).map(u => {
+    const byUtil = utilityList().map(u => {
       const comp = D.utilityComparison(data, { utility: u });
       const latest = comp.intervals[0];
       return `<div class="casa-analytics-utility-chip"><span>${utilityIcons[u]} ${utilityLabels[u]}</span><strong>${latest && latest.consumption !== null ? `${latest.consumption} ${esc(latest.unitLabel)}` : latest ? `${latest.reading} ${esc(latest.unitLabel)}` : 'Sem leituras'}</strong></div>`;
     }).join('');
     card.innerHTML =
-      `<div class="u-head"><div><h3>Consumos de água, eletricidade e gás</h3>` +
+      `<div class="u-head"><div><h3>Consumos de água e eletricidade</h3>` +
       `<p>${count} leitura(s) de contador registada(s) neste espaço financeiro.</p></div>` +
       `<div class="u-actions">${btn('Abrir Consumos', 'open-consumos', '', '', 'primary')}</div></div>` +
       `<div class="casa-analytics-utility-chips">${byUtil}</div>`;
@@ -615,8 +638,7 @@
     const r = D.utilityReadings(data).find(x => String(x.id) === String(id)) || {};
     form(
       r.id ? 'Editar leitura de contador' : 'Registar leitura de contador',
-      select('Serviço', 'utilityType', [['water', 'Água'], ['electricity', 'Eletricidade'], ['gas', 'Gás']], r.utility || 'water') +
-        select('Unidade', 'utilityUnit', [['m3', 'm³ (Água / Gás)'], ['kWh', 'kWh (Eletricidade / Gás)']], r.unit || (r.utility === 'electricity' ? 'kWh' : 'm3')) +
+      select('Serviço', 'utilityType', (r.id ? [r.utility] : utilityList()).map(u => [u, utilityLabels[u]]), r.utility || 'water') +
         field('Data da leitura', 'utilityDate', r.date || F.today(), 'date', 'required') +
         field('Leitura no contador (acumulada)', 'utilityReading', r.reading ?? '', 'number', 'required min="0" step="0.001"') +
         select('Tipo de registo', 'utilityKind', Object.entries(kindLabels), r.kind || 'reading') +
@@ -626,7 +648,7 @@
         D.saveUtilityReading(data, {
           id: r.id,
           utility: f.get('utilityType'),
-          unit: f.get('utilityUnit'),
+          unit: r.unit || utilityUnit(f.get('utilityType')),
           date: f.get('utilityDate'),
           reading: Number(f.get('utilityReading')),
           kind: f.get('utilityKind'),
@@ -636,14 +658,6 @@
       }, 'Leitura de consumo guardada. Nenhum movimento financeiro foi criado.'),
       'Para contador novo ou substituído que recomeçou do zero, escolhe "Substituição / reinício de contador". Assim a leitura anterior não gera consumo negativo nem artificial.',
     );
-    const uSel = $('#modalContent [name=utilityType]');
-    const unitSel = $('#modalContent [name=utilityUnit]');
-    if (uSel && unitSel) {
-      uSel.onchange = () => {
-        if (uSel.value === 'water') unitSel.value = 'm3';
-        else if (uSel.value === 'electricity') unitSel.value = 'kWh';
-      };
-    }
   }
 
   // ============================================================================
