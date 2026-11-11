@@ -1,20 +1,21 @@
 # Retomar o Equilíbrio
 
-Estado em 05/11/2026. Lê isto primeiro quando voltares a pegar no projeto.
+Estado em 11/11/2026. Lê isto primeiro quando voltares a pegar no projeto.
 
 ## Onde ficou
 
-- **Windows 1.0.21** pronto em `entrega-v1.0.21/` (atualização `.fpupdate`, hash e instruções). Aceita a instalação 1.0.20. Validado com instalação incremental e reposição automática numa cópia isolada.
+- **Windows 1.0.22** pronto em `entrega-v1.0.22/` (atualização `.fpupdate`, hash e instruções). Aceita as instalações 1.0.20 e 1.0.21 e inclui tudo o que a 1.0.21 trazia. Validado com instalação incremental e reposição automática numa cópia isolada, a partir de ambas.
 - **Instalado neste PC:** 1.0.20 (instaladas e revistas a 1.0.17 a 1.0.20).
-- **1.0.21:** Ler Fatura retirado; Património redesenhado; `workbench-ui.js` e 136 regras de CSS mortas removidos; navegação sem rotas duplicadas. Falta instalar neste PC.
-- **Android 1.0.0** entregue em `entrega-android-1.0.0/` (APK assinado com a mesma chave da RC4, `INSTALAR.md`, hash). Ramo `android-1.0.0` ainda não integrado no `main`. Próximo: instalar no telemóvel e fazer o piloto (`PILOTO-FINAL.md`). A Windows 1.0.22 deve levar as mudanças de `wealth-model`, `reports-model` e `house.cjs`.
+- **1.0.22:** o PC central aceita as alterações à lista de compras da app Android 1.0.0 (`mobile-sync/shared/house.cjs`: `set-done`, `add`, `queue`, `update`); `wealth-model.js` e períodos mensais em `reports-model.js`. Sem mudanças visíveis. **Falta instalar neste PC**, antes de usar a Lista de compras no telemóvel.
+- **1.0.21** (incluída na 1.0.22): Ler Fatura retirado; Património redesenhado; `workbench-ui.js` e 136 regras de CSS mortas removidos; navegação sem rotas duplicadas.
+- **Android 1.0.0** entregue em `entrega-android-1.0.0/` (APK assinado com a mesma chave da RC4, `INSTALAR.md`, hash) e integrada no `main`. 343 testes Android a passar. Próximo: instalar no telemóvel, depois de o PC central estar na 1.0.22.
 - **Código:** tudo gravado no `main`. Não enviado para o GitHub.
-- **Testes:** 683 a passar (`npm test` em `equilibrio/`); saíram os 26 testes da leitura de faturas.
-- **`historico/`:** baselines 1.0.16 a 1.0.21 em `historico/baselines/`. As entregas até 1.0.14 e a baseline 0.39.79 perderam-se em 30/10/2026.
+- **Testes:** 698 a passar (`npm test` em `equilibrio/`).
+- **`historico/`:** baselines 1.0.16 a 1.0.22 em `historico/baselines/`. As entregas até 1.0.14 e a baseline 0.39.79 perderam-se em 30/10/2026.
 
 ## Próximos passos, por ordem
 
-1. **Instalar a 1.0.21** (`entrega-v1.0.21/`) e rever Património (Visão geral e Inventário), Casa → Compras e o editor de movimentos.
+1. **Instalar a 1.0.22** (`entrega-v1.0.22/`) no PC central e rever Património (Visão geral e Inventário), Casa → Compras e o editor de movimentos. Depois instalar a Android 1.0.0 no telemóvel e experimentar a Lista de compras (marcar, acrescentar, conferir) com sincronização.
 2. **Arrumar categorias da conta Casa** (o utilizador confirma mais tarde, tal como os possíveis duplicados Portagens 3,25 € e Condomínio 38,75 €). Gestão de categorias → «Arrumar repetidas»: 11 sugestões prováveis já marcadas; acrescentar à mão «Mercearia» → «Alimentação / Mercearias». Outras sugeridas ao utilizador: corrigir «Lanços»/«Cirúgica»/«Dispensa»/«Outros Despesas», Bagaço e Licor Beirão → Bebidas / Espirituosa, Saúde / Taxas Moderadoras → Cuidados de Saúde, Subscrições → Lazer / Subscrições. Também há lojas combinadas («Continente // LIDL…») a desfazer.
 3. **Consolidação visual:** concluída na 1.0.21. Ainda há camadas antigas em `features-ui.js` (cria os hubs de Património e os separadores antigos, que o `unified-workspace-ui.js` substitui) e regras de CSS mistas; só compensa mexer se o programa continuar a evoluir.
 4. **Desempenho, se ainda for lento:** os módulos `planning-ui`, `life-ui`, `daily-ui` e `features-ui` ainda desenham todas as suas secções em cada gravação. Medir com o painel do browser visível (escondido, as medições variam 3×).
@@ -74,15 +75,15 @@ npm run desktop
 
 ## Gerar a próxima atualização
 
-1. `node scripts/advance-version.cjs 1.0.22 "Descrição"` (repor CRLF em `package.json`, `package-lock.json`, `desktop/version.cjs`).
-2. Criar `DESKTOP-v1.0.22.md` e uma entrada no topo de `ATUALIZACOES.md`; correr `node scripts/check.cjs` e `npm test`.
-3. Gerar a partir da versão instalada mais antiga a suportar (ex.: baseline 1.0.21, aceitando até 1.0.21):
+1. `node scripts/advance-version.cjs 1.0.23 "Descrição"` (repor CRLF em `package.json`, `package-lock.json`, `desktop/version.cjs`).
+2. Criar `DESKTOP-v1.0.23.md` e uma entrada no topo de `ATUALIZACOES.md`; correr `node scripts/check.cjs` e `npm test`.
+3. Gerar a partir da versão instalada mais antiga a suportar (ex.: baseline 1.0.20, aceitando até 1.0.22; validar a partir de cada baseline aceite):
    ```bash
-   node scripts/package-release.cjs ../historico/baselines/baseline-1.0.21 ../entrega-v1.0.22 1.0.21
+   node scripts/package-release.cjs ../historico/baselines/baseline-1.0.20 ../entrega-v1.0.23 1.0.22
    ```
 4. Validar (instala numa cópia e testa a reposição):
    ```bash
-   ELECTRON_PATH="$PWD/node_modules/electron/dist/electron.exe" node integration/validate-incremental-package.cjs ../historico/baselines/baseline-1.0.21 ../entrega-v1.0.22
+   ELECTRON_PATH="$PWD/node_modules/electron/dist/electron.exe" node integration/validate-incremental-package.cjs ../historico/baselines/baseline-1.0.20 ../entrega-v1.0.23
    ```
 5. Guardar a baseline nova: `node scripts/advance-version.cjs --snapshot`.
 

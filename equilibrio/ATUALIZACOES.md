@@ -1,3 +1,7 @@
+# 1.0.22 — Lista de compras no telemóvel
+
+O PC central aceita as alterações à lista de compras feitas na app Android 1.0.0: marcar, acrescentar e conferir artigos. Sem mudanças visíveis no PC. Interno: cálculo do Património partilhado com o telemóvel e períodos mensais nos Relatórios. Atualização desde 1.0.20 e 1.0.21.
+
 # 1.0.21 — Património redesenhado e Ler Fatura retirado
 
 Património com blocos de resumo, evolução com «Guardar valor de hoje», composição e «A rever» em cartões; Inventário com filtros em pílulas e cartões. Ler Fatura retirado; dados já lidos e pesquisa de texto em PDFs conservados. Separadores certos ao abrir; «Fluxo de caixa» leva à Agenda. Atualização desde 1.0.20.

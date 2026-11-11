@@ -1,8 +1,8 @@
 {
   "name": "financas-pessoais-desktop",
-  "version": "1.0.21",
+  "version": "1.0.22",
   "private": true,
-  "description": "Equilíbrio v1.0.21 — Património redesenhado e Ler Fatura retirado",
+  "description": "Equilíbrio v1.0.22 — Lista de compras no telemóvel",
   "main": "desktop/main.cjs",
   "scripts": {
     "test": "node --test tests/*.cjs",
