@@ -266,7 +266,7 @@
   }
   function storeForm(id){
     const s=C.state(data).stores.find(s=>s.id===id);
-    form(s?'Editar supermercado':'Novo supermercado',field('Nome','storeName',s?.name||'','text','required'),v=>commit(()=>C.saveStore(data,{id,name:v.get('storeName'),archived:s?.archived||false}),'Supermercado guardado.'));
+    form(s?'Editar supermercado':'Novo supermercado',field('Nome','storeName',s?.name||'','text','required')+field('Distância ida e volta (km)','storeDistance',s?.distanceKm??'','number','min="0" max="1000" step="0.1" inputmode="decimal" placeholder="ex.: 8"'),v=>commit(()=>C.saveStore(data,{id,name:v.get('storeName'),archived:s?.archived||false,distanceKm:v.get('storeDistance')}),'Supermercado guardado.'),'A distância serve para o «Comparar lojas» somar o custo da deslocação. Deixa vazio se fores a pé ou de passagem.');
   }
   function queueProductForm(id){
     const c=C.state(data),item=c.shopping.find(s=>s.id===id),products=c.catalog.filter(p=>!p.archived&&Object.keys(p.offers).some(sid=>c.stores.some(s=>s.id===sid&&!s.archived)));

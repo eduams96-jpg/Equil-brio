@@ -41,13 +41,15 @@ test('Receitas: quantidade com unidade é convertida para a unidade do produto e
 
 test('Receitas: unidade incompatível ou quantidade abaixo da precisão é recusada sem gravar', () => {
   const { d, oats, eggs } = fixture(), before = JSON.stringify(d);
-  assert.throws(() => L.saveRecipe(d, { name: 'X', servings: 1, ingredients: [{ catalogId: oats, amount: 50, unit: 'ml' }] }), /incompatível/);
-  assert.throws(() => L.saveRecipe(d, { name: 'X', servings: 1, ingredients: [{ catalogId: eggs, amount: 1, unit: 'kg' }] }), /incompatível/);
+  assert.throws(() => L.saveRecipe(d, { name: 'X', servings: 1, ingredients: [{ catalogId: oats, amount: 50, unit: 'ml' }] }), /equivalência/);
+  assert.throws(() => L.saveRecipe(d, { name: 'X', servings: 1, ingredients: [{ catalogId: eggs, amount: 1, unit: 'kg' }] }), /equivalência/);
+  assert.throws(() => L.saveRecipe(d, { name: 'X', servings: 1, ingredients: [{ catalogId: oats, amount: 1, unit: 'chávena' }] }), /incompatível/);
   assert.throws(() => L.saveRecipe(d, { name: 'X', servings: 1, ingredients: [{ catalogId: oats, amount: 0.5, unit: 'g' }] }), /inválida/);
   assert.equal(JSON.stringify(d), before);
   assert.deepEqual(L.ingredientUnits('kg'), ['kg', 'g']);
   assert.deepEqual(L.ingredientUnits('L'), ['L', 'ml', 'cl']);
   assert.deepEqual(L.ingredientUnits('un'), ['un']);
+  assert.deepEqual(L.allUnits('kg'), ['kg', 'un', 'g', 'L', 'ml', 'cl']);
 });
 
 test('Receitas: receitas antigas sem unidade continuam válidas e uma unidade que deixou de servir mostra a do produto', () => {
@@ -71,4 +73,15 @@ test('Consumos: Vazio, Ponta e Cheio gravam juntos, somam no mês e uma leitura 
   assert.throws(() => Dossiers.saveUtilityReadings(d, tri('2026-12-01', 1200, 100, 950)), /inferior|inválid|menor/i);
   assert.equal(JSON.stringify(d), before);
   assert.throws(() => Dossiers.saveUtilityReadings(d, []), /pelo menos uma/);
+});
+
+test('Receitas: qualquer unidade com equivalência (2 un de banana ao kg, 120 g de ovos à unidade)', () => {
+  const { d, oats, eggs } = fixture();
+  const r = L.saveRecipe(d, { name: 'Bolo', servings: 1, ingredients: [
+    { catalogId: oats, amount: 2, unit: 'un', per: 0.12 }, { catalogId: eggs, amount: 120, unit: 'g', per: 1 / 60 }] });
+  const recipe = d.casa.recipes.find(x => x.id === r);
+  assert.deepEqual(recipe.ingredients, [{ catalogId: oats, qty: 0.24, unit: 'un', per: 0.12 }, { catalogId: eggs, qty: 2, unit: 'g', per: 0.016667 }]);
+  assert.deepEqual(L.ingredientQty(recipe.ingredients[0], 'kg'), { qty: 2, unit: 'un', per: 0.12 });
+  assert.deepEqual(L.requirements(d, r, 1).map(x => x.qty), [0.24, 2]);
+  L.validate(d);
 });

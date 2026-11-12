@@ -173,6 +173,7 @@
     const old=draft.casa.stores.find(s=>s.id===input.id);
     if(input.id&&!old)throw Error('Supermercado não encontrado.');
     const store={id:old?.id||F.id(),name:String(input.name||'').trim(),archived:input.archived===true};
+    if(input.distanceKm!==undefined&&input.distanceKm!==''&&input.distanceKm!==null){const km=Number(input.distanceKm);if(!Number.isFinite(km)||km<0||km>1000)throw Error('Distância inválida (0 a 1000 km).');if(km>0)store.distanceKm=Math.round(km*10)/10;else if(old)delete old.distanceKm;}else if(input.distanceKm!==undefined&&old)delete old.distanceKm;
     if(old)Object.assign(old,store);else draft.casa.stores.push(store);return store.id;
   });}
   function productUrl(value){

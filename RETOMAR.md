@@ -1,8 +1,20 @@
 # Retomar o Equilíbrio
 
-Estado em 11/11/2026. Lê isto primeiro quando voltares a pegar no projeto.
+Estado em 12/11/2026. Lê isto primeiro quando voltares a pegar no projeto.
 
 ## Onde ficou
+
+- **Windows 1.0.24** pronto em `entrega-v1.0.24/`. Aceita 1.0.20 a 1.0.23 e substitui a 1.0.23 (não é preciso instalar a 1.0.23 antes). Receitas com qualquer unidade (`CasaLife.allUnits`; ingrediente de outro tipo guarda `per` = unidades do produto por 1 unidade escolhida); «Comparar lojas» com deslocação (`store.distanceKm`, `casa.travelCostPerKm`, `CasaDaily.setTravelRate`; `compare` devolve `products`, `travel`, `total`); seletores sem lista branca no modo escuro.
+
+## Para fechar de vez (por ordem)
+
+1. **Instalar a 1.0.24** no PC central (`entrega-v1.0.24/`, ver `LEIA-ME.md`).
+2. **Instalar a Android 1.0.1** no telemóvel (`entrega-android-1.0.1/`).
+3. **Testar a sincronização:** marcar, acrescentar e conferir um artigo no telemóvel e confirmar no PC; comparar os totais de Património e Relatórios entre os dois.
+4. **Rever dados:** receita do pequeno-almoço (banana em «un»), distâncias das lojas, custo por km.
+5. **Guardar a chave Android fora do PC:** `android/scripts/backup-signing-key.ps1` para uma pen (ver `RECUPERACAO-DA-ASSINATURA.md`).
+6. **Confirmar dados da conta Casa:** possíveis duplicados Portagens 3,25 € (08/05) e Condomínio 38,75 € (02/07); arrumar categorias repetidas.
+7. **Enviar para o GitHub** (`git push` do `main`).
 
 - **Windows 1.0.23** pronto em `entrega-v1.0.23/` (atualização `.fpupdate`, hash e instruções). Aceita as instalações 1.0.20, 1.0.21 e 1.0.22 e inclui tudo o que estas traziam. Validado com instalação incremental e reposição automática numa cópia isolada, a partir das três.
 - **1.0.23:** Refeições com seis tipos (`CasaLife.meals`); receitas com unidade por ingrediente (`qty` continua na unidade do produto, `unit` é a unidade em que foi escrita; `CasaLife.ingredientQty`); Lista de compras com «Escolher do catálogo»; redesenho leve ao gravar nas páginas da Casa (`render({light})` em `workspace.js`, `UILifecycle.renderLight`, `CasaRenderUI.lightView`; o redesenho completo corre ao sair da Casa); Análises com um só controlo de mês; Consumos com Vazio/Ponta/Cheio (três contadores «Contador · Vazio», gravados juntos por `saveUtilityReadings`) e sem gás na interface. Estilos em `ui-styles/round-122.css`. **Falta instalar neste PC.**

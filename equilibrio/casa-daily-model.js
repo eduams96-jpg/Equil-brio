@@ -7,6 +7,8 @@
  const validQty=n=>Number.isFinite(n)&&n>0&&Number.isSafeInteger(Math.round(n*1000))&&Math.abs(n*1000-Math.round(n*1000))<1e-6;
  function validate(d){const c=C().state(d),ids=new Set();
   if(c.monthlyBudget!==undefined&&(!Number.isFinite(c.monthlyBudget)||!Number.isSafeInteger(F().cents(c.monthlyBudget))||c.monthlyBudget<0||F().money(c.monthlyBudget)!==c.monthlyBudget))throw Error('Orçamento Casa inválido.');
+  if(c.travelCostPerKm!==undefined&&(!Number.isFinite(c.travelCostPerKm)||c.travelCostPerKm<0||c.travelCostPerKm>5))throw Error('Custo por km inválido.');
+  for(const st of c.stores)if(st.distanceKm!==undefined&&(!Number.isFinite(st.distanceKm)||st.distanceKm<=0||st.distanceKm>1000))throw Error('Distância de loja inválida.');
   for(const list of c.lists||[])for(const item of list.items||[])if(item.quantityLabel!==undefined&&(typeof item.quantityLabel!=='string'||item.quantityLabel.length>80))throw Error('Quantidade da lista inválida.');
   if(c.lists!==undefined&&!Array.isArray(c.lists))throw Error('Listas Casa inválidas.');
   for(const list of c.lists||[]){if(!list||typeof list.id!=='string'||!list.id||ids.has(list.id)||typeof list.name!=='string'||!list.name.trim()||list.name.length>80||!Array.isArray(list.items)||!list.items.length)throw Error('Lista guardada inválida.');ids.add(list.id);for(const i of list.items)if((i.catalogId?!c.catalog.some(p=>p.id===i.catalogId):typeof i.name!=='string'||!i.name.trim()||i.name.length>160)||!validQty(i.qty))throw Error('Produto ou quantidade da lista guardada inválidos.');}
@@ -24,13 +26,16 @@
  function compare(d,maxStores=2){
   const c=C().state(d),rows=c.shopping.filter(s=>!s.done&&s.catalogId),stores=c.stores.filter(s=>!s.archived);if(![1,2,3].includes(maxStores))throw Error('Escolhe entre uma e três lojas.');
   const candidates=[];
-  const evaluate=selected=>{const assignments=[],missing=[];for(const row of rows){const p=c.catalog.find(p=>p.id===row.catalogId);const offers=p.archived?[]:selected.filter(s=>p.offers[s.id]).map(s=>{const o=p.offers[s.id],packages=Math.ceil(Math.round(row.requestedQty*1000)/Math.round(o.packageQty*1000));return {id:row.id,storeId:s.id,total:packages*F().cents(o.price)/100,packages,packageQty:o.packageQty,date:o.date||''};}).sort((a,b)=>a.total-b.total||a.storeId.localeCompare(b.storeId));if(offers.length)assignments.push(offers[0]);else missing.push(row.name);}return {stores:selected.map(s=>s.id),total:assignments.reduce((n,a)=>n+F().cents(a.total),0)/100,assignments,missing};};
+  const perKm=travelRate(c),trip=s=>Math.round((s.distanceKm>0?s.distanceKm*perKm:0)*100)/100;
+  const evaluate=selected=>{const assignments=[],missing=[];for(const row of rows){const p=c.catalog.find(p=>p.id===row.catalogId);const offers=p.archived?[]:selected.filter(s=>p.offers[s.id]).map(s=>{const o=p.offers[s.id],packages=Math.ceil(Math.round(row.requestedQty*1000)/Math.round(o.packageQty*1000));return {id:row.id,storeId:s.id,total:packages*F().cents(o.price)/100,packages,packageQty:o.packageQty,date:o.date||''};}).sort((a,b)=>a.total-b.total||a.storeId.localeCompare(b.storeId));if(offers.length)assignments.push(offers[0]);else missing.push(row.name);}const used=selected.filter(s=>assignments.some(a=>a.storeId===s.id)),products=assignments.reduce((n,a)=>n+F().cents(a.total),0)/100,travel=used.reduce((n,s)=>n+F().cents(trip(s)),0)/100;return {stores:selected.map(s=>s.id),products,travel,total:F().money(products+travel),assignments,missing};};
   function choose(start,selected){if(selected.length)candidates.push(evaluate(selected));if(selected.length===maxStores)return;for(let n=start;n<stores.length;n++)choose(n+1,[...selected,stores[n]]);}
   if(stores.length>30)throw Error('A comparação suporta até 30 lojas ativas. Arquiva as que não utilizas.');choose(0,[]);
   candidates.sort((a,b)=>a.missing.length-b.missing.length||a.total-b.total||a.stores.length-b.stores.length);
   const best=rows.length?candidates.find(p=>!p.missing.length):null;
-  return {best:best||null,candidates:candidates.filter(x=>x.stores.length===1),excluded:c.shopping.filter(s=>!s.done&&!s.catalogId).length,rows:rows.length};
+  return {perKm,best:best||null,candidates:candidates.filter(x=>x.stores.length===1),excluded:c.shopping.filter(s=>!s.done&&!s.catalogId).length,rows:rows.length};
  }
+ function travelRate(c){const r=c.travelCostPerKm;return Number.isFinite(r)&&r>=0?r:0.2;}
+ function setTravelRate(d,value){const r=Number(value);if(!Number.isFinite(r)||r<0||r>5)throw Error('Custo por km inválido (0 a 5 €).');return C().change(d,draft=>{draft.casa.travelCostPerKm=Math.round(r*100)/100;});}
  function applyPlan(d,maxStores,expected){return C().change(d,draft=>{const plan=compare(draft,maxStores).best;if(!plan||JSON.stringify(plan)!==expected)throw Error('A lista ou os preços mudaram. Compara novamente.');for(const a of plan.assignments){const row=draft.casa.shopping.find(s=>s.id===a.id);if(row.storeId!==a.storeId)delete row.purchaseOverride;row.storeId=a.storeId;row.notFound=false;}});}
  function unitCost(c,lot){const p=c.purchases.find(p=>p.id===lot.purchaseId),i=p?.items[lot.line];return i?.qty>0?(i.total/i.qty)*(p.total/p.items.reduce((n,x)=>n+x.total,0)):null;}
  function recipeCost(d,id,servings){const c=C().state(d),r=c.recipes.find(r=>r.id===id);if(!r||!Number.isInteger(servings)||servings<1||servings>1000)throw Error('Receita ou porções inválidas.');let total=0;const missing=[];for(const i of r.ingredients){const p=c.catalog.find(p=>p.id===i.catalogId),offer=L().prices(d,p.id)[0];if(!offer)missing.push(p.name);else total+=Math.round(i.qty*servings/r.servings*1000)/1000*offer.per;}return {total:F().money(total),perServing:F().money(total/servings),missing};}
@@ -54,6 +59,6 @@
   return {stores:[...stores].map(([name,value])=>({name,total:value/100})),categories:[...categories].map(([name,value])=>({name,total:value/100})),month,total,monthly,previous:monthly[4].total,difference:F().money(total-monthly[4].total),budget:c.monthlyBudget||0,remaining:F().money((c.monthlyBudget||0)-total),unlinked:purchases.filter(p=>p.total>0&&!p.transactionId).length,waste:F().money(waste),unknownWaste,priceChanges};
  }
  function suggestRecipes(d){const c=C().state(d),today=F().today();return c.recipes.map(r=>{let feasible=true;try{L().cookQuote(d,r.id,r.servings);}catch{feasible=false;}const lots=c.stock.filter(l=>r.ingredients.some(i=>i.catalogId===l.catalogId)&&L().remaining(c,l)>0&&(!l.expiry||l.expiry>=today));const expiry=lots.filter(l=>l.expiry).map(l=>l.expiry).sort()[0]||'9999';return {id:r.id,name:r.name,feasible,expiry,opened:lots.filter(l=>l.opened).length};}).sort((a,b)=>Number(b.feasible)-Number(a.feasible)||a.expiry.localeCompare(b.expiry)||b.opened-a.opened);}
- const api={validate,budget,saveList,listNeeds,useList,removeList,compare,applyPlan,unitCost,recipeCost,insights,suggestRecipes};
+ const api={validate,budget,saveList,listNeeds,useList,removeList,compare,applyPlan,setTravelRate,unitCost,recipeCost,insights,suggestRecipes};
  if(typeof module==='object'&&module.exports)module.exports=api;else root.CasaDaily=Object.freeze(api);
 })(globalThis);

@@ -1,3 +1,7 @@
+# 1.0.24 — Receitas com qualquer unidade e lojas com deslocação
+
+Receitas aceitam todas as unidades (un, kg, g, L, ml, cl) em qualquer produto, com equivalência quando o tipo é diferente (por exemplo 1 un de banana = 0,12 kg); botão «Remover» alinhado. «Comparar lojas» soma a deslocação: distância de cada loja × custo por km (0,20 € por omissão). Seletores de mês/ano sem lista branca no modo escuro. Atualização desde 1.0.20, 1.0.21, 1.0.22 e 1.0.23.
+
 # 1.0.23 — Refeições, receitas com unidades e Casa mais rápida
 
 Refeições com Pequeno-almoço, Lanche da manhã, Lanche da tarde e Ceia. Receitas com unidade por ingrediente (g, ml, cl) e custo convertido. Lista de compras com «Escolher do catálogo» e gravação mais rápida nas páginas da Casa. Análises com um só controlo de mês. Consumos com Vazio, Ponta e Cheio na eletricidade e sem gás. Atualização desde 1.0.20, 1.0.21 e 1.0.22.

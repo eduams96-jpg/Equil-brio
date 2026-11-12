@@ -1,8 +1,8 @@
 {
   "name": "financas-pessoais-desktop",
-  "version": "1.0.23",
+  "version": "1.0.24",
   "private": true,
-  "description": "Equilíbrio v1.0.23 — Refeições, receitas com unidades e Casa mais rápida",
+  "description": "Equilíbrio v1.0.24 — Receitas com qualquer unidade e lojas com deslocação",
   "main": "desktop/main.cjs",
   "scripts": {
     "test": "node --test tests/*.cjs",

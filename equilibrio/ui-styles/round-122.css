@@ -48,3 +48,25 @@ body #mainContent #casaAnalytics .u-split-period button.secondary:hover{backgrou
 #modal .casa-ingredient-row{display:grid;grid-template-columns:minmax(0,2fr) minmax(90px,1fr) minmax(80px,.7fr) auto;gap:10px;align-items:end}
 /* @order 47124 */
 @media (max-width:900px){#casaShopping .cs-add{grid-template-columns:1fr!important}#modal .casa-ingredient-row{grid-template-columns:1fr 1fr}}
+/* @order 47125 */
+#modal .casa-ingredient-row>label{margin:0!important}
+/* @order 47126 */
+#modal .casa-ingredient-row>.casa-ingredient-remove{align-self:end!important;justify-self:stretch;margin:0!important;height:46px!important;min-height:0!important}
+/* @order 47127 */
+#modal .casa-ingredient-row>.casa-ingredient-per{grid-column:1/-1}
+/* @order 47128 */
+#modal .casa-ingredient-row>.casa-ingredient-per[hidden]{display:none!important}
+/* @order 47129 */
+body[data-theme=dark] select,body[data-theme=dark] select option{color-scheme:dark}
+/* @order 47130 */
+body[data-theme=dark] select option{background:#172e38;color:#e7f0f1}
+/* @order 47131 */
+#modal .casa-compare-opts{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+/* @order 47132 */
+#modal .casa-compare-opts label{margin:0!important}
+/* @order 47133 */
+#modal .casa-compare-hint{font-size:13px;color:var(--muted);margin:8px 0 0}
+/* @order 47134 */
+#modal:has(#casaCompareKm) .casa-life-table{min-width:0!important;width:100%}
+/* @order 47135 */
+#modal:has(#casaCompareKm) .casa-life-table :is(th,td){padding:10px 8px!important;white-space:nowrap}

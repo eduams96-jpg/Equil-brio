@@ -7,9 +7,12 @@
  const MEALS=[['breakfast','Pequeno-almoço'],['morningSnack','Lanche da manhã'],['lunch','Almoço'],['afternoonSnack','Lanche da tarde'],['dinner','Jantar'],['supper','Ceia']];
  const mealLabel=id=>MEALS.find(m=>m[0]===id)?.[1]||String(id);
  const UNIT_SCALE={kg:['mass',1],g:['mass',.001],L:['volume',1],ml:['volume',.001],cl:['volume',.01]};
+ const ALL_UNITS=['un','kg','g','L','ml','cl'];
  function ingredientUnits(unit){const kind=UNIT_SCALE[unit]?.[0];return kind?Object.keys(UNIT_SCALE).filter(u=>UNIT_SCALE[u][0]===kind):[unit];}
+ function allUnits(unit){return [unit,...ALL_UNITS.filter(u=>u!==unit)];}
+ function sameKind(a,b){return a===b||(UNIT_SCALE[a]&&UNIT_SCALE[b]&&UNIT_SCALE[a][0]===UNIT_SCALE[b][0]);}
  function convert(value,from,to){if(from===to)return value;const a=UNIT_SCALE[from],b=UNIT_SCALE[to];if(!a||!b||a[0]!==b[0])throw Error('Unidades incompatíveis.');return Math.round(value*a[1]/b[1]*1e6)/1e6;}
- function ingredientQty(i,productUnit){const unit=i.unit&&ingredientUnits(productUnit).includes(i.unit)?i.unit:productUnit;return {qty:convert(i.qty,productUnit,unit),unit};}
+ function ingredientQty(i,productUnit){if(i.unit&&i.per>0&&!sameKind(i.unit,productUnit))return {qty:Math.round(i.qty/i.per*1e6)/1e6,unit:i.unit,per:i.per};const unit=i.unit&&ingredientUnits(productUnit).includes(i.unit)?i.unit:productUnit;return {qty:convert(i.qty,productUnit,unit),unit};}
  function remaining(c,lot){return (units(lot.qty)+c.stockEvents.filter(e=>e.lotId===lot.id).reduce((s,e)=>s+units(e.delta),0))/1000;}
  function available(c,productId,date=finance().today()){return c.stock.filter(l=>l.catalogId===productId&&(!l.expiry||l.expiry>=date)).reduce((s,l)=>s+units(remaining(c,l)),0)/1000;}
  function validate(d){
@@ -73,7 +76,7 @@
   }return count;
  });}
  function replenish(d){return queueNeeds(d,suggestions(d));}
- function saveRecipe(d,input){return base().change(d,(draft,F)=>{let r=draft.casa.recipes.find(r=>r.id===input.id);if(input.id&&!r)throw Error('Receita não encontrada.');const next={id:r?.id||F.id(),name:String(input.name||'').trim(),servings:input.servings,notes:String(input.notes||''),ingredients:(input.ingredients||[]).map(i=>{if(i.amount===undefined)return structuredClone(i);const p=draft.casa.catalog.find(p=>p.id===i.catalogId);if(!p)throw Error('Ingrediente inválido ou repetido.');const unit=i.unit||p.unit;if(!ingredientUnits(p.unit).includes(unit))throw Error('Unidade incompatível com '+p.name+' ('+p.unit+').');const n=convert(i.amount,unit,p.unit);if(!valid(n)||n<=0)throw Error('Quantidade de '+p.name+' inválida ou demasiado pequena.');return unit===p.unit?{catalogId:p.id,qty:n}:{catalogId:p.id,qty:n,unit};})};if(r)Object.assign(r,next);else draft.casa.recipes.push(next);return next.id;});}
+ function saveRecipe(d,input){return base().change(d,(draft,F)=>{let r=draft.casa.recipes.find(r=>r.id===input.id);if(input.id&&!r)throw Error('Receita não encontrada.');const next={id:r?.id||F.id(),name:String(input.name||'').trim(),servings:input.servings,notes:String(input.notes||''),ingredients:(input.ingredients||[]).map(i=>{if(i.amount===undefined)return structuredClone(i);const p=draft.casa.catalog.find(p=>p.id===i.catalogId);if(!p)throw Error('Ingrediente inválido ou repetido.');const unit=i.unit||p.unit;if(!ALL_UNITS.includes(unit)&&unit!==p.unit)throw Error('Unidade incompatível com '+p.name+' ('+p.unit+').');if(!sameKind(unit,p.unit)){const per=Number(i.per);if(!(per>0)||!Number.isFinite(per))throw Error('Indica a equivalência de '+unit+' em '+p.unit+' para '+p.name+'.');const n=Math.round(i.amount*per*1000)/1000;if(!valid(n)||n<=0)throw Error('Quantidade de '+p.name+' inválida ou demasiado pequena.');return {catalogId:p.id,qty:n,unit,per:Math.round(per*1e6)/1e6};}const n=convert(i.amount,unit,p.unit);if(!valid(n)||n<=0)throw Error('Quantidade de '+p.name+' inválida ou demasiado pequena.');return unit===p.unit?{catalogId:p.id,qty:n}:{catalogId:p.id,qty:n,unit};})};if(r)Object.assign(r,next);else draft.casa.recipes.push(next);return next.id;});}
  function plan(d,input){return base().change(d,(draft,F)=>{const old=draft.casa.plans.find(p=>p.id===input.id);if(input.id&&!old)throw Error('Refeição não encontrada.');if(old?.done)throw Error('Esta refeição já foi preparada.');if(input.remove){draft.casa.plans=draft.casa.plans.filter(p=>p.id!==input.id);return;}const row={id:old?.id||F.id(),recipeId:input.recipeId,date:input.date,meal:input.meal,servings:input.servings,done:false};if(old)Object.assign(old,row);else draft.casa.plans.push(row);return row.id;});}
  function recipeNeeds(c,id,servings){const r=c.recipes.find(r=>r.id===id);if(!r||!Number.isInteger(servings)||servings<1||servings>1000)throw Error('Receita ou porções inválidas.');return r.ingredients.map(i=>{const n=q(i.qty*servings/r.servings);if(!valid(n)||n<=0)throw Error('Quantidade por porção demasiado pequena.');return {catalogId:i.catalogId,qty:n};});}
  function requirements(d,recipeId,servings){const c=base().state(d);return recipeNeeds(c,recipeId,servings).map(i=>({...i,available:available(c,i.catalogId),missing:Math.max(0,q(i.qty-available(c,i.catalogId)-pending(c,i.catalogId)))}));}
@@ -89,6 +92,6 @@
   return [...missing].map(([catalogId,n])=>({catalogId,qty:Math.max(0,q(n/1000-pending(c,catalogId)))})).filter(n=>n.qty>0);
  }
 
- const api={meals:MEALS,mealLabel,ingredientUnits,ingredientQty,validate,remaining,available,lot,record,policy,prices,missingPriceOffers,pending,suggestions,queueNeeds,replenish,saveRecipe,plan,requirements,cookQuote,cook,planNeeds};
+ const api={meals:MEALS,mealLabel,ingredientUnits,allUnits,sameKind,ingredientQty,validate,remaining,available,lot,record,policy,prices,missingPriceOffers,pending,suggestions,queueNeeds,replenish,saveRecipe,plan,requirements,cookQuote,cook,planNeeds};
  if(typeof module==='object'&&module.exports)module.exports=api;else root.CasaLife=Object.freeze(api);
 })(globalThis);
