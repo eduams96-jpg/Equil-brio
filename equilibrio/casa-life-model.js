@@ -37,6 +37,7 @@
   }
   const slots=new Set();
   for(const p of c.plans){const key=p.date+':'+p.meal;if(!F.validDate(p.date)||!MEALS.some(m=>m[0]===p.meal)||slots.has(key)||!c.recipes.some(r=>r.id===p.recipeId)||!Number.isInteger(p.servings)||p.servings<1||p.servings>1000||typeof p.done!=='boolean')throw Error('Refeição planeada inválida/repetida.');slots.add(key);if(p.done&&!c.stockEvents.some(e=>e.planId===p.id))throw Error('Refeição sem registo de consumo.');}
+  if(c.weekTemplate!==undefined){const t=c.weekTemplate,seen=new Set();if(!t||typeof t!=='object'||!F.validDate(t.since)||!Array.isArray(t.slots)||!Array.isArray(t.skips))throw Error('Semana-tipo inválida.');for(const x of t.slots){const k=x.weekday+':'+x.meal;if(!Number.isInteger(x.weekday)||x.weekday<0||x.weekday>6||!MEALS.some(m=>m[0]===x.meal)||seen.has(k)||!c.recipes.some(r=>r.id===x.recipeId)||!Number.isInteger(x.servings)||x.servings<1||x.servings>1000)throw Error('Semana-tipo inválida.');seen.add(k);}if(t.skips.some(k=>typeof k!=='string'))throw Error('Semana-tipo inválida.');}
   for(const h of c.priceHistory){if(!c.catalog.some(p=>p.id===h.catalogId)||!c.stores.some(s=>s.id===h.storeId)||!valid(h.packageQty)||h.packageQty<=0||!Number.isFinite(h.price)||h.price<=0||F.money(h.price)!==h.price||!F.validDate(h.date))throw Error('Histórico de preço inválido.');}
   for(const i of c.imports)if(!/^[a-f0-9]{64}$/.test(i.fingerprint)||!i.archive||typeof i.archive!=='object')throw Error('Origem da importação inválida.');
   for(const e of c.legacyActivity)if(!['consume','waste'].includes(e.type)||!c.catalog.some(p=>p.id===e.catalogId)||!valid(e.qty)||e.qty<=0||!F.validDate(e.date))throw Error('Histórico Casa importado inválido.');
@@ -82,16 +83,25 @@
  function requirements(d,recipeId,servings){const c=base().state(d);return recipeNeeds(c,recipeId,servings).map(i=>({...i,available:available(c,i.catalogId),missing:Math.max(0,q(i.qty-available(c,i.catalogId)-pending(c,i.catalogId)))}));}
  function cookQuote(d,id,servings){const c=base().state(d),F=finance(),allocations=[];for(const i of recipeNeeds(c,id,servings)){let need=units(i.qty);const lots=c.stock.filter(l=>l.catalogId===i.catalogId&&(!l.expiry||l.expiry>=F.today())).slice().sort((a,b)=>(a.expiry||'9999').localeCompare(b.expiry||'9999')||Number(b.opened||false)-Number(a.opened||false));for(const l of lots){const take=Math.min(need,units(remaining(c,l)));if(take>0)allocations.push({lotId:l.id,qty:take/1000});need-=take;}if(need>0)throw Error('Stock insuficiente ou expirado: '+c.catalog.find(p=>p.id===i.catalogId)?.name);}return allocations;}
  function cook(d,input){return base().change(d,(draft,F)=>{const c=draft.casa,plan=c.plans.find(p=>p.id===input.planId);if(input.planId&&(!plan||plan.done||plan.recipeId!==input.recipeId||plan.servings!==input.servings))throw Error('Refeição já preparada ou alterada.');if(plan&&plan.date>F.today())throw Error('A refeição está planeada para uma data futura.');if(!input.token||c.stockEvents.some(e=>e.token===input.token))throw Error('Preparação já registada.');const allocation=cookQuote(draft,input.recipeId,input.servings);if(JSON.stringify(allocation)!==input.expected)throw Error('O stock mudou. Confirma novamente.');for(const a of allocation){c.stockEvents.push({id:F.id(),lotId:a.lotId,type:'consume',delta:-a.qty,date:F.today(),note:'Receita: '+c.recipes.find(r=>r.id===input.recipeId).name,recipeId:input.recipeId,planId:input.planId||'',token:input.token});const lot=c.stock.find(l=>l.id===a.lotId);lot.opened=true;syncPackaging(c,lot);}if(plan)plan.done=true;});}
+ function weekdayOf(date){return (new Date(date+'T12:00:00Z').getUTCDay()+6)%7;}
+ function addDays(date,n){const x=new Date(date+'T12:00:00Z');x.setUTCDate(x.getUTCDate()+n);return x.toISOString().slice(0,10);}
+ // Planos concretos + refeições da semana-tipo nos espaços livres (a partir de "since"; um ✕ guarda o dia em skips).
+ function weekPlans(c,from,to){const out=c.plans.filter(p=>p.date>=from&&p.date<=to),t=c.weekTemplate;if(!t||!t.slots.length)return out;
+  for(let date=from>t.since?from:t.since;date<=to;date=addDays(date,1)){const wd=weekdayOf(date);for(const x of t.slots){if(x.weekday!==wd||!c.recipes.some(r=>r.id===x.recipeId))continue;const key=date+'|'+x.meal;if(t.skips.includes(key)||c.plans.some(p=>p.date===date&&p.meal===x.meal))continue;out.push({id:'tpl|'+key,recipeId:x.recipeId,date,meal:x.meal,servings:x.servings,done:false,template:true});}}
+  return out;}
+ function saveTemplate(d,monday){return base().change(d,draft=>{const F=finance();if(!F.validDate(monday))throw Error('Semana inválida.');const end=addDays(monday,6),slots=draft.casa.plans.filter(p=>p.date>=monday&&p.date<=end).map(p=>({weekday:weekdayOf(p.date),meal:p.meal,recipeId:p.recipeId,servings:p.servings}));if(!slots.length)throw Error('Planeia pelo menos uma refeição nesta semana antes de a guardar como semana-tipo.');draft.casa.weekTemplate={since:monday,slots,skips:[]};});}
+ function clearTemplate(d){return base().change(d,draft=>{delete draft.casa.weekTemplate;});}
+ function skipTemplate(d,date,meal){return base().change(d,draft=>{const t=draft.casa.weekTemplate;if(!t)throw Error('Não há semana-tipo.');const k=date+'|'+meal;if(!t.skips.includes(k))t.skips.push(k);t.skips=t.skips.filter(x=>x.slice(0,10)>=addDays(finance().today(),-60));});}
  function planNeeds(d,from,to){
   const c=base().state(d),F=finance();if(!F.validDate(from)||!F.validDate(to)||from>to)throw Error('Período inválido.');
   const left=new Map(c.stock.map(l=>[l.id,units(remaining(c,l))])),missing=new Map();
-  for(const p of c.plans.filter(p=>!p.done&&p.date>=from&&p.date<=to).sort((a,b)=>a.date.localeCompare(b.date))){
+  for(const p of weekPlans(c,from,to).filter(p=>!p.done).sort((a,b)=>a.date.localeCompare(b.date))){
    const at=p.date<F.today()?F.today():p.date;
    for(const i of recipeNeeds(c,p.recipeId,p.servings)){let need=units(i.qty);for(const l of c.stock.filter(l=>l.catalogId===i.catalogId&&(!l.expiry||l.expiry>=at)).sort((a,b)=>(a.expiry||'9999').localeCompare(b.expiry||'9999'))){const take=Math.min(need,left.get(l.id));left.set(l.id,left.get(l.id)-take);need-=take;}missing.set(i.catalogId,(missing.get(i.catalogId)||0)+need);}
   }
   return [...missing].map(([catalogId,n])=>({catalogId,qty:Math.max(0,q(n/1000-pending(c,catalogId)))})).filter(n=>n.qty>0);
  }
 
- const api={meals:MEALS,mealLabel,ingredientUnits,allUnits,sameKind,ingredientQty,validate,remaining,available,lot,record,policy,prices,missingPriceOffers,pending,suggestions,queueNeeds,replenish,saveRecipe,plan,requirements,cookQuote,cook,planNeeds};
+ const api={meals:MEALS,mealLabel,weekPlans:(d,from,to)=>weekPlans(base().state(d),from,to),saveTemplate,clearTemplate,skipTemplate,ingredientUnits,allUnits,sameKind,ingredientQty,validate,remaining,available,lot,record,policy,prices,missingPriceOffers,pending,suggestions,queueNeeds,replenish,saveRecipe,plan,requirements,cookQuote,cook,planNeeds};
  if(typeof module==='object'&&module.exports)module.exports=api;else root.CasaLife=Object.freeze(api);
 })(globalThis);
