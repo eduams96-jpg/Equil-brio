@@ -1,8 +1,8 @@
 {
   "name": "financas-pessoais-desktop",
-  "version": "1.0.24",
+  "version": "1.0.25",
   "private": true,
-  "description": "Equilíbrio v1.0.24 — Receitas com qualquer unidade e lojas com deslocação",
+  "description": "Equilíbrio v1.0.25 — Semana-tipo nas refeições e correções sugeridas",
   "main": "desktop/main.cjs",
   "scripts": {
     "test": "node --test tests/*.cjs",

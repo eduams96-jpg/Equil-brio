@@ -1221,6 +1221,7 @@
       '<div class="category-directory-intro"><p>Organiza por categoria. Abre apenas o grupo que queres alterar.</p>' +
       button("+ Adicionar categoria", "category-create", "", "primary") +
       '<button type="button" class="secondary" data-category-cleanup>Arrumar repetidas</button>' +
+      (C.suggestedCorrections(data).length ? '<button type="button" class="secondary" data-category-corrections>Correções sugeridas (' + C.suggestedCorrections(data).length + ')</button>' : '') +
       '</div><div class="category-directory category-directory-grouped">' +
       families +
       '</div><details class="category-tools"><summary>Regras e operações avançadas</summary></details>';
@@ -1253,6 +1254,21 @@
     summary();
   }
   document.addEventListener("click", (e) => { if (e.target.closest("[data-category-cleanup]")) categoryCleanupForm(); });
+  function correctionsForm() {
+    const list = C.suggestedCorrections(data);
+    if (!list.length) return;
+    const groups = [...new Set(list.map((x) => x.group))];
+    form("Correções sugeridas",
+      `<div class="category-cleanup"><p>Resultado da revisão dos teus movimentos e categorias. Desmarca o que não quiseres. Nada é apagado: os movimentos só mudam de categoria e as recorrências de frequência.</p>` +
+      groups.map((g) => `<h3>${esc(g)}</h3><div class="cleanup-list">${list.filter((x) => x.group === g).map((x) => `<label class="cleanup-row is-strong"><input type="checkbox" data-correction="${esc(x.id)}" checked><span class="cleanup-from"><b>${esc(x.label)}</b><small>${esc(x.detail)}</small></span></label>`).join("")}</div>`).join("") + `</div>`,
+      () => {
+        const ids = [...document.querySelectorAll("#modalContent [data-correction]:checked")].map((b) => b.dataset.correction);
+        if (!ids.length) throw Error("Escolhe pelo menos uma correção.");
+        return commit(() => C.applyCorrections(data, ids), ids.length + " correção(ões) aplicada(s).");
+      },
+      "Dica: faz primeiro uma cópia de segurança em Definições → Backup.", "Aplicar");
+  }
+  document.addEventListener("click", (e) => { if (e.target.closest("[data-category-corrections]")) correctionsForm(); });
   const previous = PremiumUI.render;
   PremiumUI.render = () => {
     previous();

@@ -1,3 +1,7 @@
+# 1.0.25 — Semana-tipo nas refeições e correções sugeridas
+
+Refeições: «Repetir esta semana todas as semanas» cria uma semana-tipo que aparece em todas as semanas seguintes; um dia pode ser alterado ou saltado. Categorias: «Correções sugeridas» aplica, com confirmação, as correções da revisão dos dados (categorias repetidas, IUC anual, vendas em Receita, idas ao supermercado sem divisão). Atualização desde 1.0.20 a 1.0.24.
+
 # 1.0.24 — Receitas com qualquer unidade e lojas com deslocação
 
 Receitas aceitam todas as unidades (un, kg, g, L, ml, cl) em qualquer produto, com equivalência quando o tipo é diferente (por exemplo 1 un de banana = 0,12 kg); botão «Remover» alinhado. «Comparar lojas» soma a deslocação: distância de cada loja × custo por km (0,20 € por omissão). Seletores de mês/ano sem lista branca no modo escuro. Atualização desde 1.0.20, 1.0.21, 1.0.22 e 1.0.23.

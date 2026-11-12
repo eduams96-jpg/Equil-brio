@@ -647,6 +647,58 @@
     return done;
   }
 
+  // Correções sugeridas pela análise dos dados de 12/11/2026. Reconhecidas pelo conteúdo
+  // (nunca por identificadores), só aparecem quando ainda se aplicam e nada é apagado.
+  const CORRECTION_MOVES = [
+    ["Subscrições", "Lazer / Subscrições", "Netflix, Spotify e ChatGPT estavam em duas categorias"],
+    ["Mercearia", "Alimentação / Mercearias", "Categoria solta fora de Alimentação"],
+    ["Saúde", "Cuidados de Saúde", "Taxas moderadoras fora de Cuidados de Saúde"],
+    ["Outros Despesas", "Outras Despesas", "Corrige o nome"],
+    ["Bebidas / Espirituosa / Licor Beirão", "Bebidas / Espirituosa", "Subcategoria com um só movimento"],
+    ["Alimentação / Carne / Pizza", "Alimentação / Mercearias / Pizza", "Pizza não é carne"],
+    ["Alimentação / Carne / Bifanas", "Alimentação / Carne", "Subcategoria com um só movimento"],
+    ["Alimentação / Frutas e Legumes / Frutas / Bananas", "Alimentação / Frutas e Legumes / Frutas", "Subcategoria com um só movimento"],
+    ["Casa / Produtos / Cozinha / Isqueiro", "Casa / Produtos / Cozinha", "Subcategoria com um só movimento"],
+    ["Casa / Produtos / Dispensa / Lanterna", "Casa / Produtos / Dispensa", "Subcategoria com um só movimento"],
+    ["Casa / Produtos / Dispensa", "Casa / Produtos / Despensa", "Corrige «Dispensa» para «Despensa»"],
+    ["Casa / Produtos / Sala / Suporte TV", "Casa / Produtos / Sala", "Subcategoria com um só movimento"],
+    ["Contas / TV", "Contas / Internet", "Os dois movimentos são da fatura de telemóvel e internet"],
+  ];
+  const SUPERMARKETS = /^(lidl|pingo doce|continente|intermarch[eé]|mercadona|auchan|maiskoportuno|minipre[cç]o|aldi)$/i;
+  function correctionTargets(d) {
+    const tx = d.transactions || [], names = new Set([...categoryUsage(d)].filter(([, n]) => n > 0).map(([name]) => name)), out = [];
+    for (const [from, to, why] of CORRECTION_MOVES)
+      if (names.has(from) || [...names].some((n) => n.startsWith(from + " / ")))
+        out.push({ id: "move:" + from, group: "Categorias", label: from + " → " + to, detail: why, run: (c) => moveCategoryTree(c, from, to) });
+    const iuc = (d.recurring || []).filter((r) => /^Impostos \/ IUC/.test(r.category || "") && r.frequency === "monthly");
+    if (iuc.length) out.push({ id: "recurring:iuc", group: "Recorrências", label: "IUC passa de mensal a anual (" + iuc.map((r) => r.description).join(", ") + ")", detail: "Como mensal somava " + F.money(iuc.reduce((n, r) => n + r.amount, 0)) + " € por mês às previsões", run: (c) => { for (const r of c.recurring) if (/^Impostos \/ IUC/.test(r.category || "") && r.frequency === "monthly") r.frequency = "yearly"; } });
+    const water = tx.filter((t) => /^contas?: água$/i.test((t.description || "").trim()) && t.category !== "Contas / Água" && !t.splits?.length);
+    if (water.length) out.push({ id: "tx:water", group: "Movimentos", label: water.length + " conta(s) da água fora de Contas / Água", detail: water.map((t) => t.date + " em " + t.category).join("; "), run: (c) => { for (const t of c.transactions) if (/^contas?: água$/i.test((t.description || "").trim()) && t.category !== "Contas / Água" && !t.splits?.length) t.category = "Contas / Água"; } });
+    const sale = tx.filter((t) => t.type === "income" && /^Lazer \//.test(t.category || "") && !t.splits?.length);
+    if (sale.length) out.push({ id: "tx:sales", group: "Movimentos", label: sale.length + " receita(s) de vendas em Lazer → Receita / Vendas", detail: sale.map((t) => t.date + " " + t.description).join("; "), run: (c) => { for (const t of c.transactions) if (t.type === "income" && /^Lazer \//.test(t.category || "") && !t.splits?.length) t.category = "Receita / Vendas"; } });
+    const isTrip = (t) => t.type === "expense" && !t.splits?.length && SUPERMARKETS.test((t.description || "").trim()) && /^(Alimentação|Bebidas|Mercearia)( \/|$)/.test(t.category || "") && t.category !== "Alimentação / Supermercado" && Math.abs(t.amount) >= 20;
+    const trips = tx.filter(isTrip);
+    if (trips.length) out.push({ id: "tx:supermarket", group: "Movimentos", label: trips.length + " ida(s) ao supermercado (≥ 20 €) sem divisão por artigos → Alimentação / Supermercado", detail: "Estavam com a categoria de um só artigo (ex.: " + trips.slice(0, 3).map((t) => t.description + " " + F.money(Math.abs(t.amount)) + " € em " + t.category).join("; ") + "). A categoria antiga fica na nota de cada movimento.", run: (c) => { for (const t of c.transactions) if (isTrip(t)) { t.note = ((t.note ? t.note + " · " : "") + "Antes: " + t.category).slice(0, 1000); t.category = "Alimentação / Supermercado"; } } });
+    return out;
+  }
+  function suggestedCorrections(d) {
+    return correctionTargets(d).map(({ run, ...rest }) => rest);
+  }
+  function applyCorrections(d, ids) {
+    if (!Array.isArray(ids) || !ids.length) throw Error("Escolhe pelo menos uma correção.");
+    const copy = structuredClone(d);
+    let done = 0;
+    for (const id of ids) {
+      const item = correctionTargets(copy).find((x) => x.id === id);
+      if (!item) continue;
+      item.run(copy);
+      done++;
+    }
+    F.normalize(copy);
+    Object.assign(d, copy);
+    return done;
+  }
+
   function deleteCategory(d, name, replacement = "") {
     name = String(name || "").trim();
     if (!name || !categoryList(d).some((c) => c.name === name)) throw Error("Categoria inexistente.");
@@ -896,6 +948,8 @@
     annual,
     rulesPreview,
     categoryCleanupSuggestions,
+    suggestedCorrections,
+    applyCorrections,
     cleanupCategories,
     moveCategoryTree,
     mergeCategory,
