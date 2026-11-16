@@ -10,15 +10,15 @@
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   };
+  // Validação aritmética (calendário gregoriano). Equivalente a criar um Date, mas sem o custo
+  // de o construir em cada movimento: a normalização passa por milhares de datas.
   function validDate(s) {
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(s || "")) return false;
-    const d = new Date(s + "T12:00:00");
-    return (
-      !isNaN(d) &&
-      d.getFullYear() === +s.slice(0, 4) &&
-      d.getMonth() + 1 === +s.slice(5, 7) &&
-      d.getDate() === +s.slice(8)
-    );
+    if (typeof s !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
+    const y = +s.slice(0, 4), m = +s.slice(5, 7), day = +s.slice(8);
+    if (m < 1 || m > 12 || day < 1) return false;
+    const leap = (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;
+    const days = m === 2 ? (leap ? 29 : 28) : [4, 6, 9, 11].includes(m) ? 30 : 31;
+    return day <= days;
   }
   function dateAt(month, day) {
     const [y, m] = month.split("-").map(Number);
