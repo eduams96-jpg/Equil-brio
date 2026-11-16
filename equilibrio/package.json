@@ -1,8 +1,8 @@
 {
   "name": "financas-pessoais-desktop",
-  "version": "1.0.25",
+  "version": "1.0.26",
   "private": true,
-  "description": "Equilíbrio v1.0.25 — Semana-tipo nas refeições e correções sugeridas",
+  "description": "Equilíbrio v1.0.26 — Correções sugeridas: descartar pendentes",
   "main": "desktop/main.cjs",
   "scripts": {
     "test": "node --test tests/*.cjs",

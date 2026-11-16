@@ -7,7 +7,7 @@
 
 | | Versão | Onde | Estado |
 |---|---|---|---|
-| Windows (PC central) | **1.0.24** instalada · **1.0.25** pronta | `entrega-v1.0.25/` | ⏳ Instalar a 1.0.25 |
+| Windows (PC central) | **1.0.25** instalada · **1.0.26** pronta (pacote `.fpupdate`, baseline 1.0.20) | `entrega-v1.0.26/` | ⏳ Instalar a 1.0.26 |
 | Android | **1.0.1** | `entrega-android-1.0.1/` | ✅ Instalada |
 | Código por publicar | — | `main` (local) | Nada: tudo está na 1.0.25 |
 | GitHub | — | — | ⏳ Só no fim de tudo |
@@ -31,6 +31,7 @@
 
 ## Funcionalidades recentes
 
+- **1.0.26 (`entrega-v1.0.26/`):** «Descartar todas as pendentes» nas Correções sugeridas. Validação dos pacotes OK (39 ficheiros, SHA-256). A validação completa de release (`validate-release`, mais de 15 min) não foi corrida.
 - **1.0.25 (`entrega-v1.0.25/`):**
   - Gestão de categorias → «Correções sugeridas»: a revisão de 12/11 aplicada com confirmação (`CompleteFinance.suggestedCorrections / applyCorrections`, reconhecidas pelo conteúdo, desaparecem depois de aplicadas).
   - Refeições → «Repetir esta semana todas as semanas» (semana-tipo).
