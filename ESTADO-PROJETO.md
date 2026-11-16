@@ -1,7 +1,7 @@
 # Estado do projeto Equilíbrio
 
 > O «cérebro» do projeto. É atualizado no fim de cada ronda de trabalho.
-> Última atualização: **12/11/2026**.
+> Última atualização: **16/11/2026**.
 
 ## Versões
 
@@ -18,12 +18,15 @@
 |---|---|---|---|
 | 1 | Instalar a 1.0.24 no PC | Utilizador | ✅ |
 | 2 | Instalar a Android 1.0.1 | Utilizador | ✅ |
-| 3 | Testar a sincronização (marcar, acrescentar e conferir no telemóvel → PC; totais de Património e Relatórios iguais) | Utilizador | ⏳ Hoje à noite |
-| 4 | Acertar dados: banana em «un», distância das lojas, €/km | Utilizador | ⏳ Combinado |
+| 3 | Testar a sincronização (marcar, acrescentar e conferir no telemóvel → PC; totais de Património e Relatórios iguais) | Utilizador | ❌ Não funcionou (16/11) |
+| 4 | Acertar dados: banana em «un», distância das lojas, €/km | Utilizador | ✅ |
 | 5 | Copiar a chave Android para uma pen | Utilizador | ✅ |
 | 6 | Duplicados da conta Casa | Utilizador | ✅ Condomínio correto; Portagens removido |
-| 7 | Arrumar a base de dados: na 1.0.25, Gestão de categorias → «Correções sugeridas» → Aplicar (Casa 15, Eduardo 1) | Utilizador | ⏳ Depois de instalar |
-| 8 | Instalar a 1.0.25 e criar a semana-tipo nas Refeições | Utilizador | ⏳ |
+| 7 | Arrumar a base de dados: na 1.0.25, Gestão de categorias → «Correções sugeridas» → Aplicar (Casa 15, Eduardo 1) | Utilizador | ✅ Aplicadas; as pendentes para remover → botão «Descartar todas as pendentes» (código feito e testado; sai numa nova versão) |
+| 8 | Instalar a 1.0.25 e criar a semana-tipo nas Refeições | Utilizador | ✅ |
+| 10 | Sincronização PC ↔ telemóvel: Tailscale e mesma rede não funcionaram | Claude + Utilizador | ⏳ Decidir alternativa (ver Decisões) |
+| 11 | Disco externo: pôr fim (12/2026) na recorrência de 92,50 € | Utilizador | ✅ |
+| 12 | Corrigir à mão as 8 descrições «Outros» e 2 «Produtos» (conta Casa) | Utilizador | ⏳ Depois (utilizador) |
 | 9 | Enviar para o GitHub | Claude | ⏳ No fim |
 
 ## Funcionalidades recentes
@@ -48,11 +51,13 @@
 - Condomínio 38,75 € a 02/07: não é duplicado (junho não foi pago).
 - Aplicar todas as correções da análise de dados (12/11). As compras de supermercado já divididas por artigos ficam como estão.
 - Disco externo: são duas prestações reais. A de 92,50 € acaba em dezembro de 2026 e a de 32,50 € em janeiro de 2027. ⏳ O utilizador tem de pôr o fim (12/2026) na recorrência de 92,50 € em Planeamento → Recorrências.
+- Sincronização sem Tailscale nem rede local (16/11): o Google Drive é uma alternativa manual possível, mas copiar a base para os dois lados pode criar conflitos e perder alterações. Só uma cópia de cada vez, sempre a mais recente; a decidir. Alternativas a avaliar: Drive, pen USB ou cabo.
+- Correções pendentes (16/11): novo `correctionsDismissed` na base de dados e «Descartar todas as pendentes» na janela de Correções sugeridas. Não altera movimentos nem categorias. Testes: 712 a passar. Ainda não está numa versão instalável.
 - Descrições vagas: 8 movimentos «Outros» e 2 «Produtos» na conta Casa (abril a novembro de 2026), a corrigir à mão. «Normal» é o nome da loja, por isso está bem.
 
 ## Notas técnicas
 
-- **Testes:** 711 a passar (`npm test` em `equilibrio/`).
+- **Testes:** 712 a passar (`npm test` em `equilibrio/`).
 - **Release:** `node scripts/advance-version.cjs X.Y.Z "título"` → `node scripts/finalize-release.cjs ../historico/baselines/baseline-1.0.20 ../entrega-vX.Y.Z <versão anterior> --packages-only` → `node scripts/advance-version.cjs --snapshot`. A validação completa passa dos 15 minutos.
 - **Chave Android:** `%USERPROFILE%\.codex\private\equilibrio\android-release\` (`.p12` + `password.dpapi`, que só abre neste Windows). Cópia externa: `android/scripts/backup-signing-key.ps1` (PowerShell 7). JDK em `C:\Program Files\Eclipse Adoptium\jdk-21.0.12.101-hotspot`.
 - **Análise de dados:** sempre numa cópia (`VACUUM INTO`) da `%APPDATA%\Financas Pessoais\financas.db`; nunca na base real.

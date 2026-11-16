@@ -1259,7 +1259,7 @@
     if (!list.length) return;
     const groups = [...new Set(list.map((x) => x.group))];
     form("Correções sugeridas",
-      `<div class="category-cleanup"><p>Resultado da revisão dos teus movimentos e categorias. Desmarca o que não quiseres. Nada é apagado: os movimentos só mudam de categoria e as recorrências de frequência.</p>` +
+      `<div class="category-cleanup"><p>Resultado da revisão dos teus movimentos e categorias. Desmarca o que não quiseres. Nada é apagado: os movimentos só mudam de categoria e as recorrências de frequência.</p><p><button type="button" class="secondary danger-action" data-correction-dismiss>Descartar todas as pendentes</button></p>` +
       groups.map((g) => `<h3>${esc(g)}</h3><div class="cleanup-list">${list.filter((x) => x.group === g).map((x) => `<label class="cleanup-row is-strong"><input type="checkbox" data-correction="${esc(x.id)}" checked><span class="cleanup-from"><b>${esc(x.label)}</b><small>${esc(x.detail)}</small></span></label>`).join("")}</div>`).join("") + `</div>`,
       () => {
         const ids = [...document.querySelectorAll("#modalContent [data-correction]:checked")].map((b) => b.dataset.correction);
@@ -1267,6 +1267,12 @@
         return commit(() => C.applyCorrections(data, ids), ids.length + " correção(ões) aplicada(s).");
       },
       "Dica: faz primeiro uma cópia de segurança em Definições → Backup.", "Aplicar");
+    const dismiss = document.querySelector("#modalContent [data-correction-dismiss]");
+    if (dismiss) dismiss.onclick = () => {
+      const ids = list.map((x) => x.id);
+      if (!window.confirm("Descartar as " + ids.length + " correções pendentes? Não altera movimentos nem categorias.")) return;
+      commit(() => C.dismissCorrections(data, ids), "Correções pendentes descartadas.");
+    };
   }
   document.addEventListener("click", (e) => { if (e.target.closest("[data-category-corrections]")) correctionsForm(); });
   const previous = PremiumUI.render;

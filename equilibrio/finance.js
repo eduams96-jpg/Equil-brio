@@ -81,6 +81,7 @@
       savedViews: [],
       categoryArchive: [],
       categoryCatalog: [],
+      correctionsDismissed: [],
       installmentPlans: [],
       monthReviews: [],
       subscriptions: [],

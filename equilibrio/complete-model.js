@@ -682,7 +682,16 @@
     return out;
   }
   function suggestedCorrections(d) {
-    return correctionTargets(d).map(({ run, ...rest }) => rest);
+    const dismissed = new Set(d.correctionsDismissed || []);
+    return correctionTargets(d).filter((x) => !dismissed.has(x.id)).map(({ run, ...rest }) => rest);
+  }
+  // Descarta sugestões pendentes sem mexer em movimentos, categorias ou recorrências.
+  function dismissCorrections(d, ids) {
+    if (!Array.isArray(ids) || !ids.length) throw Error("Escolhe pelo menos uma correção.");
+    const known = new Set(correctionTargets(d).map((x) => x.id));
+    const add = ids.filter((id) => known.has(id));
+    d.correctionsDismissed = [...new Set([...(d.correctionsDismissed || []), ...add])];
+    return add.length;
   }
   function applyCorrections(d, ids) {
     if (!Array.isArray(ids) || !ids.length) throw Error("Escolhe pelo menos uma correção.");
@@ -950,6 +959,7 @@
     categoryCleanupSuggestions,
     suggestedCorrections,
     applyCorrections,
+    dismissCorrections,
     cleanupCategories,
     moveCategoryTree,
     mergeCategory,

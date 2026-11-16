@@ -31,6 +31,15 @@ test('Correções sugeridas: só aparecem quando se aplicam e corrigem categoria
   assert.equal(C.suggestedCorrections(d).length, 0);
 });
 
+test('Correções sugeridas: descartar tira da lista sem alterar dados', () => {
+  const d = fixture(), before = JSON.stringify(d.transactions), ids = C.suggestedCorrections(d).map((x) => x.id);
+  assert.equal(C.dismissCorrections(d, ids), ids.length);
+  assert.equal(C.suggestedCorrections(d).length, 0);
+  assert.equal(JSON.stringify(d.transactions), before, 'movimentos intactos');
+  assert.equal(d.recurring[0].frequency, 'monthly', 'recorrência intacta');
+  assert.throws(() => C.dismissCorrections(d, []), /pelo menos uma/);
+});
+
 test('Correções sugeridas: sem escolha não grava', () => {
   const d = fixture(), before = JSON.stringify(d);
   assert.throws(() => C.applyCorrections(d, []), /pelo menos uma/);
