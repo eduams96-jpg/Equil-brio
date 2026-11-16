@@ -30,7 +30,7 @@
   }
   function render(){if(view!=='dataHub')return;if(UnifiedWorkspaceUI.dataTask()==='documents')documentDetail();}
   document.addEventListener('click',event=>{if(event.target.closest('.document-select'))documentDetail();});
-  document.addEventListener('keydown',event=>{if(event.target.closest('.document-select'))requestAnimationFrame(documentDetail);});
+  document.addEventListener('keydown',event=>{if(event.target?.closest?.('.document-select'))requestAnimationFrame(documentDetail);});
   $('#modal').addEventListener('close',()=>{if(!$('#documentIndexProgress'))return;indexController?.abort();});
   UILifecycle.register('receipt-assistance',{afterRender:render,afterNavigation:render},40);
   window.ReceiptAssistanceUI=Object.freeze({render,indexDocument,refreshDocuments:documentDetail});render();
