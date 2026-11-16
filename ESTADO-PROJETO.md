@@ -31,7 +31,7 @@
 
 ## Funcionalidades recentes
 
-- **1.0.26 (`entrega-v1.0.26/`):** «Descartar todas as pendentes» nas Correções sugeridas. Validação dos pacotes OK (39 ficheiros, SHA-256). A validação completa de release (`validate-release`, mais de 15 min) não foi corrida.
+- **1.0.26 (`entrega-v1.0.26/`):** «Descartar todas as pendentes» nas Correções sugeridas. Validação dos pacotes OK (39 ficheiros, SHA-256). Validação completa (`validate-release`, 16/11): **falhou em 16 suites de interface (browser, frontend, roadmap, practical, startup, experience, month-review, approved-visual, visual-system, essential, unified, global, casa-performance, closure, restoration, reports)**. Quatro delas (reports, essential, global, visual-system) também falham no código de 1.0.25 (`4dcc879`) nesta máquina: não são regressões desta ronda, mas o portão de release continua por passar. Relatório em `equilibrio/validacao/release-1026/`.
 - **1.0.25 (`entrega-v1.0.25/`):**
   - Gestão de categorias → «Correções sugeridas»: a revisão de 12/11 aplicada com confirmação (`CompleteFinance.suggestedCorrections / applyCorrections`, reconhecidas pelo conteúdo, desaparecem depois de aplicadas).
   - Refeições → «Repetir esta semana todas as semanas» (semana-tipo).
