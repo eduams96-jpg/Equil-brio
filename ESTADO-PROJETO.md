@@ -51,6 +51,7 @@
 - Condomínio 38,75 € a 02/07: não é duplicado (junho não foi pago).
 - Aplicar todas as correções da análise de dados (12/11). As compras de supermercado já divididas por artigos ficam como estão.
 - Disco externo: são duas prestações reais. A de 92,50 € acaba em dezembro de 2026 e a de 32,50 € em janeiro de 2027. ⏳ O utilizador tem de pôr o fim (12/2026) na recorrência de 92,50 € em Planeamento → Recorrências.
+- Revisão de 16/11 (demonstração, navegador): 22 ecrãs abertos sem erros; ~70 botões de formulário/painel abertos sem erros; corrigido erro nas teclas (`07e96c6`). Não testados: botões que gravam, apagam ou fecham meses (só com dados reais e cópia). Código: ~26 mil linhas em `equilibrio/*.js`; ficheiros grandes (`workspace.js` 4770 linhas) são candidatos a dividir mais tarde.
 - Sincronização sem Tailscale nem rede local (16/11): o Google Drive é uma alternativa manual possível, mas copiar a base para os dois lados pode criar conflitos e perder alterações. Só uma cópia de cada vez, sempre a mais recente; a decidir. Alternativas a avaliar: Drive, pen USB ou cabo.
 - Correções pendentes (16/11): novo `correctionsDismissed` na base de dados e «Descartar todas as pendentes» na janela de Correções sugeridas. Não altera movimentos nem categorias. Testes: 712 a passar. Ainda não está numa versão instalável.
 - Descrições vagas: 8 movimentos «Outros» e 2 «Produtos» na conta Casa (abril a novembro de 2026), a corrigir à mão. «Normal» é o nome da loja, por isso está bem.
