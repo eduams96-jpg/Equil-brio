@@ -34,7 +34,7 @@
   if(v==='cashflow')return 'planner';
   if(['goals','planningPlus','budgets'].includes(v)){s.planKind={goals:'goal',planningPlus:'reserve',budgets:'budget'}[v];return 'plansHub';}
   const inventory={accounts:'account',debts:'debt',assetsHub:'asset',investmentsHub:'investment',wealthHoldingsHub:'holdings'};
-  if(inventory[v]){s.wealthKind=inventory[v];if(v==='accounts')s.diagnosticOpen=true;return 'wealthMoneyHub';}
+  if(inventory[v]){s.wealthKind=inventory[v];if(v==='accounts'){s.inventoryHistoryOpen=true;s.diagnosticTab='accounts';}return 'wealthMoneyHub';}
   const tasks={review:'imports',documentsHub:'documents',inboxHub:'inbox',qualityHub:'quality',captureQueue:'inbox',personalRules:'rules',backupSettings:'backup',maintenanceDataPanel:'update'};
   if(tasks[v]){if(['backup','update'].includes(tasks[v])){s.settings='backup';s.focusUpdate=tasks[v]==='update';return 'settings';}s.task=tasks[v];return 'dataHub';}return v;
  }

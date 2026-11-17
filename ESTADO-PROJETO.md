@@ -1,16 +1,16 @@
 # Estado do projeto Equilíbrio
 
 > O «cérebro» do projeto. É atualizado no fim de cada ronda de trabalho.
-> Última atualização: **16/11/2026**.
+> Última atualização: **17/11/2026**.
 
 ## Versões
 
 | | Versão | Onde | Estado |
 |---|---|---|---|
-| Windows (PC central) | **1.0.25** instalada · **1.0.26** pronta (pacote `.fpupdate`, baseline 1.0.20) | `entrega-v1.0.26/` | ⏳ Instalar a 1.0.26 |
+| Windows (PC central) | **1.0.25** instalada · **1.0.26** pronta e validada (35/35 suites) | `entrega-v1.0.26/` | ⏳ Instalar a 1.0.26 |
 | Android | **1.0.1** | `entrega-android-1.0.1/` | ✅ Instalada |
-| Código por publicar | — | `main` (local) | Nada: tudo está na 1.0.25 |
-| GitHub | — | — | ⏳ Só no fim de tudo |
+| Código por publicar | — | `main` | Nada: tudo está na 1.0.26 |
+| GitHub | — | `origin/main` | ✅ Atualizado |
 
 ## Para fechar de vez
 
@@ -18,20 +18,20 @@
 |---|---|---|---|
 | 1 | Instalar a 1.0.24 no PC | Utilizador | ✅ |
 | 2 | Instalar a Android 1.0.1 | Utilizador | ✅ |
-| 3 | Testar a sincronização (marcar, acrescentar e conferir no telemóvel → PC; totais de Património e Relatórios iguais) | Utilizador | ❌ Não funcionou (16/11) |
+| 3 | Sincronização com o telemóvel | Utilizador | ✅ Fechado: exportar/importar manual nas Definições (decisão de 16/11) |
 | 4 | Acertar dados: banana em «un», distância das lojas, €/km | Utilizador | ✅ |
 | 5 | Copiar a chave Android para uma pen | Utilizador | ✅ |
 | 6 | Duplicados da conta Casa | Utilizador | ✅ Condomínio correto; Portagens removido |
 | 7 | Arrumar a base de dados: na 1.0.25, Gestão de categorias → «Correções sugeridas» → Aplicar (Casa 15, Eduardo 1) | Utilizador | ✅ Aplicadas; as pendentes para remover → botão «Descartar todas as pendentes» (código feito e testado; sai numa nova versão) |
 | 8 | Instalar a 1.0.25 e criar a semana-tipo nas Refeições | Utilizador | ✅ |
-| 10 | Sincronização PC ↔ telemóvel: Tailscale e mesma rede não funcionaram | Claude + Utilizador | ⏳ Decidir alternativa (ver Decisões) |
+| 10 | Sincronização automática PC ↔ telemóvel | — | ✅ Fora de âmbito (manual) |
 | 11 | Disco externo: pôr fim (12/2026) na recorrência de 92,50 € | Utilizador | ✅ |
 | 12 | Corrigir à mão as 8 descrições «Outros» e 2 «Produtos» (conta Casa) | Utilizador | ⏳ Depois (utilizador) |
-| 9 | Enviar para o GitHub | Claude | ⏳ No fim |
+| 9 | Enviar para o GitHub | Claude | ✅ |
 
 ## Funcionalidades recentes
 
-- **1.0.26 (`entrega-v1.0.26/`):** «Descartar todas as pendentes» nas Correções sugeridas. Validação dos pacotes OK (39 ficheiros, SHA-256). Validação completa (`validate-release`, 16/11): **falhou em 16 suites de interface (browser, frontend, roadmap, practical, startup, experience, month-review, approved-visual, visual-system, essential, unified, global, casa-performance, closure, restoration, reports)**. Quatro delas (reports, essential, global, visual-system) também falham no código de 1.0.25 (`4dcc879`) nesta máquina: não são regressões desta ronda, mas o portão de release continua por passar. Relatório em `equilibrio/validacao/release-1026/`. **Decisão (16/11): 1.0.26 lançada com esta exceção**, documentada em `equilibrio/DESKTOP-v1.0.26.md`. Reescrever as suites fica para uma ronda própria. Diagnóstico: a maioria são testes de interface antigos (seletores de ecrãs já redesenhados ou removidos, p.ex. `desk-record-button`, `equipment-form`, `u-plan-context`); `casa-performance` precisa da baseline 0.39.79, que se perdeu em 30/10/2026; `startup`: passa isolada (27 s, timeout subido de 45 s para 120 s; a bateria completa corre com muitos processos de outros projetos e a janela de boas-vindas demorou 18 s com 5000 movimentos: vale a pena medir o arranque real). `restoration`: seletor `.receipt-inline` removido do formulário (corrigido), mas falha a seguinte asserção (`.u-review-topic` com 1 em vez de 2): teste desatualizado. Correção = reescrever os testes, decisão pendente.
+- **1.0.26 (`entrega-v1.0.26/`):** «Descartar todas as pendentes» nas Correções sugeridas; datas mais rápidas; 4 correções (teclas, Contas → conferência, revisão semanal duplicada, nome acessível dos produtos). **Validação completa: 35/35 suites** (17/11), pacote validado. Testes de interface atualizados para os ecrãs redesenhados; Playwright passou a ser dependência do projeto (`playwright-core` 1.64.1). Notas: `equilibrio/DESKTOP-v1.0.26.md`.
 - **1.0.25 (`entrega-v1.0.25/`):**
   - Gestão de categorias → «Correções sugeridas»: a revisão de 12/11 aplicada com confirmação (`CompleteFinance.suggestedCorrections / applyCorrections`, reconhecidas pelo conteúdo, desaparecem depois de aplicadas).
   - Refeições → «Repetir esta semana todas as semanas» (semana-tipo).

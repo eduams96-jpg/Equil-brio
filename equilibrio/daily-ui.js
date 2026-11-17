@@ -757,6 +757,7 @@
         '<section class="panel review30-next"><div class="review30-section-head"><div><p class="eyebrow">Próximo passo</p><h3>A ação mais útil agora</h3></div></div>' + nextStepHtml +
           '<p class="review30-footnote">A revisão semanal destaca apenas mudanças e decisões relevantes; o detalhe continua em Movimentos, Planeamento e Análises.</p></section>' +
       '</div>';
+    document.querySelectorAll('#weeklyReviewBody').forEach((n)=>n.remove());// a versão anterior pode ter sido movida para outro painel
     const weeklyBody=document.createElement('div');weeklyBody.id='weeklyReviewBody';
     while(weekly.firstChild)weeklyBody.append(weekly.firstChild);weekly.append(weeklyBody);
     const conclusion = data.monthlyConclusions.find((r) => r.month === month);

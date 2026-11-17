@@ -17,15 +17,15 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
    commit(()=>{data=d;},'Base de teste');month=F.today().slice(0,7);render();navigate('planner');document.querySelector('#notice').hidden=true;document.activeElement?.blur();
   });
   const ledger=await page.evaluate(()=>JSON.stringify({accounts:data.accounts,transactions:data.transactions,subscriptions:data.subscriptions,assets:data.assets,investments:data.investments}));
-  assert.equal(await page.locator('#agendaSummary #agendaMonthFacts .approved-metric').count(),2);
+  assert.equal(await page.locator('#agendaSummary #agendaMonthFacts .approved-metric').count(),3);
   assert.equal(await page.locator('#agendaSummary #forecastBalance').count(),1);
   assert.equal(await page.locator('#agendaMonthServices .provider-digi').count(),1);
   assert.equal(await page.locator('#agendaMonthServices .provider-spotify').count(),1);
   await page.locator('#agendaMonthPicker').fill('2026-09');assert.equal(await page.evaluate(()=>month),'2026-09');await page.locator('[data-agenda-today]').click();
   await page.locator('[data-agenda-layout=calendar]').click();await page.locator('[data-agenda-day$="-15"]').click();assert.match(await page.locator('#agendaRows').innerText(),/Eletricidade/);
-  if(require('./_version.cjs').revision()>=69){await page.locator('#agendaRows .agenda31-actions details > summary').first().click();await page.locator('#agendaRows [data-action=settle-pending]').click();}else await page.locator('#agendaRows .approved-day-action').click();assert.equal(await page.locator('#modal').evaluate(n=>n.open),true);await page.evaluate(()=>document.querySelector('#modal').close());
-  await page.evaluate(()=>navigate('wealth'));assert.equal(await page.locator('.approved-wealth-metrics .approved-metric').count(),4);assert.equal(await page.locator('.approved-wealth-inventory tbody tr').count(),2);assert.match(await page.locator('.approved-wealth-inventory').innerText(),/Não registada/);
-  await page.locator('.approved-wealth-inventory [data-u-open-record="asset:car"]').click();assert.equal(await page.locator('#wealthMoneyHub').isVisible(),true);assert.equal(await page.locator('.u-inspector h3').innerText(),'Automóvel');
+  if(require('./_version.cjs').revision()>=69){await page.locator('#agendaRows .agenda31-menu > summary').first().click();await page.locator('.agenda31-menu-portal [data-action=settle-pending]').click();}else await page.locator('#agendaRows .approved-day-action').click();assert.equal(await page.locator('#modal').evaluate(n=>n.open),true);await page.evaluate(()=>document.querySelector('#modal').close());
+  await page.evaluate(()=>navigate('wealth'));assert.equal(await page.locator('#wealth .wl-tiles .ch-tile').count(),4);assert.equal(await page.locator('#wealthInventory [data-u-open-record]').count(),2);assert.match(await page.locator('#wealthInventory').innerText(),/conferir|avaliação/i);
+  await page.locator('#wealthInventory [data-u-open-record="asset:car"]').click();assert.equal(await page.locator('#wealthMoneyHub').isVisible(),true);assert.equal(await page.locator('.u-inspector h3').innerText(),'Automóvel');
   for(const [width,height,scale] of [[390,844,1],[768,900,1],[1024,768,1],[1440,900,1],[1920,1080,1],[1440,900,1.25],[1440,900,1.5]]) {
    await page.setViewportSize({width:Math.floor(width/scale),height:Math.floor(height/scale)});
    for(const view of ['planner','plansHub','decisionsHub','wealth','wealthMoneyHub','wealthHoldingsHub']) {

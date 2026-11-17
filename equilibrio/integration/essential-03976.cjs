@@ -6,7 +6,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
  const page=await browser.newPage({viewport:{width:1440,height:1000}});page.on('pageerror',e=>errors.push(e.message));await page.goto('http://127.0.0.1:'+server.address().port);await page.waitForTimeout(150);
  await page.evaluate(()=>{document.querySelectorAll('dialog[open]').forEach(d=>d.close());data=F.empty();data.accounts=[{id:'bank',name:'Banco',type:'Banco',balance:1000},{id:'saving',name:'Poupança',type:'Poupança',balance:500}];F.migrateLedgerCore(data);F.add(data,{id:'old',description:'Compra anterior',date:F.today(),account:'Banco',type:'expense',amount:10,category:'Alimentação / Carne / Fresca / Frango'});F.add(data,{id:'other',description:'Produto de casa',date:F.today(),account:'Banco',type:'expense',amount:5,category:'Casa / Limpeza / Roupa / Detergente'});render();navigate('wealthMoneyHub');});
  const before=await page.evaluate(()=>JSON.stringify(data));
- const row=page.locator('#wealthMoneyHub .desk-table tbody tr').filter({hasText:'Poupança'});await row.locator('td').nth(1).click();
+ await page.locator('#wealthMoneyHub .u-record-button').filter({hasText:'Poupança'}).first().click();
  assert.equal(await page.locator('#wealthMoneyHub .desk-inspector-heading h3').innerText(),'Poupança');assert.match(await page.locator('#wealthMoneyHub .u-inspector').innerText(),/Poupança/);
  await page.evaluate(()=>render());assert.equal(await page.locator('#wealthMoneyHub .desk-inspector-heading h3').innerText(),'Poupança');assert.equal(await page.evaluate(()=>JSON.stringify(data)),before);
  for(const theme of ['light','dark'])for(const width of [390,768,1440,1920]){
