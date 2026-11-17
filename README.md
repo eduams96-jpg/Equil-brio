@@ -1,6 +1,6 @@
 # Equilíbrio
 
-Fonte Windows **1.0.17** em `equilibrio/`; Android **0.9.0-rc.4** em `android/`. SQLite mantém os dados locais. A homologação nos equipamentos reais ainda está pendente.
+Fonte Windows **1.0.26** (versão final, tag `v1.0.26`) em `equilibrio/`; Android **0.9.0-rc.4** em `android/`. SQLite mantém os dados locais. A homologação nos equipamentos reais ainda está pendente.
 
 **Para retomar o projeto: [RETOMAR.md](RETOMAR.md).**
 
@@ -8,7 +8,7 @@ Fonte Windows **1.0.17** em `equilibrio/`; Android **0.9.0-rc.4** em `android/`.
 
 Guias e roadmaps anteriores: `historico/documentacao/` (GUIA-CANDIDATA.md tem as instruções da partilha privada; ROADMAP-ATUAL.md o roteiro de fecho da 1.0.15).
 
-A entrega local `entrega-v1.0.17/` tem a atualização .fpupdate atual, que aceita **1.0.16**. O instalador inicial e o APK assinado continuam em `entrega-v1.0.15/`. A instalação inicial mantém `C:/Program Files (x86)/Equilibrio`; os dados ficam fora da instalação, em `%APPDATA%/Financas Pessoais`. Baselines e entregas anteriores foram preservadas.
+A entrega local `entrega-v1.0.26/` tem o instalador completo `Equilibrio-Setup-v1.0.26.exe` e a atualização `financas-pessoais-v1.0.26.fpupdate` (aceite pela 1.0.20 a 1.0.25), com instruções, validação e SHA-256. Os mesmos ficheiros estão na GitHub Release `v1.0.26`. A instalação usa `C:/Program Files (x86)/Equilibrio`; os dados ficam fora da instalação, em `%APPDATA%/Financas Pessoais`, e a desinstalação não os apaga. Baselines e entregas anteriores foram preservadas.
 
 Um PC central com o programa aberto pode partilhar um espaço com outros PCs e Android. Os clientes trabalham offline e sincronizam por ação explícita. Não abrir o mesmo SQLite numa pasta de rede. Associação e HTTPS são obrigatórios; conflitos não substituem silenciosamente o trabalho local. Sincronização não substitui cópias de segurança.
 

@@ -1,13 +1,13 @@
 # Estado do projeto Equilíbrio
 
 > O «cérebro» do projeto. É atualizado no fim de cada ronda de trabalho.
-> Última atualização: **17/11/2026**.
+> Última atualização: **17/11/2026** (entrega final 1.0.26).
 
 ## Versões
 
 | | Versão | Onde | Estado |
 |---|---|---|---|
-| Windows (PC central) | **1.0.25** instalada · **1.0.26** pronta e validada (35/35 suites) | `entrega-v1.0.26/` | ⏳ Instalar a 1.0.26 |
+| Windows (PC central) | **1.0.25** instalada · **1.0.26** final: instalador + .fpupdate, 35/35 suites e 712 testes (17/11) | `entrega-v1.0.26/` · tag `v1.0.26` | ⏳ Instalar a 1.0.26 (fluxo do instalador por confirmar numa máquina limpa) |
 | Android | **1.0.1** | `entrega-android-1.0.1/` | ✅ Instalada |
 | Código por publicar | — | `main` | Nada: tudo está na 1.0.26 |
 | GitHub | — | `origin/main` | ✅ Atualizado |
