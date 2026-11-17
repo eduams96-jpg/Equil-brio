@@ -46,6 +46,8 @@
 
 ## Decisões tomadas
 
+- Limpeza de 17/11: entrega 1.0.25 e ZIPs anteriores movidos para `D:CODEXarquivo-antigo-2026-11-16`; apagados só a pasta de compilação `dist-desktop` e uma cópia duplicada do .fpupdate. O APK 1.0.1 passou a constar de `entrega-v1.0.26/android/`.
+
 - O plano de refeições usa uma semana fixa, que se ajusta quando for preciso.
 - Os custos de deslocação contam por km (0,20 €/km por omissão).
 - Só se envia para o GitHub quando tudo estiver terminado.
