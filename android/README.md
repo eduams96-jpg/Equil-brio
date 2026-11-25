@@ -1,12 +1,12 @@
 # Android — fonte canónica
 
-Versão **1.0.1**, versão interna (versionCode) **6**, identificador **pt.equilibrio.mobile**. Mesma chave da RC4: atualizar por cima, sem desinstalar. Piloto físico ainda pendente. Entrega em entrega-android-1.0.1/. Requer o PC central na 1.0.23 (tipos de refeição novos).
+Versão **1.0.3**, versão interna (versionCode) **8**, identificador **pt.equilibrio.mobile**, alinhada com `coreVersion` **1.0.43**. Mesma chave da RC4: atualizar por cima, sem desinstalar. Piloto físico ainda pendente. `casa.cjs` valida explicitamente esquemas `http:`/`https:` nos links de produtos e ofertas.
 
 `app/` contém interface Capacitor e projeto Android nativo. `shared/` e `server/` adaptam as regras únicas de `../equilibrio/mobile-sync/` e incluem testes. Não há dependência de fontes em work/, de baselines de ensaio ou de outro projeto. É necessário o diretório equilibrio/ do mesmo checkout.
 
 ## Testes
 
-Estado atual: 343 testes Android a passar.
+Estado atual: **345/345** testes Android a passar (`shared`, `server`, `app/src`, `app/src/ui`, `app/src/screens`).
 
 Node.js 24. A partir da raiz:
 

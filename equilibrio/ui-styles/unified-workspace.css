@@ -286,8 +286,6 @@
 @media (max-width:1000px) { .u-plans-grid,.u-inventory-grid,.u-review-grid{grid-template-columns:1fr}.u-decision-pane{width:100%}#planner .planner-agenda-grid{grid-template-columns:1fr}.u-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.u-sub-grid{grid-template-columns:1fr}.u-sub-detail{border-left:0;border-top:1px solid var(--line)} }
 /* @order 8246 */
 @media (max-width:700px) { .u-task-grid{grid-template-columns:1fr}.u-task-nav{position:static;padding:12px}.u-task-nav h2{margin-bottom:12px}.u-task-nav nav{display:flex;flex-wrap:wrap;gap:6px}.u-task-nav nav button{min-height:38px;font-size:12px;padding:8px}.u-head{align-items:flex-start;flex-wrap:wrap;gap:12px}.u-head>.u-actions{width:100%}.u-metrics{gap:10px}.u-metric{padding:12px;gap:10px}.u-metric>.interface-icon{width:22px;height:22px}.u-review-grid>.panel,.u-inspector{padding:14px}.u-sub-detail{padding:18px}#subscriptionsManagerDialog{width:calc(100vw - 16px)}#subscriptionsManagerDialog .plan-manager-head{padding:14px;flex-wrap:wrap}.u-table-scroll{max-width:100%}.u-review-accounts .u-table{min-width:500px}.u-inventory-list .u-table{min-width:600px}.u-sub-list .u-table{min-width:560px}.u-plans-list .u-table{min-width:510px}.u-import-grid .u-table{min-width:650px}.u-category-bar{grid-template-columns:90px 1fr auto;gap:8px}.u-plan-values b{font-size:18px} }
-/* @order 8250 */
-body.equilibrio-studio #plansHub #decisionsHub .ex-decision-columns { display:flex!important;flex-direction:column;gap:18px!important; }
 /* @order 8251 */
 body.equilibrio-studio #plansHub #decisionsHub>.decisions-hero,body.equilibrio-studio #plansHub #decisionsHub>.decision-flow,body.equilibrio-studio #plansHub #decisionsHub>.decisions-overview { display:none!important; }
 /* @order 8252 */
@@ -407,3 +405,99 @@ body.equilibrio-studio #plansHub>#plansHubOverview[hidden] { display:none!import
 #weeklyHub .u-review-topic-content{margin-top:16px;min-width:0}
 /* @order 8339 */
 @media(max-width:700px){#weeklyHub .u-review-extra{grid-template-columns:minmax(0,1fr)}}
+
+/* @order 79020 */
+@media all {
+  #dataHub #unifiedData.u-task-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-areas: "head" "tabs" "content" !important;
+    gap: 12px !important;
+  }
+  #dataHub #unifiedData > .dt-head { padding: 0 !important; }
+  #dataHub #unifiedData > .dt-head h2 { margin: 0 !important; }
+  #dataHub #unifiedData > .dt-compact-nav { grid-area: tabs; }
+  #dataHub #unifiedData > .u-task-content { padding: clamp(12px, 2vw, 20px) !important; min-width: 0; }
+  #dataHub #unifiedData .u-inbox-workspace { grid-template-columns: minmax(0, 1fr) !important; gap: 8px !important; }
+  #dataHub #unifiedData #dataInboxInspector {
+    position: static !important;
+    margin-top: 8px !important;
+    padding: 12px 16px !important;
+  }
+  #dataHub #dataInboxInspector .u-inbox-meta { display: flex; flex-wrap: wrap; gap: 8px 24px; }
+  #dataHub #dataInboxInspector .u-inbox-meta > div { display: grid; gap: 2px; }
+  #dataHub #dataInboxInspector .settings-overline { display: none; }
+  #dataHub .dt-compact-nav, #weeklyHub .rv-tabs {
+    display: flex !important;
+    flex-wrap: wrap;
+    gap: 8px !important;
+  }
+  #dataHub .dt-compact-nav > button, #weeklyHub .rv-tabs > button {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 8px;
+    min-height: 36px !important;
+    padding: 6px 12px !important;
+  }
+  #dataHub .dt-compact-nav > button svg, #weeklyHub .rv-tabs > button svg {
+    flex: 0 0 16px;
+    width: 16px;
+    height: 16px;
+    padding: 0;
+    background: transparent;
+  }
+  #dataHub .dt-compact-nav > button small {
+    min-width: 1.5em;
+    padding: 1px 5px;
+    border-radius: 6px;
+    background: var(--surface-soft);
+    color: var(--ink);
+  }
+  #dataHub .dt-compact-nav > button[aria-current="page"] {
+    border-color: var(--blue) !important;
+    background: color-mix(in srgb, var(--blue) 10%, var(--paper)) !important;
+  }
+  #noticesHub .nt-kpis { gap: 8px !important; }
+  #noticesHub .nt-kpi { padding: 8px 12px !important; }
+  #noticesHub .nt-kpi > div { display: flex !important; align-items: center; flex-wrap: wrap; gap: 4px 8px; }
+  #noticesHub .nt-kpi > div > small { display: none; }
+  #noticesHub .nt-kpi .ch-tile-icon { width: 28px; height: 28px; }
+  #noticesHub .nt-toolbar { padding: 10px 12px !important; }
+  #noticesHub .notices-workbench { grid-template-columns: minmax(0, 1fr) !important; gap: 8px !important; }
+  #noticesHub .notices-master { gap: 4px; max-height: none; overflow: visible; padding: 0 !important; }
+  #noticesHub .notices-detail { position: static; min-width: 0; }
+  #noticesHub .notices-detail .notice-card { padding: 10px 14px !important; margin: 0 0 6px; }
+  #noticesHub .nt-row {
+    grid-template-columns: 26px minmax(0, 1fr) minmax(0, .6fr) minmax(76px, auto) auto !important;
+    grid-template-areas: "icon title meta amount state" !important;
+    gap: 4px 10px !important;
+    padding: 6px 10px 6px 13px !important;
+    border-radius: 9px !important;
+  }
+  #noticesHub .nt-row-icon { width: 26px; height: 26px; font-size: 14px; border-radius: 6px; }
+  #plansBoard .plan-record > summary { padding-block: 8px !important; }
+  #plansBoard .plan-record-progress { display: grid; gap: 4px; min-width: 0; }
+  #plansBoard .plan-record-progress progress { width: 100%; max-width: 160px; height: 8px; accent-color: var(--green); }
+  #plansBoard .plan-record-progress small { white-space: nowrap; color: var(--muted); }
+  #plansBoard .plan-decision-top { padding: 8px 12px !important; gap: 8px !important; }
+  #plansBoard .plan-decision-top h3 { margin: 0 !important; }
+  #plansBoard .plan-decision-lower { grid-template-columns: minmax(0, 1fr) !important; gap: 8px !important; }
+  #weeklyHub :is(#reviewWorkflow, .u-review-extra)[hidden] { display: none !important; }
+  #weeklyHub .rv-tabs > button.active svg { background: transparent; color: var(--blue); }
+  #weeklyHub .rv-hero { gap: 10px; }
+  #weeklyHub .rv-kpi, #weeklyHub .rv-progress { padding: 10px 12px !important; }
+  @media (min-width: 840px) {
+    #plansBoard .plan-record > summary:has(.plan-record-progress) {
+      grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, .8fr) minmax(0, .8fr) 18px !important;
+    }
+  }
+  @media (max-width: 839px) {
+    #plansBoard .plan-record-progress { grid-column: 1 / -2; }
+    #plansBoard .plan-record > summary::after { grid-column: -2; grid-row: 1; }
+  }
+  @media (max-width: 680px) {
+    #noticesHub .nt-row {
+      grid-template-columns: 26px minmax(0, 1fr) auto !important;
+      grid-template-areas: "icon title amount" "icon meta state" !important;
+    }
+  }
+}

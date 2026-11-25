@@ -26,6 +26,11 @@
 **/*.fpbackup
 **/*.pem
 **/*.key
+**/*.p12
+**/*.pfx
+**/*.jks
+**/*.keystore
+**/*.dpapi
 **/browser-state.json
 **/update-pending.json
 **/*.log

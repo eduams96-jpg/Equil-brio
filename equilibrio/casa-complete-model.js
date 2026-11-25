@@ -101,11 +101,12 @@
 
   function weekly(d,start,servings){
     if(!F().validDate(start)||!Number.isInteger(servings)||servings<1||servings>1000)throw Error('Data ou porções inválidas.');
-    const c=C().state(d),recipes=c.recipes.filter(r=>r.ingredients.every(i=>c.catalog.some(p=>p.id===i.catalogId&&!p.archived))),draft=structuredClone(d),rows=[],counts=new Map();
+    const c=C().state(d),recipes=c.recipes.filter(r=>!r.archived&&r.ingredients.every(i=>c.catalog.some(p=>p.id===i.catalogId&&!p.archived))),draft=structuredClone(d),rows=[],counts=new Map();
     draft.casa=structuredClone(c);
     if(!recipes.length)throw Error('Cria pelo menos uma receita com produtos ativos.');
+    const busy=new Set(L().weekPlans(draft,start,day(start,6)).map(p=>p.date+'|'+p.meal));
     for(let n=0;n<7;n++)for(const meal of ['lunch','dinner']){
-      const date=day(start,n);if(date<F().today()||c.plans.some(p=>p.date===date&&p.meal===meal))continue;
+      const date=day(start,n);if(date<F().today()||busy.has(date+'|'+meal)||draft.casa.plans.some(p=>p.date===date&&p.meal===meal))continue;
       const before=L().planNeeds(draft,start,day(start,6)).reduce((sum,x)=>sum+x.qty,0);
       const ranked=recipes.map(r=>{
         const row={id:'preview-'+n+'-'+meal,date,meal,recipeId:r.id,servings,done:false};draft.casa.plans.push(row);
@@ -140,9 +141,13 @@
 
   function updateShopping(d,id,input){return C().change(d,draft=>{
     const c=draft.casa,row=c.shopping.find(r=>r.id===id);if(!row)throw Error('Artigo não encontrado.');
-    if(input.storeId!==undefined){const store=c.stores.find(s=>s.id===input.storeId&&!s.archived);if(!store)throw Error('Escolhe uma loja ativa.');
-      if(row.catalogId&&!c.catalog.find(p=>p.id===row.catalogId)?.offers[store.id])throw Error('Configura o preço deste produto na loja.');
-      if(row.storeId!==store.id)delete row.purchaseOverride;row.storeId=store.id;
+    if(input.storeId!==undefined){
+      if(input.storeId===''&&!row.catalogId){delete row.storeId;delete row.purchaseOverride;}
+      else{
+        const store=c.stores.find(s=>s.id===input.storeId&&!s.archived);if(!store)throw Error('Escolhe uma loja ativa.');
+        if(row.catalogId&&!c.catalog.find(p=>p.id===row.catalogId)?.offers[store.id])throw Error('Configura o preço deste produto na loja.');
+        if(row.storeId!==store.id)delete row.purchaseOverride;row.storeId=store.id;
+      }
     }
     for(const key of ['note','location','expiry'])if(input[key]!==undefined)row[key]=input[key];
     if(input.notFound!==undefined){row.notFound=input.notFound;if(input.notFound)row.done=false;}

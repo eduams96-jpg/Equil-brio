@@ -10,10 +10,13 @@
   disclosure.innerHTML = '<summary>Ícones das contas e fornecedores</summary>';
   disclosure.append(panel);
   document.querySelector('#settings .settings-grid').append(disclosure);
-  function draw() {
-    const names=new Map();for(const name of ['DIGI','Spotify',...(data.accounts||[]).map(a=>a.name),...(data.subscriptions||[]).map(s=>s.name),...(data.beneficiaries||[]).map(b=>typeof b==='string'?b:b.name),...(data.providerIcons||[]).map(r=>r.name),...(data.transactions||[]).map(t=>t.beneficiary),...(data.casa?.stores||[]).map(s=>s.name),...(data.casa?.purchases||[]).map(p=>p.store)])if(name)names.set(I.key(name),name);
+  let dirty = true;
+  function draw(force = false) {
+    if (!force && typeof view === 'string' && view !== 'settings') { dirty = true; return; }
+    dirty = false;
+    const names=new Map();for(const name of ['DIGI','Spotify',...(data.accounts||[]).map(a=>a.name),...(data.subscriptions||[]).map(s=>s.name),...(data.beneficiaries||[]).map(b=>typeof b==='string'?b:b.name),...(data.savedBeneficiaries||[]),...(data.providerIcons||[]).map(r=>r.name),...(data.transactions||[]).map(t=>t.beneficiary),...(data.casa?.stores||[]).map(s=>s.name),...(data.casa?.purchases||[]).map(p=>p.store)])if(name)names.set(I.key(name),name);
     const rows=[...names.values()].sort((a,b)=>a.localeCompare(b,'pt'));
-    panel.innerHTML='<div class="u-head"><h2>Ícones das contas e fornecedores</h2><button type="button" class="primary" data-provider-add>+ Associar ícone</button></div><div class="u-table-scroll"><table class="u-table provider-settings-list"><thead><tr><th>Conta / fornecedor</th><th>Ícone</th><th>Origem</th><th>Ações</th></tr></thead><tbody>'+rows.map(name=>{const custom=(data.providerIcons||[]).find(r=>I.key(r.name)===I.key(name)),resolved=I.resolve(name,data.providerIcons||[]);return '<tr><td>'+esc(name)+'</td><td>'+(data.accounts.some(a=>I.key(a.name)===I.key(name))?I.accountHtml(name):I.html(name))+'</td><td>'+esc(custom?custom.initialOnly?'Personalizado · iniciais':'Personalizado · imagem local':resolved.kind==='initial'?(data.accounts.some(a=>I.key(a.name)===I.key(name))?'Conta · incluído na aplicação':'Iniciais'):'Incluído na aplicação')+'</td><td><button type="button" class="secondary" data-provider-edit="'+esc(custom?.id||'')+'" data-provider-name="'+esc(name)+'">Editar</button></td></tr>';}).join('')+'</tbody></table></div>';
+    panel.innerHTML='<div class="u-head"><h2>Ícones das contas e fornecedores</h2><button type="button" class="primary" data-provider-add>+ Associar ícone</button></div><div class="u-table-scroll"><table class="u-table provider-settings-list"><thead><tr><th>Conta / fornecedor</th><th>Ícone</th><th>Origem</th><th>Ações</th></tr></thead><tbody>'+rows.map(name=>{const custom=(data.providerIcons||[]).find(r=>I.key(r.name)===I.key(name)),resolved=I.resolve(name,data.providerIcons||[]);return '<tr><td>'+esc(name)+'</td><td>'+(data.accounts.some(a=>I.key(a.name)===I.key(name))?I.accountHtml(name):I.html(name))+'</td><td>'+esc(custom?custom.initialOnly||!custom.image?'Personalizado · iniciais':'Personalizado · imagem local':resolved.kind==='initial'?'Iniciais':'Incluído na aplicação')+'</td><td><button type="button" class="secondary" data-provider-edit="'+esc(custom?.id||'')+'" data-provider-name="'+esc(name)+'">Editar</button></td></tr>';}).join('')+'</tbody></table></div>';
   }
   async function readImage(file) {
     if (!file || !['image/png','image/jpeg','image/webp'].includes(file.type) || file.size > 2 * 1024 * 1024) throw Error('Escolhe uma imagem PNG, JPEG ou WebP até 2 MB.');
@@ -38,6 +41,7 @@
       return commit(() => {
         if (key !== spaceKey || existing && JSON.stringify((data.providerIcons || []).find(row => row.id === existing.id)) !== expected) throw Error('O espaço ou ícone mudou. Abre novamente a configuração.');
         const name = String(f.get('providerName')).trim();
+        if (!f.has('initialOnly') && !image) throw Error('Escolhe uma imagem ou ativa a opção de usar apenas iniciais.');
         const rows = (data.providerIcons || []).filter(row => row.id !== existing?.id);
         rows.push({id: existing?.id || F.id(), name, image: f.has('initialOnly') ? '' : image, initialOnly: f.has('initialOnly')});
         I.validate(rows); data.providerIcons = rows;
@@ -60,6 +64,8 @@
   });
   const renderBefore = PremiumUI.render;
   PremiumUI.render = () => { renderBefore(); draw(); };
+  const navBefore = PremiumUI.navigation;
+  PremiumUI.navigation = (target) => { navBefore?.(target); if (!window.UILifecycle?.inRender?.() && target === 'settings' && dirty) draw(true); };
   draw();
   window.ProviderIconsUI = {draw, readImage};
 })();

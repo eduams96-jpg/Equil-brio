@@ -39,7 +39,9 @@
     const salary = salaryOccurrence();
     const nextPayday = () => {
       const startDate = new Date(start + "T12:00:00Z");
-      const preferredDay = Number(d.paydayDay || 0);
+      const rawDay = d.paydayDay;
+      const parsedDay = rawDay == null || rawDay === "" ? 0 : Math.trunc(Number(rawDay));
+      const preferredDay = Number.isInteger(parsedDay) && parsedDay >= 1 && parsedDay <= 31 ? parsedDay : 0;
       for (let offset = 0; offset < 14; offset++) {
         const y = startDate.getUTCFullYear(), m = startDate.getUTCMonth() + offset;
         const last = new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
@@ -93,20 +95,24 @@
     const entries = F.expenseEntries(d, month),
       categories = new Set([
         ...d.budgets.map((b) => b.category),
-        ...entries.map((t) => t.category),
+        ...entries
+          .map((t) => t.category)
+          .filter((cat) => !d.budgets.some((b) => F.categoryMatches(cat, b.category))),
       ]);
     return [...categories].map((category) => {
       const budget = d.budgets.find((b) => b.category === category),
-        plan = budget ? P.budgetAt(d, budget, month) : null;
-      const actual = sum(
-        entries.filter((t) => t.category === category).map((t) => t.amount),
-      );
+        plan = budget ? P.budgetAt(d, budget, month) : null,
+        limit = plan ? (plan.rollover ? plan.available : plan.limit) : null,
+        matched = entries.filter((t) =>
+          budget ? F.categoryMatches(t.category, budget.category) : t.category === category,
+        ),
+        actual = sum(matched.map((t) => t.amount));
       return {
         category,
-        planned: plan?.limit ?? null,
+        planned: limit,
         actual,
-        difference: plan ? F.money(actual - plan.limit) : null,
-        transactions: entries.filter((t) => t.category === category),
+        difference: limit !== null ? F.money(actual - limit) : null,
+        transactions: matched,
       };
     });
   }
@@ -148,6 +154,225 @@
       throw Error("O saldo desta conta não cobre os objetivos associados.");
     g.accountId = accountId;
   }
+  function protectionOverview(d, date = F.today()) {
+    const month = date.slice(0, 7);
+    const expenses = d.budgets.some(b => b.protectionAccountId) ? F.expenseEntries(d, month) : [];
+    const accounts = d.accounts.filter(a => !a.archived && !["Cartão", "Cartão de crédito"].includes(a.type));
+    const byAccount = new Map(accounts.map(a => [String(a.id), {account:a,pots:new Map()}]));
+    const items = new Map();
+    for (const [kind, rows] of Object.entries({goal:d.goals,reserve:d.reserves,budget:d.budgets})) {
+      for (const row of rows) {
+        const id = kind + ":" + row.id;
+        const accountId = row.protectionAccountId ?? (kind === "goal" ? row.accountId : "");
+        const target = byAccount.get(String(accountId));
+        if (!target) continue;
+        const {account,pots}=target;
+        let amount = kind === "goal" ? row.current : row.saved;
+        if (kind === "budget") {
+          const spent = sum(expenses.filter(t => t.date <= date && t.account === account.name &&
+            F.categoryMatches(t.category, row.category)).map(t => t.amount));
+          amount = P.budgetAt(d, row, month).available - spent;
+        }
+        amount = Math.max(0, F.money(amount || 0));
+        const group = row.protectionGroup?.trim();
+        const itemKey = group ? "group:" + group.toLocaleLowerCase("pt-PT") : id;
+        pots.set(itemKey, Math.max(pots.get(itemKey) || 0, amount));
+        items.set(id, {account,amount,group,itemKey});
+      }
+    }
+    for (const item of items.values()) {
+      item.groupAmount = byAccount.get(String(item.account.id)).pots.get(item.itemKey);
+    }
+    return {items,accounts:accounts.map(a => {
+      const balance = F.balanceAt(d, a, date);
+      const protectedAmount = sum([...byAccount.get(String(a.id)).pots.values()]);
+      const available = F.money(balance - protectedAmount);
+      const deficit = protectedAmount ? Math.max(0, -available) : 0;
+      return {id:a.id,name:a.name,balance,protectedAmount,available,deficit,
+        low:protectedAmount > 0 && available >= 0 && available <= protectedAmount * 0.1};
+    })};
+  }
+
+  function protection(d, date = F.today()) {
+    return protectionOverview(d,date).accounts;
+  }
+
+  function saveProtection(d, kind, id, accountId, group) {
+    const row = ({goal:d.goals,reserve:d.reserves,budget:d.budgets})[kind]?.find(r=>String(r.id)===String(id));
+    if (!row) throw Error("Plano inexistente.");
+    if (accountId && !d.accounts.some(a=>String(a.id)===String(accountId) && !a.archived && !["Cartão","Cartão de crédito"].includes(a.type)))
+      throw Error("Escolhe uma conta ativa de dinheiro.");
+    if (typeof group !== "string" || group.length > 100) throw Error("Identificação da despesa inválida.");
+    row.protectionAccountId = accountId;
+    row.protectionGroup = accountId ? group.trim() : "";
+  }
+
+  function normName(value) {
+    return String(value || "").trim().toLocaleLowerCase("pt-PT");
+  }
+  function legacyMonthsUntil(month, targetYearMonth) {
+    return Math.max(
+      1,
+      (+targetYearMonth.slice(0, 4) - +month.slice(0, 4)) * 12 +
+        (+targetYearMonth.slice(5, 7) - +month.slice(5, 7)) +
+        1,
+    );
+  }
+  function annualPlanMonths(month, targetMonthNumber) {
+    const currentMonth = Number(month.slice(5, 7)) || 1;
+    const target = Number(targetMonthNumber) || currentMonth;
+    return target >= currentMonth
+      ? target - currentMonth + 1
+      : 12 - currentMonth + target + 1;
+  }
+  function legacyPlanSummary(d, month = F.today().slice(0, 7)) {
+    const budgetsByCat = new Map(
+      (d.budgets || []).map((b) => [normName(b.category), b]),
+    );
+    const reservesByName = new Map(
+      (d.reserves || []).map((r) => [normName(r.name), r]),
+    );
+    const envelopes = (d.envelopes || []).map((e) => {
+      const existing = budgetsByCat.get(normName(e.category)) || null;
+      return {
+        ...e,
+        existingBudgetId: existing?.id || null,
+        existingLimit: existing ? P.budgetAt(d, existing, month).limit : null,
+      };
+    });
+    const annualPlans = (d.annualPlans || []).map((p) => {
+      const existing = reservesByName.get(normName(p.name)) || null;
+      return {
+        ...p,
+        months: annualPlanMonths(month, p.month),
+        existingReserveId: existing?.id || null,
+      };
+    });
+    const seasonalCosts = (d.seasonalCosts || []).map((s) => {
+      const existing = reservesByName.get(normName(s.name)) || null;
+      return {
+        ...s,
+        months: F.validDate(s.date) ? legacyMonthsUntil(month, s.date.slice(0, 7)) : 12,
+        existingReserveId: existing?.id || null,
+      };
+    });
+    return {
+      envelopes,
+      annualPlans,
+      seasonalCosts,
+      total: envelopes.length + annualPlans.length + seasonalCosts.length,
+    };
+  }
+  function consolidateLegacyPlan(d, kind, id, month = F.today().slice(0, 7)) {
+    if (!F.validDate(month + "-01")) throw Error("Mês inválido.");
+    if (kind === "envelope") {
+      const env = (d.envelopes || []).find((e) => String(e.id) === String(id));
+      if (!env) throw Error("Envelope inexistente.");
+      const existing = (d.budgets || []).find(
+        (b) => normName(b.category) === normName(env.category),
+      );
+      const allocated = F.money(Math.max(0, Number(env.allocated) || 0));
+      if (!existing) {
+        P.saveBudget(d, null, month, {
+          category: String(env.category || "").trim(),
+          limit: allocated,
+          carry: false,
+        });
+      } else {
+        const current = P.budgetAt(d, existing, month);
+        if (allocated > current.limit) {
+          P.saveBudget(d, existing.id, month, {
+            category: existing.category,
+            limit: allocated,
+            carry: current.rollover,
+          });
+        }
+      }
+      d.envelopes = d.envelopes.filter((e) => String(e.id) !== String(id));
+      return { kind: "budget" };
+    }
+    if (kind === "annualPlan") {
+      const plan = (d.annualPlans || []).find((p) => String(p.id) === String(id));
+      if (!plan) throw Error("Plano anual inexistente.");
+      const months = annualPlanMonths(month, plan.month);
+      const target = F.money(Math.max(0, Number(plan.amount) || 0));
+      const existing = (d.reserves || []).find(
+        (r) => normName(r.name) === normName(plan.name),
+      );
+      if (existing) {
+        existing.target = F.money(Math.max(Number(existing.target) || 0, target));
+        existing.months ||= months;
+      } else {
+        d.reserves.push({
+          id: F.id(),
+          name: String(plan.name || "").trim(),
+          target,
+          saved: 0,
+          months,
+        });
+      }
+      d.annualPlans = d.annualPlans.filter((p) => String(p.id) !== String(id));
+      return { kind: "reserve" };
+    }
+    if (kind === "seasonalCost") {
+      const item = (d.seasonalCosts || []).find((s) => String(s.id) === String(id));
+      if (!item) throw Error("Despesa sazonal inexistente.");
+      const months = F.validDate(item.date)
+        ? legacyMonthsUntil(month, item.date.slice(0, 7))
+        : 12;
+      const target = F.money(Math.max(0, Number(item.amount) || 0));
+      const saved = F.money(Math.max(0, Number(item.saved) || 0));
+      const existing = (d.reserves || []).find(
+        (r) => normName(r.name) === normName(item.name),
+      );
+      if (existing) {
+        existing.target = F.money(Math.max(Number(existing.target) || 0, target));
+        existing.saved = F.money(Math.max(Number(existing.saved) || 0, saved));
+        existing.months ||= months;
+      } else {
+        d.reserves.push({
+          id: F.id(),
+          name: String(item.name || "").trim(),
+          target,
+          saved,
+          months,
+        });
+      }
+      d.seasonalCosts = d.seasonalCosts.filter((s) => String(s.id) !== String(id));
+      return { kind: "reserve" };
+    }
+    throw Error("Tipo de plano antigo inválido.");
+  }
+  function consolidateAllLegacyPlans(d, month = F.today().slice(0, 7)) {
+    const draft = structuredClone(d);
+    let count = 0;
+    for (const e of (draft.envelopes || []).slice()) {
+      consolidateLegacyPlan(draft, "envelope", e.id, month);
+      count++;
+    }
+    for (const p of (draft.annualPlans || []).slice()) {
+      consolidateLegacyPlan(draft, "annualPlan", p.id, month);
+      count++;
+    }
+    for (const s of (draft.seasonalCosts || []).slice()) {
+      consolidateLegacyPlan(draft, "seasonalCost", s.id, month);
+      count++;
+    }
+    d.budgets = draft.budgets;
+    d.reserves = draft.reserves;
+    d.envelopes = draft.envelopes;
+    d.annualPlans = draft.annualPlans;
+    d.seasonalCosts = draft.seasonalCosts;
+    return count;
+  }
+
+  function importWork(d) {
+    return {
+      prepared: d.pendingImports.length,
+      statementLines: d.statements.reduce((count, statement) =>
+        count + statement.rows.filter(row => row.status === "pending").length, 0),
+    };
+  }
   function inbox(d, month, start = F.today()) {
     const items = [];
     const evidenceKey = (evidence) => {
@@ -160,7 +385,7 @@
       }
       return (a >>> 0).toString(16) + ":" + (b >>> 0).toString(16);
     };
-    const add = (title, detail, route, action, id, evidence) =>
+    const add = (title, detail, route, action, id, evidence, context) =>
       items.push({
         title,
         detail,
@@ -168,6 +393,7 @@
         action,
         id,
         evidence: evidenceKey(evidence),
+        ...context,
       });
     for (const a of d.accounts.filter(
       (a) =>
@@ -181,10 +407,11 @@
         undefined,
         a.id,
         [a.balance, a.reconciledOn],
+        { kind: "balance", accountId: a.id, sourceName: a.name, date: a.reconciledOn },
       );
     for (const a of d.accounts) {
       const assigned = sum(
-        d.goals.filter((g) => g.accountId === a.id).map((g) => g.current),
+        d.goals.filter((g) => g.protectionAccountId===undefined && g.accountId === a.id).map((g) => g.current),
       );
       if (assigned > Math.max(0, a.balance))
         add(
@@ -202,7 +429,7 @@
       if (
         (t.splits || [{ category: t.category }]).some(
           (s) =>
-            !s.category || ["Outros", "Sem categoria"].includes(s.category),
+            !s.category || ["Outros", "Sem categoria", "Por categorizar"].includes(s.category),
         )
       )
         add(
@@ -213,7 +440,7 @@
           t.id,
           [t.amount, t.category, t.splits],
         );
-      if (t.receiptRequired && !t.attachment)
+      if (F.missingReceipt(t))
         add(
           "Comprovativo em falta",
           t.description,
@@ -221,6 +448,7 @@
           "edit-tx",
           t.id,
           [t.date, t.amount],
+          { kind: "receipt" },
         );
     }
     if (d.pendingImports.length)
@@ -231,6 +459,7 @@
         undefined,
         undefined,
         d.pendingImports.map((t) => [t.id, t.date, t.amount]),
+        { kind: "import" },
       );
     for (const s of d.statements)
       if (s.rows.some((r) => r.status === "pending"))
@@ -241,6 +470,7 @@
           undefined,
           s.id,
           s.rows.filter((r) => r.status === "pending").map((r) => r.id),
+          { kind: "statement", sourceName: s.name },
         );
     for (const s of d.sharedExpenses)
       if (s.amount > L.received(d, s.id))
@@ -270,16 +500,27 @@
         p.id,
         p.amount,
       );
+    const latestReconciliations = new Map();
     for (const r of d.reconciliations) {
+      const k = String(r.accountId || r.accountName || "");
+      const prev = latestReconciliations.get(k);
+      if (!prev || String(r.date || "") > String(prev.date || "") || (r.date === prev.date && String(r.recordedAt || "") >= String(prev.recordedAt || ""))) {
+        latestReconciliations.set(k, r);
+      }
+    }
+    for (const r of latestReconciliations.values()) {
       try {
-        if (F.money(r.actual - P.balanceAt(d, r.accountId, r.date)) !== 0)
+        const expected = P.balanceAt(d, r.accountId, r.date);
+        const difference = F.money(r.actual - expected);
+        if (difference !== 0)
           add(
             "Conferência com diferença",
             r.accountName + " · " + r.date,
             "accounts",
             undefined,
             r.id,
-            [r.actual, P.balanceAt(d, r.accountId, r.date)],
+            [r.actual, expected],
+            { kind: "balance", accountId: r.accountId, sourceName: r.accountName, date: r.date, difference },
           );
       } catch {}
     }
@@ -540,14 +781,14 @@
             e.date <= r.date ||
             e.date > r.until ||
             !nonnegative(e.amount) ||
-            !["income", "expense"].includes(e.type) ||
+            !["income", "expense", "transfer"].includes(e.type) ||
             typeof e.description !== "string" ||
             typeof e.source !== "string",
         ) ||
         F.money(
           r.opening +
             sum(
-              r.events.map((e) => (e.type === "income" ? e.amount : -e.amount)),
+              r.events.map((e) => (e.type === "transfer" ? 0 : e.type === "income" ? e.amount : -e.amount)),
             ),
         ) !== r.expected
       )
@@ -641,7 +882,7 @@
     for (const g of after.goals) {
       const old = before.goals.find((x) => x.id === g.id);
       if (
-        g.accountId &&
+        g.protectionAccountId===undefined && g.accountId &&
         (!old || old.accountId !== g.accountId || g.current > old.current)
       )
         allocation(after, g.id, g.accountId);
@@ -875,6 +1116,12 @@
     comparison,
     seasonal,
     allocation,
+    protection,
+    protectionOverview,
+    saveProtection,
+    legacyPlanSummary,
+    consolidateLegacyPlan,
+    consolidateAllLegacyPlans,
     inbox,
     subscriptionReview,
     validate,
@@ -882,6 +1129,7 @@
     validateChanges,
     importImpact,
     reviewInbox,
+    importWork,
     reviewReminder,
     weekly,
     monthlyReview,

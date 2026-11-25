@@ -46,21 +46,20 @@ function createDataService(sqliteStorage) {
   if (!sqliteStorage) throw new Error('SQLite indisponível para a camada de dados.');
 
   function listSpaces() {
-    return clone(sqliteStorage.listSpaces?.() || []);
+    return sqliteStorage.listSpaces?.() || [];
   }
 
   function readSpace(spaceId) {
     const id = String(spaceId || '').trim();
     if (!id) return null;
-    const result = sqliteStorage.readSpace?.(id) || null;
-    return clone(result);
+    return sqliteStorage.readSpace?.(id) || null;
   }
 
   function readDomain(spaceId, domain) {
     const id = String(spaceId || '').trim();
     if (!id) return [];
     const name = assertDomain(domain);
-    return clone(sqliteStorage.readDomain?.(id, name) || []);
+    return sqliteStorage.readDomain?.(id, name) || [];
   }
 
   function writeSpace(storageKey, ledger) {
@@ -76,6 +75,32 @@ function createDataService(sqliteStorage) {
     assertObject(beforeLedger || {}, 'Estado anterior');
     assertObject(afterLedger, 'Estado do Espaço Financeiro');
     return sqliteStorage.applyLedgerDelta(key, clone(beforeLedger || {}), canonicalLedger(afterLedger));
+  }
+
+  function commitLedgerConfirmed(storageKey, beforeText, afterText) {
+    if (typeof beforeText !== 'string' || typeof afterText !== 'string')
+      throw new Error('Dados de gravação inválidos.');
+    const before = JSON.parse(beforeText);
+    const submitted = JSON.parse(afterText);
+    assertObject(before, 'Estado anterior');
+    assertObject(submitted, 'Estado do Espaço Financeiro');
+    if (submitted.version !== 2) throw new Error('Versão dos dados de gravação inválida.');
+    let after;
+    if (submitted.ledgerCoreVersion === 1) {
+      after = Finance.normalize(submitted, { inPlace: true });
+      require('../casa-model.js').validate(after);
+    } else {
+      after = canonicalLedger(submitted);
+    }
+    return sqliteStorage.writeLedgerDelta(storageKey, before, after, afterText);
+  }
+
+  function commitLedgerPatch(storageKey, patchText) {
+    if (typeof patchText !== 'string') throw new Error('Alteração incremental inválida.');
+    const patch = JSON.parse(patchText);
+    assertObject(patch, 'Alteração incremental');
+    if (patch.version !== 2) throw new Error('Versão dos dados de gravação inválida.');
+    return sqliteStorage.writeLedgerPatch(storageKey, patch);
   }
 
   function resolveSpace(spaceId) {
@@ -126,10 +151,12 @@ function createDataService(sqliteStorage) {
   return {
     listSpaces,
     readSpace,
-    snapshotSpaces: () => clone(sqliteStorage.snapshotSpaces()),
+    snapshotSpaces: () => sqliteStorage.snapshotSpaces(),
     readDomain,
     writeSpace,
     commitLedger,
+    commitLedgerConfirmed,
+    commitLedgerPatch,
     upsertEntity,
     deleteEntity,
     info,

@@ -9,7 +9,7 @@ class Client{
  constructor(adapter,request,options={}){this.adapter=adapter;this.request=request;this.negotiate=options.negotiate===true;}
  async read(){return this.adapter.read();}
  async change(fn){if(this.adapter.mutate)return this.adapter.mutate(state=>{const result=fn(state);P.compactReceipts(state);return result;});const current=await this.read();const state=P.copy(current.state);const result=fn(state);P.compactReceipts(state);await this.adapter.replace(state,current.revision);return result;}
- checkRevision(state,payload,options,command=''){if(options&&Object.hasOwn(options,'expectedEntityRevision')&&!D.same(P.view(state).revisions[(command.startsWith('account.')?'account:':command.startsWith('commitment.')?'commitment:':'transaction:')+payload.id]||0,options.expectedEntityRevision))throw Error('O registo mudou entretanto. Reabre-o antes de guardar.');}
+ checkRevision(state,payload,options,command=''){if(options&&Object.hasOwn(options,'expectedEntityRevision')){const prefix=command.startsWith('account.')?'account:':command.startsWith('commitment.')?'commitment:':command.startsWith('house.')?'house:':'transaction:';if(!D.same(P.view(state).revisions[prefix+payload.id]||0,options.expectedEntityRevision))throw Error('O registo mudou entretanto. Reabre-o antes de guardar.');}}
  async enqueue(command,payload,options){return this.change(state=>{this.checkRevision(state,payload,options,command);D.consume(state,options?.draft,payload);K.consume(state,options?.commitmentDraft,payload);if(options?.accountDraft)Forms.consume(state,'accountDraft',options.accountDraft,payload,Forms.accountPayload,P.view);if(options?.houseDraft)Forms.consume(state,'houseDraft',options.houseDraft,payload,HouseForm.payload,P.view);if(options?.paymentDraft)Forms.consume(state,'paymentDraft',options.paymentDraft,payload,Forms.paymentPayload,P.view);const operation=P.prepare(state,command,payload);state.outbox.push({operation,status:'pending'});return operation;});}
  async resolve(operationId,choice,payload,options){return this.change(state=>{
   if(state.blocked)throw Error('A ligação precisa de revisão antes de resolver propostas.');
@@ -39,14 +39,14 @@ class Client{
   if(initial.blocked)throw Error('A sincronização está bloqueada para revisão. As pendências foram preservadas.');
   if(initial.serverId==='unpaired')throw Error('Protótipo não associado a um servidor de ensaio.');
   for(const row of initial.outbox.filter(x=>['pending','sending'].includes(x.status))){
-   await this.change(state=>{state.outbox.find(x=>x.operation.operationId===row.operation.operationId).status='sending';});
+   await this.change(state=>{const pendingRow=state.outbox.find(x=>x.operation.operationId===row.operation.operationId);if(pendingRow)pendingRow.status='sending';});
    const receipt=await this.request('POST',`/api/v1/spaces/${initial.spaceId}/operations`,row.operation);
    if(['epoch-mismatch','upgrade-required'].includes(receipt.status)){await this.change(state=>{state.blocked=receipt.status;});throw Error('Sincronização bloqueada: '+receipt.status);}
    await this.change(state=>P.applyReceipt(state,receipt));
   }
   for(;;){
    const state=(await this.read()).state;
-   const page=await this.request('GET',`/api/v1/spaces/${state.spaceId}/changes?after=${state.confirmed.cursor}&epoch=${encodeURIComponent(state.epoch)}&limit=2`);
+   const page=await this.request('GET',`/api/v1/spaces/${state.spaceId}/changes?after=${state.confirmed.cursor}&epoch=${encodeURIComponent(state.epoch)}&limit=10`);
    if(page.status||page.epoch!==state.epoch){await this.change(s=>{s.blocked=page.status||'epoch-mismatch';});throw Error('Geração ou protocolo incompatível.');}
    if(!page.events.length)break;
    await this.change(s=>{

@@ -3,7 +3,10 @@
   const C = window.CasaFinance;
   const $ = (s,host=document) => host.querySelector(s);
   const esc = s => String(s ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  const eur = n => new Intl.NumberFormat('pt-PT',{style:'currency',currency:'EUR'}).format(n);
+  const eurFmt = new Intl.NumberFormat('pt-PT',{style:'currency',currency:'EUR'});
+  const qtyFmt = new Intl.NumberFormat('pt-PT',{maximumFractionDigits:3});
+  const eur = n => eurFmt.format(n);
+  const qty = n => qtyFmt.format(Number(n)||0);
   const state = () => C.state(data);
   let purchaseQuery = '', purchaseLimit = 12;
   function purchaseForm() {
@@ -24,10 +27,16 @@
     const p = state().purchases.find(p=>p.id===id); if(!p) return notice('Compra não encontrada.',true);
     const t = data.transactions.find(t=>t.id===p.transactionId);
     const proof=t?.attachment||p.preservedPayment?.attachment;
-    const details = (proof?'<button type="button" id="casaOpenProof" class="secondary">Abrir comprovativo</button>':'')+`<p>${esc(p.date)} · <strong>${eur(p.total)}</strong></p><ul>${p.items.map(i=>`<li>${esc(i.name)} — ${eur(i.total)}${i.catalogId?`<br>${i.packages} embalagens × ${i.packageQty} ${esc(i.unit)} = ${i.qty} ${esc(i.unit)} de stock`:''}</li>`).join('')}</ul>`;
-    form('Compra · '+esc(p.store), details + (t ? `<div class="casa-link-preview"><b>Movimento associado</b><p>${esc(t.description)} · ${esc(t.account)} · ${esc(t.category)} · ${eur(t.amount)}</p><button type="button" id="casaOpenMovement" class="secondary">Abrir movimento</button></div>` : '<p class="casa-independent-note">Registo exclusivo da Casa; sem movimento financeiro.</p>') + '<button type="button" id="casaDeletePurchase" class="secondary">Eliminar compra…</button>',()=>true,t ? 'A compra e o movimento são guardados em conjunto. Usa “Corrigir valores” para ajustar os preços sem perder os lotes e o histórico.' : 'Esta compra não altera as contas financeiras.','Fechar');
+    const lots = state().stock.filter(l=>l.purchaseId===p.id);
+    const remainingQty = l => window.CasaLife?CasaLife.remaining(state(),l):l.qty;
+    const stockHtml = lots.length
+      ? `<div class="casa-link-preview casa-stock-preview"><b>Stock na Despensa (${lots.length} ${lots.length===1?'lote':'lotes'})</b><ul>${lots.map(l=>`<li>${esc(state().catalog.find(x=>x.id===l.catalogId)?.name||'Produto')} · ${qty(remainingQty(l))} / ${qty(l.qty)} ${esc(l.unit)}${l.location?' · '+esc(l.location):''}</li>`).join('')}</ul><button type="button" id="casaOpenPurchaseStock" class="secondary">Abrir na Despensa</button></div>`
+      : '';
+    const details = (proof?'<button type="button" id="casaOpenProof" class="secondary">Abrir comprovativo</button>':'')+`<p>${esc(p.date)} · <strong>${eur(p.total)}</strong></p><ul>${p.items.map(i=>`<li>${esc(i.name)} — ${eur(i.total)}${i.catalogId?`<br>${i.packages} ${i.packages===1?'embalagem':'embalagens'} × ${qty(i.packageQty)} ${esc(i.unit)} = ${qty(i.qty)} ${esc(i.unit)} de stock`:''}</li>`).join('')}</ul>`;
+    form('Compra · '+esc(p.store), details + (t ? `<div class="casa-link-preview"><b>Movimento associado</b><p>${esc(t.description)} · ${esc(t.account)} · ${esc(t.category)} · ${eur(t.amount)}</p><button type="button" id="casaOpenMovement" class="secondary">Abrir movimento</button></div>` : '<p class="casa-independent-note">Registo exclusivo da Casa; sem despesa financeira associada.</p>') + stockHtml + '<button type="button" id="casaDeletePurchase" class="secondary">Eliminar compra…</button>',()=>true,t ? 'A compra e o movimento são guardados em conjunto. Usa “Corrigir valores” para ajustar os preços sem perder os lotes e o histórico.' : 'Esta compra não altera as contas financeiras até associares ou registares uma despesa.','Fechar');
     $('#casaOpenProof')?.addEventListener('click',()=>actions.receipt(null,proof));
     $('#casaOpenMovement')?.addEventListener('click',()=>{document.getElementById('modal')?.close();openMovement(t.id);});
+    $('#casaOpenPurchaseStock')?.addEventListener('click',()=>{document.getElementById('modal')?.close();navigate('casaStock');});
     $('#casaDeletePurchase').onclick=()=>{
       form('Eliminar compra',`<p>Eliminar a compra de ${esc(p.store)} (${eur(p.total)})? ${t?'O movimento associado também será eliminado e o valor será reposto na conta.':''} ${p.stockPosted?'As entradas de stock desta compra também serão retiradas. Os artigos não regressam automaticamente à lista.':''}</p>`,()=>commit(()=>C.removePurchase(data,id),'Compra eliminada.'),'','Eliminar compra');
     };
@@ -47,7 +56,7 @@
       <div class="casa-actions casa-purchases-toolbar cp-toolbar"><label class="cs-search casa-purchase-search">${I('search')}<input id="casaPurchaseSearch" type="search" placeholder="Pesquisar loja ou artigo" aria-label="Pesquisar compras"></label></div><div id="casaPurchaseList" class="cp-list"></div>`;
     $('#casaNewPurchase').onclick=purchaseForm;
     $('#casaPurchaseSearch').value=purchaseQuery;
-    const card=p=>`<article class="casa-product-card cp-card"><span class="cp-badge" style="--h:${hue(p.store)}">${esc(String(p.store||'?').trim().charAt(0).toUpperCase())}</span><div class="cp-main"><h3>${esc(p.store)}</h3><p>${esc(new Date(p.date+'T12:00:00').toLocaleDateString('pt-PT',{weekday:'short',day:'2-digit',month:'short'}))} · ${p.items.length} ${p.items.length===1?'artigo':'artigos'}</p>${p.items.length?`<small class="cp-items">${p.items.slice(0,3).map(i=>esc(i.name)).join(' · ')}${p.items.length>3?' · +'+(p.items.length-3):''}</small>`:''}</div><div class="cp-side"><strong>${eur(p.total)}</strong><span class="casa-connection ${p.transactionId?'':'unlinked'}">${p.transactionId?'✓ Movimento associado':'Sem movimento financeiro'}</span></div><button type="button" class="secondary" data-purchase="${esc(p.id)}">Ver compra</button></article>`;
+    const card=p=>{const lotsCount=c.stock.filter(l=>l.purchaseId===p.id).length;return `<article class="casa-product-card cp-card"><span class="cp-badge" style="--h:${hue(p.store)}">${esc(String(p.store||'?').trim().charAt(0).toUpperCase())}</span><div class="cp-main"><h3>${esc(p.store)}</h3><p>${esc(new Date(p.date+'T12:00:00').toLocaleDateString('pt-PT',{weekday:'short',day:'2-digit',month:'short'}))} · ${p.items.length} ${p.items.length===1?'artigo':'artigos'}</p>${p.items.length?`<small class="cp-items">${p.items.slice(0,3).map(i=>esc(i.name)).join(' · ')}${p.items.length>3?' · +'+(p.items.length-3):''}</small>`:''}</div><div class="cp-side"><strong>${eur(p.total)}</strong><span class="casa-connection ${p.transactionId?'':'unlinked'}">${p.transactionId?'✓ Despesa associada':'Sem despesa financeira'}</span>${lotsCount?`<span class="casa-connection">${lotsCount} ${lotsCount===1?'lote na despensa':'lotes na despensa'}</span>`:''}</div><button type="button" class="secondary" data-purchase="${esc(p.id)}">Ver compra</button></article>`;};
     const paint = () => {
       const q=ReceiptFinance.nameKey($('#casaPurchaseSearch').value),terms=q.split(' ').filter(Boolean);
       const rows=c.purchases.filter(p=>{const text=ReceiptFinance.nameKey([p.store,p.receiptText,...p.items.flatMap(i=>[i.name,i.sourceName])].filter(Boolean).join(' '));return terms.every(term=>text.includes(term));}).slice().sort((a,b)=>b.date.localeCompare(a.date));
@@ -62,6 +71,6 @@
   }
   window.CasaUI=Object.freeze({render,purchaseForm,openPurchase});
   const previousNav=PremiumUI.navigation;
-  PremiumUI.navigation=v=>{previousNav?.(v);if(v?.startsWith('casa')){const add=$('#addTransaction');add.hidden=false;add.textContent=v==='casaShopping'?'+ Adicionar artigo':'+ Nova compra';add.onclick=v==='casaShopping'?()=>$('#casaQuickItem')?.focus():purchaseForm;}else if(v==='dashboard'){const add=$('#addTransaction');add.hidden=false;add.textContent='+ Novo movimento';add.onclick=()=>transactionForm();}};
+  PremiumUI.navigation=v=>{previousNav?.(v);if(v?.startsWith('casa')){const add=$('#addTransaction');if(add){if(v==='casaShopping'){add.hidden=false;add.textContent='+ Adicionar artigo';add.onclick=()=>$('#casaQuickItem')?.focus();}else add.hidden=true;}}else if(v==='dashboard'){const add=$('#addTransaction');if(add){add.hidden=false;add.textContent='+ Novo movimento';add.onclick=()=>transactionForm();}}};
   render();PremiumUI.navigation(view);
 })();

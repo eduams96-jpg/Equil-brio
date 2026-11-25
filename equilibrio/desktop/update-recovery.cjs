@@ -45,9 +45,7 @@ function recover(pointer,appPath,userDataPath,validatePackage){
  status(plan,'recovering');try{restoreVerified(plan);status(plan,'failed-rolled-back',{recoveredInterruption:true});finish(pointer,plan,userDataPath);}catch(e){status(plan,'failed-rollback-error',{rollbackError:e.message});throw e;}
  return {state:'failed-rolled-back',recoveredInterruption:true};
 }
-// This function is embedded in main; it uses core modules only before loading application modules.
-function recoverBeforeLoad(appPath,userDataPath){
- const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto');
+function recoverBeforeLoad(appPath,userDataPath,{requireSignature=false}={}){
  const marker=path.join(userDataPath,'update-pending.json');
  if(!fs.existsSync(marker)){
    const statusPath=path.join(userDataPath,'update-status.json');
@@ -57,18 +55,9 @@ function recoverBeforeLoad(appPath,userDataPath){
    }
    return null;
  }
- const pointer=JSON.parse(fs.readFileSync(marker)),root=path.dirname(path.resolve(pointer.planPath||'')),updates=path.join(path.resolve(userDataPath),'updates');
- if(!root.startsWith(updates+path.sep)||path.basename(pointer.planPath)!=='update-plan.json')throw Error('Plano de recuperação fora do perfil.');
- const runtime=path.join(root,'runtime');
- for(const name of ['manual-updater.cjs','update-recovery.cjs','verified-backup.cjs']){
- const file=path.join(runtime,name);let p=file;for(;;){if(fs.existsSync(p)&&fs.lstatSync(p).isSymbolicLink())throw Error('Ligação no runtime de recuperação.');const up=path.dirname(p);if(up===p)break;p=up;}
- if(!pointer.runtimeHashes||crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex')!==pointer.runtimeHashes[name])throw Error('Runtime de recuperação inválido.');}
- const recovery=require(path.join(runtime,'update-recovery.cjs')),updater=require(path.join(runtime,'manual-updater.cjs'));
- try{return recovery.recover(pointer,appPath,userDataPath,updater.validatePackageObject);}
- catch(error){
-   if(process.platform!=='win32'||!['EACCES','EPERM'].includes(error.code)||!updater.recoverElevatedSync)throw error;
-   updater.recoverElevatedSync({planPath:pointer.planPath,userDataPath,appPath});
-   return {state:'failed-rolled-back',recoveredInterruption:true,elevated:true};
- }
+ const pointer=JSON.parse(fs.readFileSync(marker));
+ const {validatePackageObject}=require('./manual-updater.cjs');
+ return recover(pointer,appPath,userDataPath,(pkg,context) =>
+   validatePackageObject(pkg,{...context,requireSignature}));
 }
 module.exports={hash,planHash,safe,atomic,alive,validatePending,status,restoreVerified,finish,recover,recoverBeforeLoad};

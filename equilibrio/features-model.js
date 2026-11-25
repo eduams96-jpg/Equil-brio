@@ -60,13 +60,33 @@
           " caracteres]";
       return c;
     };
+    const sameValue = (x, y) => {
+      if (x === y) return true;
+      if (!x || !y || typeof x !== "object" || typeof y !== "object") return false;
+      if (Array.isArray(x)) {
+        if (!Array.isArray(y) || x.length !== y.length) return false;
+        for (let i = 0; i < x.length; i++) if (!sameValue(x[i], y[i])) return false;
+        return true;
+      }
+      if (Array.isArray(y)) return false;
+      const kx = Object.keys(x), ky = Object.keys(y);
+      let countX = 0, countY = 0;
+      for (let i = 0; i < kx.length; i++) {
+        const k = kx[i];
+        if (x[k] === undefined) continue;
+        countX++;
+        if (!sameValue(x[k], y[k])) return false;
+      }
+      for (let i = 0; i < ky.length; i++) if (y[ky[i]] !== undefined) countY++;
+      return countX === countY;
+    };
     for (const list of lists) {
       const old = new Map((before[list] || []).map((x) => [String(x.id), x])),
         next = new Map((after[list] || []).map((x) => [String(x.id), x]));
       for (const id of new Set([...old.keys(), ...next.keys()])) {
         const a = old.get(id),
           b = next.get(id);
-        if (JSON.stringify(a) === JSON.stringify(b)) continue;
+        if (sameValue(a, b)) continue;
         changes.push({
           list,
           recordId: id,
@@ -89,7 +109,7 @@
           !(
             list === "transactions" &&
             after.transactions.some((t) =>
-              t.transferPair?.some((p) => String(p.id) === id),
+              (t.transferPair || t.transferEvidence)?.some((p) => String(p.id) === id),
             )
           )
         ) {
@@ -102,7 +122,7 @@
         }
       }
     }
-    if (JSON.stringify(before.practical) !== JSON.stringify(after.practical)) {
+    if (!sameValue(before.practical, after.practical)) {
       const summary = d => ({ equipment:d.practical?.equipment.length||0, interventions:d.practical?.interventions.length||0, events:d.practical?.events.length||0, captures:d.practical?.captures.map(c=>({id:c.id,status:c.status,transactionId:c.transactionId}))||[], rules:d.practical?.rules.map(r=>({id:r.id,match:r.match,category:r.category,active:r.active}))||[], autonomy:!!d.practical?.autonomy });
       changes.push({list:"practical",recordId:"practical",before:summary(before),after:summary(after),kind:"updated",name:"Planeamento, Casa e dados práticos"});
     }
@@ -119,26 +139,29 @@
     after.activity = after.activity.slice(-150);
   }
   function restoreDeleted(d, id) {
-    const entry = d.trash.find((x) => String(x.id) === String(id));
+    const draft = clone(d);
+    const entry = draft.trash.find((x) => String(x.id) === String(id));
     if (!entry) throw Error("Registo não encontrado.");
-    if (d[entry.list].some((x) => String(x.id) === String(entry.record.id)))
+    if (draft[entry.list].some((x) => String(x.id) === String(entry.record.id)))
       throw Error("O registo já existe.");
     if (entry.list === "transactions") {
-      const draft=clone(d),capture=entry.record.captureId?draft.practical?.captures.find(c=>c.id===entry.record.captureId):null;
+      const capture=entry.record.captureId?draft.practical?.captures.find(c=>c.id===entry.record.captureId):null;
       if(capture?.status==='linked')throw Error("Esta captura já foi associada a outro movimento. Revê a associação antes de restaurar.");
       const restored=F.add(draft,clone(entry.record));F.applyLinkedPayment(draft,restored);
       if(capture){capture.status='linked';capture.transactionId=restored.id;}
-      F.normalize(draft);Object.assign(d,draft);
     }
     else {
       if (
         entry.list === "accounts" &&
-        d.accounts.some((a) => a.name === entry.record.name)
+        draft.accounts.some((a) => a.name === entry.record.name)
       )
         throw Error("Já existe uma conta com este nome.");
-      d[entry.list].push(clone(entry.record));
+      draft[entry.list].push(clone(entry.record));
     }
-    d.trash = d.trash.filter((x) => x.id !== entry.id);
+    draft.trash = draft.trash.filter((x) => String(x.id) !== String(entry.id));
+    F.normalize(draft);
+    F.refreshBalances(draft);
+    Object.assign(d, draft);
   }
   function bulk(d, ids, changes) {
     const draft = clone(d);
@@ -159,7 +182,7 @@
     for (const t of selected) {
       if (d.closedMonths.includes(t.date.slice(0, 7)))
         throw Error("A seleção inclui um mês fechado.");
-      if (t.type === "transfer" || t.type === "adjustment" || t.debtId)
+      if (t.type === "transfer" || t.type === "adjustment" || t.debtId || t.reconciled || t.refundOf || t.pendingId || t.installmentPaymentId || t.receiptItems)
         throw Error("Seleciona apenas receitas e despesas simples.");
       if (hasCategoryChanges && t.splits)
         throw Error(
@@ -189,10 +212,45 @@
     }
   }
   function transferCandidates(items) {
-    const incomeIndex=new Map(),matches=[],inbound=new Map();
-    for(const t of items)if(t.type==='income'&&!t.refundOf){const token=F.cents(t.amount)+'|'+Date.parse(t.date);if(!incomeIndex.has(token))incomeIndex.set(token,[]);incomeIndex.get(token).push(t);}
-    for(const out of items)if(out.type==='expense'&&!out.debtId&&!out.splits){const nearby=[],date=Date.parse(out.date),amount=F.cents(out.amount);for(let offset=-3;offset<=3;offset++)for(const incoming of incomeIndex.get(amount+'|'+(date+offset*86400000))||[])if(incoming.account!==out.account){nearby.push(incoming);inbound.set(incoming,(inbound.get(incoming)||0)+1);}matches.push({out,nearby});}
-    return matches.filter(m=>m.nearby.length===1&&inbound.get(m.nearby[0])===1).map(m=>({out:m.out,in:m.nearby[0]}));
+    const credits=new Map(),debits=new Map(),outgoing=[];
+    const key=(amount,date)=>amount+"|"+date;
+    for(const t of items){
+      const credit=t.type==="income"&&!t.refundOf;
+      const debit=t.type==="expense"&&!t.debtId&&!t.splits;
+      if(!credit&&!debit)continue;
+      const date=Date.parse(t.date);
+      if(!Number.isFinite(date))continue;
+      const candidate={t,date,amount:F.cents(t.amount)};
+      const index=credit?credits:debits;
+      const id=key(candidate.amount,date);
+      if(!index.has(id))index.set(id,{total:0,accounts:new Map()});
+      const bucket=index.get(id);
+      const account=bucket.accounts.get(t.account);
+      bucket.total++;
+      if(account)account.count++;
+      else bucket.accounts.set(t.account,{count:1,candidate});
+      if(debit)outgoing.push(candidate);
+    }
+    function unique(index,from){
+      let found;
+      for(let offset=-3;offset<=3;offset++){
+        const bucket=index.get(key(from.amount,from.date+offset*86400000));
+        if(!bucket)continue;
+        const different=bucket.total-(bucket.accounts.get(from.t.account)?.count||0);
+        if(!different)continue;
+        if(found||different>1)return undefined;
+        for(const [account,row] of bucket.accounts){
+          if(account!==from.t.account){found=row.candidate;break;}
+        }
+      }
+      return found;
+    }
+    const pairs=[];
+    for(const out of outgoing){
+      const matched=unique(credits,out);
+      if(matched&&unique(debits,matched)===out)pairs.push({out:out.t,in:matched.t});
+    }
+    return pairs;
   }
   function pairTransfer(d, outId, inId) {
     const out=d.transactions.find(t=>String(t.id)===String(outId)),incoming=d.transactions.find(t=>String(t.id)===String(inId));
@@ -201,7 +259,17 @@
     if([out,incoming].some(t=>t.reconciled||d.closedMonths.includes(t.date.slice(0,7))))throw Error('Reabre os meses e retira a conferência antes de alterar o par.');
     if(Math.abs(Date.parse(out.date)-Date.parse(incoming.date))>3*86400000||out.bankReference&&incoming.bankReference&&out.bankReference!==incoming.bankReference)throw Error('As datas ou referências bancárias não correspondem.');
     const ids=new Set([String(out.id),String(incoming.id)]);
-    const references=[...d.transactions.flatMap(t=>[t.refundOf,t.transferFeeOf]),...['sharedExpenses','installmentPlans','investmentTrades'].flatMap(k=>(d[k]||[]).map(t=>t.transactionId)),...(d.casa?.purchases||[]).map(t=>t.transactionId),...(d.casa?.returns||[]).map(t=>t.transactionId),...(d.statements||[]).flatMap(s=>(s.rows||[]).map(t=>t.transactionId))];
+    const collectPracticalTxIds = (val, out = []) => {
+      if (!val || typeof val !== 'object') return out;
+      if (Array.isArray(val)) { for (const x of val) collectPracticalTxIds(x, out); return out; }
+      if (val.transactionId != null) out.push(val.transactionId);
+      if (val.linkedTransaction != null) out.push(val.linkedTransaction);
+      if (val.linkedMovement != null) out.push(val.linkedMovement);
+      for (const v of Object.values(val)) if (v && typeof v === 'object') collectPracticalTxIds(v, out);
+      return out;
+    };
+    const practicalRefs = ['interventions','captures','vehicles','housing'].flatMap(k => collectPracticalTxIds(d.practical?.[k]));
+    const references=[...d.transactions.flatMap(t=>[t.refundOf,t.transferFeeOf]),...['sharedExpenses','installmentPlans','investmentTrades'].flatMap(k=>(d[k]||[]).map(t=>t.transactionId)),...(d.casa?.purchases||[]).map(t=>t.transactionId),...(d.casa?.returns||[]).map(t=>t.transactionId),...(d.statements||[]).flatMap(s=>(s.rows||[]).map(t=>t.transactionId)),...practicalRefs];
     if([out,incoming].some(t=>t.refundOf||t.debtId||t.splits?.length||t.pendingId||t.recurringRuleId||t.subscriptionId)||incoming.attachment||references.some(id=>id!=null&&ids.has(String(id))))throw Error('Um movimento tem pagamentos, comprovativos ou outros registos associados. Revê-o individualmente.');
     const original=[clone(out),clone(incoming)];
     out.type='transfer';out.targetAccount=incoming.account;out.targetDate=incoming.date;out.transferStatus='confirmed';delete out.observedSide;
@@ -218,11 +286,11 @@
     const targets = d.transactions.filter(
       (t) =>
         t.importBatchId === batch.id ||
-        t.transferPair?.some((p) => p.importBatchId === batch.id),
+        (t.transferPair || t.transferEvidence)?.some((p) => p.importBatchId === batch.id),
     );
     if (
       targets.some((t) =>
-        t.transferPair?.some((p) => p.importBatchId !== batch.id),
+        (t.transferPair || t.transferEvidence)?.some((p) => p.importBatchId !== batch.id),
       )
     )
       throw Error(
@@ -283,20 +351,21 @@
     const versions = [...(b.versions || [])].sort((a, b) =>
       a.month.localeCompare(b.month),
     );
-    const conf = (m) =>
-      versions.filter((v) => v.month <= m).at(-1) || {
-        limit: b.limit,
-        carry: false,
-      };
+    const initial = {limit:b.limit,carry:false};
+    const config = versions.findLast(v=>v.month<=month)||initial;
+    // A month without rollover cannot use any prior surplus.
+    if (!config.carry) return {limit:config.limit,carry:0,available:F.money(config.limit),rollover:false};
     let carry = 0;
+    let cursor = 0;
+    let previous = initial;
     const start = b.carryStart || versions[0]?.month || month;
     for (let m = start, n = 0; m < month && n < 1200; m = monthAdd(m, 1), n++) {
-      const config = conf(m);
-      carry = config.carry
+      while(versions[cursor]?.month<=m) previous=versions[cursor++];
+      carry = previous.carry
         ? Math.max(
             0,
             F.money(
-              config.limit +
+              previous.limit +
                 carry -
                 sum(
                   F.expenseEntries(d, m).filter(
@@ -308,32 +377,31 @@
           )
         : 0;
     }
-    const config = conf(month);
-    return {
-      limit: config.limit,
-      carry: config.carry ? carry : 0,
-      available: F.money(config.limit + (config.carry ? carry : 0)),
-      rollover: !!config.carry,
-    };
+    return {limit:config.limit,carry,available:F.money(config.limit+carry),rollover:true};
   }
   function saveBudget(d, id, month, values) {
+    if (!F.validDate(month + "-01")) throw Error("Mês inválido.");
     if (d.closedMonths.includes(month))
       throw Error("Reabre o mês antes de alterar o orçamento.");
+    const category = String(values?.category || "").trim();
+    if (!category || category.length > 120) throw Error("Categoria de orçamento inválida.");
+    const limit = F.money(Number(values?.limit));
+    if (!Number.isFinite(Number(values?.limit)) || limit < 0) throw Error("Limite de orçamento inválido.");
     let b = d.budgets.find((x) => String(x.id) === String(id));
     if (!b) {
       if (
         d.budgets.some(
-          (x) => x.category.toLowerCase() === values.category.toLowerCase(),
+          (x) => x.category.toLowerCase() === category.toLowerCase(),
         )
       )
         throw Error("Já existe um orçamento para esta categoria.");
-      b = { id: F.id(), category: values.category, limit: 0, versions: [] };
+      b = { id: F.id(), category, limit: 0, versions: [] };
       d.budgets.push(b);
     }
     b.versions ??= [];
     b.versions = b.versions.filter((v) => v.month !== month);
-    b.versions.push({ month, limit: values.limit, carry: !!values.carry });
-    b.carryStart ??= month;
+    b.versions.push({ month, limit, carry: !!values.carry });
+    if (!b.carryStart || month < b.carryStart) b.carryStart = month;
   }
   function forecast(d, days = 90, start = F.today()) {
     const end = dayAdd(start, days),
@@ -366,8 +434,10 @@
         const date = F.dateAt(m, debt.dueDay || 1);
         if (
           date > end ||
+          (debt.startDate && date < debt.startDate) ||
+          (debt.endDate && date > debt.endDate) ||
           d.transactions.some(
-            (t) => t.debtId === debt.id && t.date.startsWith(m),
+            (t) => String(t.debtId) === String(debt.id) && t.date.startsWith(m),
           )
         )
           continue;
@@ -386,7 +456,7 @@
       }
     }
     const eventsByDate=new Map();for(const event of events){if(!eventsByDate.has(event.date))eventsByDate.set(event.date,[]);eventsByDate.get(event.date).push(event);}
-    let balance = sum(d.accounts, (a) => a.balance);
+    let balance = sum(d.accounts, (a) => F.balanceAt(d, a, start));
     const rows = [];
     for (let date = start; date <= end; date = dayAdd(date, 1)) {
       const due = eventsByDate.get(date)||[];
@@ -405,10 +475,28 @@
       end: balance,
     };
   }
-  function reserves(d) {
-    const assigned =
-        sum(d.goals, (g) => g.current) + sum(d.reserves, (r) => r.saved),
-      cash = sum(d.accounts, (a) => a.balance);
+  function reserves(d, options = {}) {
+    const refDate = options?.refDate || F.today();
+    const excludeEquipmentIds = options?.excludeEquipmentIds || null;
+    const grouped = new Map();
+    let ungrouped = 0;
+    const addPlan = (amount, accountId, group) => {
+      const value = Math.max(0, Number(amount) || 0);
+      const trimmedGroup = String(group || "").trim();
+      if (accountId && trimmedGroup) {
+        const key = String(accountId) + "\0" + trimmedGroup.toLocaleLowerCase("pt-PT");
+        grouped.set(key, Math.max(grouped.get(key) || 0, value));
+      } else {
+        ungrouped = F.money(ungrouped + value);
+      }
+    };
+    for (const g of d.goals) addPlan(g.current, g.protectionAccountId ?? g.accountId ?? "", g.protectionGroup);
+    for (const r of d.reserves) {
+      if (excludeEquipmentIds && r.equipmentId && excludeEquipmentIds.has(String(r.equipmentId))) continue;
+      addPlan(r.saved, r.protectionAccountId || "", r.protectionGroup);
+    }
+    const assigned = F.money(ungrouped + [...grouped.values()].reduce((a, b) => a + b, 0)),
+      cash = sum(d.accounts, (a) => F.balanceAt(d, a, refDate));
     return { assigned, cash, free: F.money(cash - assigned) };
   }
   function monthlySuggestion(g, start = F.today()) {
@@ -417,7 +505,7 @@
     const months = Math.max(
       1,
       Math.ceil(
-        (new Date(g.deadline + "T12:00") - new Date(start + "T12:00")) /
+        (new Date(g.deadline + "T12:00:00Z") - new Date(start + "T12:00:00Z")) /
           (86400000 * 30.4375),
       ),
     );
@@ -691,7 +779,7 @@
     const life = root.LifeFinance || (typeof require === 'function' ? require('./life-model.js') : null);
     const assets = life?.assetTotal(d) || 0;
     const date = F.today(),
-      cash = sum(d.accounts, (a) => a.balance),
+      cash = sum(d.accounts, (a) => F.balanceAt(d, a, date)),
       investments = sum(d.investments, (i) => i.value),
       debts = sum(d.debts, (x) => x.balance);
     d.wealthHistory = d.wealthHistory.filter((x) => x.date !== date);
@@ -712,15 +800,16 @@
     balanceAt(d, accountId, date) {
       if (!F.validDate(date) || date > F.today())
         throw Error("Escolhe uma data válida até hoje.");
-      const a = d.accounts.find((a) => a.id === accountId);
+      const a = d.accounts.find((a) => String(a.id) === String(accountId));
       if (!a) throw Error("Conta inexistente.");
       return F.balanceAt(d, a, date);
     },
     reconcile(d, accountId, date, actual, adjust = false) {
       if (!Number.isFinite(actual)) throw Error("Indica um saldo válido.");
+      const roundedActual = F.money(actual);
       const expected = api.balanceAt(d, accountId, date),
-        a = d.accounts.find((a) => a.id === accountId);
-      const difference = F.money(actual - expected);
+        a = d.accounts.find((a) => String(a.id) === String(accountId));
+      const difference = F.money(roundedActual - expected);
       let adjustmentId = null;
       if (adjust && difference) {
         const t = F.add(d, {
@@ -741,21 +830,22 @@
         accountName: a.name,
         date,
         expected,
-        actual: F.money(actual),
+        actual: roundedActual,
         difference,
         adjusted: !!(adjust && difference),
         adjustmentId,
         recordedAt: new Date().toISOString(),
       };
       d.reconciliations.push(record);
-      if (!difference || adjust) a.reconciledOn = date;
+      if ((!difference || adjust) && (!a.reconciledOn || date >= a.reconciledOn)) a.reconciledOn = date;
       return record;
     },
     spendingRoom(d, margin = 0, days = 30, start = F.today()) {
       if (!Number.isFinite(margin) || margin < 0)
         throw Error("Margem inválida.");
       const plan = forecast(d, days, start),
-        reserved = reserves(d);
+        pendingEquipmentIds = new Set(plan.events.filter((e) => e.equipmentId).map((e) => String(e.equipmentId))),
+        reserved = reserves(d, { refDate: start, excludeEquipmentIds: pendingEquipmentIds });
       const cash = reserved.cash;
       const low = Math.min(cash, plan.min);
       const available = F.money(low - reserved.assigned - margin);

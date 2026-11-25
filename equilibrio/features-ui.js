@@ -437,7 +437,7 @@
     const b = id ? find("budgets", id) : null,
       limit = b ? P.budgetAt(data, b, month) : null;
     form(
-      b ? "Orçamento de " + b.category : "Novo orçamento",
+      b ? "Orçamento de " + esc(b.category) : "Novo orçamento",
       (!b
         ? field("Categoria", "category", "", "text", "required maxlength=80")
         : "<p>" + esc(monthLabel(month)) + "</p>") +
@@ -482,7 +482,7 @@
           g?.deadline || P.dayAdd(F.today(), 365),
           "date",
           "required",
-        ),
+        ) + '<output id="planContributionPreview" class="plan-contribution-preview" aria-live="polite"></output>',
       (f) =>
         commit(() => {
           const next = {
@@ -502,6 +502,7 @@
         }, "Objetivo guardado."),
       "As reservas identificam dinheiro que continua nas contas. Consulta o total reservado para evitar sobreposições.",
     );
+    bindPlanContributionPreview("goal");
   }
   function recurring(id) {
     if (!requireAccounts()) return;
@@ -1043,18 +1044,7 @@
           '<span class="tag">Arquivada</span>',
         );
     });
-    $("#backupReminder").hidden =
-      !!(window.DailyUI?.lastExport(key) || data.lastBackup) &&
-      Date.now() -
-        new Date(window.DailyUI?.lastExport(key) || data.lastBackup).getTime() <
-        7 * 86400000;
-    $("#backupReminder").innerHTML =
-      "<div><b>Protege os teus registos</b><span>" +
-      (!(window.DailyUI?.lastExport(key) || data.lastBackup)
-        ? "Ainda não exportaste uma cópia."
-        : "Já passaram mais de sete dias desde a última cópia.") +
-      "</span></div>" +
-      button("Exportar cópia", "backup-now");
+    renderBackupReminder();
     $("#recurringList").innerHTML =
       (data.recurring
         .map(
@@ -1278,7 +1268,26 @@
   }
   // Explicit render hook; the application owns the only save path and ledger.
   const renderAll = () => window.renderEquilibrio();
+  function lastBackupAge() {
+    const latest = BackupInfo.latestTimestamp(
+      window.DailyUI?.lastExport?.(key), data.lastBackup,
+      window.FinancasDesktopIO?.latestBackupAt?.(), window.FileProtection?.lastForSpace?.(),
+    );
+    return latest === null ? Infinity : Date.now() - latest;
+  }
+  function renderBackupReminder() {
+    const reminder = $("#backupReminder");
+    if (!reminder) return;
+    const age = lastBackupAge();
+    reminder.hidden = age < 7 * 86400000;
+    reminder.innerHTML = "<div><b>Protege os teus registos</b><span>" +
+      (age === Infinity ? "Ainda não há uma cópia de segurança registada." :
+        "Já passaram pelo menos sete dias desde a última cópia.") +
+      "</span></div>";
+  }
   window.FeatureUI = {
+    lastBackupAge,
+    renderBackupReminder,
     renderRecovery,
     refreshSelection: renderBulk,
     render,
@@ -1327,7 +1336,6 @@
       icon: "transactions",
       pages: [
         ["casaHome", "Resumo"],
-        ["casaPurchases", "Compras"],
         ["casaShopping", "Lista de compras"],
         ["casaProducts", "Produtos"],
         ["casaStock", "Despensa / Stock"],
@@ -1463,7 +1471,7 @@
         </div>
       </div>
     </div>
-    <div class="data-hub-tabs" role="tablist" aria-label="Organizar dados"><button type="button" id="dataInboxTab" role="tab" aria-controls="inboxHub" data-data-section="inbox">Caixa de entrada <span id="dataInboxBadge">0</span></button><button type="button" id="dataQualityTab" role="tab" aria-controls="qualityHub" data-data-section="quality">Qualidade <span id="dataQualityBadge">0</span></button></div>
+    <div class="data-hub-tabs" role="tablist" aria-label="Organizar dados"><button type="button" id="dataInboxTab" role="tab" aria-controls="inboxHub" data-data-section="inbox">A tratar <span id="dataInboxBadge">0</span></button><button type="button" id="dataQualityTab" role="tab" aria-controls="qualityHub" data-data-section="quality">Qualidade <span id="dataQualityBadge">0</span></button></div>
     <div class="data-hub-body">
       <section id="inboxHub" class="data-hub-pane" data-data-pane="inbox" role="tabpanel" aria-labelledby="dataInboxTab"></section>
       <section id="qualityHub" class="data-hub-pane" data-data-pane="quality" role="tabpanel" aria-labelledby="dataQualityTab"></section>
@@ -1543,7 +1551,12 @@
   document.body.insertBefore(topbar, document.getElementById("mainContent"));
   const topFinanceSlot = topbar.querySelector("#topFinanceSlot");
   const undoButton = document.getElementById("undo");
-  if (undoButton) topFinanceSlot.append(undoButton);
+  if (undoButton) {
+    undoButton.textContent = "↶";
+    undoButton.setAttribute("aria-label", "Desfazer última alteração");
+    undoButton.title = "Desfazer última alteração";
+    topFinanceSlot.append(undoButton);
+  }
   topbar.querySelector(".top-brand").onclick = (event) => { event.preventDefault(); navigate("dashboard"); };
   topbar.querySelector(".top-settings-button").onclick = () => navigate("settings");
   const nav = topbar.querySelector(".top-primary-nav");
@@ -1583,19 +1596,13 @@
     maintenance.id = "maintenanceDataPanel";
     maintenance.innerHTML = `
       <div class="settings-maintenance-heading">
-        <div><h2>Manutenção e dados</h2><p>Atualizações, exportações e recuperação. Ferramentas usadas apenas pontualmente.</p></div>
-        <span class="settings-maintenance-badge">Sistema</span>
+        <div><h2>Atualização</h2><p>Instala uma nova versão do Equilíbrio.</p></div>
       </div>
-      <div id="maintenancePrimaryActions" class="settings-maintenance-actions"></div>
-      <details class="settings-maintenance-more">
-        <summary>Outras ferramentas</summary>
-        <div id="maintenanceSecondaryActions" class="settings-maintenance-actions secondary-actions"></div>
-      </details>`;
+      <div id="maintenancePrimaryActions" class="settings-maintenance-actions"></div>`;
     const dataPanel = Array.from(settingsGrid.children).find((el) => el.querySelector?.("#backupSettings"));
     if (dataPanel?.nextSibling) settingsGrid.insertBefore(maintenance, dataPanel.nextSibling);
     else settingsGrid.append(maintenance);
     const primaryActions = maintenance.querySelector("#maintenancePrimaryActions");
-    const secondaryActions = maintenance.querySelector("#maintenanceSecondaryActions");
     [
       ["desktopUpdateButton", "Atualizar aplicação", "Instalar uma atualização .fpupdate"],
       ["exportData", "Exportar dados", "Guardar uma cópia completa dos teus dados"],
@@ -1607,12 +1614,6 @@
       button.innerHTML = "<span>" + title + "</span><small>" + help + "</small>";
       primaryActions.append(button);
     });
-    const csv = document.getElementById("importCsv");
-    if (csv) {
-      csv.className = "settings-command secondary maintenance-command";
-      csv.innerHTML = "<span>Importar extrato CSV</span><small>Importação manual técnica de movimentos</small>";
-      secondaryActions.append(csv);
-    }
     const resetShortcut = document.getElementById("resetData");
     if (resetShortcut) resetShortcut.remove();
   }
@@ -1767,16 +1768,11 @@
         detail: "Compara o saldo atual com o teu banco.",
         route: "accounts",
       });
-    if (
-      !(window.DailyUI?.lastExport(key) || data.lastBackup) ||
-      Date.now() -
-        new Date(window.DailyUI?.lastExport(key) || data.lastBackup).getTime() >
-        7 * 86400000
-    )
+    if (window.FeatureUI.lastBackupAge() >= 7 * 86400000)
       items.push({
         title: "Guardar uma cópia dos dados",
         detail:
-          "A recuperação local não protege contra a limpeza do navegador.",
+          "Mantém uma cópia num local que possas usar para recuperar os dados.",
         backup: true,
       });
     return items;
@@ -1811,7 +1807,7 @@
     const accountBalances = (data.accounts || []).map((a) => `<div class="decision-account"><span>${esc(a.name)}</span><strong>${eur(a.balance || 0)}</strong></div>`).join("") || '<p class="muted">Ainda não existem contas.</p>';
     summary.innerHTML = `<div class="decision-copy"><p class="eyebrow">OS PRÓXIMOS 30 DIAS</p><h2>Quanto posso gastar?</h2><strong class="spending-number">${eur(Math.max(0, room.available))}</strong><p>${room.available < 0 ? "Faltam " + eur(-room.available) + " para cobrir a margem e os valores reservados." : "Estimativa após compromissos conhecidos e dinheiro reservado."}</p><div class="decision-actions"><button type="button" class="primary" id="simulateDecision">Simular uma decisão</button><button type="button" class="secondary" id="adjustMargin">Definir margem</button></div><details class="decision-explanation"><summary>Como é calculado este valor?</summary><div class="calculation"><dl><div><dt>Saldo atual</dt><dd>${eur(room.cash)}</dd></div><div><dt>Queda máxima prevista</dt><dd>− ${eur(room.commitments)}</dd></div><div><dt>Objetivos e reservas</dt><dd>− ${eur(room.reserved)}</dd></div><div><dt>Margem de segurança</dt><dd>− ${eur(room.margin)}</dd></div></dl><button type="button" class="link-button" id="explainForecast">Consultar compromissos →</button></div></details></div><aside class="decision-accounts"><div class="decision-accounts-head"><span>Saldo por conta</span><b>${eur(room.cash)}</b></div>${accountBalances}</aside>`;
     let upcoming = document.getElementById("dashboardUpcoming"); if (!upcoming) { upcoming = document.createElement("section"); upcoming.id="dashboardUpcoming"; upcoming.className="panel dashboard-upcoming"; summary.after(upcoming); }
-    const forecast = P.forecast(data, 30).events || P.forecast(data, 30) || [];
+    const forecast = room.plan.events;
     const next = Array.isArray(forecast) ? forecast.filter((x)=>["income","expense"].includes(x.type)).sort((a,b)=>String(a.date).localeCompare(String(b.date))).slice(0,6) : [];
     upcoming.innerHTML = `<div class="panel-heading"><div><h2>Próximos movimentos</h2><p>Pagamentos e receitas previstos nos próximos 30 dias</p></div><button type="button" class="link-button" id="openAgenda">Ver agenda →</button></div><div class="upcoming-list">${next.length ? next.map((x)=>`<div class="upcoming-row"><div><b>${esc(x.description || "Movimento previsto")}</b><span>${dateLabel(x.date)} · ${esc(x.source || "Agenda")}</span></div><strong class="amount ${x.type}">${x.type === "expense" ? "−" : "+"}${eur(x.amount)}</strong></div>`).join("") : '<p class="quiet-state">Sem movimentos previstos nos próximos 30 dias.</p>'}</div>`;
     $("#openAgenda").onclick = () => navigate("cashflow");
@@ -2100,6 +2096,7 @@
       throw Error("O ficheiro escrito não corresponde aos dados.");
     prefs.lastBySpace[space.id] = new Date().toISOString();
     savePrefs();
+    window.FeatureUI?.renderBackupReminder();
     await prune(folder, prefix);
     status = `${manual ? "Cópia manual" : "Cópia automática"} verificada · ${name}.`;
     show();
@@ -2210,7 +2207,7 @@
       $("#verifyBackupInput").value = "";
     }
   };
-  window.FileProtection = { saved };
+  window.FileProtection = { saved, lastForSpace };
   show();
   if (!nativeBackups && window.showDirectoryPicker) {
     const revision = folderRevision;
@@ -2227,9 +2224,9 @@
   historyPanel.className = "panel reconciliation-history-panel";
   historyPanel.id = "reconciliationHistory";
   $("#accounts").append(historyPanel);
-  const prior = window.PremiumUI.render;
-  window.PremiumUI.render = () => {
-    prior();
+  let historyDirty = true;
+  function renderReconciliationHistory() {
+    historyDirty = false;
     const list = (data.reconciliations || []).slice().reverse();
     const matchCount = list.filter((r) => !r.difference).length;
     const diffCount = list.length - matchCount;
@@ -2275,6 +2272,17 @@
             .join("") +
           '</tbody></table></div>'
         : '<div class="reconciliation-empty"><p class="muted">Ainda não existem conferências de extrato registadas neste espaço financeiro.</p></div>');
+  }
+  const prior = window.PremiumUI.render;
+  window.PremiumUI.render = () => {
+    prior();
+    if (view === "accounts") renderReconciliationHistory();
+    else historyDirty = true;
+  };
+  const priorNav = window.PremiumUI.navigation;
+  window.PremiumUI.navigation = (target) => {
+    priorNav?.(target);
+    if (!window.UILifecycle?.inRender?.() && target === "accounts" && historyDirty) renderReconciliationHistory();
   };
   if (!window.equilibrioStartup?.awaitingChoice) window.PremiumUI.render();
 })();

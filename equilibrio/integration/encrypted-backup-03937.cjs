@@ -1,7 +1,10 @@
 const assert = require('node:assert/strict');
 const { chromium, browserLaunchOptions } = require('./_browser.cjs');
+const {createServer}=require('../serve.cjs');
 
 (async () => {
+  const server=createServer();
+  await new Promise(r=>server.listen(0,'127.0.0.1',r));
   const browser = await chromium.launch(browserLaunchOptions());
   try {
     const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
@@ -29,10 +32,13 @@ const { chromium, browserLaunchOptions } = require('./_browser.cjs');
         migrateJson: async (content) => ({ content, changed: false }),
       }, { get: (target, key) => key in target ? target[key] : () => null });
     });
-    await page.goto(process.env.EQUILIBRIO_TEST_URL || 'http://127.0.0.1:4173');
-    await page.waitForFunction(() => document.querySelector('#welcomeDialog')?.open);
-    await page.locator('#welcomeClose').click();
+    await page.goto('http://127.0.0.1:'+server.address().port);
+    await page.locator('#welcomeContinue').waitFor({state:'visible'});
+    await page.locator('[name=welcomeSpace]').first().check();
+    await page.locator('#welcomeContinue').click();
+    await page.waitForFunction(()=>!window.equilibrioStartup.awaitingChoice);
     await page.evaluate(() => navigate('settings'));
+    await page.locator('[data-u-settings=backup]').click();
     assert.equal(await page.locator('#saveEncryptedBackup').isVisible(), true);
     assert.match(await page.locator('#fileProtection').innerText(), /automáticas.*sem encriptação/i);
     await page.locator('#saveEncryptedBackup').click();
@@ -52,5 +58,5 @@ const { chromium, browserLaunchOptions } = require('./_browser.cjs');
     assert.equal(await page.locator('#modal').evaluate((element) => element.open), true);
     assert.deepEqual(errors, []);
     console.log('Desktop: opção encriptada, indicação das cópias automáticas, frase-passe descartada e restauro pré-visualizado.');
-  } finally { await browser.close(); }
+  } finally { await browser.close(); await new Promise(r=>server.close(r)); }
 })().catch((error) => { console.error(error); process.exitCode = 1; });

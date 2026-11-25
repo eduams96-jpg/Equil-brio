@@ -6,8 +6,8 @@
   const b = (label, action, id = "") => button(label, action, id, "secondary");
   const simple = (title, fields, fn, help = "") =>
     form(title, fields, (f) => commit(() => fn(f)), help);
-  const panel = (title, content) =>
-    '<article class="panel planning-panel"><h3>' +
+  const panel = (title, content, decisionGroup) =>
+    '<article class="panel planning-panel"' + (decisionGroup ? ' data-decision-group="'+decisionGroup+'"' : '') + '><h3>' +
     title +
     "</h3>" +
     content +
@@ -22,7 +22,7 @@
     PremiumUI.addPage(area, id, title);
     return el;
   }
-  const inbox = page("inboxHub", "Resumo", "Caixa de entrada"),
+  const inbox = page("inboxHub", "Resumo", "A tratar"),
     decisions = page("decisionsHub", "Planeamento", "Decisões"),
     review = page("reviewMonthHub", "Análises", "Revisão mensal");
   const decisionSimulator = $("#planningPlus .decision-simulator-v25");
@@ -52,10 +52,10 @@
     b("Exportar todos os espaços", "plan-export") +
     b("Restaurar cópia de outro PC", "plan-import");
   let items = [];
+  let planningDetailsDirty = true;
+  const planningDetailsVisible = () => ["planner", "plansHub", "planningPlus", "reviewMonthHub", "weeklyHub", "inboxHub", "dataHub", "insights", "goals"].includes(view);
   function render() {
-    const pay = Q.payday(data),
-      rows = Q.comparison(data, month),
-      subscriptionReviews = Q.subscriptionReview(data);
+    const pay = Q.payday(data);
     salary.innerHTML =
       '<div class="planning-heading"><h2>Até ao próximo salário</h2>' +
       (pay?.salaryRuleId ? b("Editar ordenado", "recurring", pay.salaryRuleId) : b("Definir data", "plan-payday")) +
@@ -82,9 +82,17 @@
               ? "A data de salário já passou. Define a próxima entrada."
               : "Escolhe a próxima data de entrada para distribuir a margem disponível por semanas.",
           ));
+    if (!planningDetailsVisible()) {
+      planningDetailsDirty = true;
+      window.DataHub?.refresh?.();
+      return;
+    }
+    planningDetailsDirty = false;
+    const rows = Q.comparison(data, month),
+      subscriptionReviews = Q.subscriptionReview(data);
     items = Q.reviewInbox(data, month).active;
     inbox.innerHTML =
-      '<div class="data-section-heading"><div><p class="eyebrow">Revisão</p><h2>Caixa de entrada</h2><p>Pendências do espaço aberto. Resolve importações, duplicados e registos incompletos num só fluxo.</p></div><span class="data-section-status">' + items.length + ' pendente' + (items.length === 1 ? '' : 's') + '</span></div><p>' +
+      '<div class="data-section-heading"><div><p class="eyebrow">Revisão</p><h2>A tratar</h2><p>Pendências do espaço aberto. Resolve importações, duplicados e registos incompletos num só fluxo.</p></div><span class="data-section-status">' + items.length + ' pendente' + (items.length === 1 ? '' : 's') + '</span></div><p>' +
       items.length +
       " pontos para rever.</p>" +
       (items
@@ -160,7 +168,7 @@
       .find((item) => String(item.date || "") >= F.today()) || seasonalRows[0];
     const seasonalHtml = seasonalRows.length
       ? seasonalRows.map((s) =>
-          '<div class="planning-line"><div><b>' + esc(s.name) + '</b><p>' + dateLabel(s.date) + ' · ' + eur(s.remaining) + ' por preparar · ' + eur(s.monthly) + '/mês' + (s.overdue ? ' · Data ultrapassada' : '') + '</p></div>' + b("Editar", "plan-seasonal", s.id) + b("Remover", "plan-seasonal-remove", s.id) + '</div>'
+          '<div class="planning-line"><div><b>' + esc(s.name) + '</b><p>' + dateLabel(s.date) + ' · ' + eur(s.remaining) + ' por preparar · ' + eur(s.monthly) + '/mês' + (s.overdue ? ' · Data ultrapassada' : '') + '</p></div>' + b("Consolidar em reserva", "plan-seasonal-consolidate", s.id) + b("Editar", "plan-seasonal", s.id) + b("Remover", "plan-seasonal-remove", s.id) + '</div>'
         ).join("")
       : '<p class="decision-empty">Ainda não tens despesas sazonais preparadas.</p>';
     const scenariosHtml = data.scenarios.length
@@ -186,6 +194,7 @@
         panel(
           "Despesas sazonais",
           '<div class="decision-panel-intro"><p>Antecipações que vale a pena preparar com tempo.</p>' + b("Preparar despesa", "plan-seasonal") + '</div>' + seasonalHtml,
+          "seasonal",
         ) +
         panel(
           "Planeado vs. realizado",
@@ -194,14 +203,17 @@
               '<tr><th><button type="button" class="link-button" data-action="plan-category" data-id="' + i + '">' + esc(r.category) + '</button></th><td>' + (r.planned === null ? 'Sem plano' : eur(r.planned)) + '</td><td>' + eur(r.actual) + '</td><td>' + (r.difference === null ? '—' : eur(r.difference)) + '</td></tr>'
             ).join("") +
           '</tbody></table></div></details>',
+          "comparison",
         ) +
         panel(
           "Cenários guardados",
           '<div class="decision-panel-intro"><p>Comparações que podes voltar a abrir sem alterar movimentos.</p>' + b("Novo cenário", "plan-scenario") + '</div>' + scenariosHtml,
+          "scenarios",
         ) +
         panel(
           "Histórico de decisões",
           '<div class="decision-panel-intro"><p>Regista a razão e, mais tarde, confirma o resultado real.</p>' + b("Registar decisão", "plan-note") + '</div>' + notesHtml,
+          "scenarios",
         ) +
       '</div>';
     // The simulator belongs to Decisions. Reattach the same node after each
@@ -217,17 +229,20 @@
       yearAgoTotals = F.totals(data, yearAgoMonth),
       monthExpenses = F.expenseEntries(data, month),
       categoryTotals = [...monthExpenses.reduce((map, e) => map.set(e.category, F.money((map.get(e.category) || 0) + e.amount)), new Map())].sort((a, b) => b[1] - a[1]),
-      change = (now, before) => before ? `${now - before >= 0 ? "+" : ""}${Math.round(((now - before) / Math.abs(before)) * 100)}%` : "sem base",
       annualInsight = L.annualReport(data, month.slice(0, 4)),
       forecast = annualInsight.forecast?.month === month ? annualInsight.forecast : null;
+    const closeReview = currentMonthReview();
+    const closeReason = closeReview.closed ? "" : closeReview.blockers.join(" ");
+    const reviewMonth = month;
+    const conclusion = data.monthlyConclusions.find(row => row.month === reviewMonth);
     review.innerHTML =
       "<h2>Revisão de " +
       esc(monthLabel(month)) +
       "</h2><p>Um fecho útil: primeiro vê o que mudou, depois resolve pendências e só no fim fecha o mês.</p>" +
       '<div class="review-month-kpis">' +
-      `<div><span>Receitas</span><strong>${eur(totals.income)}</strong><small>${change(totals.income, previousTotals.income)} vs. mês anterior · ${change(totals.income, yearAgoTotals.income)} vs. ano anterior</small></div>` +
-      `<div><span>Despesas</span><strong>${eur(totals.expense)}</strong><small>${change(totals.expense, previousTotals.expense)} vs. mês anterior · ${change(totals.expense, yearAgoTotals.expense)} vs. ano anterior</small></div>` +
-      `<div><span>Resultado</span><strong class="${totals.income - totals.expense >= 0 ? "positive" : "negative"}">${eur(totals.income - totals.expense)}</strong><small>${totals.income ? Math.round(((totals.income - totals.expense) / totals.income) * 100) + "% das receitas" : "Sem receitas registadas"}</small></div>` +
+      `<div><span>Receitas</span><strong>${eur(totals.income)}</strong><small>${monthlyComparisonLabel(month, totals.income, previousTotals.income, yearAgoTotals.income)}</small></div>` +
+      `<div><span>Despesas</span><strong>${eur(totals.expense)}</strong><small>${monthlyComparisonLabel(month, totals.expense, previousTotals.expense, yearAgoTotals.expense)}</small></div>` +
+      `<div><span>Balanço do mês</span><strong class="${totals.income - totals.expense >= 0 ? "positive" : "negative"}">${eur(totals.income - totals.expense)}</strong><small>${reviewSavingsLabel(totals.income, totals.expense)}</small></div>` +
       (forecast ? `<div><span>Previsão de fecho</span><strong class="${forecast.balance >= 0 ? "positive" : "negative"}">${eur(forecast.balance)}</strong><small>${eur(forecast.expense)} de despesas projetadas</small></div>` : "") +
       '</div>' +
       panel(
@@ -248,11 +263,22 @@
           "",
       ) +
       panel(
-        "4. Registar conclusões e fechar",
-        '<div id="reviewConclusionSlot"></div><div class="review-finish-actions"><span id="reviewBalanceAction"></span>' +
-          b(data.closedMonths.includes(month) ? "Reabrir mês" : "Concluir revisão", "plan-close") +
-          '</div>',
+        "4. Conclusões e fecho do mês",
+        `<form class="monthly-note monthly-note-compact"><div class="monthly-note-fields"><label>Conclusões<textarea name="summary" required maxlength="2000" rows="2" placeholder="O que aprendeste este mês?">${esc(conclusion?.summary || "")}</textarea></label><label>Próximos passos<textarea name="next" maxlength="2000" rows="2" placeholder="O que vais mudar no próximo mês?">${esc(conclusion?.next || "")}</textarea></label></div><div class="review-finish-actions"><button type="submit" class="primary">Guardar conclusões</button>` +
+          '<button type="button" class="secondary" data-action="plan-close" aria-describedby="comparisonCloseReason"' + (closeReason ? ' disabled' : '') + '>' + (closeReview.closed ? 'Reabrir mês' : 'Fechar mês') + '</button>' +
+          '</div></form><p id="comparisonCloseReason" class="muted review-close-reason"' + (closeReason ? '' : ' hidden') + '>' + esc(closeReason) + '</p>',
       );
+    review.querySelector(".monthly-note").onsubmit = event => {
+      event.preventDefault();
+      const fields = new FormData(event.currentTarget);
+      const summary = fields.get("summary").trim(), next = fields.get("next").trim();
+      if (!summary) return notice("Escreve uma conclusão antes de guardar.", true);
+      commit(() => {
+        const existing = data.monthlyConclusions.find(row => row.month === reviewMonth);
+        if (existing) Object.assign(existing, { summary, next });
+        else data.monthlyConclusions.push({ id: F.id(), month: reviewMonth, summary, next });
+      }, "Conclusões guardadas.");
+    };
   }
   Object.assign(actions, {
     "plan-payday": () =>
@@ -318,7 +344,7 @@
       if (item?.action) actions[item.action](item.id);
       else if (item) navigate(item.route);
     },
-    "plan-close": () => $("#closeMonth").click(),
+    "plan-close": () => promptMonthClose(),
     "plan-goal": (id) => {
       const g = find("goals", id);
       simple(
@@ -386,6 +412,11 @@
         },
       );
     },
+    "plan-seasonal-consolidate": (id) =>
+      commit(
+        () => Q.consolidateLegacyPlan(data, "seasonalCost", id, month),
+        "Despesa sazonal consolidada em Reservas.",
+      ),
     "plan-seasonal-remove": (id) =>
       commit(
         () =>
@@ -472,9 +503,11 @@
         s.repeat === "monthly",
       );
       const protection=Q.decisionImpact(data,{oneOff:s.repeat==='monthly'?0:(s.type==='income'?1:-1)*s.amount,monthlyDelta:s.repeat==='monthly'?(s.type==='income'?1:-1)*s.amount:0,date:s.date});
+      const scenarioPremises='<p class="muted"><strong>Premissas:</strong> '+(s.type==='income'?'Receita':'Despesa')+' '+(s.repeat==='monthly'?'mensal':'única')+' de '+eur(s.amount)+' a partir de '+dateLabel(s.date)+' · Dinheiro reservado '+eur(protection.reserved)+' · Margem de segurança '+eur(protection.margin)+' (90 dias).</p>';
       form(
         s.name,
-        '<div class="planning-table"><table><tr><th></th><th>Plano atual</th><th>Com cenário</th></tr><tr><th>Saldo mínimo projetado</th><td>' +
+        scenarioPremises +
+          '<div class="planning-table"><table><tr><th></th><th>Plano atual</th><th>Com cenário</th></tr><tr><th>Saldo mínimo projetado</th><td>' +
           eur(c.base.min) +
           "</td><td>" +
           eur(c.scenario.min) +
@@ -495,7 +528,7 @@
     "plan-note": (id) => {
       const n = find("decisionNotes", id);
       simple(
-        "Registar decisão",
+        n ? "Editar decisão" : "Registar decisão",
         field(
           "Título",
           "title",
@@ -504,20 +537,11 @@
           "required maxlength=120",
         ) +
           field("Data", "date", n?.date || F.today(), "date", "required") +
-          field(
-            "Motivo / o que espero conseguir",
-            "reason",
-            n?.reason || "",
-            "text",
-            "required maxlength=2000",
-          ) +
-          field(
-            "Resultado observado",
-            "result",
-            n?.result || "",
-            "text",
-            "maxlength=2000",
-          ),
+          '<label>Motivo da decisão<textarea name="reason" required maxlength="2000" rows="3">' +
+          esc(n?.reason || "") + '</textarea></label>' +
+          '<details class="catalog-options"' + (n?.result ? ' open' : '') +
+          '><summary>Resultado observado</summary><label>O que aconteceu?<textarea name="result" maxlength="2000" rows="3">' +
+          esc(n?.result || "") + '</textarea></label></details>',
         (f) => {
           const next = {
             id: n?.id || F.id(),
@@ -534,11 +558,14 @@
     "plan-receipt": (id) =>
       commit(() => {
         const t = find("transactions", id);
+        if (t.type !== "expense") throw Error("Só podes pedir fatura para despesas.");
         if (data.closedMonths.includes(t.date.slice(0, 7)))
           throw Error("Reabre o mês para alterar o pedido de comprovativo.");
         window.rememberMovementContext?.(id);
         t.receiptRequired = !t.receiptRequired;
-      }),
+      }, find("transactions", id)?.receiptRequired
+        ? "Pedido de fatura retirado deste movimento."
+        : "Fatura pedida: o movimento aparece em Dados → A tratar até anexares o comprovativo."),
     "plan-export": () => {
       const content = JSON.stringify(LifeUI.exportSpaces(), null, 2);
       if (new Blob([content]).size > 50 * 1024 * 1024)
@@ -620,15 +647,20 @@
   const previousActions = FeatureUI.transactionActions;
   FeatureUI.transactionActions = (t) =>
     previousActions(t) +
-    b(
-      t.receiptRequired ? "Dispensar" : "Pedir fatura",
+    (t.type === "expense" ? b(
+      t.receiptRequired ? "Dispensar comprovativo" : "Pedir fatura",
       "plan-receipt",
       t.id,
-    );
+    ) : "");
   const prior = PremiumUI.render;
   PremiumUI.render = () => {
     prior();
     render();
+  };
+  const priorNav = PremiumUI.navigation;
+  PremiumUI.navigation = (target) => {
+    priorNav?.(target);
+    if (!window.UILifecycle?.inRender?.() && planningDetailsDirty && planningDetailsVisible()) render();
   };
   window.PlanningUI = { render };
   if (!window.equilibrioStartup?.awaitingChoice) render();

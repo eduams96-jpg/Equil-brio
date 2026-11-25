@@ -456,7 +456,7 @@ run(async()=>{
 
  if(Capacitor.getPlatform()!=='android')throw Error('Este protótipo requer Android com SQLite nativo.');
 
- const saved=await adapter.read();if(!saved.state)await adapter.replace(__RELEASE__?P.local({serverId:'unpaired',epoch:'unpaired',spaceId:'casa',snapshot:{ledger:{...P.Finance.empty(),ledgerCoreVersion:1},revisions:{},cursor:0}},P.id()):P.offlineFixture(),0);
+ const saved=await adapter.read();if(!saved.state)await adapter.replace(__RELEASE__?P.local({serverId:'unpaired',epoch:'unpaired',spaceId:'casa',snapshot:{ledger:P.emptyOfflineLedger(),revisions:{},cursor:0}},P.id()):P.offlineFixture(),0);
 
  savedConnection=await association.restore();if(savedConnection?.kind==='paired')connection=savedConnection;
 

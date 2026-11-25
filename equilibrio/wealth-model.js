@@ -27,11 +27,14 @@
       .slice(-12)
       .map((item) => ({ date: item.date, net: Number(item.net) }));
     const share = (value) => (positive ? (Math.max(0, value) / positive) * 100 : 0);
+    const Rec = root.ReconciliationModel || (typeof require === "function" ? require("./reconciliation-model.js") : null);
     const unchecked = accounts.filter((item) => {
+      const st = Rec?.accountState?.(d, item, today);
+      if (st?.statement) return !st.confirmed;
       const posted = (d.transactions || [])
-        .filter((t) => (t.account === item.name || t.targetAccount === item.name) && t.date <= today)
-        .map((t) => t.date)
-        .filter(F.validDate)
+        .filter((t) => t.account === item.name || t.targetAccount === item.name)
+        .map((t) => (t.targetAccount === item.name ? t.targetDate || t.date : t.date))
+        .filter((date) => F.validDate(date) && date <= today)
         .sort()
         .at(-1);
       return !(F.validDate(item.reconciledOn) && (!posted || posted <= item.reconciledOn));

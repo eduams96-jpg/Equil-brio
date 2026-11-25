@@ -2,6 +2,7 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
+const { randomUUID } = require('node:crypto');
 const { DatabaseSync } = require('node:sqlite');
 
 const CURRENT_DB_SCHEMA_VERSION = 2;
@@ -167,29 +168,46 @@ function writeFailureLog(userDataDir, payload) {
   }
 }
 
-function safelyReplaceDatabase(dbPath, stagedPath, backupPath) {
-  const oldPath = `${dbPath}.pre-migration-swap`;
-  try { if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath); } catch {}
-  try {
-    if (fs.existsSync(dbPath)) fs.renameSync(dbPath, oldPath);
-    fs.renameSync(stagedPath, dbPath);
-    for (const suffix of ['-wal', '-shm']) {
-      try { if (fs.existsSync(`${dbPath}${suffix}`)) fs.unlinkSync(`${dbPath}${suffix}`); } catch {}
-      try { if (fs.existsSync(`${oldPath}${suffix}`)) fs.unlinkSync(`${oldPath}${suffix}`); } catch {}
+function restoreInterruptedSwap(dbPath, oldPath) {
+  if (!fs.existsSync(oldPath)) return;
+  if (fs.statSync(oldPath).size === 0) {
+    throw new Error('A cópia anterior à migração está vazia. Verifica as cópias de segurança.');
+  }
+  if (fs.existsSync(dbPath)) {
+    if (fs.statSync(dbPath).size > 0) return;
+    fs.unlinkSync(dbPath);
+  }
+  fs.renameSync(oldPath, dbPath);
+}
+
+function safelyReplaceDatabase(dbPath, stagedPath, oldPath) {
+  // The previous connection has closed. Never attach an old journal to the staged database.
+  for (const suffix of ['-wal', '-shm', '-journal']) {
+    if (fs.existsSync(dbPath + suffix) || fs.existsSync(stagedPath + suffix)) {
+      throw new Error('A migração requer que todas as ligações SQLite estejam fechadas.');
     }
-    try { if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath); } catch {}
+  }
+  fs.renameSync(dbPath, oldPath);
+  try {
+    fs.renameSync(stagedPath, dbPath);
   } catch (error) {
-    try { if (fs.existsSync(dbPath)) fs.unlinkSync(dbPath); } catch {}
     try {
-      if (fs.existsSync(oldPath)) fs.renameSync(oldPath, dbPath);
-      else if (backupPath && fs.existsSync(backupPath)) fs.copyFileSync(backupPath, dbPath);
-    } catch {}
-    try { if (fs.existsSync(stagedPath)) fs.unlinkSync(stagedPath); } catch {}
+      fs.renameSync(oldPath, dbPath);
+    } catch (rollbackError) {
+      throw new Error('A reposição da base ficou pendente. A base original foi conservada.', {
+        cause: new AggregateError([error, rollbackError]),
+      });
+    }
     throw error;
   }
+  // The staged database has already passed integrity checks and committed.
+  // If cleanup fails, startup verifies the active database before retrying it.
+  try { fs.unlinkSync(oldPath); } catch {}
 }
 
 function prepareDatabase(dbPath, userDataDir, options = {}) {
+  const oldPath = dbPath + '.pre-migration-swap';
+  restoreInterruptedSwap(dbPath, oldPath);
   const exists = fs.existsSync(dbPath) && fs.statSync(dbPath).size > 0;
   if (!exists) {
     return {
@@ -215,6 +233,11 @@ function prepareDatabase(dbPath, userDataDir, options = {}) {
     fromVersion = inferSchemaVersion(source);
     if (fromVersion > CURRENT_DB_SCHEMA_VERSION) {
       throw new Error(`A base usa schema ${fromVersion}, superior ao suportado (${CURRENT_DB_SCHEMA_VERSION}).`);
+    }
+    if (fs.existsSync(oldPath)) {
+      const directory = path.join(userDataDir, 'safety-backups', 'pre-schema-migration');
+      fs.mkdirSync(directory, { recursive: true });
+      fs.renameSync(oldPath, path.join(directory, 'interrupted-swap-' + randomUUID() + '.db'));
     }
     const plan = migrationPlan(fromVersion, CURRENT_DB_SCHEMA_VERSION, options.registry || DB_MIGRATIONS);
     if (!plan.length) {
@@ -268,7 +291,7 @@ function prepareDatabase(dbPath, userDataDir, options = {}) {
       recordIntegrityHealth(staged, post, 'post-migration');
       staged.exec('COMMIT');
       staged.close();
-      safelyReplaceDatabase(dbPath, stagedPath, backupPath);
+      safelyReplaceDatabase(dbPath, stagedPath, oldPath);
       return {
         fresh: false,
         migrated: true,

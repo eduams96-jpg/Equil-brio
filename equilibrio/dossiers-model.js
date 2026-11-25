@@ -53,6 +53,7 @@
 
   const FREQUENCIES = {
     weekly: { label: "Semanal", advance: (d) => addDays(d, 7) },
+    fortnightly: { label: "Quinzenal", advance: (d) => addDays(d, 14) },
     monthly: { label: "Mensal", advance: (d) => addMonths(d, 1) },
     bimonthly: { label: "Bimestral", advance: (d) => addMonths(d, 2) },
     quarterly: { label: "Trimestral", advance: (d) => addMonths(d, 3) },
@@ -62,6 +63,7 @@
 
   const UTILITIES = {
     water: { label: "Água", units: ["m3"], defaultUnit: "m3" },
+    sanitation: { label: "Saneamento", units: ["m3"], defaultUnit: "m3" },
     electricity: { label: "Eletricidade", units: ["kWh"], defaultUnit: "kWh" },
     gas: { label: "Gás", units: ["m3", "kWh"], defaultUnit: "m3" },
   };
@@ -136,6 +138,7 @@
         !nonEmpty(r.title, 160) ||
         !text(r.area ?? "", 80) ||
         !Object.hasOwn(FREQUENCIES, r.frequency) ||
+        (r.intervalDays!==undefined && (r.frequency!=="weekly" || r.intervalDays!==14)) ||
         !F().validDate(r.nextDate) ||
         typeof r.active !== "boolean" ||
         !text(r.notes ?? "", 1000) ||
@@ -179,12 +182,17 @@
   }
 
   function validateUtilities(d) {
-    const list = d.casa?.utilityReadings;
-    if (list === undefined) return;
-    if (!Array.isArray(list) || list.length > 2000) throw Error("Lista de leituras de consumos inválida.");
+    const readings = d.casa?.utilityReadings ?? [];
+    const monthly = d.casa?.utilityMonthly ?? [];
+    const periods = d.casa?.utilityPeriods ?? [];
+    if ([readings, monthly, periods].some(rows=>!Array.isArray(rows)||rows.length>2000))
+      throw Error("Lista de leituras de consumos inválida.");
+    if (periods.some(row=>row?.kind!=="monthly"||!row.periodStart||!row.periodEnd))
+      throw Error("Consumo por período inválido.");
     const ids = new Set();
     const bySeries = new Map();
-    for (const r of list) {
+    const monthlyKeys = new Set();
+    for (const r of [...readings,...monthly,...periods]) {
       if (
         !r ||
         typeof r !== "object" ||
@@ -195,12 +203,26 @@
         !UTILITIES[r.utility].units.includes(r.unit) ||
         !F().validDate(r.date) ||
         !validDec3(r.reading, true) ||
-        !["reading", "reset"].includes(r.kind) ||
+        !["reading", "reset", "monthly"].includes(r.kind) ||
         (r.unitPrice !== null && r.unitPrice !== undefined && (!Number.isFinite(r.unitPrice) || r.unitPrice < 0 || r.unitPrice > 1000 || round4(r.unitPrice) !== r.unitPrice)) ||
+        (r.billAmount != null && (r.kind !== "monthly" || r.utility === "electricity" || !Number.isFinite(r.billAmount) || r.billAmount < 0 || !Number.isSafeInteger(F().cents(r.billAmount)) || F().money(r.billAmount) !== r.billAmount)) ||
         !text(r.note ?? "", 500)
       )
         throw Error("Leitura de contador inválida.");
       ids.add(r.id);
+      if (r.kind === "monthly") {
+        const hasPeriod = r.periodStart !== undefined || r.periodEnd !== undefined;
+        if (hasPeriod && (!F().validDate(r.periodStart) || !F().validDate(r.periodEnd) || r.periodEnd < r.periodStart || r.date !== r.periodEnd))
+          throw Error("Confirma o início e o fim do período de consumo.");
+        if ((!hasPeriod && r.date.slice(8) !== "01") || r.unit !== UTILITIES[r.utility].defaultUnit ||
+            (r.supplier !== undefined && (r.utility !== "electricity" || !text(r.supplier, 120))))
+          throw Error("Consumo por período inválido.");
+        const period = utilityPeriod(r);
+        const key = r.utility + ":" + period.start + ":" + period.end;
+        if (monthlyKeys.has(key)) throw Error("Já existe um consumo deste serviço para este período.");
+        monthlyKeys.add(key);
+        continue;
+      }
       const key = `${r.utility}||${r.meter.trim().toLocaleLowerCase("pt-PT")}`;
       if (!bySeries.has(key)) bySeries.set(key, []);
       bySeries.get(key).push(r);
@@ -348,6 +370,7 @@
         !optDate(h.energyValidUntil) ||
         !optDate(h.insuranceDate) ||
         !optDate(h.imiDate) ||
+        (h.imiDates !== undefined && (!Array.isArray(h.imiDates) || h.imiDates.length > 12 || h.imiDates.some(date=>!F().validDate(date)))) ||
         !optDate(h.condominiumDate) ||
         !text(h.assetId ?? "", 100) ||
         (h.assetId && !assetIds.has(String(h.assetId))) ||
@@ -390,8 +413,8 @@
   }
 
   const NOTICE_AREAS=['payments','warranties','food','routines','dossiers'];
-  function noticePreferences(d){return{enabled:{payments:true,warranties:true,food:true,routines:true,dossiers:true,...d.practical?.noticePreferences?.enabled},days:{payments:30,warranties:45,food:14,routines:30,dossiers:30,...d.practical?.noticePreferences?.days},urgentDays:d.practical?.noticePreferences?.urgentDays??3};}
-  function validateNoticePreferences(d){const p=d.practical?.noticePreferences;if(p===undefined)return;if(!p||typeof p!=='object'||Array.isArray(p)||!p.enabled||!p.days||NOTICE_AREAS.some(k=>typeof p.enabled[k]!=='boolean'||!Number.isInteger(p.days[k])||p.days[k]<0||p.days[k]>365)||!Number.isInteger(p.urgentDays)||p.urgentDays<0||p.urgentDays>30)throw Error('Configuração de avisos inválida.');}
+  function noticePreferences(d){return{enabled:{payments:true,warranties:true,food:true,routines:true,dossiers:true,...d.practical?.noticePreferences?.enabled},days:{payments:30,warranties:45,food:14,routines:30,dossiers:30,...d.practical?.noticePreferences?.days},urgentDays:d.practical?.noticePreferences?.urgentDays??3,dossierStages:d.practical?.noticePreferences?.dossierStages??[30,15,7,1]};}
+  function validateNoticePreferences(d){const p=d.practical?.noticePreferences;if(p===undefined)return;if(!p||typeof p!=='object'||Array.isArray(p)||!p.enabled||!p.days||NOTICE_AREAS.some(k=>typeof p.enabled[k]!=='boolean'||!Number.isInteger(p.days[k])||p.days[k]<0||p.days[k]>365)||!Number.isInteger(p.urgentDays)||p.urgentDays<0||p.urgentDays>30)throw Error('Configuração de avisos inválida.');if(p.dossierStages!==undefined&&(!Array.isArray(p.dossierStages)||p.dossierStages.length>10||p.dossierStages.some(n=>!Number.isInteger(n)||n<0||n>365)))throw Error('Antecedências de avisos inválidas.');}
   function saveNoticePreferences(d,input){const draft=clone(d);draft.practical=P().state(draft);draft.practical.noticePreferences=clone(input);validateNoticePreferences(draft);d.practical=draft.practical;}
 
   function validateNoticeReviews(d) {
@@ -509,7 +532,28 @@
   }
 
   function routines(d) {
-    return d.practical?.routines || [];
+    return (d.practical?.routines || []).map(row=>{
+      const nextDate=effectiveRoutineDate(row);
+      return nextDate===row.nextDate ? row : {...row,nextDate};
+    });
+  }
+
+  function latestRoutineRun(row) {
+    return (row?.history || []).reduce((latest,run)=>!latest||run.date>=latest.date?run:latest,null);
+  }
+
+  function routineNextFromHistory(row, frequency) {
+    const latest=latestRoutineRun(row);
+    return latest ? FREQUENCIES[frequency]?.advance(latest.date) : undefined;
+  }
+
+  function effectiveRoutineDate(row) {
+    const latest=latestRoutineRun(row);
+    // v1.0.27 retained the previous weekly deadline when changing to 14 days.
+    if(routineFrequency(row)==="fortnightly"&&!row.fortnightlyDateConfirmed&&latest&&
+       row.nextDate===latest.nextDate&&row.nextDate===FREQUENCIES.weekly.advance(latest.date))
+      return FREQUENCIES.fortnightly.advance(latest.date);
+    return row.nextDate;
   }
 
   function parseChecklistInput(rawChecklist, existing = []) {
@@ -533,6 +577,8 @@
     });
   }
 
+  function routineFrequency(row){return row?.intervalDays===14?"fortnightly":row?.frequency;}
+
   function saveRoutine(d, input = {}) {
     return transact(d, (draft) => {
       const list = ensurePractical(draft, "routines");
@@ -540,9 +586,15 @@
       const title = String(input.title || "").trim();
       if (!nonEmpty(title, 160)) throw Error("Indica o nome da rotina doméstica.");
       const area = String(input.area ?? existing?.area ?? "Geral").trim() || "Geral";
-      const frequency = String(input.frequency || existing?.frequency || "monthly");
+      const frequency = String(input.frequency || routineFrequency(existing) || "monthly");
       if (!Object.hasOwn(FREQUENCIES, frequency)) throw Error("Escolhe uma periodicidade válida para a rotina.");
-      const nextDate = String(input.nextDate || existing?.nextDate || F().today());
+      const previousDate=existing&&effectiveRoutineDate(existing);
+      const changedFrequency=existing&&frequency!==routineFrequency(existing);
+      const fromHistory=existing?routineNextFromHistory(existing,frequency):undefined;
+      const forceHistory=Boolean(input.recalculateFromLast&&fromHistory);
+      const suggested=(changedFrequency||forceHistory)?fromHistory:undefined;
+      const sameDate=!input.nextDate||(!input.keepNextDate&&input.nextDate===previousDate);
+      const nextDate = String(forceHistory ? fromHistory : sameDate ? suggested||previousDate||F().today() : input.nextDate);
       if (!F().validDate(nextDate)) throw Error("Indica a próxima data prevista da rotina.");
       const equipmentId = String(input.equipmentId ?? existing?.equipmentId ?? "").trim();
       if (equipmentId && !(draft.practical?.equipment || []).some((e) => String(e.id) === equipmentId))
@@ -555,7 +607,8 @@
         id: existing?.id || String(input.id || F().id()),
         title,
         area,
-        frequency,
+        frequency: frequency==="fortnightly"?"weekly":frequency,
+        ...(frequency==="fortnightly"?{intervalDays:14,fortnightlyDateConfirmed:true}:{}),
         nextDate,
         equipmentId,
         active: input.active === undefined ? (existing ? existing.active : true) : Boolean(input.active),
@@ -595,8 +648,9 @@
         const alreadyChecked = r.checklist.filter((i) => i.done).map((i) => i.label);
         checkedLabels = alreadyChecked.length || input.checkAll === false ? alreadyChecked : r.checklist.map((i) => i.label);
       }
-      const baseDate = r.nextDate > date ? r.nextDate : date;
-      const nextDate = input.nextDate ? String(input.nextDate) : FREQUENCIES[r.frequency].advance(baseDate);
+      const frequency=routineFrequency(r);
+      const baseDate = frequency==="fortnightly" ? date : (r.nextDate > date ? r.nextDate : date);
+      const nextDate = input.nextDate ? String(input.nextDate) : FREQUENCIES[frequency].advance(baseDate);
       if (!F().validDate(nextDate) || nextDate <= date)
         throw Error("A próxima data da rotina deve ser posterior à data de execução.");
       const entry = {
@@ -611,8 +665,21 @@
       r.history.push(entry);
       if (r.history.length > 200) r.history = r.history.slice(-200);
       r.nextDate = nextDate;
+      if(frequency==="fortnightly")r.fortnightlyDateConfirmed=true;
       for (const item of r.checklist) item.done = false;
       return entry;
+    });
+  }
+
+  function recalculateRoutine(d, routineId) {
+    return transact(d, (draft) => {
+      const r = ensurePractical(draft, "routines").find((x) => String(x.id) === String(routineId));
+      if (!r) throw Error("Rotina inexistente.");
+      const nextDate = routineNextFromHistory(r, routineFrequency(r));
+      if (!nextDate) throw Error("Esta rotina ainda não tem execuções registadas para recalcular.");
+      r.nextDate = nextDate;
+      if (routineFrequency(r) === "fortnightly") r.fortnightlyDateConfirmed = true;
+      return r;
     });
   }
 
@@ -632,25 +699,53 @@
    * 2. CASA → CONSUMOS (ÁGUA, ELETRICIDADE E GÁS)
    * ======================================================================== */
   function utilityReadings(d) {
-    return d.casa?.utilityReadings || [];
+    return [...(d.casa?.utilityReadings || []),...(d.casa?.utilityMonthly || []),...(d.casa?.utilityPeriods || [])];
+  }
+
+  function utilityPeriod(row) {
+    if (row.periodStart && row.periodEnd) return {start:row.periodStart,end:row.periodEnd};
+    const month = row.date.slice(0, 7);
+    return {start:month+"-01",end:F().dateAt(month,31)};
   }
 
   function saveUtilityReading(d, input = {}) {
     return transact(d, (draft) => {
-      const list = ensureCasaReadings(draft);
-      const existing = list.find((r) => String(r.id) === String(input.id || ""));
+      const readings = ensureCasaReadings(draft);
+      const monthly = draft.casa.utilityMonthly || [];
+      const periods = draft.casa.utilityPeriods || [];
+      const existing = utilityReadings(draft).find((r) => String(r.id) === String(input.id || ""));
+      if(input.id&&!existing)throw Error("Registo de consumo inexistente.");
+      const isMonthly = (input.kind || existing?.kind) === "monthly";
+      if(existing && isMonthly !== (existing.kind==="monthly"))throw Error("O tipo de valor registado tem de ser preservado.");
+      const hasPeriod = isMonthly && (input.periodStart !== undefined || input.periodEnd !== undefined || !!existing?.periodStart);
+      const periodStart=hasPeriod ? String(input.periodStart ?? existing?.periodStart ?? "") : "";
+      const periodEnd=hasPeriod ? String(input.periodEnd ?? existing?.periodEnd ?? "") : "";
+      if (hasPeriod && (!F().validDate(periodStart) || !F().validDate(periodEnd) || periodStart>periodEnd))
+        throw Error("A data de fim tem de ser igual ou posterior à de início.");
+      if (hasPeriod) {
+        const today = F().today();
+        if (periodStart > today)
+          throw Error("A data de início do consumo não pode ser futura.");
+        if (periodEnd > addDays(today, 45))
+          throw Error("A data de fim do período está demasiado no futuro. Confirma o ano da fatura.");
+        if (dayDiff(periodStart, periodEnd) > 370)
+          throw Error("O período da fatura não pode exceder um ano. Confirma as datas de início e fim.");
+      }
+      const list=hasPeriod?(draft.casa.utilityPeriods=periods):isMonthly?(draft.casa.utilityMonthly=monthly):readings;
       const utility = String(input.utility || existing?.utility || "water");
       if (!Object.hasOwn(UTILITIES, utility)) throw Error("Escolhe água ou eletricidade.");
       const meter = String(input.meter ?? existing?.meter ?? "Contador principal").trim() || "Contador principal";
       const unit = String(input.unit || existing?.unit || UTILITIES[utility].defaultUnit);
       if (!UTILITIES[utility].units.includes(unit))
         throw Error(`Unidade inválida para ${UTILITIES[utility].label}. Usa ${UTILITIES[utility].units.map((u) => UNIT_LABELS[u]).join(" ou ")}.`);
-      const date = String(input.date || existing?.date || F().today());
+      const date = hasPeriod ? periodEnd : String(input.date || existing?.date || F().today());
       if (!F().validDate(date)) throw Error("Indica uma data de leitura válida.");
-      const readingNum = round3(Number(String(input.reading ?? existing?.reading ?? "").replace(",", ".")));
+      const rawReading = String(input.reading ?? existing?.reading ?? "").trim();
+      if (!rawReading) throw Error("Indica um valor de leitura válido (igual ou superior a zero).");
+      const readingNum = round3(Number(rawReading.replace(",", ".")));
       if (!validDec3(readingNum, true)) throw Error("Indica um valor de leitura válido (igual ou superior a zero).");
       const kind = String(input.kind || existing?.kind || "reading");
-      if (!["reading", "reset"].includes(kind)) throw Error("Tipo de leitura inválido.");
+      if (!["reading", "reset", "monthly"].includes(kind)) throw Error("Tipo de leitura inválido.");
       const rawPrice = input.unitPrice === undefined ? existing?.unitPrice : input.unitPrice;
       const unitPrice =
         rawPrice === "" || rawPrice === null || rawPrice === undefined
@@ -658,6 +753,10 @@
           : round4(Number(String(rawPrice).replace(",", ".")));
       if (unitPrice !== null && (!Number.isFinite(unitPrice) || unitPrice < 0 || unitPrice > 1000))
         throw Error("Tarifa unitária opcional inválida.");
+      const rawBill = input.billAmount === undefined ? existing?.billAmount : input.billAmount;
+      const billAmount = rawBill === "" || rawBill == null ? null : F().money(Number(String(rawBill).replace(",", ".")));
+      if (billAmount !== null && (!Number.isFinite(billAmount) || billAmount < 0 || !Number.isSafeInteger(F().cents(billAmount))))
+        throw Error("Valor da fatura inválido.");
       const row = {
         id: existing?.id || String(input.id || F().id()),
         utility,
@@ -667,8 +766,18 @@
         reading: readingNum,
         kind,
         unitPrice,
+        ...(isMonthly && utility !== "electricity" && billAmount !== null ? {billAmount} : {}),
+        ...(hasPeriod ? {periodStart,periodEnd} : {}),
+        ...(isMonthly && utility==="electricity" ? {supplier:String(input.supplier ?? existing?.supplier ?? "").trim()} : {}),
         note: String(input.note ?? existing?.note ?? "").trim(),
       };
+      if (existing) {
+        for (const arr of [readings, monthly, periods]) {
+          if (arr === list) continue;
+          const olderIndex = arr.findIndex((r) => String(r.id) === String(existing.id));
+          if (olderIndex >= 0) arr.splice(olderIndex, 1);
+        }
+      }
       const idx = list.findIndex((r) => r.id === row.id);
       if (idx < 0) list.push(row);
       else list[idx] = row;
@@ -689,7 +798,9 @@
 
   function removeUtilityReading(d, readingId) {
     return transact(d, (draft) => {
-      const list = ensureCasaReadings(draft);
+      const list=[draft.casa?.utilityMonthly,draft.casa?.utilityPeriods,draft.casa?.utilityReadings]
+        .find(rows=>rows?.some(r=>String(r.id)===String(readingId)));
+      if(!list)throw Error("Consumo inexistente.");
       const idx = list.findIndex((r) => String(r.id) === String(readingId));
       if (idx < 0) throw Error("Leitura inexistente.");
       list.splice(idx, 1);
@@ -697,17 +808,98 @@
     });
   }
 
+  function monthlyUtility(d, utility) {
+    const today = F().today();
+    const matchUtility = utility === 'water' ? (r => r.utility === 'water' || r.utility === 'sanitation') : (r => r.utility === utility);
+    const rows = utilityReadings(d).filter(r => r.kind === "monthly" && matchUtility(r))
+      .sort((a,b)=>utilityPeriod(b).end.localeCompare(utilityPeriod(a).end)||utilityPeriod(b).start.localeCompare(utilityPeriod(a).start)||Number(b.utility==='water')-Number(a.utility==='water'));
+    const uniquePeriods = [];
+    const seenPeriods = new Set();
+    for (const r of rows) {
+      const p = utilityPeriod(r);
+      const pk = p.start + ':' + p.end;
+      if (!seenPeriods.has(pk)) {
+        seenPeriods.add(pk);
+        uniquePeriods.push(r.reading);
+      }
+    }
+    const previousByUtility = new Map();
+    const changes = new Map();
+    for (const row of [...rows].reverse()) {
+      const previous = previousByUtility.get(row.utility);
+      changes.set(row.id, previous === undefined ? null : round3(row.reading - previous));
+      previousByUtility.set(row.utility, row.reading);
+    }
+    return {
+      average: uniquePeriods.length ? round3(uniquePeriods.reduce((sum, v) => sum + v, 0) / uniquePeriods.length) : null,
+      rows: rows.map(row=>{
+        const period = utilityPeriod(row);
+        const days = dayDiff(period.start, period.end) + 1;
+        const future = period.start > today || period.end > addDays(today, 45);
+        const longPeriod = days > 65;
+        const anomaly = future ? 'Período futuro · confirmar datas' : longPeriod ? `Período longo (${days} dias) · confirmar datas` : '';
+        return {...row, period, days, future, longPeriod, anomaly, cost:row.billAmount ?? (row.unitPrice==null ? null : F().money(row.reading*row.unitPrice)),
+          change:changes.get(row.id)};
+      }),
+    };
+  }
+
+  function utilityTotals(rows, year = false) {
+    const totals = new Map();
+    for (const row of rows) {
+      if (row.future) continue;
+      const period = row.period.end.slice(0, year ? 4 : 7);
+      const total = totals.get(period) || {period, units:0, cents:0, costs:0, bills:0, count:0, days:0, seenSpan:new Set()};
+      const spanKey = `${row.period.start}:${row.period.end}`;
+      // Água e saneamento na mesma fatura partilham os mesmos m³ quando existam dois registos legados para o mesmo período.
+      if (!total.seenSpan.has(spanKey)) {
+        total.units += Math.round(row.reading * 1000);
+        total.days += Math.max(1, Number(row.days || 0));
+        total.seenSpan.add(spanKey);
+      }
+      total.count++;
+      if (row.cost !== null) {
+        total.cents += F().cents(row.cost);
+        total.costs++;
+      }
+      if (row.billAmount != null) total.bills++;
+      totals.set(period,total);
+    }
+    const sorted = [...totals.values()].sort((a,b)=>a.period.localeCompare(b.period)).map(total=>{
+      const consumption = total.units / 1000;
+      const cost = total.costs ? total.cents / 100 : null;
+      return {
+        period:total.period, consumption, cost,
+        days:total.days,
+        unitCost:cost !== null && consumption > 0 ? Math.round((cost / consumption) * 10000) / 10000 : null,
+        dailyCost:cost !== null && total.days > 0 ? F().money(cost / total.days) : null,
+        dailyConsumption:total.days > 0 ? round3(consumption / total.days) : null,
+        count:total.count, costs:total.costs, bills:total.bills,
+      };
+    });
+    for (let i = 0; i < sorted.length; i++) {
+      const prev = i > 0 ? sorted[i - 1] : null;
+      sorted[i].consumptionDiff = prev ? round3(sorted[i].consumption - prev.consumption) : null;
+      sorted[i].consumptionPct = prev && prev.consumption > 0 ? Math.round(((sorted[i].consumption - prev.consumption) / prev.consumption) * 1000) / 10 : null;
+      sorted[i].costDiff = prev && sorted[i].cost !== null && prev.cost !== null
+        ? F().money(sorted[i].cost - prev.cost) : null;
+      sorted[i].costPct = prev && sorted[i].cost !== null && prev.cost > 0
+        ? Math.round(((sorted[i].cost - prev.cost) / prev.cost) * 1000) / 10 : null;
+    }
+    return sorted.reverse();
+  }
+
   function utilityComparison(d, options = {}) {
     const filterUtility = options.utility || "all";
     const filterMeter = options.meter || "";
     const all = utilityReadings(d)
-      .filter((r) => (filterUtility === "all" || r.utility === filterUtility) && (!filterMeter || r.meter === filterMeter))
+      .filter((r) => r.kind !== "monthly" && (filterUtility === "all" || r.utility === filterUtility) && (!filterMeter || r.meter === filterMeter))
       .slice()
       .sort((a, b) => a.date.localeCompare(b.date) || (a.kind === "reset" ? -1 : 1) || a.id.localeCompare(b.id));
 
     const bySeries = new Map();
     for (const r of all) {
-      const key = `${r.utility}||${r.meter}`;
+      const key = `${r.utility}||${String(r.meter || "").trim().toLocaleLowerCase("pt-PT")}`;
       if (!bySeries.has(key)) bySeries.set(key, []);
       bySeries.get(key).push(r);
     }
@@ -855,12 +1047,12 @@
     return d.practical?.vehicles || [];
   }
 
-  function recomputeVehicleKm(v) {
+  function recomputeVehicleKm(v, includeCurrent = true) {
     const kms = [
-      v.currentKm || 0,
+      ...(includeCurrent ? [v.currentKm || 0] : [v.initialKm || 0]),
       ...(v.mileageLog || []).map((m) => m.km || 0),
       ...(v.fuelings || []).map((f) => f.km || 0),
-      ...(v.maintenance || []).map((m) => m.km || 0),
+      ...(v.maintenance || []).filter((m) => m.km !== null && m.km !== undefined).map((m) => m.km || 0),
     ];
     v.currentKm = round3(Math.max(0, ...kms));
   }
@@ -946,7 +1138,9 @@
       if (!v) throw Error("Veículo inexistente.");
       const date = String(input.date || F().today());
       if (!F().validDate(date)) throw Error("Data de quilometragem inválida.");
-      const km = round3(Number(String(input.km ?? "").replace(",", ".")));
+      const rawMileageKm = String(input.km ?? "").trim();
+      if (!rawMileageKm) throw Error("Indica uma quilometragem válida.");
+      const km = round3(Number(rawMileageKm.replace(",", ".")));
       if (!validDec3(km, true)) throw Error("Indica uma quilometragem válida.");
       const lowerAfter = v.mileageLog.find((m) => m.date <= date && m.km > km);
       if (lowerAfter)
@@ -1011,7 +1205,7 @@
       const description = String(input.description || VEHICLE_MAINT_KINDS[kind] || "").trim();
       if (!nonEmpty(description, 240)) throw Error("Indica a descrição da manutenção.");
       const rawKm = input.km;
-      const km = rawKm === "" || rawKm === null || rawKm === undefined ? v.currentKm : round3(Number(String(rawKm).replace(",", ".")));
+      const km = rawKm === "" || rawKm === null || rawKm === undefined ? null : round3(Number(String(rawKm).replace(",", ".")));
       const cost = F().money(Number(String(input.cost ?? 0).replace(",", ".")));
       if (!moneyOrZero(cost)) throw Error("Custo da manutenção inválido.");
       const nextDate = String(input.nextDate || "").trim();
@@ -1036,11 +1230,11 @@
       };
       v.maintenance.push(entry);
       v.maintenance.sort((a, b) => a.date.localeCompare(b.date));
-      if (nextDate && (!v.nextMaintenanceDate || nextDate > v.nextMaintenanceDate)) {
-        if (kind === "inspection") v.nextInspectionDate = nextDate;
-        else if (kind === "iuc") v.iucDate = nextDate;
-        else if (kind === "insurance") v.insuranceDate = nextDate;
-        else v.nextMaintenanceDate = nextDate;
+      if (nextDate) {
+        if (kind === "inspection") { if (!v.nextInspectionDate || nextDate > v.nextInspectionDate) v.nextInspectionDate = nextDate; }
+        else if (kind === "iuc") { if (!v.iucDate || nextDate > v.iucDate) v.iucDate = nextDate; }
+        else if (kind === "insurance") { if (!v.insuranceDate || nextDate > v.insuranceDate) v.insuranceDate = nextDate; }
+        else if (!v.nextMaintenanceDate || nextDate > v.nextMaintenanceDate) v.nextMaintenanceDate = nextDate;
       }
       if (nextKm !== null && (v.nextMaintenanceKm === null || nextKm > v.nextMaintenanceKm)) {
         v.nextMaintenanceKm = nextKm;
@@ -1079,7 +1273,7 @@
       const idx = v[listName].findIndex((x) => String(x.id) === String(itemId));
       if (idx < 0) throw Error("Registo do veículo inexistente.");
       v[listName].splice(idx, 1);
-      recomputeVehicleKm(v);
+      recomputeVehicleKm(v, false);
     });
   }
 
@@ -1141,11 +1335,20 @@
     const trackedDistanceKm = allKms.length >= 2 ? round3(maxKm - minKm) : 0;
 
     let averageConsumptionPer100Km = null;
-    if (v.fuelings.length >= 2) {
-      const sortedF = v.fuelings.slice().sort((a, b) => a.km - b.km || a.date.localeCompare(b.date));
-      const dist = sortedF.at(-1).km - sortedF[0].km;
+    const dominantUnit = v.fuelType === "electric" ? "kWh" : "L";
+    const eligibleFuelings = v.fuelings
+      .filter((f) => Number.isFinite(f.km) && f.km > 0 && (!f.unit || f.unit === dominantUnit))
+      .slice()
+      .sort((a, b) => a.km - b.km || a.date.localeCompare(b.date));
+    const firstFullIdx = eligibleFuelings.findIndex((f) => f.fullTank !== false);
+    let lastFullIdx = -1;
+    for (let i = eligibleFuelings.length - 1; i > firstFullIdx; i--) {
+      if (eligibleFuelings[i].fullTank !== false) { lastFullIdx = i; break; }
+    }
+    if (firstFullIdx >= 0 && lastFullIdx > firstFullIdx) {
+      const dist = eligibleFuelings[lastFullIdx].km - eligibleFuelings[firstFullIdx].km;
       if (dist > 0) {
-        const totalQty = sortedF.slice(1).reduce((acc, f) => acc + f.quantity, 0);
+        const totalQty = eligibleFuelings.slice(firstFullIdx + 1, lastFullIdx + 1).reduce((acc, f) => acc + f.quantity, 0);
         averageConsumptionPer100Km = round3((totalQty / dist) * 100);
       }
     }
@@ -1225,6 +1428,7 @@
         energyValidUntil: String(input.energyValidUntil ?? existing?.energyValidUntil ?? "").trim(),
         insuranceDate: String(input.insuranceDate ?? existing?.insuranceDate ?? "").trim(),
         imiDate: String(input.imiDate ?? existing?.imiDate ?? "").trim(),
+        ...(input.imiDates !== undefined || existing?.imiDates !== undefined ? {imiDates:[...new Set(input.imiDates ?? existing.imiDates)].sort()} : {}),
         condominiumDate: String(input.condominiumDate ?? existing?.condominiumDate ?? "").trim(),
         assetId,
         propertyValue: F().money(Math.max(0, Number(input.propertyValue ?? existing?.propertyValue ?? 0) || 0)),
@@ -1557,10 +1761,29 @@
       if (!item || !item.id || seenIds.has(item.id)) return;
       if(!preferences.enabled[item.area])return;
       if(F().validDate(item.date)&&dayDiff(today,item.date)>(Number.isInteger(options.horizonDays)?options.horizonDays:preferences.days[item.area]))return;
-      if(item.naturalState!=="paid"&&item.naturalState!=="cancelled"&&F().validDate(item.date)&&dayDiff(today,item.date)>=0)item.priority=dayDiff(today,item.date)<=preferences.urgentDays?"high":"medium";
+      if(!item.priority&&item.naturalState!=="paid"&&item.naturalState!=="cancelled"&&F().validDate(item.date)&&dayDiff(today,item.date)>=0)item.priority=dayDiff(today,item.date)<=preferences.urgentDays?"high":"medium";
+      if(item.area==="dossiers"&&F().validDate(item.date)){
+        const days=dayDiff(today,item.date);
+        const stages=[...preferences.dossierStages].filter(n=>n>=days&&n<=preferences.days.dossiers).sort((a,b)=>a-b);
+        if(days<0)item.stage=-1;
+        if(days>=0&&stages.length){item.stage=stages[0];item.priority=days<=preferences.urgentDays?"high":stages[0]<=7?"medium":"low";}
+      }
       seenIds.add(item.id);
       raw.push(item);
     };
+
+    const planning = root.PlanningFinance || (typeof require === "function" ? require("./planning-model.js") : null);
+    for (const a of planning?.protection?.(d, today) || []) {
+      if (!a.deficit && !a.low) continue;
+      pushNotice({
+        id: "protection:" + a.id + ":" + (a.deficit ? "deficit" : "low") + ":" + a.available,
+        area: "payments", areaLabel: "Planeamento", originKind: "account", originId: String(a.id),
+        title: "Cobertura dos planos · " + a.name, date: today, amount: a.deficit || a.available,
+        priority: a.deficit ? "high" : "medium", naturalState: a.deficit ? "overdue" : "upcoming",
+        detail: a.deficit ? "Saldo abaixo do valor protegido" : "Saldo livre até 10% do valor protegido",
+        targetView: "plansHub",
+      });
+    }
 
     // 1. Pagamentos agendados (pendingPayments) e compromissos já liquidados
     const activePendingIds = new Set();
@@ -1791,7 +2014,7 @@
       const pay = F().money(debt.payment || 0);
       const dayNum = Number(debt.dueDay || 0);
       if (!(bal > 0) || !(pay > 0) || !(dayNum >= 1 && dayNum <= 31)) continue;
-      for (const m of monthsToCheck.filter(m=>m>=today.slice(0,7))) {
+      for (const m of monthsToCheck) {
         const [yr, mo] = m.split("-").map(Number);
         const maxDay = new Date(Date.UTC(yr, mo, 0)).getUTCDate();
         const due = `${m}-${String(Math.min(dayNum, maxDay)).padStart(2, "0")}`;
@@ -1933,7 +2156,7 @@
       }
     }
 
-    for (const r of d.practical?.routines || []) {
+    for (const r of routines(d)) {
       if (!r.active) {
         pushNotice({
           id: `routine:${r.id}`,
@@ -2044,13 +2267,14 @@
     }
 
     for (const h of d.practical?.housing || []) {
-      for (const [field, label] of [
+      for (const [field, label, date] of [
         ["energyValidUntil", "Certificado energético"],
         ["insuranceDate", "Seguro da habitação"],
         ["imiDate", "IMI / imposto predial"],
         ["condominiumDate", "Condomínio / assembleia"],
+        ...(h.imiDates || []).filter(date=>date!==h.imiDate).map(date=>["imiDate","IMI / prestação",date]),
       ]) {
-        const dt = h[field];
+        const dt = date || h[field];
         if (!F().validDate(dt)) continue;
         const days = dayDiff(today, dt);
         if (days <= horizonDays) {
@@ -2102,7 +2326,7 @@
       if (item.naturalState === "paid" || item.naturalState === "cancelled") {
         effectiveState = item.naturalState;
       } else if (review) {
-        if (review.state === "paid" || review.state === "cancelled" || review.state === "dismissed") {
+        if (review.state === "paid" || review.state === "cancelled" || (review.state === "dismissed" && (review.stage===undefined || review.stage===item.stage))) {
           effectiveState = review.state;
         } else if (review.state === "snoozed") {
           if (review.until && review.until > today) {
@@ -2173,12 +2397,14 @@
       throw Error("Ação de revisão de aviso inválida.");
     if (state === "snoozed" && (!F().validDate(until) || until <= F().today()))
       throw Error("Escolhe uma data futura para adiar o aviso.");
+    const stage = state==="dismissed" ? notices(d).all.find(n=>n.id===noticeId)?.stage : undefined;
     return transact(d, (draft) => {
       const list = ensurePractical(draft, "noticeReviews");
       const next = list.filter((r) => String(r.id) !== String(noticeId));
       next.push({
         id: String(noticeId),
         state,
+        ...(stage===undefined?{}:{stage}),
         ...(state === "snoozed" && until ? { until } : {}),
       });
       draft.practical.noticeReviews = next;
@@ -2195,6 +2421,9 @@
 
   const api = {
     FREQUENCIES,
+    routineFrequency,
+    latestRoutineRun,
+    routineNextFromHistory,
     UTILITIES,
     UNIT_LABELS,
     VEHICLE_FUELS,
@@ -2208,12 +2437,16 @@
     saveRoutine,
     toggleRoutineCheck,
     completeRoutine,
+    recalculateRoutine,
     removeRoutine,
     utilityReadings,
+    utilityPeriod,
+    utilityTotals,
     saveUtilityReading,
     saveUtilityReadings,
     removeUtilityReading,
     utilityComparison,
+    monthlyUtility,
     vehicles,
     saveVehicle,
     removeVehicle,

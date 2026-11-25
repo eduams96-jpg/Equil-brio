@@ -6,7 +6,6 @@ function requirePlaywright() {
     process.env.PLAYWRIGHT_MODULE,
     'playwright',
     'playwright-core',
-    'C:/Users/WinNAS/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright',
   ].filter(Boolean);
   const errors = [];
   for (const candidate of candidates) {

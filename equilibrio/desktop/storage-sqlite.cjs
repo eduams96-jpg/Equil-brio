@@ -1,5 +1,6 @@
 const path = require('node:path');
 const fs = require('node:fs');
+const { isDeepStrictEqual } = require('node:util');
 const { DatabaseSync } = require('node:sqlite');
 const {
   CURRENT_DB_SCHEMA_VERSION,
@@ -164,11 +165,13 @@ function createSqliteStorage(userDataDir) {
   if (schemaPreparation.fresh) {
     initializeFreshSchema(db);
   } else {
-    const startupIntegrity = integrityCheck(db);
-    if (!startupIntegrity.ok) {
-      throw new Error(`A base SQLite falhou a verificação de integridade no arranque: ${(startupIntegrity.details || []).join(' | ')}`);
+    if (schemaPreparation.migrated) {
+      const startupIntegrity = integrityCheck(db);
+      if (!startupIntegrity.ok) {
+        throw new Error(`A base SQLite falhou a verificação de integridade no arranque: ${(startupIntegrity.details || []).join(' | ')}`);
+      }
+      recordIntegrityHealth(db, startupIntegrity, 'startup-after-open');
     }
-    recordIntegrityHealth(db, startupIntegrity, 'startup-after-open');
     const declared = Number(db.prepare("SELECT value FROM meta WHERE key = 'db_schema_version'").get()?.value || 0);
     if (declared < CURRENT_DB_SCHEMA_VERSION) {
       throw new Error(`Schema SQLite incompleto após preparação: ${declared}/${CURRENT_DB_SCHEMA_VERSION}.`);
@@ -203,6 +206,43 @@ function createSqliteStorage(userDataDir) {
   const insertRecurringStmt = db.prepare('INSERT INTO recurring (space_id,id,sort_order,payload_json) VALUES (?,?,?,?)');
   const insertCategoryStmt = db.prepare('INSERT INTO categories (space_id,source,id,sort_order,payload_json) VALUES (?,?,?,?,?)');
 
+  const selectSpaceByKeyStmt = db.prepare('SELECT id,name,remainder_json,updated_at FROM spaces WHERE storage_key = ?');
+  const selectSpaceByIdStmt = db.prepare('SELECT id,name,storage_key,remainder_json,updated_at FROM spaces WHERE id = ?');
+  const selectAnySpaceStmt = db.prepare('SELECT 1 FROM spaces LIMIT 1');
+  const selectSpacesRegistryStmt = db.prepare('SELECT id,name,storage_key FROM spaces ORDER BY sort_order,id');
+  const updateSpaceStmt = db.prepare('UPDATE spaces SET name = ?, remainder_json = ?, updated_at = ? WHERE id = ?');
+  const updateSpaceMetaStmt = db.prepare('UPDATE spaces SET name = ?, updated_at = ? WHERE id = ?');
+  const remainderCache = new Map();
+  const domainStatements = {};
+  for (const table of ['accounts', 'transactions', 'debts', 'recurring']) {
+    domainStatements[table] = {
+      selectPayload: db.prepare(`SELECT payload_json FROM ${table} WHERE space_id = ? ORDER BY sort_order, id`),
+      selectRaw: db.prepare(`SELECT id, sort_order, payload_json FROM ${table} WHERE space_id = ? ORDER BY sort_order, id`),
+      selectCount: db.prepare(`SELECT COUNT(*) AS count FROM ${table} WHERE space_id = ?`),
+      selectOne: db.prepare(`SELECT sort_order, payload_json FROM ${table} WHERE space_id = ? AND id = ?`),
+      deleteOne: db.prepare(`DELETE FROM ${table} WHERE space_id = ? AND id = ?`),
+      upsertOne: db.prepare(`
+        INSERT INTO ${table} (space_id, id, sort_order, payload_json)
+        VALUES (?, ?, ?, ?)
+        ON CONFLICT(space_id, id) DO UPDATE SET
+          sort_order = excluded.sort_order,
+          payload_json = excluded.payload_json
+      `),
+    };
+  }
+  const selectCategoryPayloadStmt = db.prepare('SELECT payload_json FROM categories WHERE space_id = ? AND source = ? ORDER BY sort_order, id');
+  const selectCategoryRawStmt = db.prepare('SELECT id, sort_order, payload_json FROM categories WHERE space_id = ? AND source = ? ORDER BY sort_order, id');
+  const selectCategoryCountStmt = db.prepare('SELECT COUNT(*) AS count FROM categories WHERE space_id = ? AND source = ?');
+  const selectCategoryOneStmt = db.prepare('SELECT sort_order, payload_json FROM categories WHERE space_id = ? AND source = ? AND id = ?');
+  const deleteCategoryOneStmt = db.prepare('DELETE FROM categories WHERE space_id = ? AND source = ? AND id = ?');
+  const upsertCategoryOneStmt = db.prepare(`
+    INSERT INTO categories (space_id, source, id, sort_order, payload_json)
+    VALUES (?, ?, ?, ?, ?)
+    ON CONFLICT(space_id, source, id) DO UPDATE SET
+      sort_order = excluded.sort_order,
+      payload_json = excluded.payload_json
+  `);
+
   function getMeta(key, fallback = '') {
     try { return getMetaStmt.get(String(key))?.value ?? fallback; } catch { return fallback; }
   }
@@ -218,7 +258,8 @@ function createSqliteStorage(userDataDir) {
   }
 
   function tableRows(table, spaceId) {
-    return db.prepare(`SELECT payload_json FROM ${table} WHERE space_id = ? ORDER BY sort_order, id`).all(spaceId)
+    const stmt = domainStatements[table]?.selectPayload || db.prepare(`SELECT payload_json FROM ${table} WHERE space_id = ? ORDER BY sort_order, id`);
+    return stmt.all(spaceId)
       .map((row) => {
         const value = JSON.parse(row.payload_json);
         if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Registo SQLite inválido em ' + table);
@@ -227,7 +268,7 @@ function createSqliteStorage(userDataDir) {
   }
 
   function categoryRows(spaceId, source) {
-    return db.prepare('SELECT payload_json FROM categories WHERE space_id = ? AND source = ? ORDER BY sort_order, id').all(spaceId, source)
+    return selectCategoryPayloadStmt.all(spaceId, source)
       .map((row) => parseStoredObject(row.payload_json, 'categories/' + source));
   }
 
@@ -257,11 +298,11 @@ function createSqliteStorage(userDataDir) {
     return rawStateMirror();
   }
 
-  function insertEntityRows(spaceId, table, rows, insertStmt) {
+  function insertEntityRows(spaceId, table, rows, insertStmt, domain = table) {
     if (rows !== undefined && !Array.isArray(rows)) throw new Error('Lista inválida: ' + table);
     (Array.isArray(rows) ? rows : []).forEach((item, index) => {
       if (!item || typeof item !== 'object' || Array.isArray(item)) throw new Error('Registo inválido: ' + table);
-      const id = String(item.id ?? `row-${index}`);
+      const id = entityRowId(domain, item, index);
       insertStmt.run(spaceId, id, index, JSON.stringify(item));
     });
   }
@@ -285,16 +326,16 @@ function createSqliteStorage(userDataDir) {
       require('../casa-model.js').validate(ledger);
       for (const key of CRITICAL_ARRAYS) delete remainder[key];
       insertSpaceStmt.run(space.id, space.name, space.key, i, JSON.stringify(remainder), now);
-      insertEntityRows(space.id, 'accounts', ledger.accounts, insertAccountStmt);
-      insertEntityRows(space.id, 'transactions', ledger.transactions, insertTransactionStmt);
-      insertEntityRows(space.id, 'debts', ledger.debts, insertDebtStmt);
-      insertEntityRows(space.id, 'recurring', ledger.recurring, insertRecurringStmt);
+      insertEntityRows(space.id, 'accounts', ledger.accounts, insertAccountStmt, 'accounts');
+      insertEntityRows(space.id, 'transactions', ledger.transactions, insertTransactionStmt, 'transactions');
+      insertEntityRows(space.id, 'debts', ledger.debts, insertDebtStmt, 'debts');
+      insertEntityRows(space.id, 'recurring', ledger.recurring, insertRecurringStmt, 'recurring');
       insertEntityRows(space.id, 'categories', ledger.categoryCatalog, {
         run: (sid, id, order, payload) => insertCategoryStmt.run(sid, 'catalog', id, order, payload),
-      });
+      }, 'categoryCatalog');
       insertEntityRows(space.id, 'categories', ledger.categoryArchive, {
         run: (sid, id, order, payload) => insertCategoryStmt.run(sid, 'archive', id, order, payload),
-      });
+      }, 'categoryArchive');
       syncedSpaces += 1;
     }
     if (syncedSpaces) {
@@ -324,6 +365,7 @@ function createSqliteStorage(userDataDir) {
       setMetaStmt.run('last_write_at', now);
       if (!normalized.normalized) setMetaStmt.run('storage_schema', String(NORMALIZED_SCHEMA_VERSION));
       db.exec('COMMIT');
+      remainderCache.clear();
       return { ok: true, keys: Object.keys(clean).length, path: dbPath, ...normalized };
     } catch (error) {
       try { db.exec('ROLLBACK'); } catch {}
@@ -349,7 +391,7 @@ function createSqliteStorage(userDataDir) {
   }
 
   function refreshRegistryMirror(now = new Date().toISOString()) {
-    const registry = db.prepare('SELECT id,name,storage_key FROM spaces ORDER BY sort_order,id').all()
+    const registry = selectSpacesRegistryStmt.all()
       .map((row) => ({ id: row.id, name: row.name, key: row.storage_key }));
     insertStateStmt.run('equilibrioSpaces', JSON.stringify(registry), now);
     setMetaStmt.run('normalized_schema', String(NORMALIZED_SCHEMA_VERSION));
@@ -406,16 +448,16 @@ function createSqliteStorage(userDataDir) {
       db.prepare('DELETE FROM recurring WHERE space_id = ?').run(space.id);
       db.prepare('DELETE FROM categories WHERE space_id = ?').run(space.id);
 
-      insertEntityRows(space.id, 'accounts', ledger.accounts, insertAccountStmt);
-      insertEntityRows(space.id, 'transactions', ledger.transactions, insertTransactionStmt);
-      insertEntityRows(space.id, 'debts', ledger.debts, insertDebtStmt);
-      insertEntityRows(space.id, 'recurring', ledger.recurring, insertRecurringStmt);
+      insertEntityRows(space.id, 'accounts', ledger.accounts, insertAccountStmt, 'accounts');
+      insertEntityRows(space.id, 'transactions', ledger.transactions, insertTransactionStmt, 'transactions');
+      insertEntityRows(space.id, 'debts', ledger.debts, insertDebtStmt, 'debts');
+      insertEntityRows(space.id, 'recurring', ledger.recurring, insertRecurringStmt, 'recurring');
       insertEntityRows(space.id, 'categories', ledger.categoryCatalog, {
         run: (sid, id, order, payload) => insertCategoryStmt.run(sid, 'catalog', id, order, payload),
-      });
+      }, 'categoryCatalog');
       insertEntityRows(space.id, 'categories', ledger.categoryArchive, {
         run: (sid, id, order, payload) => insertCategoryStmt.run(sid, 'archive', id, order, payload),
-      });
+      }, 'categoryArchive');
 
       insertStateStmt.run(key, JSON.stringify(ledger), now);
       refreshRegistryMirror(now);
@@ -423,10 +465,12 @@ function createSqliteStorage(userDataDir) {
       setMetaStmt.run('last_entity_write_at', now);
       setMetaStmt.run('last_write_at', now);
       if(bridgeOwnTransaction) db.exec('COMMIT');
+      remainderCache.delete(space.id);
       return {
         ok: true,
         spaceId: space.id,
         storageKey: key,
+        updatedAt: now,
         counts: {
           accounts: Array.isArray(ledger.accounts) ? ledger.accounts.length : 0,
           transactions: Array.isArray(ledger.transactions) ? ledger.transactions.length : 0,
@@ -535,12 +579,19 @@ function createSqliteStorage(userDataDir) {
       if (!item || typeof item !== 'object' || Array.isArray(item)) throw new Error('Registo inválido: ' + domain);
       const id = entityRowId(domain, item, index);
       if (out.has(id)) throw new Error('Identificador repetido em ' + domain + ': ' + id);
-      out.set(id, { id, item, order: index, payload: JSON.stringify(item) });
+      out.set(id, { item, order: index });
     });
     return out;
   }
 
-  function applyDomainDeltaOpen(spaceId, beforeLedger, afterLedger) {
+  function rawDomainRows(domain, spaceId) {
+    const config = DOMAIN_CONFIG[domain];
+    if (!config) return [];
+    if (config.table === 'categories') return selectCategoryRawStmt.all(spaceId, config.source);
+    return domainStatements[config.table].selectRaw.all(spaceId);
+  }
+
+  function applyDomainDeltaOpen(spaceId, beforeLedger, afterLedger, beforeJsonsByDomain = null, afterJsonsByDomain = null) {
     const before = beforeLedger && typeof beforeLedger === 'object' ? beforeLedger : {};
     const after = afterLedger && typeof afterLedger === 'object' ? afterLedger : {};
     let inserted = 0;
@@ -551,48 +602,41 @@ function createSqliteStorage(userDataDir) {
       const previous = rowsByIdentity(domain, before[domain]);
       const next = rowsByIdentity(domain, after[domain]);
       const isCategory = config.table === 'categories';
+      const deleteStmt = isCategory ? deleteCategoryOneStmt : domainStatements[config.table].deleteOne;
+      const upsertStmt = isCategory ? upsertCategoryOneStmt : domainStatements[config.table].upsertOne;
+      const beforeJsons = beforeJsonsByDomain?.[domain] || null;
+      const nextJsons = afterJsonsByDomain ? new Array(next.size) : null;
 
       for (const [id] of previous) {
         if (next.has(id)) continue;
-        if (isCategory) {
-          db.prepare('DELETE FROM categories WHERE space_id = ? AND source = ? AND id = ?')
-            .run(spaceId, config.source, id);
-        } else {
-          db.prepare(`DELETE FROM ${config.table} WHERE space_id = ? AND id = ?`).run(spaceId, id);
-        }
+        if (isCategory) deleteStmt.run(spaceId, config.source, id);
+        else deleteStmt.run(spaceId, id);
         deleted += 1;
       }
 
       for (const [id, row] of next) {
+        const payload = JSON.stringify(row.item);
+        if (nextJsons) nextJsons[row.order] = payload;
         const old = previous.get(id);
-        if (old && old.payload === row.payload && old.order === row.order) continue;
-        if (isCategory) {
-          db.prepare(`
-            INSERT INTO categories (space_id, source, id, sort_order, payload_json)
-            VALUES (?, ?, ?, ?, ?)
-            ON CONFLICT(space_id, source, id) DO UPDATE SET
-              sort_order = excluded.sort_order,
-              payload_json = excluded.payload_json
-          `).run(spaceId, config.source, id, row.order, row.payload);
-        } else {
-          db.prepare(`
-            INSERT INTO ${config.table} (space_id, id, sort_order, payload_json)
-            VALUES (?, ?, ?, ?)
-            ON CONFLICT(space_id, id) DO UPDATE SET
-              sort_order = excluded.sort_order,
-              payload_json = excluded.payload_json
-          `).run(spaceId, id, row.order, row.payload);
+        if (old && old.order === row.order) {
+          const oldJson = beforeJsons ? beforeJsons[old.order] : null;
+          if (oldJson !== null ? (oldJson === payload || isDeepStrictEqual(old.item, row.item)) : isDeepStrictEqual(old.item, row.item)) {
+            continue;
+          }
         }
+        if (isCategory) upsertStmt.run(spaceId, config.source, id, row.order, payload);
+        else upsertStmt.run(spaceId, id, row.order, payload);
         if (old) updated += 1;
         else inserted += 1;
       }
+      if (afterJsonsByDomain) afterJsonsByDomain[domain] = nextJsons;
     }
     return { inserted, updated, deleted, changes: inserted + updated + deleted };
   }
 
   function applyCriticalChanges(storageKey, beforeLedger, afterLedger) {
     const key = String(storageKey || '').trim();
-    const space = db.prepare('SELECT id FROM spaces WHERE storage_key = ?').get(key);
+    const space = selectSpaceByKeyStmt.get(key);
     if (!space?.id) return {ok:true,skipped:true,reason:'space-not-found',changes:0};
     const current = readSpace(space.id).data;
     const after = JSON.parse(JSON.stringify(current));
@@ -605,60 +649,365 @@ function createSqliteStorage(userDataDir) {
   }
 
   function applyLedgerDelta(storageKey, beforeLedger, afterLedger) {
-    const key = String(storageKey || '').trim();
-    if (!key) throw new Error('Chave do Espaço Financeiro em falta.');
     const after = afterLedger && typeof afterLedger === 'object' && !Array.isArray(afterLedger)
       ? JSON.parse(JSON.stringify(afterLedger))
       : null;
     if (!after) throw new Error('Dados do Espaço Financeiro inválidos.');
     if (after.ledgerCoreVersion === 1) require('../finance.js').refreshBalances(after);
     require('../casa-model.js').validate(after);
+    return writeLedgerDelta(storageKey, JSON.parse(JSON.stringify(beforeLedger || {})), after);
+  }
 
-    const space = db.prepare('SELECT id,name FROM spaces WHERE storage_key = ?').get(key);
-    if (!space?.id) {
-      const created = writeSpace(key, after);
-      return { ...created, mode: 'full-create', changes: null };
+  function confirmLedgerWrite(spaceId, expected, submitted) {
+    const stored = readSpaceOpen(spaceId);
+    if (!stored || !isDeepStrictEqual(stored.data, expected))
+      throw new Error('A confirmação dos dados escritos no SQLite falhou.');
+    const projected = { ...stored.data, spaceName: stored.name };
+    const submittedObj = typeof submitted === 'string' ? JSON.parse(submitted) : submitted;
+    return {
+      confirmed: true,
+      ...(isDeepStrictEqual(projected, submittedObj) ? {} : { confirmedLedgerText: JSON.stringify(projected) }),
+    };
+  }
+
+  function confirmLedgerWriteFast(spaceId, remainder, remainderJson, after, afterJsonsByDomain, submitted) {
+    const storedSpace = selectSpaceByIdStmt.get(String(spaceId));
+    if (!storedSpace) throw new Error('A confirmação dos dados escritos no SQLite falhou.');
+    if (storedSpace.remainder_json !== remainderJson) {
+      const actualRem = parseStoredObject(storedSpace.remainder_json, 'spaces/' + storedSpace.id);
+      if (!isDeepStrictEqual(actualRem, JSON.parse(remainderJson)))
+        throw new Error('A confirmação dos dados escritos no SQLite falhou.');
     }
+    for (const domain of CRITICAL_ARRAYS) {
+      const storedRows = rawDomainRows(domain, spaceId);
+      const expectedJsons = afterJsonsByDomain[domain] || [];
+      if (storedRows.length !== expectedJsons.length)
+        throw new Error('A confirmação dos dados escritos no SQLite falhou.');
+      for (let i = 0; i < expectedJsons.length; i += 1) {
+        if (storedRows[i].payload_json !== expectedJsons[i]) {
+          const actualItem = parseStoredObject(storedRows[i].payload_json, domain);
+          if (!isDeepStrictEqual(actualItem, JSON.parse(expectedJsons[i])))
+            throw new Error('A confirmação dos dados escritos no SQLite falhou.');
+        }
+      }
+    }
+    if (typeof submitted === 'string') {
+      const projected = { ...after, spaceName: storedSpace.name };
+      const projectedText = JSON.stringify(projected);
+      if (projectedText === submitted) return { confirmed: true };
+      const submittedObj = JSON.parse(submitted);
+      if (isDeepStrictEqual(JSON.parse(projectedText), submittedObj)) return { confirmed: true };
+      return { confirmed: true, confirmedLedgerText: projectedText };
+    }
+    let matchesSubmitted = true;
+    for (const domain of CRITICAL_ARRAYS) {
+      const subArr = Array.isArray(submitted?.[domain]) ? submitted[domain] : [];
+      const expJsons = afterJsonsByDomain[domain] || [];
+      if (subArr.length !== expJsons.length) { matchesSubmitted = false; break; }
+      for (let i = 0; i < expJsons.length; i += 1) {
+        const subJson = JSON.stringify(subArr[i]);
+        if (subJson !== expJsons[i] && !isDeepStrictEqual(JSON.parse(expJsons[i]), subArr[i])) {
+          matchesSubmitted = false;
+          break;
+        }
+      }
+      if (!matchesSubmitted) break;
+    }
+    if (matchesSubmitted) {
+      const subRem = { ...(submitted || {}) };
+      for (const domain of CRITICAL_ARRAYS) delete subRem[domain];
+      const projectedRemJson = remainder.spaceName === storedSpace.name
+        ? remainderJson
+        : JSON.stringify({ ...remainder, spaceName: storedSpace.name });
+      const subRemJson = JSON.stringify(subRem);
+      if (subRemJson !== projectedRemJson && !isDeepStrictEqual(JSON.parse(projectedRemJson), subRem)) {
+        matchesSubmitted = false;
+      }
+    }
+    if (matchesSubmitted) return { confirmed: true };
+    const stored = readSpaceOpen(spaceId);
+    return {
+      confirmed: true,
+      confirmedLedgerText: JSON.stringify({ ...stored.data, spaceName: stored.name }),
+    };
+  }
 
-    const remainder = { ...after };
-    for (const domain of CRITICAL_ARRAYS) delete remainder[domain];
-    const displayName = String(after.spaceName || space.name || 'Pessoal').trim() || 'Pessoal';
-    const now = new Date().toISOString();
-
+  // The confirmed entry point takes JSON objects owned by the data service.
+  // Keep the reread inside the same transaction, so a mismatch rolls back.
+  function writeLedgerDelta(storageKey, beforeLedger, after, submitted = null) {
+    const key = String(storageKey || '').trim();
+    if (!key) throw new Error('Chave do Espaço Financeiro em falta.');
+    let deltaSpaceId = null;
     db.exec('BEGIN IMMEDIATE');
     try {
-      const current = readSpace(space.id).data;
+      const space = selectSpaceByKeyStmt.get(key);
+      deltaSpaceId = space?.id || null;
+      if (!space?.id) {
+        // A fresh installation has an implicit primary space until its first save.
+        // A removed space in an existing installation must never be recreated here.
+        if (submitted && (key !== 'equilibrioData' || selectAnySpaceStmt.get()))
+          throw new Error('O espaço já não existe. Recarrega antes de guardar.');
+        const created = writeSpace(key, after);
+        const confirmation = submitted
+          ? confirmLedgerWrite(created.spaceId, JSON.parse(JSON.stringify(after)), submitted)
+          : {};
+        db.exec('COMMIT');
+        return { ...created, mode: 'full-create', changes: null, ...confirmation };
+      }
+
+      const remainder = { ...after };
+      for (const domain of CRITICAL_ARRAYS) delete remainder[domain];
+      const displayName = String(after.spaceName || space.name || 'Pessoal').trim() || 'Pessoal';
+      const now = new Date().toISOString();
+      const beforeJsonsByDomain = {};
       for (const domain of CRITICAL_ARRAYS) {
-        if (!require('node:util').isDeepStrictEqual(current[domain] || [], JSON.parse(JSON.stringify(beforeLedger?.[domain] || []))))
-          throw writeConflict(domain);
+        const storedRows = rawDomainRows(domain, space.id);
+        const beforeArr = Array.isArray(beforeLedger?.[domain]) ? beforeLedger[domain] : [];
+        if (storedRows.length !== beforeArr.length) throw writeConflict(domain);
+        const beforeJsons = new Array(beforeArr.length);
+        for (let i = 0; i < beforeArr.length; i += 1) {
+          const expectedJson = JSON.stringify(beforeArr[i]);
+          beforeJsons[i] = expectedJson;
+          if (storedRows[i].payload_json !== expectedJson) {
+            const actualItem = parseStoredObject(storedRows[i].payload_json, domain);
+            if (!isDeepStrictEqual(actualItem, beforeArr[i])) throw writeConflict(domain);
+          }
+        }
+        beforeJsonsByDomain[domain] = beforeJsons;
       }
       // Every financial domain participates in conflict detection, including
       // Casa, reconciliation, planning and attachments held in remainder_json.
       // Older ledgers omit newly introduced empty/default fields. The UI
       // materialises them on read. Compare that projection, without normalising
       // balances, repairing records or ignoring any nonempty/unknown domain.
-      const defaults = require('../finance.js').empty();
-      const currentRemainder = { ...defaults, ...current }, previousRemainder = { ...defaults, ...JSON.parse(JSON.stringify(beforeLedger || {})) };
-      for (const domain of CRITICAL_ARRAYS) { delete currentRemainder[domain]; delete previousRemainder[domain]; }
-      // The renderer can materialize the catalog name as a projection after read.
-      if (currentRemainder.spaceName === undefined && previousRemainder.spaceName === space.name)
-        currentRemainder.spaceName = space.name;
-      const { isDeepStrictEqual } = require('node:util');
-      if (!isDeepStrictEqual(currentRemainder, previousRemainder)) {
-        const domain = [...new Set([...Object.keys(currentRemainder), ...Object.keys(previousRemainder)])].find(name => !isDeepStrictEqual(currentRemainder[name], previousRemainder[name]));
+      const beforeRemainderRaw = { ...(beforeLedger || {}) };
+      for (const domain of CRITICAL_ARRAYS) delete beforeRemainderRaw[domain];
+      const beforeRemainderJson = JSON.stringify(beforeRemainderRaw);
+      if (space.remainder_json !== beforeRemainderJson) {
+        const currentRemainderObj = parseStoredObject(space.remainder_json, 'spaces/' + space.id);
+        const defaults = require('../finance.js').empty();
+        const currentRemainder = { ...defaults, ...currentRemainderObj }, previousRemainder = { ...defaults, ...beforeRemainderRaw };
+        for (const domain of CRITICAL_ARRAYS) { delete currentRemainder[domain]; delete previousRemainder[domain]; }
+        // The renderer can materialize the catalog name as a projection after read.
+        if (currentRemainder.spaceName === undefined && previousRemainder.spaceName === space.name)
+          currentRemainder.spaceName = space.name;
+        if (!isDeepStrictEqual(currentRemainder, previousRemainder)) {
+          const domain = [...new Set([...Object.keys(currentRemainder), ...Object.keys(previousRemainder)])].find(name => !isDeepStrictEqual(currentRemainder[name], previousRemainder[name]));
           throw writeConflict(domain);
+        }
       }
-      db.prepare('UPDATE spaces SET name = ?, remainder_json = ?, updated_at = ? WHERE id = ?')
-        .run(displayName, JSON.stringify(remainder), now, space.id);
-      const result = applyDomainDeltaOpen(space.id, beforeLedger || {}, after);
-      insertStateStmt.run(key, JSON.stringify(after), now);
+      const remainderJson = JSON.stringify(remainder);
+      if (remainderJson !== space.remainder_json || displayName !== space.name) {
+        updateSpaceStmt.run(displayName, remainderJson, now, space.id);
+      } else {
+        updateSpaceMetaStmt.run(displayName, now, space.id);
+      }
+      const afterJsonsByDomain = {};
+      const result = applyDomainDeltaOpen(space.id, beforeLedger || {}, after, beforeJsonsByDomain, afterJsonsByDomain);
       refreshRegistryMirror(now);
       setMetaStmt.run('last_entity_write_at', now);
       setMetaStmt.run('last_space_write_at', now);
       setMetaStmt.run('last_write_at', now);
+      const confirmation = submitted
+        ? confirmLedgerWriteFast(space.id, remainder, remainderJson, after, afterJsonsByDomain, submitted)
+        : {};
       db.exec('COMMIT');
-      return { ok: true, skipped: false, mode: 'delta', spaceId: space.id, storageKey: key, ...result };
+      remainderCache.set(space.id, { updatedAt: now, raw: remainderJson, obj: remainder });
+      return { ok: true, skipped: false, mode: 'delta', spaceId: space.id, storageKey: key, updatedAt: now, ...result, ...confirmation };
     } catch (error) {
+      remainderCache.delete(deltaSpaceId || storageKey);
+      try { db.exec('ROLLBACK'); } catch {}
+      throw error;
+    }
+  }
+
+  function writeLedgerPatch(storageKey, patch) {
+    const key = String(storageKey || '').trim();
+    if (!key) throw new Error('Chave do Espaço Financeiro em falta.');
+    if (!patch || typeof patch !== 'object' || Array.isArray(patch))
+      throw new Error('Alteração incremental inválida.');
+    db.exec('BEGIN IMMEDIATE');
+    let touchedSpaceId = null;
+    try {
+      const space = selectSpaceByKeyStmt.get(key);
+      if (!space?.id) {
+        db.exec('ROLLBACK');
+        return { ok: false, fallbackFull: true };
+      }
+      touchedSpaceId = space.id;
+      if (patch.baseUpdatedAt && space.updated_at && String(space.updated_at) !== String(patch.baseUpdatedAt)) {
+        throw writeConflict('space');
+      }
+      let inserted = 0;
+      let updated = 0;
+      let deleted = 0;
+      const now = new Date().toISOString();
+      const writtenByDomain = {};
+
+      for (const [domain, diff] of Object.entries(patch.domains || {})) {
+        const config = DOMAIN_CONFIG[domain];
+        if (!config) throw new Error('Domínio inválido: ' + domain);
+        const isCategory = config.table === 'categories';
+        const countStmt = isCategory ? selectCategoryCountStmt : domainStatements[config.table].selectCount;
+        const selectOneStmt = isCategory ? selectCategoryOneStmt : domainStatements[config.table].selectOne;
+        const deleteStmt = isCategory ? deleteCategoryOneStmt : domainStatements[config.table].deleteOne;
+        const upsertStmt = isCategory ? upsertCategoryOneStmt : domainStatements[config.table].upsertOne;
+
+        const actualCount = Number((isCategory ? countStmt.get(space.id, config.source) : countStmt.get(space.id))?.count || 0);
+        if (actualCount !== diff.countBefore) throw writeConflict(domain);
+
+        const writtenRows = [];
+        for (const item of diff.deleted || []) {
+          const id = String(item.id);
+          const row = isCategory ? selectOneStmt.get(space.id, config.source, id) : selectOneStmt.get(space.id, id);
+          if (!row || row.sort_order !== item.order || !isDeepStrictEqual(parseStoredObject(row.payload_json, domain), item.before)) {
+            throw writeConflict(domain);
+          }
+          if (isCategory) deleteStmt.run(space.id, config.source, id);
+          else deleteStmt.run(space.id, id);
+          deleted += 1;
+        }
+        for (const item of diff.changed || []) {
+          const id = String(item.id);
+          const row = isCategory ? selectOneStmt.get(space.id, config.source, id) : selectOneStmt.get(space.id, id);
+          if (item.hadBefore) {
+            if (!row || row.sort_order !== item.oldOrder || !isDeepStrictEqual(parseStoredObject(row.payload_json, domain), item.before)) {
+              throw writeConflict(domain);
+            }
+          } else if (row) {
+            throw writeConflict(domain);
+          }
+          const payload = JSON.stringify(item.after);
+          if (isCategory) upsertStmt.run(space.id, config.source, id, item.order, payload);
+          else upsertStmt.run(space.id, id, item.order, payload);
+          writtenRows.push({ id, order: item.order, payload });
+          if (item.hadBefore) updated += 1;
+          else inserted += 1;
+        }
+        writtenByDomain[domain] = { countAfter: diff.countAfter, deleted: diff.deleted || [], writtenRows };
+      }
+
+      const displayName = String(patch.spaceName || space.name || 'Pessoal').trim() || 'Pessoal';
+      const remPatch = patch.remainder || {};
+      if (Object.hasOwn(remPatch, 'casa')) {
+        db.exec('ROLLBACK');
+        return { ok: false, fallbackFull: true };
+      }
+      for (const [domain, diff] of Object.entries(patch.domains || {})) {
+        for (const item of diff.changed || []) {
+          if (!item?.after || typeof item.after !== 'object' || Array.isArray(item.after)) {
+            throw new Error('Registo inválido em ' + domain);
+          }
+          for (const numField of ['amount', 'balance', 'openingBalance']) {
+            if (Object.hasOwn(item.after, numField) && item.after[numField] !== undefined && !Number.isFinite(item.after[numField])) {
+              throw new Error('Valor numérico inválido em ' + domain);
+            }
+          }
+        }
+      }
+      const remKeys = Object.keys(remPatch);
+      let expectedRemainderJson = space.remainder_json;
+      let nextRemainderObj = null;
+
+      if (remKeys.length > 0) {
+        const cached = remainderCache.get(space.id);
+        const baseRem = cached && cached.updatedAt === space.updated_at && cached.raw === space.remainder_json
+          ? { ...cached.obj }
+          : parseStoredObject(space.remainder_json, 'spaces/' + space.id);
+        for (const k of remKeys) {
+          if (k === '__proto__' || k === 'constructor' || k === 'prototype') continue;
+          const change = remPatch[k];
+          if (k === 'activity' && change?.op === 'activity') {
+            const curAct = Array.isArray(baseRem.activity) ? baseRem.activity : [];
+            if (curAct.length !== change.beforeLen || (change.beforeLen > 0 && curAct[curAct.length - 1]?.id !== change.lastBeforeId)) {
+              throw writeConflict('activity');
+            }
+            const nextAct = curAct.concat(change.pushed || []);
+            baseRem.activity = change.maxLen ? nextAct.slice(-change.maxLen) : nextAct;
+          } else {
+            const curVal = baseRem[k];
+            if (change.hadBefore) {
+              if (!isDeepStrictEqual(curVal, change.before)) {
+                const defVal = require('../finance.js').empty()[k];
+                if (!(curVal === undefined && isDeepStrictEqual(defVal, change.before))) throw writeConflict(k);
+              }
+            } else if (curVal !== undefined) {
+              throw writeConflict(k);
+            }
+            if (change.hasAfter) baseRem[k] = change.after;
+            else delete baseRem[k];
+          }
+        }
+        expectedRemainderJson = JSON.stringify(baseRem);
+        nextRemainderObj = baseRem;
+        updateSpaceStmt.run(displayName, expectedRemainderJson, now, space.id);
+      } else {
+        updateSpaceMetaStmt.run(displayName, now, space.id);
+      }
+
+      refreshRegistryMirror(now);
+      setMetaStmt.run('last_entity_write_at', now);
+      setMetaStmt.run('last_space_write_at', now);
+      setMetaStmt.run('last_write_at', now);
+
+      // Confirm written state inside the same transaction so triggers/corruption roll back.
+      const storedSpace = selectSpaceByIdStmt.get(String(space.id));
+      if (!storedSpace || storedSpace.name !== displayName) {
+        throw new Error('A confirmação dos dados escritos no SQLite falhou.');
+      }
+      if (storedSpace.remainder_json !== expectedRemainderJson) {
+        const actualRem = parseStoredObject(storedSpace.remainder_json, 'spaces/' + storedSpace.id);
+        if (!isDeepStrictEqual(actualRem, JSON.parse(expectedRemainderJson))) {
+          throw new Error('A confirmação dos dados escritos no SQLite falhou.');
+        }
+      }
+      for (const [domain, check] of Object.entries(writtenByDomain)) {
+        const config = DOMAIN_CONFIG[domain];
+        const isCategory = config.table === 'categories';
+        const countStmt = isCategory ? selectCategoryCountStmt : domainStatements[config.table].selectCount;
+        const selectOneStmt = isCategory ? selectCategoryOneStmt : domainStatements[config.table].selectOne;
+        const actualCount = Number((isCategory ? countStmt.get(space.id, config.source) : countStmt.get(space.id))?.count || 0);
+        if (actualCount !== check.countAfter) {
+          throw new Error('A confirmação dos dados escritos no SQLite falhou.');
+        }
+        for (const item of check.deleted) {
+          const exists = isCategory ? selectOneStmt.get(space.id, config.source, String(item.id)) : selectOneStmt.get(space.id, String(item.id));
+          if (exists) throw new Error('A confirmação dos dados escritos no SQLite falhou.');
+        }
+        for (const item of check.writtenRows) {
+          const row = isCategory ? selectOneStmt.get(space.id, config.source, item.id) : selectOneStmt.get(space.id, item.id);
+          if (!row || row.sort_order !== item.order) {
+            throw new Error('A confirmação dos dados escritos no SQLite falhou.');
+          }
+          if (row.payload_json !== item.payload) {
+            if (!isDeepStrictEqual(parseStoredObject(row.payload_json, domain), JSON.parse(item.payload))) {
+              throw new Error('A confirmação dos dados escritos no SQLite falhou.');
+            }
+          }
+        }
+      }
+
+      db.exec('COMMIT');
+      if (nextRemainderObj) {
+        remainderCache.set(space.id, { updatedAt: now, raw: expectedRemainderJson, obj: nextRemainderObj });
+      } else if (remainderCache.has(space.id)) {
+        remainderCache.get(space.id).updatedAt = now;
+      }
+      return {
+        ok: true,
+        skipped: false,
+        confirmed: true,
+        mode: 'patch',
+        spaceId: space.id,
+        storageKey: key,
+        updatedAt: now,
+        inserted,
+        updated,
+        deleted,
+        changes: inserted + updated + deleted,
+      };
+    } catch (error) {
+      if (touchedSpaceId) remainderCache.delete(touchedSpaceId);
       try { db.exec('ROLLBACK'); } catch {}
       throw error;
     }
@@ -698,7 +1047,7 @@ function createSqliteStorage(userDataDir) {
   }
 
   function readSpaceOpen(spaceId) {
-    const row = db.prepare('SELECT id,name,storage_key,remainder_json FROM spaces WHERE id = ?').get(String(spaceId));
+    const row = selectSpaceByIdStmt.get(String(spaceId));
     if (!row) return null;
     const ledger = parseStoredObject(row.remainder_json, 'spaces/' + row.id);
     ledger.accounts = tableRows('accounts', row.id);
@@ -707,7 +1056,7 @@ function createSqliteStorage(userDataDir) {
     ledger.recurring = tableRows('recurring', row.id);
     ledger.categoryCatalog = categoryRows(row.id, 'catalog');
     ledger.categoryArchive = categoryRows(row.id, 'archive');
-    return { id: row.id, name: row.name, key: row.storage_key, data: ledger };
+    return { id: row.id, name: row.name, key: row.storage_key, updatedAt: String(row.updated_at || ''), data: ledger };
   }
 
   function snapshotSpaces() {
@@ -724,13 +1073,13 @@ function createSqliteStorage(userDataDir) {
   }
 
   function info() {
-    const state = readState();
+    const domains = domainCounts();
     return {
       mode: 'SQLite normalizado',
       dbPath,
       legacyPath,
-      keys: Object.keys(state).length,
-      spaces: countSpacesFromState(state),
+      keys: Number(countStateStmt.get()?.count || 0),
+      spaces: domains.spaces || 0,
       storageSchema: Number(getMeta('storage_schema', String(NORMALIZED_SCHEMA_VERSION))) || NORMALIZED_SCHEMA_VERSION,
       normalizedSchema: Number(getMeta('normalized_schema', '0')) || 0,
       dbSchemaVersion: Number(getMeta('db_schema_version', String(CURRENT_DB_SCHEMA_VERSION))) || CURRENT_DB_SCHEMA_VERSION,
@@ -749,7 +1098,7 @@ function createSqliteStorage(userDataDir) {
       lastCacheWriteAt: getMeta('last_cache_write_at', ''),
       legacyMigration,
       normalizedMigration,
-      domains: domainCounts(),
+      domains,
     };
   }
 
@@ -793,6 +1142,8 @@ function createSqliteStorage(userDataDir) {
     readDomain,
     applyCriticalChanges,
     applyLedgerDelta,
+    writeLedgerDelta,
+    writeLedgerPatch,
     getMeta,
     setMeta,
     info,

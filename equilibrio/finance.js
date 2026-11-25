@@ -1,8 +1,20 @@
 /* Money and ledger rules shared by the application and its regression tests. */
 (function (root) {
   "use strict";
-  const cents = (n) => Math.round((Number(n) + Number.EPSILON) * 100);
+  const cents = (n) => { const v = Number(n); return Math.round((v + (v >= 0 ? 1e-9 : -1e-9)) * 100); };
   const money = (n) => cents(n) / 100;
+  const minimumPercentageBase = 1;
+  function missingReceipt(t) {
+    return t?.type === "expense" && t.receiptRequired === true && !t.attachment;
+  }
+  function savingsRate(income, expense) {
+    return income >= minimumPercentageBase ? (money(income - expense) / income) * 100 : null;
+  }
+  function percentageChange(current, previous) {
+    if (previous < minimumPercentageBase) return null;
+    const percentage = (money(current - previous) / previous) * 100;
+    return Math.abs(percentage) <= 1000 ? percentage : null;
+  }
   const id = () =>
     globalThis.crypto?.randomUUID?.() ||
     `${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -99,7 +111,7 @@
     };
   }
   const arrays = Object.keys(empty()).filter((k) => Array.isArray(empty()[k]));
-  function normalize(raw) {
+  function normalize(raw, opts) {
     if (raw?.ledgerCoreVersion !== undefined && raw.ledgerCoreVersion !== 1)
       throw Error('Versão do núcleo financeiro não suportada.');
     if (raw?.version > 2)
@@ -112,7 +124,27 @@
       !Array.isArray(raw.transactions)
     )
       throw Error("A cópia não contém contas e movimentos válidos.");
-    const d = { ...empty(), ...structuredClone(raw) };
+    const d = { ...empty(), ...(opts?.inPlace ? raw : structuredClone(raw)) };
+    // Accept legacy string keys while persisting records compatible with earlier readers.
+    const dismissed = d.correctionsDismissed;
+    const validKeys = new Set();
+    const invalidKeys = [];
+    for (const value of Array.isArray(dismissed) ? dismissed : [dismissed]) {
+      const key = typeof value === "object" && value !== null ? value.id : value;
+      if (typeof key === "string" && /^(move|recurring|tx):.{1,400}$/u.test(key)) {
+        validKeys.add(key);
+        if (typeof value === "string" || Object.keys(value).length === 1) continue;
+      }
+      invalidKeys.push(value);
+    }
+    d.correctionsDismissed = [...validKeys].map(id=>({id}));
+    if (invalidKeys.length) {
+      const previous = d.correctionsDismissedLegacy;
+      d.correctionsDismissedLegacy = [
+        ...(Array.isArray(previous) ? previous : previous === undefined ? [] : [previous]),
+        ...invalidKeys,
+      ];
+    }
     arrays.forEach((k) => {
       if (!Array.isArray(d[k])) throw Error(`A lista ${k} é inválida.`);
     });
@@ -135,7 +167,7 @@
       (!Number.isFinite(d.safetyMargin) || d.safetyMargin < 0)
     )
       throw Error("A margem de segurança é inválida.");
-    for (const k of arrays.filter((k) => k !== "closedMonths")) {
+    for (const k of arrays.filter((k) => !["closedMonths", "correctionsDismissed"].includes(k))) {
       const seen = new Set();
       for (const row of d[k]) {
         if (!row || typeof row !== "object" || Array.isArray(row))
@@ -214,9 +246,10 @@
       )
         throw Error("Capital amortizado inválido.");
       if (t.debtHistoryPrincipal !== undefined || t.debtHistoryInterest !== undefined || t.debtHistoryCharges !== undefined) {
-        const principal = Number(t.debtHistoryPrincipal) || 0;
-        const interest = Number(t.debtHistoryInterest) || 0;
-        const charges = Number(t.debtHistoryCharges) || 0;
+        const readHistPart = (v) => v === undefined ? 0 : (typeof v === "number" ? v : NaN);
+        const principal = readHistPart(t.debtHistoryPrincipal);
+        const interest = readHistPart(t.debtHistoryInterest);
+        const charges = readHistPart(t.debtHistoryCharges);
         if (![principal, interest, charges].every(Number.isFinite) || principal < 0 || interest < 0 || charges < 0 || Math.abs(money(principal + interest + charges) - t.amount) > 0.005)
           throw Error("Divisão histórica do crédito inválida.");
         t.debtHistoryPrincipal = money(principal);
@@ -365,7 +398,7 @@
     if(d.practical?.gifts!==undefined&&!gifts)throw Error("Falta o módulo das prendas.");
     gifts?.validate(d);
     const dossiers = typeof module === "object" && module.exports ? require("./dossiers-model.js") : root.DossiersFinance;
-    if ((d.practical?.routines !== undefined || d.practical?.vehicles !== undefined || d.practical?.housing !== undefined || d.casa?.utilityReadings !== undefined) && !dossiers)
+    if ((d.practical?.routines !== undefined || d.practical?.vehicles !== undefined || d.practical?.housing !== undefined || d.casa?.utilityReadings !== undefined || d.casa?.utilityPeriods !== undefined) && !dossiers)
       throw Error("Falta o módulo de dossiês, rotinas e consumos.");
     dossiers?.validate(d);
     root.ReceiptFinance?.validate(d);
@@ -526,7 +559,9 @@
     return Number.isFinite(account.openingBalance) ? account.openingBalance : money(account.balance - netForAccount(d, account.name));
   }
   function balanceAt(d, account, date = '9999-12-31') {
-    return money(openingBalance(d, account) + netForAccount(d, account.name, t => (t.targetAccount === account.name ? t.targetDate || t.date : t.date) <= date));
+    const net=rememberValue(d,"account-net|"+JSON.stringify([account.name,date]),()=>
+      netForAccount(d, account.name, t => (t.targetAccount === account.name ? t.targetDate || t.date : t.date) <= date));
+    return money(openingBalance(d, account)+net);
   }
   function refreshBalances(d) {
     const totals = new Map((d.accounts || []).map(a => [a.name, 0]));
@@ -740,6 +775,17 @@
     validateSplits(t);
     if (!validDate(t.date) || !Number.isFinite(+t.amount) || +t.amount <= 0)
       throw Error("Preenche uma data e um valor superiores a zero.");
+    if (t.targetDate !== undefined && !validDate(t.targetDate))
+      throw Error("Data de destino inválida.");
+    if (t.principal !== undefined) {
+      if (!Number.isFinite(t.principal) || t.principal < 0 || money(t.principal) > money(t.amount))
+        throw Error("Capital amortizado inválido.");
+      if (t.debtId) {
+        const debt = (d.debts || []).find((x) => String(x.id) === String(t.debtId));
+        if (debt && debt.balance > 0 && money(t.principal) > money(debt.balance))
+          throw Error("O capital amortizado excede o saldo em dívida.");
+      }
+    }
     if (!["income", "expense", "transfer", "adjustment"].includes(t.type))
       throw Error("Tipo de movimento inválido.");
     if (!Number.isSafeInteger(cents(t.amount)) || money(t.amount) <= 0)
@@ -750,22 +796,22 @@
       throw Error("Reabre o mês de origem ou destino antes de alterar os movimentos.");
     t = { ...t, id: t.id || id(), amount: money(t.amount), ...(t.splits ? {splits:structuredClone(t.splits)} : {}) };
     if (d.ledgerCoreVersion === 1) refreshBalances(d);
-    effect(d, t);
+    let refundPlan = null;
     if (t.refundOf) {
-      const plan = d.installmentPlans.find(
-          (p) => p.transactionId === t.refundOf,
-        ),
-        card = d.accounts.find((a) => a.id === plan?.cardId);
-      if (plan && card?.name === t.account) {
-        let left = t.amount;
-        t.installmentCredits = [];
-        for (const p of plan.payments.slice().reverse()) {
-          const reduction = money(Math.min(left, p.amount - p.paid));
-          if (reduction) {
-            p.amount = money(p.amount - reduction);
-            left = money(left - reduction);
-            t.installmentCredits.push({ id: p.id, amount: reduction });
-          }
+      refundPlan = (d.installmentPlans || []).find((p) => String(p.transactionId) === String(t.refundOf));
+      const card = refundPlan ? d.accounts.find((a) => String(a.id) === String(refundPlan.cardId)) : null;
+      if (!card || card.name !== t.account) refundPlan = null;
+    }
+    effect(d, t);
+    if (refundPlan) {
+      let left = t.amount;
+      t.installmentCredits = [];
+      for (const p of refundPlan.payments.slice().reverse()) {
+        const reduction = money(Math.min(left, p.amount - p.paid));
+        if (reduction) {
+          p.amount = money(p.amount - reduction);
+          left = money(left - reduction);
+          t.installmentCredits.push({ id: p.id, amount: reduction });
         }
       }
     }
@@ -774,20 +820,20 @@
     return t;
   }
   function remove(d, tid) {
-    if(d.casa?.returns?.some(r=>r.transactionId===tid))throw Error('Abre a compra Casa para anular o reembolso com o stock associado.');
-    if (d.casa?.purchases?.some(p => p.transactionId === tid))
+    if(d.casa?.returns?.some(r=>String(r.transactionId)===String(tid)))throw Error('Abre a compra Casa para anular o reembolso com o stock associado.');
+    if (d.casa?.purchases?.some(p => String(p.transactionId) === String(tid)))
       throw Error('Este movimento pertence a uma compra Casa. Abre a compra para a eliminar com o respetivo movimento.');
     const i = d.transactions.findIndex((t) => String(t.id) === String(tid));
     if (i < 0) return;
     if (d.practical?.interventions.some(row => String(row.transactionId || "") === String(tid)))
       throw Error("Este pagamento pertence a uma intervenção Casa. Mantém-no para preservar o equipamento e o histórico.");
-    if (d.sharedExpenses.some((s) => s.transactionId === tid))
+    if (d.sharedExpenses.some((s) => String(s.transactionId) === String(tid)))
       throw Error("Remove primeiro a partilha associada.");
-    if (d.investmentTrades.some((s) => s.transactionId === tid))
+    if (d.investmentTrades.some((s) => String(s.transactionId) === String(tid)))
       throw Error("Reverte a operação no módulo Investimentos.");
-    if (d.transactions.some((t) => t.transferFeeOf === tid))
+    if (d.transactions.some((t) => t.transferFeeOf != null && String(t.transferFeeOf) === String(tid)))
       throw Error("Remove primeiro a comissão associada à transferência.");
-    if (d.installmentPlans.some((p) => p.transactionId === tid))
+    if (d.installmentPlans.some((p) => String(p.transactionId) === String(tid)))
       throw Error("Cancela o plano de prestações antes de apagar a compra.");
     if (d.transactions.some((t) => String(t.refundOf) === String(tid)))
       throw Error("Remove primeiro os reembolsos associados a esta despesa.");
@@ -797,18 +843,18 @@
     if (removed.installmentPaymentId)
       for (const plan of d.installmentPlans) {
         const part = plan.payments.find(
-          (p) => p.id === removed.installmentPaymentId,
+          (p) => String(p.id) === String(removed.installmentPaymentId),
         );
         if (part) part.paid = money(part.paid - removed.amount);
       }
     effect(d, d.transactions[i], -1);
     for (const credit of removed.installmentCredits || [])
       for (const plan of d.installmentPlans) {
-        const part = plan.payments.find((p) => p.id === credit.id);
+        const part = plan.payments.find((p) => String(p.id) === String(credit.id));
         if (part) part.amount = money(part.amount + credit.amount);
       }
     if (removed.pendingId) {
-      let p = d.pendingPayments.find((p) => p.id === removed.pendingId);
+      let p = d.pendingPayments.find((p) => String(p.id) === String(removed.pendingId));
       if (p) {
         p.amount = money(p.amount + removed.amount);
         const oldHistory = p.reschedules || [],
@@ -821,7 +867,7 @@
           )
         ) {
           p.reschedules = structuredClone(history);
-          p.date = removed.originalDueDate;
+          p.date = removed.originalDueDate || removed.date;
         }
       } else
         d.pendingPayments.push({
@@ -830,7 +876,7 @@
           account: removed.account,
           type: removed.type,
           amount: removed.amount,
-          date: removed.originalDueDate,
+          date: removed.originalDueDate || removed.date,
           category: removed.category,
           ...(removed.equipmentId ? {equipmentId:removed.equipmentId} : {}),
           ...(removed.reschedules
@@ -840,7 +886,7 @@
     }
     for (const s of d.statements)
       for (const r of s.rows)
-        if (r.transactionId === tid) {
+        if (String(r.transactionId) === String(tid)) {
           r.transactionId = null;
           r.status = "pending";
         }
@@ -852,13 +898,13 @@
   }
   function applyLinkedPayment(d, added) {
     if (added.pendingId) {
-      const pending = d.pendingPayments.find(p => p.id === added.pendingId);
+      const pending = d.pendingPayments.find(p => String(p.id) === String(added.pendingId));
       if (!pending || cents(added.amount) > cents(pending.amount)) throw Error("O novo pagamento excede o compromisso por liquidar.");
       pending.amount = money(pending.amount - added.amount);
-      if (!pending.amount) d.pendingPayments = d.pendingPayments.filter(p => p.id !== pending.id);
+      if (!pending.amount) d.pendingPayments = d.pendingPayments.filter(p => String(p.id) !== String(pending.id));
     }
     if (added.installmentPaymentId) {
-      const part = d.installmentPlans.flatMap(p => p.payments).find(p => p.id === added.installmentPaymentId);
+      const part = d.installmentPlans.flatMap(p => p.payments).find(p => String(p.id) === String(added.installmentPaymentId));
       if (!part || cents(part.paid + added.amount) > cents(part.amount)) throw Error("O novo pagamento excede a prestação por liquidar.");
       part.paid = money(part.paid + added.amount);
     }
@@ -875,15 +921,38 @@
     if (d.practical?.interventions.some(row => String(row.transactionId || "") === String(tid)) &&
         (replacement?.type !== "expense" || cents(replacement?.amount) !== cents(original.amount)))
       throw Error("O valor deste pagamento está associado a uma intervenção Casa. Revê a intervenção antes de alterar o valor.");
-    const draft = structuredClone(d);
+    const draft = {
+      ...d,
+      accounts: structuredClone(d.accounts || []),
+      transactions: structuredClone(d.transactions || []),
+      statements: structuredClone(d.statements || []),
+      pendingPayments: structuredClone(d.pendingPayments || []),
+      installmentPlans: structuredClone(d.installmentPlans || []),
+      debts: structuredClone(d.debts || []),
+      reconciliations: structuredClone(d.reconciliations || []),
+      categoryCatalog: structuredClone(d.categoryCatalog || []),
+      categoryArchive: structuredClone(d.categoryArchive || []),
+      practical: d.practical ? {
+        ...d.practical,
+        interventions: structuredClone(d.practical.interventions || []),
+        captures: structuredClone(d.practical.captures || []),
+      } : d.practical,
+    };
     const savedPracticalLinks = draft.practical ? {interventions:structuredClone(draft.practical.interventions),captures:structuredClone(draft.practical.captures)} : null;
     if (draft.practical) draft.practical.interventions = draft.practical.interventions.filter(row => String(row.transactionId || "") !== String(tid));
     const savedStatements = structuredClone(draft.statements);
-    const draftOriginal = draft.transactions.find((t) => String(t.id) === String(tid));
+    const originalIndex = draft.transactions.findIndex((t) => String(t.id) === String(tid));
+    const draftOriginal = draft.transactions[originalIndex];
     const linkedRefunds = draft.transactions.filter((t) => String(t.refundOf || "") === String(tid));
     if (linkedRefunds.length) {
       if ((replacement?.type || draftOriginal.type) !== "expense")
         throw Error("Uma despesa com reembolsos associados tem de continuar a ser uma despesa.");
+      const closedRefund = linkedRefunds.some((r) => (draft.closedMonths || []).includes(String(r.date || "").slice(0, 7)));
+      const catChanged = categoryPath(replacement?.category || draftOriginal.category || "") !== categoryPath(draftOriginal.category || "");
+      const splitsChanged = JSON.stringify(replacement?.splits || null) !== JSON.stringify(draftOriginal.splits || null);
+      const natureChanged = (replacement?.expenseNature ?? draftOriginal.expenseNature) !== draftOriginal.expenseNature;
+      if (closedRefund && (catChanged || splitsChanged || natureChanged))
+        throw Error("Reabre o mês do reembolso associado antes de alterar a categoria ou divisão da despesa.");
       const refunded = linkedRefunds.reduce((n, t) => n + cents(t.amount), 0);
       if (refunded > cents(replacement?.amount ?? draftOriginal.amount))
         throw Error("O novo valor da despesa é inferior ao total já reembolsado. Ajusta primeiro o valor ou os reembolsos.");
@@ -891,13 +960,18 @@
     }
     remove(draft, tid);
     const added = add(draft, { ...replacement, id: draftOriginal.id });
+    const addedIndex = draft.transactions.lastIndexOf(added);
+    if (originalIndex >= 0 && addedIndex >= 0 && addedIndex !== originalIndex && originalIndex < draft.transactions.length) {
+      draft.transactions.splice(addedIndex, 1);
+      draft.transactions.splice(originalIndex, 0, added);
+    }
     applyLinkedPayment(draft, added);
     const identity = t => JSON.stringify([t.type, t.account, t.targetAccount || "", t.date, t.targetDate || "", cents(t.amount)]);
     if (identity(draftOriginal) === identity(added)) draft.statements = savedStatements;
     for (const refund of linkedRefunds) refund.refundOf = added.id;
     if (savedPracticalLinks) Object.assign(draft.practical, savedPracticalLinks);
     // Valida a coerência completa antes de substituir o ledger original.
-    normalize(draft);
+    normalize(draft, { inPlace: true });
     for (const key of Object.keys(d)) delete d[key];
     Object.assign(d, draft);
     return d.transactions.find((t) => String(t.id) === String(added.id));
@@ -925,13 +999,16 @@
     const legacyMatched = new Set();
     // Índices dos movimentos (pela ordem original) para não percorrer o livro
     // inteiro por cada regra e ocorrência.
-    const txPosition = new Map(), txByMonth = new Map(), txByRule = new Map(), txBySubscription = new Map();
-    const bucket = (map, key, t) => { let list = map.get(key); if (!list) map.set(key, list = []); list.push(t); };
-    d.transactions.forEach((t, i) => {
-      txPosition.set(t, i);
-      bucket(txByMonth, String(t.date || "").slice(0, 7), t);
-      if (t.recurringRuleId !== undefined && t.recurringRuleId !== null) bucket(txByRule, String(t.recurringRuleId), t);
-      bucket(txBySubscription, String(t.subscriptionId || ""), t);
+    const { txPosition, txByMonth, txByRule, txBySubscription } = rememberValue(d, "upcomingTransactionIndex", () => {
+      const txPosition = new Map(), txByMonth = new Map(), txByRule = new Map(), txBySubscription = new Map();
+      const bucket = (map, key, t) => { let list = map.get(key); if (!list) map.set(key, list = []); list.push(t); };
+      d.transactions.forEach((t, i) => {
+        txPosition.set(t, i);
+        bucket(txByMonth, String(t.date || "").slice(0, 7), t);
+        if (t.recurringRuleId !== undefined && t.recurringRuleId !== null) bucket(txByRule, String(t.recurringRuleId), t);
+        bucket(txBySubscription, String(t.subscriptionId || ""), t);
+      });
+      return { txPosition, txByMonth, txByRule, txBySubscription };
     });
     const inMonths = (months) => { const lists = [...months].map((m) => txByMonth.get(m) || []); return lists.length === 1 ? lists[0] : lists.flat().sort((a, b) => txPosition.get(a) - txPosition.get(b)); };
     const cleanText = (value) => String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLocaleLowerCase("pt-PT").replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
@@ -971,7 +1048,7 @@
           const txDescription = cleanText(t.description);
           const txIdentity = cleanText([t.description, t.beneficiary].filter(Boolean).join(" "));
           const identityMatch = kind === "subscription"
-            ? Boolean(description && (txIdentity.includes(description) || description.includes(txDescription) || strongIdentityMatch(owner.name || owner.description, t)))
+            ? Boolean(description && (txIdentity.includes(description) || (txDescription.length > 0 && description.includes(txDescription)) || strongIdentityMatch(owner.name || owner.description, t)))
             : txDescription === description;
           const categoryMatch = sameCategoryIdentity(owner, t);
           if (!identityMatch && !categoryMatch) return false;
@@ -1065,7 +1142,7 @@
         const firstMonth = s.nextDate.slice(0, 7);
         const diff = (+month.slice(0,4) - +firstMonth.slice(0,4)) * 12 + (+month.slice(5) - +firstMonth.slice(5,7));
         const step = s.frequency === "yearly" ? 12 : 1;
-        if (diff >= 0 && diff % step === 0) nominalDates.push(dateAt(month, +(s.nextDate.slice(8) || 1)));
+        if (diff >= 0 && diff % step === 0) nominalDates.push(dateAt(month, +(s.renewalDay || s.nextDate.slice(8) || 1)));
         const originalDates = new Set(nominalDates);
         const movedIntoMonth = overridesOf(s)
           .filter((o) => (o.date || o.originalDate).slice(0, 7) === month && !originalDates.has(o.originalDate))
@@ -1138,6 +1215,9 @@
             splitNote: p.note || "",
             amount: -value / 100,
             expenseNature: original.expenseNature,
+            recurringRuleId: t.recurringRuleId || original.recurringRuleId,
+            subscriptionId: t.subscriptionId || original.subscriptionId,
+            debtId: t.debtId || original.debtId,
           });
         });
       }
@@ -1147,15 +1227,17 @@
   function parseAmount(input) {
     let s = String(input ?? "")
       .trim()
-      .replace(/[€\s\u00a0]/g, "");
-    let negative = /^\(.*\)$/.test(s);
-    s = s.replace(/[()]/g, "");
+      .replace(/(?:EUR|€)/gi, "")
+      .replace(/[\s\u00a0]/g, "");
+    let negative = /^\(.*\)$/.test(s) || /-$/.test(s);
+    s = s.replace(/[()]/g, "").replace(/-$/, "");
     if (s.includes(",") && s.includes("."))
       s =
         s.lastIndexOf(",") > s.lastIndexOf(".")
           ? s.replace(/\./g, "").replace(",", ".")
           : s.replace(/,/g, "");
     else if (s.includes(",")) s = s.replace(",", ".");
+    else if (/^[+-]?\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, "");
     if (!/^[+-]?\d+(\.\d{1,2})?$/.test(s))
       throw Error("Valor inválido: " + input);
     return money(negative ? -Math.abs(Number(s)) : Number(s));
@@ -1309,8 +1391,25 @@
         return match && (haystack.includes(match) || importNormalize(importMerchant(description)).includes(match));
       });
   }
+  function prepareImportHistory(history = []) {
+    if (!Array.isArray(history)) return [];
+    return history.map((previous) => {
+      if (!previous || typeof previous !== "object") return previous;
+      if (previous._preparedImport) return previous;
+      const prevDesc = String(previous.description || "");
+      const prevBeneficiary = String(previous.beneficiary || importMerchant(prevDesc) || "").trim();
+      return {
+        ...previous,
+        _preparedImport: true,
+        _descNorm: importNormalize(prevDesc),
+        _beneficiary: prevBeneficiary,
+        _merchantKey: importNormalize(prevBeneficiary),
+      };
+    });
+  }
   function smartImportSuggestion(transaction, history = [], rules = []) {
     const description = String(transaction?.description || "").trim();
+    const descNorm = importNormalize(description);
     const detectedMerchant = String(transaction?.beneficiary || importMerchant(description)).trim();
     const merchantKey = importNormalize(detectedMerchant);
     const rule = importRuleFor(description, rules.filter(r => !r.type || r.type === transaction.type), transaction.beneficiary);
@@ -1329,10 +1428,11 @@
     for (const previous of Array.isArray(history) ? history : []) {
       if (!previous || previous.type !== transaction.type || previous.type === "transfer") continue;
       const prevDesc = String(previous.description || "");
-      const prevBeneficiary = String(previous.beneficiary || importMerchant(prevDesc) || "").trim();
-      const prevMerchantKey = importNormalize(prevBeneficiary);
+      const prevDescNorm = previous._preparedImport ? previous._descNorm : importNormalize(prevDesc);
+      const prevBeneficiary = previous._preparedImport ? previous._beneficiary : String(previous.beneficiary || importMerchant(prevDesc) || "").trim();
+      const prevMerchantKey = previous._preparedImport ? previous._merchantKey : importNormalize(prevBeneficiary);
       let score = 0;
-      if (importNormalize(prevDesc) === importNormalize(description)) score = 6;
+      if (prevDescNorm === descNorm) score = 6;
       else if (merchantKey && prevMerchantKey && merchantKey === prevMerchantKey) score = 4.5;
       else {
         const similarity = Math.max(importSimilarity(description, prevDesc), importSimilarity(detectedMerchant, prevBeneficiary));
@@ -1363,6 +1463,7 @@
     };
   }
   function prepareImport(rows, mapping, options, accounts, rules = [], history = []) {
+    const preparedHistory = prepareImportHistory(history);
     const transactions = [],
       errors = [];
     const value = (cells, field) =>
@@ -1430,7 +1531,7 @@
           beneficiary: explicitBeneficiary,
           account,
         };
-        const suggestion = smartImportSuggestion(draft, history, rules);
+        const suggestion = smartImportSuggestion(draft, preparedHistory, rules);
         if (!explicitCategory && suggestion.category) draft.category = suggestion.category;
         if (!explicitBeneficiary && suggestion.beneficiary) draft.beneficiary = suggestion.beneficiary;
         draft.importSuggestion = {
@@ -1629,14 +1730,21 @@
     const rule = (d.recurring || []).find((r) => String(r.id) === String(ruleId));
     if (!rule) throw Error("A recorrência já não existe.");
     const ids = new Set((transactionIds || []).map(String));
-    const linked = [];
-    for (const t of d.transactions || []) {
-      if (!ids.has(String(t.id))) continue;
+    const chosen = (d.transactions || []).filter((t) => ids.has(String(t.id)));
+    if (chosen.length !== ids.size) throw Error("Um movimento escolhido já não existe.");
+    const validated = [];
+    for (const t of chosen) {
       if (t.refundOf || t.debtId || t.subscriptionId || t.pendingId) throw Error("Um dos movimentos escolhidos não pode ser associado a esta recorrência.");
       if (t.type !== rule.type) throw Error("Um dos movimentos escolhidos tem um tipo diferente da recorrência.");
       if (rule.type !== "transfer" && categoryPath(t.category || "") !== categoryPath(rule.category || "")) throw Error("Um dos movimentos escolhidos já não pertence à categoria/subcategoria da recorrência.");
       if (t.recurringRuleId && String(t.recurringRuleId) !== String(rule.id)) throw Error("Um dos movimentos escolhidos já pertence a outra recorrência.");
       const due = recurringExpectedDate(rule, t.date);
+      if (t.reconciled || (d.closedMonths || []).includes(t.date.slice(0, 7)) || (d.closedMonths || []).includes(due.slice(0, 7)))
+        throw Error("Reabre os meses e a conferência dos movimentos escolhidos.");
+      validated.push({ t, due });
+    }
+    const linked = [];
+    for (const { t, due } of validated) {
       t.recurringRuleId = rule.id;
       t.recurringDate = due;
       if (t.date !== due) t.scheduledDate = due;
@@ -1737,9 +1845,15 @@
       manualMatches.push({ due: group.due, transactionId: candidate.transactionId, date: candidate.date, score: candidate.score, manual: true });
     }
     const linked = [...result.matches, ...manualMatches];
+    const resolved = [];
     for (const match of linked) {
       const t = d.transactions.find((row) => String(row.id) === String(match.transactionId));
       if (!t) continue;
+      if (t.reconciled || (d.closedMonths || []).includes(t.date.slice(0, 7)) || (d.closedMonths || []).includes(String(match.due || "").slice(0, 7)))
+        throw Error("Reabre os meses e a conferência dos movimentos escolhidos.");
+      resolved.push({ t, match });
+    }
+    for (const { t, match } of resolved) {
       t.recurringRuleId = result.rule.id;
       t.recurringDate = match.due;
       if (t.date !== match.due) t.scheduledDate = match.due;
@@ -1756,17 +1870,21 @@
   // quem ordena ou altera as linhas não estragar a memória.
   let renderMemo = null, renderMemoDepth = 0;
   const renderCache = {
-    begin() { if (!renderMemoDepth++) renderMemo = { d: null, map: new Map() }; },
+    begin() { if (!renderMemoDepth++) renderMemo = new WeakMap(); },
     end() { if (renderMemoDepth > 0 && !--renderMemoDepth) renderMemo = null; },
-    clear() { if (renderMemo) renderMemo = { d: null, map: new Map() }; },
+    clear() { if (renderMemo) renderMemo = new WeakMap(); },
     active: () => Boolean(renderMemo),
   };
+  function rememberValue(d, key, compute) {
+    if (!renderMemo || !d || typeof d !== "object") return compute();
+    let map = renderMemo.get(d);
+    if (!map) { map = new Map(); renderMemo.set(d, map); }
+    if (!map.has(key)) map.set(key, compute());
+    return map.get(key);
+  }
   function remember(d, key, compute) {
     if (!renderMemo) return compute();
-    if (renderMemo.d !== d) renderMemo = { d, map: new Map() };
-    let rows = renderMemo.map.get(key);
-    if (!rows) { rows = compute(); renderMemo.map.set(key, rows); }
-    return rows.map((row) => ({ ...row }));
+    return rememberValue(d,key,compute).map(row=>({...row}));
   }
   function upcoming(d, month, options = {}) {
     const includeCompleted = options === true || Boolean(options?.includeCompleted);
@@ -1778,6 +1896,9 @@
   const api = {
     cents,
     money,
+    missingReceipt,
+    savingsRate,
+    percentageChange,
     id,
     today,
     validDate,
@@ -1812,6 +1933,7 @@
     importNormalize,
     importMerchant,
     importSimilarity,
+    importRuleFor,
     smartImportSuggestion,
 
 

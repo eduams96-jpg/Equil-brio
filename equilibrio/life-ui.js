@@ -72,10 +72,14 @@
   else $(".sidebar nav")?.before(space);
   function spaceOptions() {
     const el = $("#activeSpace");
+    const active = registry.find((s) => s.key === key) || registry[0];
     el.innerHTML = registry
-      .map((s) => '<option value="' + s.id + '">' + esc(s.name) + "</option>")
+      .map((s) => '<option value="' + s.id + '">Espaço: ' + esc(s.name) + "</option>")
       .join("");
-    el.value = registry.find((s) => s.key === key)?.id || "main";
+    el.value = active?.id || "main";
+    const label = "Espaço financeiro: " + (active?.name || "Pessoal");
+    el.setAttribute("aria-label", label);
+    el.title = label;
   }
 
   function readPersistedSpace(entry) {
@@ -291,16 +295,32 @@
       return true;
     }, "Altera apenas o nome; os dados mantêm-se no mesmo espaço.", "Guardar nome");
   }
+  let renderBeneficiaries;
   const settingsGrid = document.querySelector("#settings .settings-grid");
   if (settingsGrid) {
     const card = document.createElement("article"); card.className = "panel space-settings";
     card.innerHTML = '<h2>Espaços financeiros</h2><p>Gere o espaço atual: cria, edita o nome, duplica ou elimina. Podes eliminar qualquer espaço desde que exista pelo menos outro; escolhes qual fica ativo e, se necessário, qual passa a ser o novo principal.</p><div class="settings-space-actions"><button type="button" class="secondary" id="settingsAddSpace">+ Novo espaço</button><button type="button" class="secondary" id="settingsRenameSpace">Editar nome</button><button type="button" class="secondary" id="settingsDuplicateSpace">Duplicar espaço</button><button type="button" class="secondary danger-action" id="settingsDeleteSpace">Eliminar espaço</button></div>';
     settingsGrid.prepend(card);
     $("#settingsAddSpace").onclick = addSpace; $("#settingsRenameSpace").onclick = renameSpace; $("#settingsDuplicateSpace").onclick = duplicateSpace; $("#settingsDeleteSpace").onclick = deleteSpace;
-    const beneficiaries = document.createElement("article"); beneficiaries.className = "panel beneficiary-settings"; beneficiaries.innerHTML = '<h2>Beneficiários / estabelecimentos</h2><p>Lista usada nas sugestões ao criar movimentos.</p><div id="beneficiarySettingsList"></div><button type="button" class="secondary full" id="addBeneficiarySetting">+ Adicionar beneficiário</button>'; settingsGrid.append(beneficiaries);
-    const renderBeneficiaries = () => { const list = [...new Set([...(data.savedBeneficiaries || []), ...(data.transactions || []).map(t => (t.beneficiary || "").trim())].filter(Boolean))].filter(name=>!(Array.isArray(data.hiddenBeneficiaries)?data.hiddenBeneficiaries:[]).includes(name)).sort((a,b)=>a.localeCompare(b,"pt")); $("#beneficiarySettingsList").innerHTML = list.length ? list.map((name)=>`<div class="beneficiary-setting-row"><span>${esc(name)}</span><button type="button" class="link-button danger" data-remove-beneficiary="${esc(name)}">Remover da lista</button></div>`).join("") : '<p class="muted">Ainda não existem beneficiários memorizados.</p>'; document.querySelectorAll("[data-remove-beneficiary]").forEach((b)=>b.onclick=()=>commit(()=>{ data.savedBeneficiaries=(data.savedBeneficiaries||[]).filter(x=>x!==b.dataset.removeBeneficiary); data.hiddenBeneficiaries=[...new Set([...(Array.isArray(data.hiddenBeneficiaries)?data.hiddenBeneficiaries:[]),b.dataset.removeBeneficiary])]; },"Beneficiário ocultado nas sugestões; histórico preservado.")); };
+    const beneficiaries = document.createElement("details"); beneficiaries.className = "panel beneficiary-settings"; beneficiaries.innerHTML = '<summary>Beneficiários / estabelecimentos <span id="beneficiarySettingsCount" class="muted"></span></summary><label>Pesquisar<input id="beneficiarySettingsSearch" type="search"></label><div id="beneficiarySettingsList"></div><button type="button" class="secondary" id="addBeneficiarySetting">+ Adicionar beneficiário</button>'; settingsGrid.append(beneficiaries);
+    renderBeneficiaries = () => { const list = [...new Set([...(data.savedBeneficiaries || []), ...(data.transactions || []).map(t => (t.beneficiary || "").trim())].filter(Boolean))].filter(name=>!(Array.isArray(data.hiddenBeneficiaries)?data.hiddenBeneficiaries:[]).includes(name)).sort((a,b)=>a.localeCompare(b,"pt")); $("#beneficiarySettingsCount").textContent = '· ' + list.length;
+      const query = PracticalFinance.norm($("#beneficiarySettingsSearch").value);
+      const visible = list.filter(name => PracticalFinance.norm(name).includes(query));
+      $("#beneficiarySettingsList").innerHTML = visible.length ? visible.map((name)=>`<div class="beneficiary-setting-row"><span>${esc(name)}</span><button type="button" class="link-button" data-edit-beneficiary="${esc(name)}">Editar nome sugerido</button><button type="button" class="link-button danger" data-remove-beneficiary="${esc(name)}">Remover da lista</button></div>`).join("") : '<p class="muted">'+(list.length?'Nenhum beneficiário corresponde à pesquisa.':'Ainda não existem beneficiários memorizados.')+'</p>'; document.querySelectorAll("[data-remove-beneficiary]").forEach((b)=>b.onclick=()=>commit(()=>{ data.savedBeneficiaries=(data.savedBeneficiaries||[]).filter(x=>x!==b.dataset.removeBeneficiary); data.hiddenBeneficiaries=[...new Set([...(Array.isArray(data.hiddenBeneficiaries)?data.hiddenBeneficiaries:[]),b.dataset.removeBeneficiary])]; },"Beneficiário ocultado nas sugestões; histórico preservado.")); };
+    $("#beneficiarySettingsSearch").oninput = renderBeneficiaries;
+    beneficiaries.addEventListener("toggle", () => { if(beneficiaries.open)renderBeneficiaries(); });
+    beneficiaries.addEventListener("click", e => {
+      const name = e.target.closest("[data-edit-beneficiary]")?.dataset.editBeneficiary;
+      if(!name)return;
+      form("Editar nome sugerido", field("Nome", "beneficiaryName", name, "text", "required maxlength=160"), f=>commit(()=>{
+        const next = f.get("beneficiaryName").trim();
+        if(!next)throw Error("Indica um nome.");
+        if(next===name)return;
+        data.savedBeneficiaries=[...new Set([...(data.savedBeneficiaries||[]).filter(x=>x!==name),next])];
+        data.hiddenBeneficiaries=[...new Set([...(data.hiddenBeneficiaries||[]).filter(x=>x!==next),name])];
+      },"Nome sugerido atualizado. Os movimentos mantêm os nomes registados."), "Altera o nome usado nas sugestões dos próximos movimentos.");
+    });
     $("#addBeneficiarySetting").onclick = () => form("Adicionar beneficiário", field("Nome", "beneficiaryName", "", "text", "required maxlength=160"), (f)=>commit(()=>{ const name=f.get("beneficiaryName").trim(); if(!name) throw Error("Indica um nome."); data.savedBeneficiaries=[...new Set([...(data.savedBeneficiaries||[]),name])]; data.hiddenBeneficiaries=(Array.isArray(data.hiddenBeneficiaries)?data.hiddenBeneficiaries:[]).filter(x=>x!==name); },"Beneficiário guardado."));
-    setTimeout(renderBeneficiaries,0); document.addEventListener("click", (e)=>{ if(e.target?.id === "settingsButton" || e.target?.dataset?.view === "settings") setTimeout(renderBeneficiaries,0); });
   }
   spaceOptions();
   const globalButton = document.createElement("div");
@@ -415,6 +435,7 @@
       density: "comfortable",
       hiddenMetrics: [],
     };
+    document.documentElement.dataset.theme = p.theme;
     document.body.dataset.theme = p.theme;
     document.body.dataset.density = p.density;
     for (const id of [
@@ -445,19 +466,12 @@
     documentMin = "",
     documentMax = "",
     documentType = "all";
-  function render() {
-    if (searchSpace !== key) {
-      searchResults = [];
-      inlineQuery.value = "";
-      inlineResults.hidden = true;
-      inlineResults.innerHTML = "";
-      searchSpace = key;
-    }
-    presentation();
-    spaceOptions();
-    const q = L.quality(data, month),
-      forecast = CompleteFinance.estimatedForecast(data, 30),
-      reminders = L.reminders(data);
+  const lifeDirty = { quality: true, subscriptions: true, assets: true, investments: true, documents: true };
+  const qualityVisible = () => view === "qualityHub" || (view === "dataHub" && window.UnifiedWorkspaceUI?.dataTask?.() === "quality");
+  const documentsVisible = () => view === "documentsHub" || (view === "dataHub" && window.UnifiedWorkspaceUI?.dataTask?.() === "documents");
+  function renderQuality() {
+    lifeDirty.quality = false;
+    const q = L.quality(data, month);
     const qualityFold = (value) => String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
     const issueCount = (issue) => {
       if (Number.isFinite(Number(issue?.count)) && Number(issue.count) > 0) return Number(issue.count);
@@ -509,41 +523,58 @@
       ["history", "Meses sem movimentos", q.absent.length, "◷"],
       ["value", "Valores em falta", missingValueCount, "!"],
     ];
-    const filterKinds = [["all", "Todos"], ["duplicate", "Duplicados"], ["category", "Sem categoria"], ["beneficiary", "Beneficiários semelhantes"], ["other", "Outros"]];
+    const filterKinds = [["all", "Todos"], ["duplicate", "Duplicados"], ["category", "Sem categoria"], ["beneficiary", "Beneficiários semelhantes"], ["history", "Meses sem movimentos"], ["value", "Valores em falta"], ["other", "Outros"]];
+    const qualityGroup = (kind) => filterKinds.some(([filter]) => filter === kind) ? kind : "other";
     const countForFilter = (kind) => {
       if (kind === "all") return qualityRows.reduce((sum, row) => sum + row.count, 0);
-      if (kind === "other") return qualityRows.filter((row) => !["duplicate", "category", "beneficiary"].includes(row.kind)).reduce((sum, row) => sum + row.count, 0);
-      return qualityRows.filter((row) => row.kind === kind).reduce((sum, row) => sum + row.count, 0);
+      return qualityRows.filter((row) => qualityGroup(row.kind) === kind).reduce((sum, row) => sum + row.count, 0);
     };
     const scoreClass = qualityScore >= 85 ? "score-good" : qualityScore >= 70 ? "score-warn" : "score-bad";
     quality.innerHTML =
       '<div class="data-section-heading data-quality-heading"><div class="data-section-title"><span class="data-section-icon">✓</span><div><h2>Qualidade de dados</h2><p>Identifica e corrige problemas antes de influenciarem análises, previsões e saldos.</p></div></div><div class="data-section-heading-actions">' +
-        b("Ver relatório", "life-navigate", "reports", "secondary data-report-button") +
         b("Executar verificação", "data-quality-refresh", "", "primary data-refresh-button") +
       '</div></div>' +
       '<div class="data-quality-layout"><aside class="data-quality-score"><div class="data-quality-ring ' + scoreClass + '" style="--quality-score:' + qualityScore + '"><div><strong>' + qualityScore + '%</strong><span>Qualidade geral</span><em>' + qualityRows.length + ' ' + (qualityRows.length === 1 ? 'problema' : 'problemas') + ' a rever</em></div></div><p>' + (qualityScore >= 90 ? "Os teus dados estão em muito bom estado." : qualityScore >= 75 ? "A base está consistente, mas ainda há pontos para rever." : "Há vários pontos que merecem revisão para melhorar a consistência.") + '</p><small>O score penaliza apenas problemas reais; linhas ainda por rever ficam na Caixa de entrada.</small></aside><div class="data-quality-main"><div class="data-quality-metrics">' +
-        metricCards.map(([kind, label, count, icon]) => '<article class="data-quality-metric metric-' + kind + '" data-quality-jump="' + kind + '"><span class="data-quality-metric-icon">' + icon + '</span><div><strong>' + count + '</strong><span>' + label + '</span></div></article>').join("") +
+        metricCards.map(([kind, label, count, icon]) => '<article class="data-quality-metric metric-' + kind + '" data-quality-jump="' + kind + '" role="button" tabindex="0"><span class="data-quality-metric-icon">' + icon + '</span><div><strong>' + count + '</strong><span>' + label + '</span></div></article>').join("") +
       '</div><div class="data-quality-toolbar"><div class="data-quality-filters">' +
         filterKinds.map(([kind, label]) => '<button type="button" class="data-filter-chip" data-quality-filter="' + kind + '">' + label + '<span>' + countForFilter(kind) + '</span></button>').join("") +
       '</div><span class="data-quality-lastcheck">Verificação atual · ' + esc(monthLabel(month)) + '</span></div>' +
       '<div class="data-quality-table"><div class="data-quality-th"><span>Tipo</span><span>Descrição</span><span>Ocorrências</span><span>Impacto</span><span>Ações</span></div><div id="dataQualityRows">' +
-        qualityRows.map((row) => '<div class="data-quality-tr" data-quality-row data-kind="' + esc(["duplicate", "category", "beneficiary"].includes(row.kind) ? row.kind : "other") + '"><div><span class="data-quality-kind kind-' + esc(row.kind) + '">' + esc(kindLabels[row.kind] || "Outro") + '</span></div><div class="data-quality-description"><b>' + esc(row.title) + '</b><small>' + esc(row.detail) + '</small></div><div class="data-quality-count">' + row.count + '</div><div><span class="data-impact impact-' + row.impact.toLowerCase() + '">' + row.impact + '</span></div><div>' + b("Rever", "life-navigate", row.route, "secondary") + '</div></div>').join("") +
+        qualityRows.map((row) => '<div class="data-quality-tr" data-quality-row data-kind="' + esc(qualityGroup(row.kind)) + '"><div><span class="data-quality-kind kind-' + esc(row.kind) + '">' + esc(kindLabels[row.kind] || "Outro") + '</span></div><div class="data-quality-description"><b>' + esc(row.title) + '</b><small>' + esc(row.detail) + '</small></div><div class="data-quality-count">' + row.count + '</div><div><span class="data-impact impact-' + row.impact.toLowerCase() + '">' + row.impact + '</span></div><div>' + b("Rever", "life-navigate", row.route, "secondary") + '</div></div>').join("") +
         (qualityRows.length ? "" : '<div class="data-table-empty">Sem alertas nestas verificações. Isto não certifica a exatidão dos extratos.</div>') +
-      '</div></div><details class="data-quality-context"><summary><span class="data-quality-context-copy"><b>Contexto das previsões</b><small>Base usada no cálculo atual</small></span><span class="data-quality-context-badge">30 dias</span></summary><div class="data-quality-context-body"><p>' + forecast.baseline.events.length + ' compromissos conhecidos nos próximos 30 dias · despesa variável média estimada: <b>' + eur(forecast.monthlyEstimate) + '/mês</b>.</p><p>' + esc(forecast.assumption) + '</p>' + b("Consultar previsões", "life-navigate", "cashflow") + '</div></details></div></div>';
+      '</div><div class="data-table-empty" data-quality-empty hidden>Sem ocorrências para este filtro.</div></div></div></div>';
     const applyQualityFilter = (kind) => {
-      document.querySelectorAll("[data-quality-filter]").forEach((button) => button.classList.toggle("active", button.dataset.qualityFilter === kind));
+      quality.querySelectorAll("[data-quality-filter]").forEach((button) => {
+        const selected = button.dataset.qualityFilter === kind;
+        button.classList.toggle("active", selected);
+        button.setAttribute("aria-pressed", String(selected));
+      });
+      quality.querySelector("[data-quality-empty]").hidden = kind === "all" || countForFilter(kind) > 0;
       document.querySelectorAll("[data-quality-row]").forEach((row) => {
-        row.hidden = kind !== "all" && row.dataset.kind !== kind && !(kind === "other" && row.dataset.kind === "other");
+        row.hidden = kind !== "all" && row.dataset.kind !== kind;
       });
     };
     document.querySelectorAll("[data-quality-filter]").forEach((button) => button.onclick = () => applyQualityFilter(button.dataset.qualityFilter || "all"));
-    document.querySelectorAll("[data-quality-jump]").forEach((card) => card.onclick = () => {
-      const kind = card.dataset.qualityJump;
-      applyQualityFilter(["duplicate", "category", "beneficiary"].includes(kind) ? kind : "other");
-      quality.querySelector(".data-quality-table")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    document.querySelectorAll("[data-quality-jump]").forEach((card) => {
+      const jump = () => {
+        const kind = card.dataset.qualityJump;
+        applyQualityFilter(kind);
+        quality.querySelector(".data-quality-table")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      };
+      card.onclick = jump;
+      card.onkeydown = (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          jump();
+        }
+      };
     });
     applyQualityFilter("all");
     window.DataHub?.refresh?.();
+  }
+  function renderSubscriptions() {
+    lifeDirty.subscriptions = false;
+    const reminders = L.reminders(data);
     const subscriptionPriceHistory = (subscription) => {
       const rows = [], seen = new Set();
       const addPrice = (date, amount, source = "stored") => {
@@ -610,7 +641,10 @@
         (reminders.length ? '<details class="subscription-reminders"><summary>Lembretes (' + reminders.length + ')</summary>' + reminders.map((r) => '<div class="attention-row"><div><b>' + esc(r.name) + '</b><p>' + esc(r.label) + ' · ' + dateLabel(r.date) + (r.overdue ? ' · Data ultrapassada' : '') + '</p></div>' + b('Rever','life-subscription',r.id) + '</div>').join('') + '</details>' : '') +
       '</div>';
     const historyFocus = document.getElementById('subscriptionHistoryFocus');
-    if (historyFocus) historyFocus.onchange = () => { subscriptionHistoryFocus = historyFocus.value; render(); };
+    if (historyFocus) historyFocus.onchange = () => { subscriptionHistoryFocus = historyFocus.value; renderSubscriptions(); };
+  }
+  function renderAssets() {
+    lifeDirty.assets = false;
     assets.innerHTML =
       '<div class="assets-compact-head"><div class="life-toolbar">' +
       b("Adicionar bem", "life-asset") +
@@ -648,6 +682,9 @@
         )
         .join("") +
       "</div><p class=\"muted assets-footnote\">Avaliações manuais, separadas do dinheiro disponível. Não registes o mesmo bem como investimento ou saldo de conta.</p>";
+  }
+  function renderInvestments() {
+    lifeDirty.investments = false;
     const perf = L.performance(data);
     investments.innerHTML =
       '<div class="life-toolbar">' +
@@ -697,7 +734,7 @@
         .map(
           (t) =>
             '<div class="attention-row"><div><b>' +
-            esc(data.investments.find((i) => i.id === t.investmentId).name) +
+            esc(data.investments.find((i) => i.id === t.investmentId)?.name || "Investimento") +
             " · " +
             { buy: "Compra", sell: "Venda", dividend: "Dividendo" }[t.kind] +
             '</b><p class="amount">' +
@@ -723,7 +760,26 @@
         ? "<p>Ainda não há operações registadas. Adicionar uma posição inicial não cria movimentos na conta.</p>"
         : "") +
       "<p>Compras e vendas movem dinheiro através de ajustes ligados à posição; não contam como despesa de consumo ou rendimento bruto. Dividendos líquidos contam como receita. Resultados usam custo médio e não calculam impostos.</p></section>";
-    renderDocuments();
+  }
+  function flushVisible() {
+    if (lifeDirty.quality && qualityVisible()) renderQuality();
+    if (lifeDirty.subscriptions && (view === "subscriptionsHub" || view === "insights")) renderSubscriptions();
+    if (lifeDirty.assets && view === "assets") renderAssets();
+    if (lifeDirty.investments && view === "investments") renderInvestments();
+    if (lifeDirty.documents && documentsVisible()) renderDocuments(true);
+  }
+  function render() {
+    if (searchSpace !== key) {
+      searchResults = [];
+      inlineQuery.value = "";
+      inlineResults.hidden = true;
+      inlineResults.innerHTML = "";
+      searchSpace = key;
+    }
+    presentation();
+    spaceOptions();
+    lifeDirty.quality = lifeDirty.subscriptions = lifeDirty.assets = lifeDirty.investments = lifeDirty.documents = true;
+    flushVisible();
     if (view === 'reports') {
     const annual = L.annualReport(data, document.getElementById('reportYear')?.value || month.slice(0, 4)),
       pct = (value) => value === null || !Number.isFinite(value) ? "sem base" : `${value >= 0 ? "+" : ""}${Math.round(value)}%`,
@@ -774,9 +830,9 @@
       $("#decisionPanel").after(overview);
     }
     overview.innerHTML =
-      b(q.issues.length + " pontos de revisão", "life-navigate", "qualityHub") +
+      b(L.quality(data, month).issues.length + " pontos de revisão", "life-navigate", "qualityHub") +
       b(
-        reminders.length + " lembretes de subscrições",
+        L.reminders(data).length + " lembretes de subscrições",
         "life-navigate",
         "subscriptionsHub",
       );
@@ -788,12 +844,14 @@
     selectedDocument = t.id;
     documentYear = documentQuery = documentFrom = documentTo = documentMin = documentMax = "";
     documentType = "all";
-    renderDocuments();
+    renderDocuments(true);
     navigate("documentsHub");
   }
 
-  function renderDocuments() {
-    const filtersOpen=docs.querySelector('.document-filter-toggle')?.open||false,queryFocused=document.activeElement?.name==='documentQuery',queryCursor=queryFocused?document.activeElement.selectionStart:null;
+  let documentView='archive';
+  function renderDocumentResults() {
+    const resultsHost = docs.querySelector("#documentResults");
+    if (!resultsHost) return;
     const records = L.documents(data, {
       year: documentYear,
       query: documentQuery,
@@ -804,7 +862,7 @@
       type: documentType,
     });
     const eligible = data.transactions
-      .filter((t) => ["income", "expense"].includes(t.type) && t.receiptRequired === true && !t.attachment)
+      .filter(F.missingReceipt)
       .sort((a, b) => String(b.date).localeCompare(String(a.date)));
     const total = records.reduce((n, t) => n + (+t.amount || 0), 0);
     const pdfs = records.filter((t) => t.attachment?.type === "application/pdf").length;
@@ -815,21 +873,8 @@
       if (bytes < 1024 * 1024) return Math.max(1, Math.round(bytes / 1024)) + " KB";
       return (bytes / 1024 / 1024).toFixed(1).replace(".0", "") + " MB";
     };
-    docs.innerHTML =
-      '<div class="panel documents-panel"><div class="panel-heading documents-heading"><div><h2>Comprovativos</h2><p>Arquivo pesquisável dos ficheiros associados aos movimentos. PDFs são guardados no formato original; abrir, guardar uma cópia ou exportar não altera os saldos.</p></div></div>' +
-      '<div class="document-metrics"><article><span>Na seleção</span><strong>' + records.length + '</strong><small>comprovativos</small></article><article><span>Valor associado</span><strong>' + eur(total) + '</strong><small>dos movimentos</small></article><article><span>PDF / imagem</span><strong>' + pdfs + ' / ' + images + '</strong><small>ficheiros</small></article><article><span>Sem comprovativo</span><strong>' + eligible.length + '</strong><small>movimentos</small></article></div>' +
-      '<div class="document-filter-grid">' +
-      field("Pesquisa", "documentQuery", documentQuery, "search", 'placeholder="Loja, artigo, texto da fatura ou ficheiro"') +
-      field("Ano", "documentYear", documentYear, "text", 'inputmode="numeric" maxlength="4" placeholder="Todos"') +
-      field("De", "documentFrom", documentFrom, "date") +
-      field("Até", "documentTo", documentTo, "date") +
-      field("Valor mín. (€)", "documentMin", documentMin, "number", 'min="0" step="0.01"') +
-      field("Valor máx. (€)", "documentMax", documentMax, "number", 'min="0" step="0.01"') +
-      select("Tipo", "documentType", [["all","Todos"],["pdf","PDF"],["image","Imagem"]], documentType) +
-      '</div><div class="decision-actions document-toolbar">' +
-      b("Limpar filtros", "life-doc-clear") +
-      b("Exportar seleção em ZIP", "life-doc-zip") +
-      '</div>' +
+    resultsHost.innerHTML =
+      '<div class="document-metrics"><article><span>Na seleção</span><strong>' + records.length + '</strong><small>comprovativos</small></article><article><span>Valor associado</span><strong>' + eur(total) + '</strong><small>dos movimentos</small></article><article><span>PDF / imagem</span><strong>' + pdfs + ' / ' + images + '</strong><small>ficheiros</small></article><article><span>Comprovativos pedidos em falta</span><strong>' + eligible.length + '</strong><small>todo o histórico</small></article></div>' +
       (records.length ? '<div id="documentRows" class="document-list">' + records.map((t) => {
         const a = t.attachment || {};
         const type = a.type === "application/pdf" ? "PDF" : "Imagem";
@@ -842,32 +887,68 @@
           b("Entidade", "life-doc-entity", t.id) +
           '</div></div>';
       }).join("") + '</div>' : '<div class="empty">Nenhum comprovativo corresponde aos filtros.</div>') +
-      '<details class="documents-missing"><summary>Movimentos sem comprovativo <span class="pill">' + eligible.length + '</span></summary><p>Apenas movimentos com “Pedir fatura” ativo e sem ficheiro anexado. Arrasta um PDF ou imagem para o movimento, ou anexa aqui.</p><div>' +
+      '<details class="documents-missing"><summary>Comprovativos pedidos em falta <span class="pill">' + eligible.length + '</span></summary><p>Inclui despesas de todos os meses com um pedido de fatura por completar. Arrasta um PDF ou imagem para o movimento, ou anexa aqui.</p><div>' +
       eligible.slice(0, 30).map((t) => '<div class="attention-row"><div><b>' + esc(t.description) + '</b><p>' + dateLabel(t.date) + ' · ' + esc(t.account) + ' · ' + eur(t.amount) + '</p></div><div class="decision-actions">' + b("Anexar", "attach-receipt", t.id) + b("Ver movimento", "life-doc-movement", t.id) + '</div></div>').join("") +
       (eligible.length > 30 ? '<p class="muted">A mostrar os 30 movimentos mais recentes sem comprovativo.</p>' : '') +
-      '</div></details></div>';
+      '</div></details>';
 
-    const rows=docs.querySelectorAll('#documentRows>.document-row');
+    const rows=resultsHost.querySelectorAll('#documentRows>.document-row');
     if(rows.length){
       const library=document.createElement('div');library.className='document-library';
-      const list=document.createElement('div');list.className='document-library-list';list.setAttribute('aria-label','Comprovativos guardados');list.innerHTML='<h3 class="document-library-title">Comprovativos guardados</h3>';
+      const list=document.createElement('div');list.className='document-library-list';list.setAttribute('aria-label','Comprovativos guardados');list.innerHTML='<div class="u-table-scroll"><table class="u-table"><thead><tr><th>Documento</th><th>Data</th><th>Valor</th></tr></thead><tbody></tbody></table></div>';
       const inspector=document.createElement('aside');inspector.className='document-inspector';inspector.setAttribute('aria-label','Comprovativo selecionado');
       const previews=document.createElement('div'),owned=document.createElement('div');previews.className='document-preview';owned.className='document-selected-actions';const heading=document.createElement('div');heading.className='document-inspector-heading';heading.innerHTML='<h3>Comprovativo selecionado</h3><p>Consulta o original e as ações do registo.</p>';inspector.append(heading,previews,owned);
-      docs.querySelector('#documentRows').before(library);library.append(list,inspector);
-      const entries=[...rows].map((row,i)=>{const tx=records[i],button=document.createElement('button');button.type='button';button.className='document-select';button.dataset.documentSelect=tx.id;button.innerHTML='<b>'+esc(tx.documentEntity||tx.receiptMerchant||tx.beneficiary||tx.description)+'</b><span>'+dateLabel(tx.date)+' · '+eur(tx.amount)+'</span><small>'+esc(tx.attachment?.name||'Comprovativo')+'</small>';list.append(button);owned.append(row);return {row,button,tx};});
-      const select=(id)=>{selectedDocument=id;previews.replaceChildren();for(const e of entries){const active=e.tx.id===id;e.row.hidden=!active;e.button.setAttribute('aria-pressed',String(active));if(active){const a=e.tx.attachment,valid=/^data:(image\/(png|jpeg|webp)|application\/pdf);base64,[A-Za-z0-9+/=\r\n]+$/.test(a?.data||'');if(valid){const media=document.createElement(a.type==='application/pdf'?'iframe':'img');if(media.tagName==='IFRAME')media.title='Pré-visualização de '+(a.name||'PDF');else media.alt='Comprovativo de '+e.tx.description;media.src=a.data;previews.append(media);}else{const p=document.createElement('p');p.textContent='Pré-visualização indisponível. Usa Abrir para consultar o ficheiro.';previews.append(p);}}}};
+      resultsHost.querySelector('#documentRows').before(library);library.append(list,inspector);
+      const entries=[...rows].map((row,i)=>{const tx=records[i],button=document.createElement('button');button.type='button';button.className='document-select';button.dataset.documentSelect=tx.id;button.innerHTML='<b>'+esc(tx.documentEntity||tx.receiptMerchant||tx.beneficiary||tx.description)+'</b><small>'+esc(tx.attachment?.name||'Comprovativo')+'</small>';const tr=list.querySelector('tbody').insertRow();tr.insertCell().append(button);tr.insertCell().textContent=dateLabel(tx.date);tr.insertCell().textContent=eur(tx.amount);owned.append(row);return {row,button,tx};});
+      const select=(id)=>{selectedDocument=id;previews.replaceChildren();for(const e of entries){const active=e.tx.id===id;e.row.hidden=!active;e.button.closest('tr').classList.toggle('is-selected',active);e.button.setAttribute('aria-pressed',String(active));if(active){const a=e.tx.attachment,isPdf=a?.type==='application/pdf'&&/^data:application\/pdf;base64,[A-Za-z0-9+/=\r\n]+$/.test(a.data||''),isImg=!isPdf&&/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=\r\n]+$/.test(a?.data||'');if(isPdf||isImg){const media=document.createElement(isPdf?'iframe':'img');if(media.tagName==='IFRAME'){media.title='Pré-visualização de '+(a.name||'PDF');media.sandbox='allow-same-origin';media.referrerPolicy='no-referrer';}else media.alt='Comprovativo de '+e.tx.description;media.src=a.data;previews.append(media);}else{const p=document.createElement('p');p.textContent='Pré-visualização indisponível. Usa Abrir para consultar o ficheiro.';previews.append(p);}}}};
       entries.forEach((e,i)=>{e.button.onclick=()=>select(e.tx.id);e.button.onkeydown=event=>{if(!['ArrowDown','ArrowUp','Home','End'].includes(event.key))return;event.preventDefault();const n=event.key==='Home'?0:event.key==='End'?entries.length-1:Math.max(0,Math.min(entries.length-1,i+(event.key==='ArrowDown'?1:-1)));select(entries[n].tx.id);entries[n].button.focus();};});
       select(entries.some(e=>e.tx.id===selectedDocument)?selectedDocument:entries[0].tx.id);
-      docs.querySelector('#documentRows').remove();
+      resultsHost.querySelector('#documentRows').remove();
     }
+    const missing=resultsHost.querySelector('.documents-missing');
+    const archive=resultsHost.querySelector('.document-library,.empty');
+    if(archive)archive.hidden=documentView==='missing';
+    if(missing){missing.hidden=documentView!=='missing';missing.open=!missing.hidden;}
+    window.ReceiptAssistanceUI?.refreshDocuments();
+  }
+  function renderDocuments(force = false) {
+    if (!force && !documentsVisible()) { lifeDirty.documents = true; return; }
+    lifeDirty.documents = false;
+    const filtersOpen=docs.querySelector('.document-filter-toggle')?.open||false;
+    docs.innerHTML =
+      '<div class="panel documents-panel"><div class="panel-heading documents-heading"><div><h2>Comprovativos</h2><p>Arquivo pesquisável dos ficheiros associados aos movimentos. PDFs são guardados no formato original; abrir, guardar uma cópia ou exportar não altera os saldos.</p></div></div>' +
+      '<div class="document-filter-grid">' +
+      field("Pesquisa", "documentQuery", documentQuery, "search", 'placeholder="Loja, artigo, texto da fatura ou ficheiro"') +
+      field("Ano", "documentYear", documentYear, "text", 'inputmode="numeric" maxlength="4" placeholder="Todos"') +
+      field("De", "documentFrom", documentFrom, "date") +
+      field("Até", "documentTo", documentTo, "date") +
+      field("Valor mín. (€)", "documentMin", documentMin, "number", 'min="0" step="0.01"') +
+      field("Valor máx. (€)", "documentMax", documentMax, "number", 'min="0" step="0.01"') +
+      select("Tipo", "documentType", [["all","Todos"],["pdf","PDF"],["image","Imagem"]], documentType) +
+      '</div><div class="decision-actions document-toolbar">' +
+      b("Limpar filtros", "life-doc-clear") +
+      b("Exportar seleção em ZIP", "life-doc-zip") +
+      '</div><div id="documentResults"></div></div>';
+
     const filterGrid=docs.querySelector('.document-filter-grid');
+    const tabs=document.createElement('nav');tabs.className='eq-design-tabs';tabs.setAttribute('aria-label','Estado dos comprovativos');
+    tabs.innerHTML='<button type="button" class="secondary" data-doc-tab="archive">Com movimento</button><button type="button" class="secondary" data-doc-tab="missing">Por anexar</button>';
+    filterGrid.after(tabs);
+    for(const tab of tabs.querySelectorAll('button'))tab.onclick=()=>{
+      documentView=tab.dataset.docTab;
+      const missing=docs.querySelector('.documents-missing'),archive=docs.querySelector('#documentResults .document-library,#documentResults > .empty');
+      if(archive)archive.hidden=documentView==='missing';
+      if(missing){missing.hidden=documentView!=='missing';missing.open=!missing.hidden;}
+      for(const button of tabs.querySelectorAll('button'))button.setAttribute('aria-pressed',String(button===tab));
+    };
+    renderDocumentResults();
+    for(const button of tabs.querySelectorAll('button'))button.setAttribute('aria-pressed',String(button.dataset.docTab===documentView));
     if(filterGrid){const queryField=filterGrid.querySelector('[name=documentQuery]').closest('label'),filterToggle=document.createElement('details'),summary=document.createElement('summary'),toolbar=docs.querySelector('.document-toolbar');summary.textContent='Filtros';filterToggle.className='document-filter-toggle';filterToggle.append(summary);const extraFilters=document.createElement('div');extraFilters.className='document-extra-filters';[...filterGrid.children].filter(n=>n!==queryField).forEach(n=>extraFilters.append(n));filterToggle.append(extraFilters);filterGrid.append(filterToggle);if(toolbar)filterGrid.append(toolbar);}
     if(docs.querySelector('.document-filter-toggle'))docs.querySelector('.document-filter-toggle').open=filtersOpen;
-    if(queryFocused){const q=docs.querySelector('[name=documentQuery]');q?.focus({preventScroll:true});q?.setSelectionRange(queryCursor,queryCursor);}
     const rerenderOnChange = (name, setter, event = "change") => {
       const el = docs.querySelector(`[name=${name}]`);
       if (!el) return;
-      el.addEventListener(event, (e) => { setter(e.target.value); renderDocuments(); });
+      el.addEventListener(event, (e) => { setter(e.target.value); renderDocumentResults(); });
     };
     rerenderOnChange("documentYear", (v) => (documentYear = v));
     rerenderOnChange("documentFrom", (v) => (documentFrom = v));
@@ -881,10 +962,9 @@
       query.addEventListener("input", (e) => {
         documentQuery = e.target.value;
         clearTimeout(timer);
-        timer = setTimeout(renderDocuments, 180);
+        timer = setTimeout(renderDocumentResults, 180);
       });
     }
-    window.ReceiptAssistanceUI?.refreshDocuments();
   }
   function reportHTML() {
     const r = L.annualReport(data, document.getElementById('reportYear')?.value || month.slice(0, 4)),
@@ -1392,26 +1472,8 @@
         hiddenMetrics: [],
       };
       simple(
-        "Personalizar apresentação",
-        select(
-          "Tema",
-          "theme",
-          [
-            ["light", "Claro"],
-            ["dark", "Escuro"],
-          ],
-          p.theme,
-        ) +
-          select(
-            "Densidade",
-            "density",
-            [
-              ["comfortable", "Confortável"],
-              ["compact", "Compacta"],
-            ],
-            p.density,
-          ) +
-          "<fieldset><legend>Indicadores no Resumo</legend>" +
+        "Indicadores do Resumo",
+        "<fieldset><legend>Indicadores visíveis</legend>" +
           [
             ["balanceValue", "Saldo"],
             ["incomeValue", "Receitas"],
@@ -1432,8 +1494,7 @@
           "</fieldset>",
         (f) =>
           (data.presentation = {
-            theme: f.get("theme"),
-            density: f.get("density"),
+            ...p,
             hiddenMetrics: [
               "balanceValue",
               "incomeValue",
@@ -1495,8 +1556,15 @@
     prior();
     render();
   };
+  const priorNav = PremiumUI.navigation;
+  PremiumUI.navigation = (target) => {
+    priorNav?.(target);
+    if (!window.UILifecycle?.inRender?.()) flushVisible();
+  };
   window.LifeUI = {
     render,
+    flushVisible,
+    renderBeneficiaries,
     openDocument,
     reportHTML,
     switchSpace,

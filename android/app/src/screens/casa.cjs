@@ -30,20 +30,29 @@ function banner(state) {
     ? '<section class="draft-banner"><strong>Tens um artigo Casa por concluir</strong><button id="resume-house">Retomar preenchimento</button><button id="ask-discard-house">Descartar rascunho</button></section>' : '';
 }
 
+function safeHref(url) {
+  const s = String(url || '').trim();
+  return /^https?:\/\//i.test(s) ? s : '';
+}
+
 function productPage(ctx, c, p) {
   const e = kit.escape, hidden = ctx.state.hidden;
   const back = '<button class="back" data-house-tab="produtos">‹ Produtos</button>';
   if (!p) return back + '<h1>Produto indisponível</h1>';
   const offers = Object.entries(p.offers || {}).map(([storeId, offer]) => ({ storeId, ...offer, per: offer.price / offer.packageQty }))
     .sort((a, b) => (a.price > 0 ? 0 : 1) - (b.price > 0 ? 0 : 1) || a.per - b.per);
-  const offerCards = offers.map(o => '<section class="review-card"><strong>' + e((c.stores.find(s => s.id === o.storeId) || {}).name || 'Supermercado') + '</strong>'
-    + '<p>' + o.packageQty + ' ' + e(p.unit) + ' · ' + (o.price > 0 ? kit.money(Math.round(o.price * 100), hidden) : 'Falta colocar preço') + '</p>'
-    + '<small>' + (o.price > 0 ? priceLabel(p.unit, o, hidden) : 'Sem comparação por unidade') + ' · ' + e(V.dateLabel(o.date)) + '</small>'
-    + (o.url ? '<a class="product-link" href="' + e(o.url) + '" target="_blank" rel="noopener noreferrer">Abrir neste supermercado ↗</a>' : '') + '</section>').join('');
+  const offerCards = offers.map(o => {
+    const offerHref = safeHref(o.url);
+    return '<section class="review-card"><strong>' + e((c.stores.find(s => s.id === o.storeId) || {}).name || 'Supermercado') + '</strong>'
+      + '<p>' + o.packageQty + ' ' + e(p.unit) + ' · ' + (o.price > 0 ? kit.money(Math.round(o.price * 100), hidden) : 'Falta colocar preço') + '</p>'
+      + '<small>' + (o.price > 0 ? priceLabel(p.unit, o, hidden) : 'Sem comparação por unidade') + ' · ' + e(V.dateLabel(o.date)) + '</small>'
+      + (offerHref ? '<a class="product-link" href="' + e(offerHref) + '" target="_blank" rel="noopener noreferrer">Abrir neste supermercado ↗</a>' : '') + '</section>';
+  }).join('');
   const lots = c.stock.filter(l => l.catalogId === p.id).map(l =>
     rowButton('data-lot', l.id, l.location || NO_PLACE, l.expiry ? V.dateLabel(l.expiry) : 'Sem validade indicada', H.Life.remaining(c, l) + ' ' + l.unit)).join('');
+  const productHref = safeHref(p.url);
   return back + '<h1>' + e(p.name) + '</h1><p>' + [p.brand, p.category, p.unit].filter(Boolean).map(e).join(' · ') + '</p>'
-    + (p.url ? '<a class="product-link" href="' + e(p.url) + '" target="_blank" rel="noopener noreferrer">Abrir link do produto ↗</a>' : '')
+    + (productHref ? '<a class="product-link" href="' + e(productHref) + '" target="_blank" rel="noopener noreferrer">Abrir link do produto ↗</a>' : '')
     + '<button class="full" data-edit-product="' + e(p.id) + '">Editar produto e preços</button>'
     + '<h2>Preços por supermercado</h2>' + (offerCards || '<p class="empty">Sem preços registados. Adiciona-os ao editar o produto.</p>')
     + '<h2>Lotes e destinos</h2><button class="primary full" data-new-lot="' + e(p.id) + '">+ Adicionar stock</button>' + lots;

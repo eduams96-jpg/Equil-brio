@@ -18,3 +18,18 @@ test('Capturas: associação não altera valor, saldo nem conta; proteção e co
 test('Dados novos: normalização preserva domínios, rejeita cópia inválida em processo limpo',()=>{const d=ledger();P.importCaptures(d,packet());assert.deepEqual(F.normalize(d).practical,d.practical);const {spawnSync}=require('node:child_process');d.practical.version=999;const r=spawnSync(process.execPath,['-e',"const F=require('./finance.js');try{F.normalize(JSON.parse(process.argv[1]));process.exitCode=1}catch(e){console.log(e.message)}",JSON.stringify(d)],{cwd:require('node:path').resolve(__dirname,'..'),windowsHide:true,encoding:'utf8'});assert.equal(r.status,0);assert.match(r.stdout,/não suportada/);});
 
 test('Regras aprovadas: importação recebe sugestões sem copiar regras ou ignorar exceções',()=>{const d=ledger();P.writable(d).rules.push({id:'r',match:'digi',category:'Telecomunicações',exceptions:['especial'],active:true});const rules=P.importRules(d);assert.equal(d.rules.length,0);assert.equal(F.smartImportSuggestion({type:'expense',description:'DD DIGI COMM'},[],rules).source,'rule');assert.notEqual(F.smartImportSuggestion({type:'income',description:'DD DIGI COMM'},[],rules).source,'rule');assert.notEqual(F.smartImportSuggestion({type:'expense',description:'DIGIMON'},[],rules).source,'rule');assert.notEqual(F.smartImportSuggestion({type:'expense',description:'DIGI especial'},[],rules).source,'rule');d.practical.rules[0].active=false;assert.equal(P.importRules(d).length,0);});
+
+test('PDF do equipamento valida tamanho, cabeçalho, caracteres e preenchimento Base64', () => {
+  const file = (data, size) => ({name:'teste.pdf',type:'application/pdf',data:'data:application/pdf;base64,'+data,size});
+  assert.doesNotThrow(() => P.validateEquipmentDocument(file('JVBERi0=',5)));
+  assert.doesNotThrow(() => P.validateEquipmentDocument(file('JVBERi0',5)));
+  assert.throws(() => P.validateEquipmentDocument(file('JVBERi0==',5)), /PDF inválido/);
+  assert.throws(() => P.validateEquipmentDocument(file('JVBERi0=/',5)), /PDF válido/);
+  assert.throws(() => P.validateEquipmentDocument(file('JVBERi0=',6)), /PDF válido/);
+  assert.throws(() => P.validateEquipmentDocument(file('bmFvIFBERg==',7)), /PDF válido/);
+  const large = Buffer.alloc(8*1024*1024, 0);
+  large.write('%PDF-');
+  assert.doesNotThrow(() => P.validateEquipmentDocument(file(large.toString('base64'),large.length)));
+  const tooLarge = Buffer.concat([large,Buffer.from([0])]);
+  assert.throws(() => P.validateEquipmentDocument(file(tooLarge.toString('base64'),tooLarge.length)), /8 MB/);
+});

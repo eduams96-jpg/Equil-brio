@@ -21,7 +21,7 @@
           typeof r.name !== 'string' || !nameKey(r.name) || r.name.length > 200 ||
           typeof r.merchant !== 'string' || r.merchant.length > 200 || typeof r.enabled !== 'boolean' ||
           !Array.isArray(r.excludedMerchants) || r.excludedMerchants.length > 50 || r.excludedMerchants.some(s => typeof s !== 'string' || !nameKey(s) || s.length > 200) ||
-          typeof ruleValue(r) !== 'string' || !ruleValue(r).trim() || ruleValue(r).length > (r.kind === 'category' ? 80 : 200))
+          typeof ruleValue(r) !== 'string' || !ruleValue(r).trim() || ruleValue(r).length > (r.kind === 'category' ? 120 : 200))
         throw Error('Sugestão de artigo inválida.');
       ids.add(r.id);
     }
@@ -32,7 +32,7 @@
   const searchCache = new WeakMap();
   function replaceAttachment(t, attachment) {
     // Text read from a different file must never remain in the search index.
-    if(t.attachment?.data !== attachment?.data) delete t.receiptText;
+    if(t.attachment?.data !== attachment?.data){ delete t.receiptText; delete t.receiptOcrStatus; }
     t.attachment = attachment;
   }
   function searchText(t) {
@@ -46,14 +46,14 @@
   // the movement's total and categories.
   function validateItems(t) {
     if (!t.receiptMerchant?.trim() || t.receiptMerchant.length > 200) throw Error("Confirma o nome da loja.");
-    if (!F.validDate(t.receiptDate) || t.receiptDate > F.today()) throw Error("Confirma uma data válida, até hoje.");
+    if (!F.validDate(t.receiptDate)) throw Error("Confirma uma data válida.");
     if (!Number.isFinite(t.amount) || t.amount <= 0) throw Error("Confirma o total da fatura.");
     const items = t.receiptItems;
     if (!Array.isArray(items) || !items.length || items.length > 200) throw Error("Indica entre 1 e 200 produtos.");
     for (const item of items)
       if (!item.name?.trim() || item.name.length > 200 ||
           (item.sourceName !== undefined && (typeof item.sourceName !== 'string' || item.sourceName.length > 200)) ||
-          !item.category?.trim() || item.category.length > 80 ||
+          !item.category?.trim() || item.category.length > 120 ||
           !Number.isFinite(item.quantity) || item.quantity <= 0 ||
           !Number.isFinite(item.amount) || item.amount <= 0)
         throw Error("Confirma nome, quantidade, valor e categoria de cada produto.");

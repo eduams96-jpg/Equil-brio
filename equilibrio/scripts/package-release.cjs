@@ -6,13 +6,10 @@ const out=path.resolve(process.argv[3] || path.join(root,'..','artifacts'));
 const pkg=JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8'));
 const signingPath=process.env.EQUILIBRIO_UPDATE_SIGNING_KEY;
 const signingKeyId=process.env.EQUILIBRIO_UPDATE_SIGNING_KEY_ID||'equilibrio-ed25519-2026-09-r3';
-let signingKey;
-if(signingPath){
- if(!path.isAbsolute(signingPath))throw Error('O caminho da chave opcional deve ser absoluto.');
- const signingFile=fs.realpathSync(signingPath);
- if(signingFile.toLowerCase().startsWith(root.toLowerCase()+path.sep))throw Error('A chave privada tem de ficar fora da pasta da aplicação.');
- signingKey=fs.readFileSync(signingFile);
-}
+if(!signingPath||!path.isAbsolute(signingPath))throw Error('Define EQUILIBRIO_UPDATE_SIGNING_KEY com o caminho absoluto da chave de publicação.');
+const signingFile=fs.realpathSync(signingPath);
+if(signingFile.toLowerCase().startsWith(root.toLowerCase()+path.sep))throw Error('A chave privada tem de ficar fora da pasta da aplicação.');
+const signingKey=fs.readFileSync(signingFile);
 const baselineVersion=JSON.parse(fs.readFileSync(path.join(baseline,'package.json'),'utf8')).version;
 if(U.compareVersions(baselineVersion,pkg.version)>=0)throw Error(`A baseline (${baselineVersion}) tem de ser anterior à versão de destino (${pkg.version}).`);
 const maximum=process.argv[4]||baselineVersion;
@@ -27,8 +24,8 @@ for(const file of candidates){
 }
 const update={format:U.UPDATE_FORMAT,formatVersion:1,appId:U.UPDATE_APP_ID,version:pkg.version,displayVersion:require('../desktop/version.cjs').APP_DISPLAY_VERSION,minAppVersion:baselineVersion,maxAppVersion:maximum,minSchemaVersion:2,maxSchemaVersion:2,files};
 update.manifestSha256=U.sha256Buffer(Buffer.from(U.canonicalManifestForHash(update)));
-if(signingKey)U.signPackageObject(update,signingKey,signingKeyId);
-U.validatePackageObject(update,{currentVersion:baselineVersion,schemaVersion:2});
+U.signPackageObject(update,signingKey,signingKeyId);
+U.validatePackageObject(update,{currentVersion:baselineVersion,schemaVersion:2,requireSignature:true});
 fs.mkdirSync(out,{recursive:true});fs.writeFileSync(path.join(out,`financas-pessoais-v${pkg.version}.fpupdate`),JSON.stringify(update));
 fs.writeFileSync(path.join(out,`update-files-v${pkg.version}.json`),JSON.stringify(files.map(({path,size,sha256})=>({path,size,sha256})),null,2));
-console.log(`Pacote ${pkg.version}: ${files.length} ficheiros alterados · ${signingKey?'assinatura opcional '+signingKeyId:'integridade SHA-256, sem exigência de chave'}.`);
+console.log(`Pacote ${pkg.version}: ${files.length} ficheiros alterados · assinatura Ed25519 ${signingKeyId}.`);

@@ -114,13 +114,157 @@
   }
 
 
+  const CRITICAL_DOMAINS = ['accounts', 'transactions', 'debts', 'recurring', 'categoryCatalog', 'categoryArchive'];
+  const CRITICAL_DOMAIN_SET = new Set(CRITICAL_DOMAINS);
+  const lastUpdatedAtByKey = new Map();
+
+  function samePatchVal(x, y) {
+    if (x === y) return true;
+    if (!x || !y || typeof x !== 'object' || typeof y !== 'object') return false;
+    if (Array.isArray(x)) {
+      if (!Array.isArray(y) || x.length !== y.length) return false;
+      for (let i = 0; i < x.length; i += 1) if (!samePatchVal(x[i], y[i])) return false;
+      return true;
+    }
+    if (Array.isArray(y)) return false;
+    const kx = Object.keys(x), ky = Object.keys(y);
+    let cx = 0, cy = 0;
+    for (let i = 0; i < kx.length; i += 1) {
+      const k = kx[i];
+      if (x[k] === undefined) continue;
+      cx += 1;
+      if (!samePatchVal(x[k], y[k])) return false;
+    }
+    for (let i = 0; i < ky.length; i += 1) if (y[ky[i]] !== undefined) cy += 1;
+    return cx === cy;
+  }
+
+  function patchEntityId(domain, item, index) {
+    const direct = item && typeof item === 'object' ? item.id : null;
+    if (direct !== undefined && direct !== null && String(direct).trim()) return String(direct);
+    if ((domain === 'categoryCatalog' || domain === 'categoryArchive') && item && typeof item === 'object') {
+      const name = String(item.name || '').trim();
+      if (name) return `name:${name}`;
+    }
+    return `row-${index}`;
+  }
+
+  function buildLedgerPatch(beforeLedger, afterLedger, baseUpdatedAt) {
+    if (!beforeLedger || !afterLedger || beforeLedger.version !== 2 || afterLedger.version !== 2 || afterLedger.ledgerCoreVersion !== 1) {
+      return null;
+    }
+    if (!samePatchVal(beforeLedger.casa, afterLedger.casa)) return null;
+    const domains = {};
+    let totalRowChanges = 0;
+    for (const domain of CRITICAL_DOMAINS) {
+      const bArr = Array.isArray(beforeLedger[domain]) ? beforeLedger[domain] : [];
+      const aArr = Array.isArray(afterLedger[domain]) ? afterLedger[domain] : [];
+      const bMap = new Map();
+      for (let i = 0; i < bArr.length; i += 1) bMap.set(patchEntityId(domain, bArr[i], i), { item: bArr[i], order: i });
+      const aMap = new Map();
+      for (let i = 0; i < aArr.length; i += 1) aMap.set(patchEntityId(domain, aArr[i], i), { item: aArr[i], order: i });
+      const deleted = [];
+      for (const [id, row] of bMap) {
+        if (!aMap.has(id)) deleted.push({ id, order: row.order, before: row.item });
+      }
+      const changed = [];
+      for (const [id, row] of aMap) {
+        const old = bMap.get(id);
+        if (old && old.order === row.order && samePatchVal(old.item, row.item)) continue;
+        changed.push(old
+          ? { id, order: row.order, oldOrder: old.order, hadBefore: true, before: old.item, after: row.item }
+          : { id, order: row.order, hadBefore: false, after: row.item });
+      }
+      if (deleted.length || changed.length) {
+        totalRowChanges += deleted.length + changed.length;
+        if (totalRowChanges > 40) return null;
+        domains[domain] = { countBefore: bArr.length, countAfter: aArr.length, deleted, changed };
+      }
+    }
+    const remainder = {};
+    const allKeys = new Set([...Object.keys(beforeLedger), ...Object.keys(afterLedger)]);
+    for (const k of allKeys) {
+      if (CRITICAL_DOMAIN_SET.has(k)) continue;
+      const bVal = beforeLedger[k], aVal = afterLedger[k];
+      if (samePatchVal(bVal, aVal)) continue;
+      if (k === 'activity' && Array.isArray(bVal) && Array.isArray(aVal) && aVal.length >= 1) {
+        let matched = false;
+        if (aVal.length > bVal.length && aVal.length - bVal.length <= 5) {
+          let prefixSame = true;
+          for (let i = 0; i < bVal.length; i += 1) {
+            if (!samePatchVal(bVal[i], aVal[i])) { prefixSame = false; break; }
+          }
+          if (prefixSame) {
+            remainder.activity = {
+              op: 'activity',
+              beforeLen: bVal.length,
+              lastBeforeId: bVal.length ? bVal[bVal.length - 1]?.id : null,
+              pushed: aVal.slice(bVal.length),
+              maxLen: 0,
+            };
+            matched = true;
+          }
+        } else if (bVal.length === 150 && aVal.length === 150) {
+          for (let shift = 1; shift <= 5; shift += 1) {
+            let shiftedSame = true;
+            for (let i = 0; i < 150 - shift; i += 1) {
+              if (!samePatchVal(bVal[i + shift], aVal[i])) { shiftedSame = false; break; }
+            }
+            if (shiftedSame) {
+              remainder.activity = {
+                op: 'activity',
+                beforeLen: bVal.length,
+                lastBeforeId: bVal[bVal.length - 1]?.id,
+                pushed: aVal.slice(150 - shift),
+                maxLen: 150,
+              };
+              matched = true;
+              break;
+            }
+          }
+        }
+        if (matched) continue;
+      }
+      remainder[k] = {
+        hadBefore: bVal !== undefined,
+        before: bVal,
+        hasAfter: aVal !== undefined,
+        after: aVal,
+      };
+    }
+    return {
+      version: 2,
+      baseUpdatedAt: baseUpdatedAt || null,
+      spaceName: afterLedger.spaceName,
+      domains,
+      remainder,
+    };
+  }
+
   function commitLedgerDirect(beforeLedger, afterLedger, storageKey) {
     try {
-      const result = (native.dataCommitLedgerSync || native.applyLedgerDelta)(
-        String(storageKey || 'equilibrioData'),
-        beforeLedger || {},
-        afterLedger || {},
-      );
+      const resolvedKey = String(storageKey || 'equilibrioData');
+      if (native.dataCommitLedgerPatchSync) {
+        const patch = buildLedgerPatch(beforeLedger, afterLedger, lastUpdatedAtByKey.get(resolvedKey));
+        if (patch) {
+          const patchResult = native.dataCommitLedgerPatchSync(resolvedKey, JSON.stringify(patch));
+          if (patchResult?.ok) {
+            if (patchResult.updatedAt) lastUpdatedAtByKey.set(resolvedKey, patchResult.updatedAt);
+            return patchResult;
+          }
+          if (!patchResult?.fallbackFull) {
+            throw new Error(patchResult?.error || 'Não foi possível gravar a alteração em SQLite.');
+          }
+        }
+      }
+      if (native.dataCommitLedgerConfirmedSync) {
+        const afterText = JSON.stringify(afterLedger);
+        const result = native.dataCommitLedgerConfirmedSync(resolvedKey, JSON.stringify(beforeLedger), afterText);
+        if (!result?.ok) throw new Error(result?.error || 'Não foi possível gravar a alteração em SQLite.');
+        if (result.updatedAt) lastUpdatedAtByKey.set(resolvedKey, result.updatedAt);
+        return { ...result, cacheText: result.confirmedLedgerText ?? afterText };
+      }
+      const result = (native.dataCommitLedgerSync || native.applyLedgerDelta)(resolvedKey, beforeLedger || {}, afterLedger || {});
       if (!result?.ok) throw new Error(result?.error || result?.reason || 'Não foi possível gravar a alteração em SQLite.');
       return result;
     } catch (error) {
@@ -131,8 +275,11 @@
 
   function saveSpaceDirect(ledger, storageKey) {
     try {
-      const result = native.writeSqliteSpaceSync(String(storageKey || 'equilibrioData'), ledger || {});
+      const resolvedKey = String(storageKey || 'equilibrioData');
+      const result = native.writeSqliteSpaceSync(resolvedKey, ledger || {});
       if (!result?.ok) throw new Error(result?.error || result?.reason || 'Não foi possível gravar o Espaço Financeiro em SQLite.');
+      if (result.updatedAt) lastUpdatedAtByKey.set(resolvedKey, result.updatedAt);
+      else lastUpdatedAtByKey.delete(resolvedKey);
       return result;
     } catch (error) {
       console.error('Escrita direta do Espaço Financeiro falhou:', error);
@@ -155,6 +302,7 @@
     try {
       const result = native.dataReadSpaceSync?.(String(spaceId || '')) || native.readSqliteSpaceSync(String(spaceId || '')) || null;
       if (result?.error) throw new Error(result.error);
+      if (result?.key && result?.updatedAt) lastUpdatedAtByKey.set(result.key, result.updatedAt);
       return result;
     } catch (error) {
       console.error('Leitura direta do Espaço Financeiro falhou:', error);
@@ -199,6 +347,7 @@
       // Prepare it before replacing the renderer state; failed reads leave it intact.
       const fresh = F.normalize(structuredClone(space.data));
       if (space.name) fresh.spaceName = space.name;
+      if (space.key && space.updatedAt) lastUpdatedAtByKey.set(space.key, space.updatedAt);
       data = fresh;
       return {
         ok: true,
@@ -215,6 +364,7 @@
     try {
       const result = expected ? native.replaceStorageGuardedSync(collectLocalStorage(), expected) : native.replaceStorageSync(collectLocalStorage());
       if (result?.error) throw Error(result.error);
+      lastUpdatedAtByKey.clear();
       if (result?.warning) desktopNotice(result.warning, true);
       return result === true || result?.ok === true;
     } catch (error) {
@@ -477,6 +627,7 @@
 
   function persistDesktopStorage(sync = false, force = false) {
     try {
+      if (window.equilibrioMobileSyncPending) return sync ? true : Promise.resolve({ ok: true, skipped: true });
       const payload = collectLocalStorage();
       if (!force && sameStoragePayload(payload, lastPersistedStorage))
         return sync ? true : Promise.resolve({ ok: true, unchanged: true });
@@ -519,7 +670,7 @@
 
   function updateNativeSnapshot() {
     try {
-      native.updateSnapshot(fullSnapshotText());
+      if (!native.runBackupFromSqlite) native.updateSnapshot(fullSnapshotText());
       persistDesktopStorage(false);
     } catch (error) {
       console.error("Não foi possível atualizar snapshot Desktop:", error);
@@ -540,6 +691,7 @@
 
   async function refreshBackupUI(message = "") {
     backupSettings = await native.getBackupSettings();
+    window.FeatureUI?.renderBackupReminder();
     const frequency = document.getElementById("fileBackupFrequency");
     const retention = document.getElementById("fileBackupRetention");
     const status = document.getElementById("fileBackupStatus");
@@ -556,8 +708,12 @@
     if (support) support.textContent = backupSettings.directory ? "Pasta ligada · Desktop" : "Pasta desligada · Desktop";
     if (choose) choose.textContent = backupSettings.directory ? "Alterar pasta" : "Escolher pasta";
     if (now) now.disabled = !backupSettings.directory;
+    choose?.classList.toggle('primary', !backupSettings.directory);
+    choose?.classList.toggle('secondary', Boolean(backupSettings.directory));
+    now?.classList.toggle('primary', Boolean(backupSettings.directory));
+    now?.classList.toggle('secondary', !backupSettings.directory);
     if (pause) pause.disabled = !backupSettings.directory;
-    if (verify) verify.textContent = "Restaurar cópia";
+    if (verify) verify.hidden = true;
 
     if (status) {
       const folder = backupSettings.directory ? shortPath(backupSettings.directory) : "Nenhuma pasta escolhida";
@@ -571,9 +727,16 @@
     if (backupBusy) return false;
     backupBusy = true;
     try {
-      const content = fullSnapshotText();
-      native.updateSnapshot(content);
-      const result = await native.runBackup(content, { force, reason });
+      let result;
+      if (native.runBackupFromSqlite) {
+        result = await native.runBackupFromSqlite({
+          force, reason, device: localStorage.getItem("equilibrioDeviceName") || "",
+        });
+      } else {
+        const content = fullSnapshotText();
+        native.updateSnapshot(content);
+        result = await native.runBackup(content, { force, reason });
+      }
       if (result?.ok) {
         const prefix = result.fallback ? "Cópia criada na pasta interna de segurança" : (force ? "Cópia criada" : "Cópia automática criada");
         await refreshBackupUI(`${prefix}: ${result.name}.${result.warning ? " " + result.warning : ""}`);
@@ -614,14 +777,14 @@
     panel.classList.add('desktop-native-backups');
 
     const intro = panel.querySelector(".file-protection-head p");
-    if (intro) intro.textContent = "As cópias automáticas nesta pasta são ficheiros JSON verificados antes de serem considerados válidos. Se a pasta escolhida falhar, o Desktop cria automaticamente uma cópia interna de segurança para não bloquear o fecho nem uma atualização. Para proteger uma cópia com frase-passe, usa a opção abaixo.";
+    if (intro) intro.textContent = "O Equilíbrio guarda e verifica uma cópia JSON de todos os espaços. Se a pasta escolhida falhar, guarda uma cópia interna de segurança.";
 
     if (!document.getElementById('encryptedBackupCard')) {
       const encrypted = document.createElement('section');
       encrypted.id = 'encryptedBackupCard';
       encrypted.className = 'encrypted-backup-card';
       encrypted.innerHTML = '<h3>Cópia encriptada opcional</h3><p>Exporta todos os espaços para um ficheiro .fpbackup protegido por frase-passe. A frase-passe não é guardada. As cópias automáticas continuam sem encriptação.</p><div class="encrypted-backup-actions"><button type="button" class="primary" id="saveEncryptedBackup">Guardar cópia encriptada</button><button type="button" class="secondary" id="restoreEncryptedBackup">Restaurar cópia encriptada</button></div>';
-      panel.append(encrypted);
+      (document.getElementById('backupSettings')?.closest('article') || panel).append(encrypted);
       document.querySelector('#modal')?.addEventListener('close', eraseBackupPassphrases);
     }
     document.getElementById('saveEncryptedBackup').onclick = exportEncryptedNative;
@@ -669,6 +832,7 @@
         updateNativeSnapshot();
         runNativeBackup(false, "saved");
       },
+      lastForSpace: () => backupSettings?.lastBackupAt || "",
     };
 
     refreshBackupUI();
@@ -677,14 +841,20 @@
   }
 
 
+  if (typeof native.confirm === 'function') {
+    window.confirm = message => native.confirm(String(message));
+  }
+
   let desktopAboutPending = false;
   async function prepareDesktopAboutPanel() {
     const grid = document.querySelector("#settings .settings-grid");
-    if (!grid || desktopAboutPending) return;
+    const host = document.getElementById("faqDesktopDiagnostics");
+    if (!grid || !host || desktopAboutPending) return;
     const desktopPanels = [...grid.querySelectorAll("article.panel")].filter((panel) => panel.querySelector(":scope > h2")?.textContent.trim() === "Aplicação desktop");
     const existingDesktopPanel = document.getElementById("desktopAboutPanel");
     if (existingDesktopPanel) {
       desktopPanels.filter((panel) => panel !== existingDesktopPanel).forEach((panel) => panel.closest("details.settings-disclosure")?.remove() || panel.remove());
+      if (existingDesktopPanel.parentElement !== host) host.append(existingDesktopPanel);
       return;
     }
     // Remove qualquer painel legado/sem ID antes de criar o único painel canónico.
@@ -701,25 +871,45 @@
       desktopAboutPending = false;
       return;
     }
-    const panel = document.createElement("article");
-    panel.className = "panel";
+    const panel = document.createElement("section");
+    panel.className = "panel desktop-diagnostics-panel";
     panel.id = "desktopAboutPanel";
-    panel.innerHTML = `
-      <h2>Aplicação desktop</h2>
-      <p class="desktop-version-line"><strong>Finanças Pessoais Desktop ${info.displayVersion}</strong> <span>· Web ${info.webVersion} · Schema ${info.schemaVersion}</span></p>
-      <p>Os teus dados são guardados fora da pasta do programa, no perfil do Windows. Reinstalar ou substituir a aplicação não apaga os Espaços Financeiros.</p>
-      <p class="muted desktop-storage-meta"><strong>Armazenamento: ${info.storage?.mode || "SQLite"}</strong> · ${info.storage?.spaces ?? 0} Espaço${Number(info.storage?.spaces) === 1 ? "" : "s"} Financeiro${Number(info.storage?.spaces) === 1 ? "" : "s"} · ${info.packaged ? "Aplicação instalada" : "Modo de desenvolvimento"}</p>
-      <p class="muted desktop-storage-meta">Fonte principal: SQLite · Leituras críticas: diretas · Contas ${info.storage?.domains?.accounts ?? 0} · Movimentos ${info.storage?.domains?.transactions ?? 0} · Categorias ${info.storage?.domains?.categories ?? 0} · Créditos ${info.storage?.domains?.debts ?? 0} · Recorrências ${info.storage?.domains?.recurring ?? 0}</p>
-      <div class="desktop-update-row">
-        <span>Para atualizar, abre Definições → Manutenção e dados → Atualizar aplicação.</span>
-        <span id="desktopUpdateStatus" class="muted"></span>
-      </div>
-      <details class="desktop-diagnostics">
-        <summary>Diagnóstico técnico do build</summary>
-        <div class="desktop-diagnostics-body" id="desktopDiagnosticsBody"></div>
-      </details>
-    `;
-    grid.append(panel);
+
+    const versionP = document.createElement("p");
+    versionP.className = "desktop-version-line";
+    const versionStrong = document.createElement("strong");
+    versionStrong.textContent = `Finanças Pessoais Desktop ${info.displayVersion || ""}`;
+    const versionMeta = document.createElement("span");
+    versionMeta.textContent = ` · Web ${info.webVersion || "—"} · Schema ${info.schemaVersion ?? "—"}`;
+    versionP.append(versionStrong, " ", versionMeta);
+
+    const spacesCount = Number(info.storage?.spaces) || 0;
+    const storageP = document.createElement("p");
+    storageP.className = "muted desktop-storage-meta";
+    const storageStrong = document.createElement("strong");
+    storageStrong.textContent = `Armazenamento: ${info.storage?.mode || "SQLite"}`;
+    storageP.append(
+      storageStrong,
+      ` · ${spacesCount} Espaço${spacesCount === 1 ? "" : "s"} Financeiro${spacesCount === 1 ? "" : "s"} · ${info.packaged ? "Aplicação instalada" : "Modo de desenvolvimento"}`
+    );
+
+    const domainsP = document.createElement("p");
+    domainsP.className = "muted desktop-storage-meta";
+    domainsP.textContent = `Fonte principal: SQLite · Leituras críticas: diretas · Contas ${info.storage?.domains?.accounts ?? 0} · Movimentos ${info.storage?.domains?.transactions ?? 0} · Categorias ${info.storage?.domains?.categories ?? 0} · Créditos ${info.storage?.domains?.debts ?? 0} · Recorrências ${info.storage?.domains?.recurring ?? 0}`;
+
+    const updateRow = document.createElement("div");
+    updateRow.className = "desktop-update-row";
+    const updateSpan = document.createElement("span");
+    updateSpan.id = "desktopUpdateStatus";
+    updateSpan.className = "muted";
+    updateRow.append(updateSpan);
+
+    const diagHost = document.createElement("div");
+    diagHost.className = "desktop-diagnostics-body";
+    diagHost.id = "desktopDiagnosticsBody";
+
+    panel.append(versionP, storageP, domainsP, updateRow, diagHost);
+    host.append(panel);
     [...grid.querySelectorAll("article.panel")]
       .filter((candidate) => candidate !== panel && candidate.querySelector(":scope > h2")?.textContent.trim() === "Aplicação desktop")
       .forEach((candidate) => candidate.closest("details.settings-disclosure")?.remove() || candidate.remove());
@@ -728,14 +918,24 @@
     const diagnostic = applyBuildIdentity(info);
     const diagnosticsBody = document.getElementById("desktopDiagnosticsBody");
     if (diagnosticsBody) {
+      const addDiagLine = (label, value, codeClass = "") => {
+        const row = document.createElement("div");
+        row.className = "desktop-diagnostic-line";
+        const span = document.createElement("span");
+        span.textContent = label;
+        const code = document.createElement("code");
+        if (codeClass) code.className = codeClass;
+        code.textContent = value;
+        row.append(span, code);
+        diagnosticsBody.append(row);
+      };
       const statusClass = diagnostic.stableLoaded ? "desktop-diagnostic-ok" : "desktop-diagnostic-warn";
-      diagnosticsBody.innerHTML = `
-        <div class="desktop-diagnostic-line"><span>Build</span><code>${diagnostic.displayVersion || diagnostic.appVersion || "—"} · Web ${diagnostic.webVersion || "—"}</code></div>
-        <div class="desktop-diagnostic-line"><span>CSS final</span><code class="${statusClass}">${diagnostic.stableLoaded ? "ui.css carregado" : "ui.css NÃO carregado"}</code></div>
-        <div class="desktop-diagnostic-line"><span>Estilos</span><code>${diagnostic.styles.join(" → ") || "—"}</code></div>
-        <div class="desktop-diagnostic-line"><span>Scripts</span><code>${diagnostic.scripts.join(" → ") || "—"}</code></div>
-        <div class="desktop-diagnostic-line"><span>Aplicação</span><code>${diagnostic.appPath || "—"}</code></div>
-        <div class="desktop-diagnostic-line"><span>Dados</span><code>${diagnostic.statePath || "—"}</code></div>`;
+      addDiagLine("Build", `${diagnostic.displayVersion || diagnostic.appVersion || "—"} · Web ${diagnostic.webVersion || "—"}`);
+      addDiagLine("CSS final", diagnostic.stableLoaded ? "ui.css carregado" : "ui.css NÃO carregado", statusClass);
+      addDiagLine("Estilos", diagnostic.styles.join(" → ") || "—");
+      addDiagLine("Scripts", diagnostic.scripts.join(" → ") || "—");
+      addDiagLine("Aplicação", diagnostic.appPath || "—");
+      addDiagLine("Dados", diagnostic.statePath || "—");
     }
 
     const updateStatus = document.getElementById("desktopUpdateStatus");
@@ -799,6 +999,22 @@
   bindDesktopIO();
   window.addEventListener("load", bindDesktopIO, { once: true });
   window.addEventListener("focus", updateNativeSnapshot);
+  document.addEventListener("close", () => {
+    queueMicrotask(() => {
+      try {
+        if (document.querySelector("dialog[open]")) return;
+        window.focus();
+        const active = document.activeElement;
+        if (!active || !active.isConnected || active === document.body) {
+          const main = document.getElementById("mainContent");
+          if (main) {
+            if (!main.hasAttribute("tabindex")) main.setAttribute("tabindex", "-1");
+            main.focus({ preventScroll: true });
+          }
+        }
+      } catch {}
+    });
+  }, true);
   window.addEventListener("beforeunload", () => {
     try { persistDesktopStorage(true, true); } catch {}
   });
@@ -813,10 +1029,12 @@
   setInterval(() => runNativeBackup(false, "timer"), 10 * 60 * 1000);
 
   window.FinancasDesktopIO = {
+    latestBackupAt: () => backupSettings?.lastBackupAt,
     exportActiveNative,
     exportAllNative,
     restoreNative,
     runNativeBackup,
     refreshBackupUI,
+    prepareDiagnostics: prepareDesktopAboutPanel,
   };
 })();

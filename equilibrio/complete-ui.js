@@ -14,7 +14,7 @@
   const statementHost = make(
       "statementWorkbench",
       "#review",
-      "Conferir o extrato linha a linha",
+      "Extratos guardados para conferência",
     ),
     cardHost = make("cardWorkbench", "#debts", "Cartões e compras parceladas"),
     annualHost = make("annualWorkbench", "#planningPlus", "Plano anual"),
@@ -86,8 +86,7 @@
   extra.className = "advanced-search";
   $("#transactions .movement-table-toolbar").append(extra);
   extra.innerHTML =
-    '<details><summary>Filtros</summary><div class="filter-grid">' +
-    field("Categoria", "filterCategory") +
+    '<details class="value-views"><summary>Valor e vistas guardadas</summary><div class="filter-grid">' +
     field("Valor mínimo", "filterMin", "", "number", "min=0 step=0.01") +
     field("Valor máximo", "filterMax", "", "number", "min=0 step=0.01") +
     "</div>" +
@@ -95,18 +94,31 @@
     btn("Guardar vista", "save-view") +
     btn("Limpar filtros", "clear-filters") +
     '</div><div id="savedViewsList"></div></details>';
-  const keys = ["category", "min", "max"];
-  extra.querySelectorAll("input").forEach(
-    (el, i) =>
-      (el.oninput = () => {
-        filters[keys[i]] = el.value;
-        api.visibleRows = 100;
-        window.resetTransactionPage?.();
-        renderTransactions();
-      }),
-  );
-  extra.querySelector('.filter-grid').append($('#transactions .movement-date-range'));
-  const accountToggle=document.createElement('button');accountToggle.type='button';accountToggle.className='secondary movement-sidebar-toggle';accountToggle.textContent='Contas e categorias';accountToggle.setAttribute('aria-expanded','true');accountToggle.onclick=()=>{const collapsed=$('#transactions').classList.toggle('movement-sidebar-collapsed');accountToggle.setAttribute('aria-expanded',String(!collapsed));};extra.before(accountToggle);
+  const movementCategoryHost = $("#movementCategorySearch");
+  movementCategoryHost.innerHTML =
+    '<label class="movement-category-filter-label"><span class="sr-only">Categoria ou subcategoria exata</span>' +
+    '<input name="filterCategory" type="text" placeholder="Filtrar categoria…" aria-label="Categoria ou subcategoria exata" list="movementCategorySuggestions"></label>' +
+    '<datalist id="movementCategorySuggestions"></datalist>';
+  const categoryInput = movementCategoryHost.querySelector("input");
+  categoryInput.addEventListener("focus", () => {
+    $("#movementCategorySuggestions").innerHTML = C.categoryList(data)
+      .map(c => '<option value="' + esc(c.name) + '"></option>').join("");
+  });
+  const filterFields = {
+    category: categoryInput,
+    min: extra.querySelector('[name="filterMin"]'),
+    max: extra.querySelector('[name="filterMax"]'),
+  };
+  for (const [filter, input] of Object.entries(filterFields)) {
+    input.oninput = () => {
+      filters[filter] = input.value;
+      if (filter === "category" && input.value) transactionCategoryFilter = "";
+      api.visibleRows = 100;
+      window.resetTransactionPage?.();
+      renderTransactions();
+    };
+  }
+  const accountToggle=document.createElement('button');accountToggle.type='button';accountToggle.className='secondary movement-sidebar-toggle';accountToggle.textContent='Contas, categorias e estado';accountToggle.setAttribute('aria-expanded','true');accountToggle.onclick=()=>{const collapsed=$('#transactions').classList.toggle('movement-sidebar-collapsed');accountToggle.setAttribute('aria-expanded',String(!collapsed));};extra.before(accountToggle);
   const privacy = document.createElement("button");
   privacy.id = "privacyToggle";
   privacy.type = "button";
@@ -120,6 +132,7 @@
     privacy.setAttribute("aria-label", on ? "Mostrar valores" : "Ocultar valores");
     privacy.title = on ? "Mostrar valores" : "Ocultar valores";
     privacy.setAttribute("aria-pressed", String(on));
+    if (on) document.dispatchEvent(new CustomEvent("equilibrio:scan-currency"));
   };
   (document.getElementById("topFinanceSlot") || $(".workspace-bar")).append(privacy);
   function accountOptions(cards = false) {
@@ -134,9 +147,7 @@
     form(title, fields, (f) => commit(() => fn(f)), help);
   }
   function reloadFilters() {
-    extra
-      .querySelectorAll("input[name]")
-      .forEach((el, i) => (el.value = filters[keys[i]] || ""));
+    for (const [filter, input] of Object.entries(filterFields)) input.value = filters[filter] || "";
     renderTransactions();
   }
   // A conferência do extrato só é desenhada com a página de importações aberta:
@@ -146,22 +157,22 @@
   const statementVisible = () => view === "review" || (view === "dataHub" && window.UnifiedWorkspaceUI?.dataTask?.() === "imports");
   function renderStatements() {
     statementDirty = false;
+    const panel = statementHost.closest(".complete-panel");
+    panel.hidden = !data.statements.length && !data.pendingImports.length;
     const index = C.matchIndex(data), memo = new Map();
     const matchesFor = (row) => { if (!memo.has(row)) memo.set(row, C.candidateMatches(data, row, index)); return memo.get(row); };
     const safeFor = (row) => C.safeCandidate(data, row, index, matchesFor(row));
     statementHost.innerHTML =
-      "<p>Prepara o CSV no assistente. Depois, confere cada linha sem lançar novamente movimentos já existentes.</p>" +
-      btn("Conferir linhas preparadas", "prepare-statement") +
+      (data.pendingImports.length ? '<p>Usa a conferência do extrato para associar as linhas do CSV a movimentos existentes.</p>' + btn("Preparar conferência do extrato", "prepare-statement") : "") +
       data.statements
         .map((s) => {
           const pending = s.rows.filter((r) => r.status === "pending");
           const safeCount = pending.filter((r) => safeFor(r.source)).length;
           return (
-            '<details open class="statement-review"><summary>' +
+            '<details class="statement-review" data-statement-id="' + esc(s.id) + '"><summary>' +
             esc(s.name) +
             " · " +
-            pending.length +
-            " por resolver" +
+            (pending.length ? pending.length + ' ' + (pending.length === 1 ? 'linha por conferir' : 'linhas por conferir') : 'Conferência concluída') +
             (safeCount ? " · " + safeCount + " correspondência" + (safeCount === 1 ? " segura" : "s seguras") : "") +
             "</summary>" +
             (safeCount
@@ -197,7 +208,7 @@
                         "</small></div>"
                       : "";
                 return (
-                  '<div class="attention-row statement-row"><div class="statement-row-main"><b>' +
+                  '<div class="attention-row statement-row" data-statement-status="' + esc(r.status) + '"><div class="statement-row-main"><b>' +
                   esc(t.beneficiary || t.description) +
                   "</b><p>" +
                   dateLabel(t.date) +
@@ -270,201 +281,175 @@
   }
   const baseRenderReview = window.renderReview;
   if (typeof baseRenderReview === "function") window.renderReview = function (...args) { const result = baseRenderReview.apply(this, args); if (statementDirty) renderStatements(); return result; };
-  function render() {
-    $("#savedViewsList").innerHTML = data.savedViews
-      .map(
-        (v) =>
-          btn(esc(v.name), "load-view", v.id) +
-          btn("Apagar vista", "remove-view", v.id),
-      )
-      .join("");
-    if (statementVisible()) renderStatements();
-    else statementDirty = true;
-    cardHost.innerHTML =
-      '<p>A compra é despesa no cartão. O pagamento à conta do cartão é transferência, sem repetir a despesa. As prestações repartem o pagamento dessa compra.</p><div class="decision-actions">' +
-      btn("Novo cartão", "new-card") +
-      btn("Compra parcelada", "card-purchase") +
-      btn("Pagar cartão / juros", "card-payment") +
-      btn("Transferência com comissão", "fee-transfer") +
-      "</div>" +
-      data.accounts
-        .filter((a) => a.type === "Cartão")
+  const dirtyPanels = { views: true, annual: true, scenario: true, goal: true, category: true, audit: true };
+  function flushPanel(targetView) {
+    if (targetView === "transactions" && dirtyPanels.views) {
+      dirtyPanels.views = false;
+      $("#savedViewsList").innerHTML = data.savedViews
+        .map(
+          (v) =>
+            btn(v.name, "load-view", v.id) +
+            btn("Apagar vista", "remove-view", v.id),
+        )
+        .join("");
+    }
+    if (targetView === "planningPlus" && dirtyPanels.annual) {
+      dirtyPanels.annual = false;
+      const annualYear = month.slice(0, 4),
+        annualRows = C.annual(data, annualYear),
+        annualPlans = data.annualPlans.slice().sort((a, b) => a.month - b.month || a.name.localeCompare(b.name, "pt")),
+        annualTotal = annualPlans.reduce((n, p) => n + (+p.amount || 0), 0),
+        annualReserveTotal = data.reserves.reduce((n, r) => n + Math.max(0, (+r.target || 0) - (+r.saved || 0)), 0),
+        annualReserveEffort = data.reserves.reduce((n, r) => n + Math.max(0, (+r.target || 0) - (+r.saved || 0)) / Math.max(1, +r.months || 12), 0),
+        annualActual = (plan) => {
+          const prefix = `${annualYear}-${String(plan.month).padStart(2, "0")}`,
+            category = plan.category || "Outros";
+          return F.expenseEntries(data, prefix)
+            .filter((t) => t.category === category || t.category?.startsWith(category + " / "))
+            .reduce((n, t) => n + (+t.amount || 0), 0);
+        };
+      annualHost.innerHTML =
+        "<p>Despesas sazonais previstas. Não são movimentos nem se somam automaticamente às recorrências.</p>" +
+        '<div class="annual-actions">' + btn("Planear despesa anual", "annual-plan") + "</div>" +
+        '<div class="annual-summary-grid">' +
+        metric("Com mês definido", eur(annualTotal)) +
+        metric("Por reservar", eur(annualReserveTotal)) +
+        metric("Esforço mensal das reservas", eur(annualReserveEffort)) +
+        "</div>" +
+        (data.reserves.length
+          ? '<h3 class="annual-subheading">Reservas em curso</h3><div class="annual-reserve-list">' + data.reserves.map((r) => {
+              const remaining = Math.max(0, (+r.target || 0) - (+r.saved || 0));
+              return `<div class="annual-reserve-row"><div><b>${esc(r.name)}</b><small>${eur(r.saved || 0)} reservados de ${eur(r.target || 0)}</small></div><div><span>Falta <b>${eur(remaining)}</b></span><span>Sugestão <b>${eur(remaining / Math.max(1, +r.months || 12))}/mês</b></span></div></div>`;
+            }).join("") + "</div>"
+          : '<p class="muted annual-no-reserves">Ainda não existem reservas anuais em curso.</p>') +
+        '<h3 class="annual-subheading">Despesas com mês definido</h3>' +
+        (annualPlans.length
+          ? '<div class="annual-plan-list">' +
+            annualPlans.map((plan) => {
+              const actual = annualActual(plan),
+                monthKey = `${annualYear}-${String(plan.month).padStart(2, "0")}`;
+              return `<div class="annual-plan-row"><div><b>${esc(plan.name)}</b><small>${esc(monthLabel(monthKey))} · ${esc(plan.category || "Outros")}</small></div><div class="annual-plan-values"><span>Previsto <b>${eur(plan.amount)}</b></span><span>Real na categoria <b>${eur(actual)}</b></span></div>${btn("Consolidar em reserva", "consolidate-annual", plan.id)}${btn("Remover", "remove-annual", plan.id)}</div>`;
+            }).join("") +
+            "</div>"
+          : '<div class="empty annual-empty"><p>Ainda não tens despesas anuais planeadas.</p><small>Usa “Planear despesa anual” para indicar, por exemplo, seguros, impostos, férias ou outras despesas que acontecem uma ou poucas vezes por ano.</small></div>') +
+        '<details class="annual-monthly-overview"><summary>Ver resumo dos 12 meses</summary><div class="annual-grid">' +
+        annualRows.map((m) =>
+          `<div><b>${monthLabel(m.month)}</b><p class="amount">Previsto: ${eur(m.planned)}</p><small>Despesas registadas no mês: ${eur(m.actual)}</small></div>`,
+        ).join("") +
+        "</div></details>";
+    }
+    if (targetView === "cashflow" && dirtyPanels.scenario) {
+      dirtyPanels.scenario = false;
+      scenarioHost.innerHTML =
+        '<div class="decision-actions">' +
+        btn("Ver previsão com despesas habituais", "estimated-forecast") +
+        btn("Guardar novo cenário", "save-scenario") +
+        "</div>" +
+        data.scenarios
+          .map(
+            (s) =>
+              '<div class="attention-row"><b>' +
+              esc(s.name) +
+              '</b><span class="amount">' +
+              eur(s.amount) +
+              "</span>" +
+              btn("Comparar com situação atual", "compare-scenario", s.id) +
+              btn("Apagar", "remove-scenario", s.id) +
+              "</div>",
+          )
+          .join("");
+    }
+    if (targetView === "goals" && dirtyPanels.goal) {
+      dirtyPanels.goal = false;
+      goalHost.innerHTML =
+        "<p>A contribuição planeada não retira dinheiro da conta. Confirma os valores já reservados no objetivo.</p>" +
+        data.goals
+          .slice()
+          .sort((a, b) => (a.priority || 99) - (b.priority || 99))
+          .map(
+            (g) =>
+              '<div class="attention-row"><b>' +
+              esc(g.name) +
+              '</b><span class="amount">' +
+              eur(g.monthlyContribution ?? P.monthlySuggestion(g)) +
+              "/mês</span>" +
+              btn("Prioridade e contribuição", "goal-priority", g.id) +
+              "</div>",
+          )
+          .join("") +
+        '<p class="amount">Contribuições pretendidas: ' +
+        eur(
+          sum(data.goals, (g) => g.monthlyContribution ?? P.monthlySuggestion(g)),
+        ) +
+        "/mês · Disponibilidade estimada: " +
+        eur(Math.max(0, P.spendingRoom(data, data.safetyMargin || 0).available)) +
+        "</p>";
+    }
+    if (targetView === "settings" && dirtyPanels.category) {
+      dirtyPanels.category = false;
+      categoryHost.innerHTML =
+        '<div class="decision-actions">' +
+        btn("Renomear / fundir categoria", "merge-category") +
+        btn("Arquivar categoria", "archive-category") +
+        btn("Pré-visualizar regras no histórico", "preview-rules") +
+        "</div>" +
+        data.rules
+          .map(
+            (r) =>
+              '<div class="attention-row"><span>' +
+              esc(r.match) +
+              " → " +
+              esc(r.category) +
+              "</span>" +
+              btn("Prioridade / estado", "rule-priority", r.id) +
+              "</div>",
+          )
+          .join("") +
+        data.categoryArchive
+          .map(
+            (c) =>
+              "<p>" +
+              esc(c.name) +
+              " · Arquivada " +
+              btn("Reativar", "reactivate-category", c.id) +
+              "</p>",
+          )
+          .join("");
+    }
+    if (targetView === "activity" && dirtyPanels.audit) {
+      dirtyPanels.audit = false;
+      auditHost.innerHTML = data.activity
+        .slice(-30)
+        .reverse()
         .map(
           (a) =>
-            '<div class="attention-row"><b>' +
-            esc(a.name) +
-            '</b><span class="amount">' +
-            eur(-a.balance) +
-            " em dívida</span><small>Fecho: dia " +
-            a.closingDay +
-            " · Vencimento: dia " +
-            a.dueDay +
-            "</small></div>",
-        )
-        .join("") +
-      data.installmentPlans
-        .map(
-          (p) =>
             "<details><summary>" +
-            esc(p.description) +
+            esc(a.message) +
+            " · " +
+            new Date(a.at).toLocaleString("pt-PT") +
             "</summary>" +
-            p.payments
+            a.changes
               .map(
-                (x) =>
-                  '<div class="attention-row"><span>' +
-                  dateLabel(x.date) +
-                  ' · <span class="amount">' +
-                  eur(x.amount - x.paid) +
-                  "</span> por pagar</span>" +
-                  (x.paid < x.amount
-                    ? btn(
-                        "Pagar prestação",
-                        "pay-installment",
-                        p.id + "~" + x.id,
-                      )
-                    : "Liquidada") +
-                  "</div>",
+                (c) =>
+                  "<details><summary>" +
+                  esc(c.name) +
+                  '</summary><div class="audit-diff"><div><b>Antes</b><pre>' +
+                  esc(JSON.stringify(c.before, null, 2)) +
+                  "</pre></div><div><b>Depois</b><pre>" +
+                  esc(JSON.stringify(c.after, null, 2)) +
+                  "</pre></div></div></details>",
               )
               .join("") +
             "</details>",
         )
         .join("");
-    const annualYear = month.slice(0, 4),
-      annualRows = C.annual(data, annualYear),
-      annualPlans = data.annualPlans.slice().sort((a, b) => a.month - b.month || a.name.localeCompare(b.name, "pt")),
-      annualTotal = annualPlans.reduce((n, p) => n + (+p.amount || 0), 0),
-      annualReserveTotal = data.reserves.reduce((n, r) => n + Math.max(0, (+r.target || 0) - (+r.saved || 0)), 0),
-      annualReserveEffort = data.reserves.reduce((n, r) => n + Math.max(0, (+r.target || 0) - (+r.saved || 0)) / Math.max(1, +r.months || 12), 0),
-      annualActual = (plan) => {
-        const prefix = `${annualYear}-${String(plan.month).padStart(2, "0")}`,
-          category = plan.category || "Outros";
-        return F.expenseEntries(data, prefix)
-          .filter((t) => t.category === category || t.category?.startsWith(category + " / "))
-          .reduce((n, t) => n + (+t.amount || 0), 0);
-      };
-    annualHost.innerHTML =
-      "<p>Despesas sazonais previstas. Não são movimentos nem se somam automaticamente às recorrências.</p>" +
-      '<div class="annual-actions">' + btn("Planear despesa anual", "annual-plan") + "</div>" +
-      '<div class="annual-summary-grid">' +
-      metric("Com mês definido", eur(annualTotal)) +
-      metric("Por reservar", eur(annualReserveTotal)) +
-      metric("Esforço mensal das reservas", eur(annualReserveEffort)) +
-      "</div>" +
-      (data.reserves.length
-        ? '<h3 class="annual-subheading">Reservas em curso</h3><div class="annual-reserve-list">' + data.reserves.map((r) => {
-            const remaining = Math.max(0, (+r.target || 0) - (+r.saved || 0));
-            return `<div class="annual-reserve-row"><div><b>${esc(r.name)}</b><small>${eur(r.saved || 0)} reservados de ${eur(r.target || 0)}</small></div><div><span>Falta <b>${eur(remaining)}</b></span><span>Sugestão <b>${eur(remaining / Math.max(1, +r.months || 12))}/mês</b></span></div></div>`;
-          }).join("") + "</div>"
-        : '<p class="muted annual-no-reserves">Ainda não existem reservas anuais em curso.</p>') +
-      '<h3 class="annual-subheading">Despesas com mês definido</h3>' +
-      (annualPlans.length
-        ? '<div class="annual-plan-list">' +
-          annualPlans.map((plan) => {
-            const actual = annualActual(plan),
-              monthKey = `${annualYear}-${String(plan.month).padStart(2, "0")}`;
-            return `<div class="annual-plan-row"><div><b>${esc(plan.name)}</b><small>${esc(monthLabel(monthKey))} · ${esc(plan.category || "Outros")}</small></div><div class="annual-plan-values"><span>Previsto <b>${eur(plan.amount)}</b></span><span>Real na categoria <b>${eur(actual)}</b></span></div>${btn("Remover", "remove-annual", plan.id)}</div>`;
-          }).join("") +
-          "</div>"
-        : '<div class="empty annual-empty"><p>Ainda não tens despesas anuais planeadas.</p><small>Usa “Planear despesa anual” para indicar, por exemplo, seguros, impostos, férias ou outras despesas que acontecem uma ou poucas vezes por ano.</small></div>') +
-      '<details class="annual-monthly-overview"><summary>Ver resumo dos 12 meses</summary><div class="annual-grid">' +
-      annualRows.map((m) =>
-        `<div><b>${monthLabel(m.month)}</b><p class="amount">Previsto: ${eur(m.planned)}</p><small>Despesas registadas no mês: ${eur(m.actual)}</small></div>`,
-      ).join("") +
-      "</div></details>";
-    scenarioHost.innerHTML =
-      '<div class="decision-actions">' +
-      btn("Ver previsão com despesas habituais", "estimated-forecast") +
-      btn("Guardar novo cenário", "save-scenario") +
-      "</div>" +
-      data.scenarios
-        .map(
-          (s) =>
-            '<div class="attention-row"><b>' +
-            esc(s.name) +
-            '</b><span class="amount">' +
-            eur(s.amount) +
-            "</span>" +
-            btn("Comparar com situação atual", "compare-scenario", s.id) +
-            btn("Apagar", "remove-scenario", s.id) +
-            "</div>",
-        )
-        .join("");
-    goalHost.innerHTML =
-      "<p>A contribuição planeada não retira dinheiro da conta. Confirma os valores já reservados no objetivo.</p>" +
-      data.goals
-        .slice()
-        .sort((a, b) => (a.priority || 99) - (b.priority || 99))
-        .map(
-          (g) =>
-            '<div class="attention-row"><b>' +
-            esc(g.name) +
-            '</b><span class="amount">' +
-            eur(g.monthlyContribution ?? P.monthlySuggestion(g)) +
-            "/mês</span>" +
-            btn("Prioridade e contribuição", "goal-priority", g.id) +
-            "</div>",
-        )
-        .join("") +
-      '<p class="amount">Contribuições pretendidas: ' +
-      eur(
-        sum(data.goals, (g) => g.monthlyContribution ?? P.monthlySuggestion(g)),
-      ) +
-      "/mês · Disponibilidade estimada: " +
-      eur(Math.max(0, P.spendingRoom(data, data.safetyMargin || 0).available)) +
-      "</p>";
-    categoryHost.innerHTML =
-      '<div class="decision-actions">' +
-      btn("Renomear / fundir categoria", "merge-category") +
-      btn("Arquivar categoria", "archive-category") +
-      btn("Pré-visualizar regras no histórico", "preview-rules") +
-      "</div>" +
-      data.rules
-        .map(
-          (r) =>
-            '<div class="attention-row"><span>' +
-            esc(r.match) +
-            " → " +
-            esc(r.category) +
-            "</span>" +
-            btn("Prioridade / estado", "rule-priority", r.id) +
-            "</div>",
-        )
-        .join("") +
-      data.categoryArchive
-        .map(
-          (c) =>
-            "<p>" +
-            esc(c.name) +
-            " · Arquivada " +
-            btn("Reativar", "reactivate-category", c.id) +
-            "</p>",
-        )
-        .join("");
-    auditHost.innerHTML = data.activity
-      .slice(-30)
-      .reverse()
-      .map(
-        (a) =>
-          "<details><summary>" +
-          esc(a.message) +
-          " · " +
-          new Date(a.at).toLocaleString("pt-PT") +
-          "</summary>" +
-          a.changes
-            .map(
-              (c) =>
-                "<details><summary>" +
-                esc(c.name) +
-                '</summary><div class="audit-diff"><div><b>Antes</b><pre>' +
-                esc(JSON.stringify(c.before, null, 2)) +
-                "</pre></div><div><b>Depois</b><pre>" +
-                esc(JSON.stringify(c.after, null, 2)) +
-                "</pre></div></div></details>",
-            )
-            .join("") +
-          "</details>",
-      )
-      .join("");
+    }
+  }
+  function render() {
+    dirtyPanels.views = dirtyPanels.annual = dirtyPanels.scenario = dirtyPanels.goal = dirtyPanels.category = dirtyPanels.audit = true;
+    if (statementVisible()) renderStatements();
+    else statementDirty = true;
+    flushPanel(view);
   }
   function drill(kind, category) {
     let entries =
@@ -515,19 +500,10 @@
   }
   const closingAction = $("#closeMonth").onclick;
   $("#closeMonth").onclick = () => {
-    if (
-      !data.closedMonths.includes(month) &&
-      data.statements.some((s) =>
-        s.rows.some(
-          (r) => r.status === "pending" && r.source.date.startsWith(month),
-        ),
-      )
-    )
-      return notice(
-        "Há linhas de extrato por conferir neste mês. Resolve-as antes de fechar.",
-        true,
-      );
-    if (data.closedMonths.includes(month)) return closingAction();
+    const selected = month;
+    if (data.closedMonths.includes(selected)) return closingAction();
+    const review = ReconciliationModel.monthReview(data, selected);
+    if (!review.ready) return notice(review.blockers.join(" "), true);
     form(
       "Concluir revisão mensal",
       [
@@ -548,14 +524,10 @@
         commit(() => {
           if ([0, 1, 2].some((i) => !f.has("review" + i)))
             throw Error("Confirma os três passos da revisão.");
-          for (const b of data.budgets) {
-            b.frozen ??= {};
-            b.frozen[month] = P.budgetAt(data, b, month);
-          }
-          data.closedMonths.push(month);
+          ReconciliationModel.setMonthClosed(data, selected, true, P);
           data.monthReviews.push({
             id: F.id(),
-            month,
+            month: selected,
             date: F.today(),
             completed: true,
           });
@@ -693,6 +665,11 @@
         data.pendingImports = [];
       }, "Extrato preparado para conferência."),
     "add-statement": (id) => {
+      const createdNotice = (s) =>
+        "Movimento criado a partir do extrato: " +
+        (s.description || "sem descrição") + " · " + eur(s.amount) +
+        (s.date ? " · " + s.date.split("-").reverse().join("/") : "") +
+        ". O saldo da conta foi atualizado e a linha ficou associada.";
       const [sid, rid] = id.split("~"),
         r = find("statements", sid).rows.find((r) => r.id === rid);
       if (
@@ -701,11 +678,11 @@
         return form(
           "Confirmar movimento distinto",
           "<p>Já existe um movimento com a mesma data, descrição, conta e valor. Associa a linha ao movimento existente, a menos que sejam duas operações reais diferentes.</p>",
-          () => commit(() => C.resolve(data, sid, rid, "add", null, true)),
+          () => commit(() => C.resolve(data, sid, rid, "add", null, true), createdNotice(r.source)),
           "Este passo cria um segundo movimento e volta a alterar o saldo.",
           "Criar movimento distinto",
         );
-      return commit(() => C.resolve(data, sid, rid, "add"));
+      return commit(() => C.resolve(data, sid, rid, "add"), createdNotice(r.source));
     },
     "ignore-statement": (id) =>
       commit(() => C.resolve(data, ...id.split("~"), "ignore")),
@@ -825,6 +802,11 @@
             month: +f.get("month"),
             category: f.get("category"),
           }),
+      ),
+    "consolidate-annual": (id) =>
+      commit(
+        () => PlanningFinance.consolidateLegacyPlan(data, "annualPlan", id, month),
+        "Plano anual consolidado em Reservas.",
       ),
     "remove-annual": (id) =>
       commit(
@@ -1013,7 +995,7 @@
       const t = find("transactions", id);
       simple(
         "Datas do movimento",
-        field(
+        '<p>Data contabilística <strong>' + esc(dateLabel(t.date)) + '</strong> · usada nos relatórios e nos saldos.</p>' + field(
           "Compra / operação",
           "purchaseDate",
           t.purchaseDate || t.date,
@@ -1068,6 +1050,14 @@
   const oldActions = FeatureUI.transactionActions;
   FeatureUI.transactionActions = (t) =>
     oldActions(t) + btn("Datas", "edit-dates", t.id);
+  const priorNav = PremiumUI.navigation;
+  PremiumUI.navigation = (target) => {
+    priorNav?.(target);
+    if (!window.UILifecycle?.inRender?.()) {
+      flushPanel(target);
+      document.dispatchEvent(new CustomEvent("equilibrio:scan-currency"));
+    }
+  };
   const prior = PremiumUI.render;
   PremiumUI.render = () => {
     prior();
@@ -1084,12 +1074,15 @@
           eur(totals.expense) +
           "</p>",
         () => true,
-        "Sem receitas, a taxa não é calculada.",
+        "A taxa é apresentada a partir de 1 € de receitas no período.",
         "Concluir",
       );
     };
     $("#savingRate").onkeydown = (e) => {
-      if (e.key === "Enter") $("#savingRate").click();
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        $("#savingRate").click();
+      }
     };
     $$("#chart .bar-group").forEach((bar, i) => {
       const m = P.monthAdd(month, i - 5);
@@ -1114,32 +1107,15 @@
         );
       };
       bar.onkeydown = (e) => {
-        if (e.key === "Enter") bar.click();
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          bar.click();
+        }
       };
     });
     // O antigo bloco “Vencimentos de cartões” foi retirado juntamente com a
     // funcionalidade específica de cartões/compras parceladas. Os cenários
     // ficam dedicados apenas a estimativas guardadas.
-    cardHost.insertAdjacentHTML(
-      "beforeend",
-      data.accounts
-        .filter((a) => a.type === "Cartão")
-        .map(
-          (a) =>
-            btn("Fatura: " + esc(a.name), "card-cycle", a.id) +
-            btn("Editar ciclo", "edit-card-cycle", a.id),
-        )
-        .join("") +
-        data.installmentPlans
-          .map((p) =>
-            btn(
-              "Cancelar plano: " + esc(p.description),
-              "cancel-installments",
-              p.id,
-            ),
-          )
-          .join(""),
-    );
     for (const [id, kind] of [
       ["incomeValue", "income"],
       ["expenseValue", "expense"],
@@ -1165,7 +1141,10 @@
     $("#balanceValue").tabIndex = 0;
     $("#balanceValue").onclick = () => navigate("accounts");
     $("#balanceValue").onkeydown = (e) => {
-      if (e.key === "Enter") navigate("accounts");
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        navigate("accounts");
+      }
     };
     let explorer = $("#categoryDrill");
     if (!explorer) {
@@ -1188,22 +1167,26 @@
       );
     $("#paymentCalendar")
       .querySelectorAll('[data-action="edit-pending"]')
-      .forEach((b) =>
+      .forEach((b) => {
+        if (b.nextElementSibling?.dataset?.action === "partial-payment") return;
         b.insertAdjacentHTML(
           "afterend",
           btn("Pagamento parcial", "partial-payment", b.dataset.id),
-        ),
-      );
+        );
+      });
   };
   const api = {
     visibleRows: 100,
     getFilters: () => ({ ...filters }),
+    clearExactCategoryFilter: () => { filters.category = ""; categoryInput.value = ""; },
     setDateRange: (start = "", end = "") => {
+      window.resetTransactionPage?.();
       filters.start = start || "";
       filters.end = end || "";
       reloadFilters();
     },
     clearDateRange: () => {
+      window.resetTransactionPage?.();
       filters.start = "";
       filters.end = "";
       reloadFilters();
@@ -1258,7 +1241,7 @@
 (function () {
   let timer;
   const pendingRoots = new Set();
-  const excluded = "script,style,textarea,option,svg title,svg desc,.sensitive-value";
+  const excluded = "script,style,textarea,option,svg title,svg desc,.sensitive-value,.view:not(.active)";
   const currencyPattern = /\d[\d .,\u00a0\u202f]*\s*€/;
   const currencyParts = /[-−+]?\d[\d .,\u00a0\u202f]*\s*€/g;
 
@@ -1297,9 +1280,16 @@
       return;
     }
     if (root.nodeType === Node.ELEMENT_NODE && root.closest?.(excluded)) return;
-    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT, {
+      acceptNode(node) {
+        if (node.nodeType === Node.ELEMENT_NODE) {
+          return node.matches?.(excluded) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_SKIP;
+        }
+        return eligibleTextNode(node) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP;
+      },
+    });
     const nodes = [];
-    while (walker.nextNode()) if (eligibleTextNode(walker.currentNode)) nodes.push(walker.currentNode);
+    while (walker.nextNode()) nodes.push(walker.currentNode);
     for (const node of nodes) wrapCurrencyText(node);
   }
 
@@ -1327,6 +1317,13 @@
       for (const node of record.addedNodes || []) pendingRoots.add(node);
     }
     if (!pendingRoots.size) return;
+    clearTimeout(timer);
+    timer = setTimeout(flush, 0);
+  });
+
+  document.addEventListener("equilibrio:scan-currency", (event) => {
+    const target = event.detail instanceof Element ? event.detail : (document.querySelector(".view.active") || document.body);
+    pendingRoots.add(target);
     clearTimeout(timer);
     timer = setTimeout(flush, 0);
   });

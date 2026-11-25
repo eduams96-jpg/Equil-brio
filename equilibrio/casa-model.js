@@ -29,7 +29,7 @@
     if((d.casa.financeLinks!==undefined||d.casa.financePilotEnabled!==undefined)&&!pilot)throw Error("Falta o módulo do piloto Casa.");
     pilot?.validate(d);
     const dossiers=typeof module==='object'&&module.exports?require('./dossiers-model.js'):root.DossiersFinance;
-    if(d.casa.utilityReadings!==undefined&&!dossiers)throw Error("Falta o módulo de consumos da Casa.");
+    if((d.casa.utilityReadings!==undefined||d.casa.utilityPeriods!==undefined)&&!dossiers)throw Error("Falta o módulo de consumos da Casa.");
     dossiers?.validate(d);
     const productsById=new Map(c.catalog.map(p=>[p.id,p])), storesById=new Map(c.stores.map(s=>[s.id,s])), purchasesById=new Map(c.purchases.map(p=>[p.id,p])), transactionsById=new Map((d.transactions||[]).map(t=>[t.id,t]));
     if (!d.casa || typeof d.casa!=='object' || Array.isArray(d.casa) || ![1,2,3,4].includes(d.casa.version) || !Array.isArray(d.casa.purchases) || !Array.isArray(d.casa.shopping) || !['purchases','shopping','catalog','stores','stock'].every(k=>Array.isArray(c[k]))) throw Error('Dados Casa inválidos ou de uma versão não suportada.');
@@ -110,6 +110,7 @@
   }
   function linkDraft(d, F, p, account, category) {
     if (p.transactionId) return p.transactionId;
+    if ((d.casa.financeLinks || []).some(l => l.purchaseId === p.id)) throw Error('Esta compra já está associada no piloto Casa ↔ Finanças.');
     if(!p.total)return null;
     if((d.casa.returns||[]).some(r=>r.purchaseId===p.id))throw Error('Esta compra tem devoluções. Anula-as antes de criar a ligação financeira.');
     if (!d.accounts.some(a => a.name === account && !a.archived)) throw Error('Escolhe uma conta ativa.');
@@ -148,6 +149,7 @@
       if (!p) throw Error('Compra não encontrada.');
       if (draft.closedMonths.includes(p.date.slice(0,7))) throw Error('Reabre o mês antes de eliminar a compra.');
       if((draft.casa.returns||[]).some(r=>r.purchaseId===id))throw Error('Anula as devoluções antes de eliminar a compra.');
+      if((draft.casa.financeLinks||[]).some(l=>String(l.purchaseId)===String(id)))throw Error('Esta compra tem associações no piloto financeiro. Retira primeiro a associação.');
       if(draft.casa.stock.some(l=>l.purchaseId===id&&draft.casa.stockEvents.some(e=>e.lotId===l.id)))throw Error('Esta compra já tem consumo ou acertos de stock. Mantém a compra e corrige o stock na despensa.');
       const tx = p.transactionId;
       delete p.transactionId;
@@ -173,6 +175,10 @@
     const old=draft.casa.stores.find(s=>s.id===input.id);
     if(input.id&&!old)throw Error('Supermercado não encontrado.');
     const store={id:old?.id||F.id(),name:String(input.name||'').trim(),archived:input.archived===true};
+    if(input.address!==undefined)store.address=String(input.address).trim();
+    if(input.routeOrigin!==undefined)store.routeOrigin=String(input.routeOrigin).trim();
+    if(input.routeKind!==undefined)store.routeKind=String(input.routeKind);
+    if(input.durationMinutes!==undefined)store.durationMinutes=input.durationMinutes===''?null:Number(input.durationMinutes);
     if(input.distanceKm!==undefined&&input.distanceKm!==''&&input.distanceKm!==null){const km=Number(input.distanceKm);if(!Number.isFinite(km)||km<0||km>1000)throw Error('Distância inválida (0 a 1000 km).');if(km>0)store.distanceKm=Math.round(km*10)/10;else if(old)delete old.distanceKm;}else if(input.distanceKm!==undefined&&old)delete old.distanceKm;
     if(old)Object.assign(old,store);else draft.casa.stores.push(store);return store.id;
   });}
@@ -195,9 +201,9 @@
   function clearProductCategories(d){return change(d,draft=>{let count=0;for(const p of draft.casa.catalog){const byStore=p.storeCategories&&Object.keys(p.storeCategories).length;if(!p.category&&!byStore)continue;p.category='';if(p.storeCategories)p.storeCategories={};count++;}return count;});}
   // Eliminar só é possível sem histórico; com compras, stock, receitas ou consumos o produto deve ser arquivado.
   function removeProduct(d,id){return change(d,draft=>{const c=draft.casa;if(!c.catalog.some(p=>p.id===id))throw Error('Produto não encontrado.');if(c.purchases.some(r=>r.items.some(i=>i.catalogId===id))||c.stock.some(l=>l.catalogId===id)||c.recipes.some(r=>r.ingredients.some(i=>i.catalogId===id))||(c.legacyActivity||[]).some(e=>e.catalogId===id))throw Error('Este produto já tem compras, stock, receitas ou consumos registados. Arquiva-o para manter o histórico.');c.catalog=c.catalog.filter(p=>p.id!==id);c.priceHistory=(c.priceHistory||[]).filter(h=>h.catalogId!==id);c.shopping=c.shopping.filter(i=>i.catalogId!==id);for(const list of c.lists||[])list.items=list.items.filter(i=>i.catalogId!==id);c.lists=(c.lists||[]).filter(list=>list.items.length);});}
-  function saveProductOffers(d,input,rows){return change(d,(draft,F)=>{
+  function saveProductOffers(d,input,rows,options={}){return change(d,(draft,F)=>{
     if(!Array.isArray(rows)||rows.length>500)throw Error('Preços por supermercado inválidos.');
-    const id=writeProduct(draft,F,input),product=draft.casa.catalog.find(p=>p.id===id),seen=new Set();
+    const id=writeProduct(draft,F,input),product=draft.casa.catalog.find(p=>p.id===id),seen=new Set(),savedStoreIds=new Set();
     for(const row of rows){
       if(!row||typeof row!=="object"||typeof row.storeName!=="string")throw Error("Preços por supermercado inválidos.");
       const name=String(row.storeName||'').trim(),key=nameKey(name);
@@ -207,7 +213,15 @@
       seen.add(key);let store=draft.casa.stores.find(s=>nameKey(s.name)===key);
       if(store?.archived)throw Error('O supermercado '+name+' está arquivado. Reativa-o em Supermercados.');
       if(!store){store={id:F.id(),name,archived:false};draft.casa.stores.push(store);}
+      savedStoreIds.add(store.id);
       writeOffer(draft,F,product,store.id,{...row,packageQty:pkgQty,price});
+    }
+    if(options?.replaceActiveOffers===true){
+      for(const sid of Object.keys(product.offers||{})){
+        if(savedStoreIds.has(sid))continue;
+        const st=draft.casa.stores.find(s=>s.id===sid);
+        if(!st?.archived)delete product.offers[sid];
+      }
     }
     return id;
   });}
@@ -218,6 +232,21 @@
     product.offers[storeId]={...old,packageQty:pkgQty,price:numPrice,date:priceChanged?F.today():old.date,url};
     if(priceChanged&&numPrice>0)draft.casa.priceHistory.push({id:F.id(),catalogId:product.id,storeId,packageQty:pkgQty,price:numPrice,date:F.today(),source:'manual'});
   }
+  function setOffersBatch(d, changes){return change(d,(draft,F)=>{
+    if(!Array.isArray(changes))throw Error('Alterações de preços inválidas.');
+    let count=0;
+    for(const item of changes){
+      const product=draft.casa.catalog.find(p=>p.id===item?.pid&&!p.archived);
+      const store=draft.casa.stores.find(s=>s.id===item?.sid&&!s.archived);
+      if(!product||!store)continue;
+      const pkgQty=(item.packageQty===''||item.packageQty===null||item.packageQty===undefined)?(product.offers[store.id]?.packageQty||1):Number(item.packageQty);
+      const numPrice=(item.price===''||item.price===null||item.price===undefined)?0:Number(item.price);
+      if(!quantity(pkgQty)||!Number.isFinite(numPrice)||numPrice<0||F.money(numPrice)!==numPrice||!Number.isSafeInteger(F.cents(numPrice)))throw Error('Confirma quantidade e preço.');
+      writeOffer(draft,F,product,store.id,{packageQty:pkgQty,price:numPrice,url:item.url});
+      count++;
+    }
+    return count;
+  });}
   function parseUnitSpec(raw, fallbackUnit = 'un') {
     const str = String(raw ?? '').replace(/\u00a0|\u202f/g,' ').trim();
     if (!str) return { qty: 1, unit: validUnit(fallbackUnit) ? fallbackUnit : 'un' };
@@ -307,7 +336,7 @@
         const unitsInGroup = new Set(parsedRows.map(r => r.unit));
         let targetUnit = existing?.unit || parsedRows[0].unit || 'un';
         if (!existing) {
-          if (unitsInGroup.has('ml') && unitsInGroup.has('L')) targetUnit = 'ml';
+          if ((unitsInGroup.has('ml') && (unitsInGroup.has('L') || unitsInGroup.has('cl'))) || (unitsInGroup.has('cl') && unitsInGroup.has('L'))) targetUnit = 'ml';
           if (unitsInGroup.has('g') && unitsInGroup.has('kg')) targetUnit = 'g';
         }
         const primaryCat = parsedRows.find(r => r.category)?.category || existing?.category || '';
@@ -320,7 +349,7 @@
           name: existing?.name || group.name,
           category: primaryCat,
           brand: primaryBrand,
-          url: existing?.url||'',
+          url: existing?.url || (parsedRows.every(r => !r.storeName) ? primaryUrl : '') || '',
           unit: targetUnit,
           barcode: existing?.barcode || '',
           notes: existing?.notes || '',
@@ -433,6 +462,7 @@
   function attachMovement(d,id,transactionId){return change(d,(draft)=>{
     const p=draft.casa.purchases.find(p=>p.id===id),t=draft.transactions.find(t=>t.id===transactionId);
     if(!p||p.transactionId)throw Error('Compra inexistente ou já associada.');
+    if((draft.casa.financeLinks||[]).some(l=>l.purchaseId===id||l.transactionId===transactionId))throw Error('Esta compra ou movimento já está associado no piloto Casa ↔ Finanças.');
     if((draft.casa.returns||[]).some(r=>r.purchaseId===id))throw Error('Anula as devoluções antes de associar uma despesa.');
     if(!t||t.type!=='expense'||t.amount!==p.total||t.date!==p.date||t.source==='Casa integrado'||t.debtId||t.refundOf||t.recurringRuleId||t.pendingId||t.installmentPaymentId)throw Error('Escolhe uma despesa simples com a mesma data e valor da compra.');
     if(draft.closedMonths.includes(p.date.slice(0,7)))throw Error('Reabre o mês antes de associar a compra.');
@@ -489,7 +519,7 @@
     let changed=0;const prepared=rows.map(r=>{const base=nameKey(r.name);if(!split.has(base))return{...r};changed++;const pk=pack(r),brand=brandPacks.has(base+'|'+pk)?' · '+String(r.brand||'Sem marca').trim():'',variant=linkVariants.has(base+'|'+pk+'|'+nameKey(r.storeName||''))&&r.url?' · '+r.storeName+' · Oferta '+code(r.url):'';return{...r,name:r.name+' · '+labels.get(base+'|'+pk)+brand+variant};});
     return{rows:prepared,separatedRows:changed,separatedNames:split.size};
   }
-  const api = {catalogVariants,delimitedTable,catalogTableRows,productUrl,stockUnits,parseUnitSpec,convertCompatibleQty,importCatalogTable,validatePreservedAttachment,categoryPaths,state,validate,addPurchase,link,removePurchase,shopping,saveStore,saveProduct,removeProduct,clearProductCategories,saveProductOffers,setOffer,queueProduct,quote,checkout,change,attachMovement,correctPurchase};
+  const api = {catalogVariants,delimitedTable,catalogTableRows,productUrl,stockUnits,parseUnitSpec,convertCompatibleQty,importCatalogTable,validatePreservedAttachment,categoryPaths,state,validate,addPurchase,link,removePurchase,shopping,saveStore,saveProduct,removeProduct,clearProductCategories,saveProductOffers,setOffer,setOffersBatch,queueProduct,quote,checkout,change,attachMovement,correctPurchase};
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.CasaFinance = Object.freeze(api);
 })(typeof globalThis === 'object' ? globalThis : this);

@@ -11,9 +11,22 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
  for(const width of [390,910,1366]){await page.setViewportSize({width,height:900});await page.screenshot({path:path.join(out,'parcelas-'+width+'.png'),fullPage:true});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2));}
  assert.equal(await page.locator('#modal [name=amount]').inputValue(),'100.00');assert.equal(await page.locator('#modal [name=amount]').evaluate(e=>e.readOnly),true);await page.locator('#doneTransactionSplit').click();assert.match(await page.locator('#transactionSplitStatus').innerText(),/análises e os orçamentos/);await submit();
  assert.equal(await page.evaluate(()=>data.accounts[0].balance),900);const id=await page.evaluate(()=>data.transactions[0].id);
- await page.evaluate(id=>transactionForm(id),id);assert.equal(await page.locator('#transactionMainCategory').isVisible(),false);await page.locator('#openTransactionSplitWorkbench').click();assert.equal(await page.locator('[data-tx-split-note]').nth(1).inputValue(),'Jantar de família');await page.locator('#doneTransactionSplit').click();await page.locator('#modal [name=description]').fill('Compra editada');await submit();assert.equal(await page.evaluate(()=>data.accounts[0].balance),900);
+ await page.evaluate(id=>transactionForm(id),id);assert.equal(await page.locator('#transactionMainCategory').isVisible(),false);await page.locator('#openTransactionSplitWorkbench').click();assert.equal(await page.locator('[data-tx-split-note]').nth(1).inputValue(),'Jantar de família');
+ await page.locator('[data-tx-split-amount]').nth(1).fill('69.99');
+ assert.match(await page.locator('#transactionSplitTotal').innerText(),/Por distribuir.*0,01/);
+ assert.equal(await page.locator('#doneTransactionSplit').isDisabled(),true);
+ assert.equal(Number(await page.locator('#modal [name=amount]').inputValue()),100);
+ await page.locator('[data-tx-split-amount]').nth(1).fill('70');
+ await page.locator('#doneTransactionSplit').click();await page.locator('#modal [name=description]').fill('Compra editada');await submit();assert.equal(await page.evaluate(()=>data.accounts[0].balance),900);
  await page.locator('#searchTransactions').fill('maquina');assert.equal(await page.evaluate(()=>filteredTransactions().length),1);await page.locator('#searchTransactions').fill('');
  await page.reload();await page.evaluate(()=>{document.querySelectorAll('dialog[open]').forEach(d=>d.close());month='2026-08';render();navigate('weeklyHub');});assert.equal(await page.evaluate(()=>data.transactions[0].splits[1].note),'Jantar de família');assert.equal(await page.locator('#reviewCloseMonth').isDisabled(),true);
+ assert.match(await page.locator('#reviewCloseReason').innerText(),/Confere o saldo/);
+ assert.equal(await page.locator('[data-action=plan-close]').isDisabled(),true);
+ assert.match(await page.locator('#comparisonCloseReason').innerText(),/Confere o saldo/);
+ await page.locator('[data-review-topic=comparison]').click();await page.locator('.monthly-note [name=summary]').fill('Conferir as despesas no próximo mês');
+ await page.getByRole('button',{name:'Guardar conclusões',exact:true}).click();
+ assert.deepEqual(await page.evaluate(()=>data.closedMonths),[]);
+ assert.match(await page.evaluate(()=>JSON.stringify(data.monthlyConclusions)),/Conferir as despesas/);assert.equal(await page.locator('.monthly-note [name=summary]').inputValue(),'Conferir as despesas no próximo mês');await page.locator('[data-review-topic=overview]').click();
  const before=await page.evaluate(()=>JSON.stringify(data.accounts));await page.locator('[data-review-account=a] input').fill('850');assert.match(await page.locator('[data-review-difference]').innerText(),/-50/);await page.locator('[data-review-account=a] button').click();assert.match(await page.locator('.u-review-accounts .rv-account').first().innerText(),/Diferença/);assert.equal(await page.locator('#reviewCloseMonth').isDisabled(),true);assert.equal(await page.evaluate(()=>JSON.stringify(data.accounts)),before);
  await page.locator('[data-review-account=a] input').fill('900');await page.locator('[data-review-account=a] button').click();assert.equal(await page.locator('#reviewCloseMonth').isEnabled(),true);
  await page.locator('#reviewCloseMonth').click();await submit();assert.deepEqual(await page.evaluate(()=>data.closedMonths),['2026-08']);assert.equal(await page.locator('[data-review-account]').count(),0);assert.equal(await page.locator('#reviewCloseMonth').innerText(),'Reabrir mês');await page.locator('#reviewCloseMonth').click();await submit();assert.deepEqual(await page.evaluate(()=>data.closedMonths),[]);

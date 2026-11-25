@@ -8,7 +8,7 @@
   launcher.type = "button";
   launcher.className = "welcome-launcher";
   launcher.setAttribute("aria-label", "Escolher utilizador ou espaço financeiro");
-  launcher.title = "Escolher utilizador";
+  launcher.title = "Escolher utilizador ou espaço financeiro";
   launcher.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3.2"/><path d="M5 20v-1.5a7 7 0 0 1 14 0V20"/></svg>';
   const contextControls = document.createElement('div');
   contextControls.className = 'top-context-controls';
@@ -78,6 +78,22 @@
   let startupEntryAuthorized = false;
   const nativeDialogClose = dialog.close.bind(dialog);
   dialog.close = (...args) => { if (window.equilibrioStartup?.awaitingChoice && !startupEntryAuthorized) return; nativeDialogClose(...args); };
+  function applyRequestedMovementCorrection() {
+    if (key !== "equilibrioData" || data.isDemo || !window.DesktopPersistence?.commitLedgerDirect) return;
+    const marker = "equilibrio:applied:1044-movement-correction";
+    if (localStorage.getItem(marker)) return;
+    const matches = (tx, cents) => tx?.date === "2026-11-22" && tx.type === "expense" &&
+      tx.beneficiary === "Continente" && tx.description === "Prendas Natal" && F.cents(tx.amount) === cents;
+    const older = find("transactions", "c2788977-9ed1-4ce2-b47f-01c320330fa6");
+    const corrected = find("transactions", "ed25f25e-dd36-4eb5-980b-c0e5864a71b8");
+    if (!matches(older, 4008) || !matches(corrected, 4018) || older.account !== corrected.account) return;
+    if (commit(() => F.remove(data, older.id), "Movimento repetido do Continente de 40,08 € removido.")) {
+      localStorage.setItem(marker, "1");
+    }
+  }
+  window.addEventListener("load", () => {
+    if (!window.equilibrioStartup?.awaitingChoice) applyRequestedMovementCorrection();
+  }, {once:true});
   function finishStartup() {
     if (!window.equilibrioStartup?.awaitingChoice || !startupEntryAuthorized) return;
     window.equilibrioStartup.awaitingChoice = false;
@@ -86,7 +102,9 @@
     const account = document.querySelector('#accountFilter');
     if (account) account.value = '';
     view = 'dashboard';
+    document.body.dataset.currentView = 'dashboard';
     window.renderEquilibrio?.();
+    applyRequestedMovementCorrection();
   }
   dialog.addEventListener('cancel', event => { if (window.equilibrioStartup?.awaitingChoice) event.preventDefault(); });
   dialog.addEventListener('close', () => {
@@ -367,32 +385,38 @@
   function openMain() {
     const spaces = window.LifeUI.spaces?.() || [];
     const active = currentSpace();
-    const intro = data.isDemo ? "Começa com os teus dados ou explora a demonstração." : "Escolhe o espaço em que queres trabalhar hoje.";
+    const isStartup = Boolean(window.equilibrioStartup?.awaitingChoice);
+    const intro = data.isDemo
+      ? "Escolhe o perfil ou começa com os teus dados reais."
+      : isStartup
+        ? "Seleciona um perfil para abrir. Duplo clique entra diretamente."
+        : "Seleciona outro espaço para trabalhar sem misturar movimentos.";
     dialog.innerHTML = `
-      <div class="welcome-shell welcome-centered">
+      <div class="welcome-shell welcome-centered welcome-profiles">
         <div class="welcome-hero">
           <div class="welcome-brand"><img src="Equilibrio.png" alt="" aria-hidden="true"><span>Equilíbrio</span></div>
-          <p class="welcome-kicker">O TEU ESPAÇO FINANCEIRO</p>
-          <h2 id="welcomeTitle">${data.profile ? `Bem-vindo de volta, ${esc(data.profile)}.` : "Bem-vindo ao Equilíbrio."}</h2>
-          <p>${intro}</p>
-          <div class="welcome-hero-note"><span aria-hidden="true">✓</span> Cada espaço guarda os seus movimentos separadamente.</div>
+          <h2 id="welcomeTitle">${isStartup ? (data.profile ? `Olá, ${esc(data.profile)}` : "Escolhe o teu espaço") : "Trocar de espaço"}</h2>
+          <p class="welcome-intro">${intro}</p>
         </div>
         <div class="welcome-content">
-          
-          <p class="welcome-step">1 · ESCOLHER</p>
-          <h3>Escolhe o teu espaço</h3>
-          <p class="welcome-intro">Seleciona um espaço existente ou cria outro para manter as contas organizadas.</p>
           <div class="welcome-spaces" role="radiogroup" aria-label="Espaços financeiros">
-            ${spaces.map((space, index) => `<label class="welcome-space"><input type="radio" name="welcomeSpace" value="${esc(space.id)}" ${space.id === active || (!active && index === 0) ? "checked" : ""}><span class="welcome-avatar" aria-hidden="true">${esc(String(space.name || "E").charAt(0).toUpperCase())}</span><span class="welcome-space-copy"><strong>${esc(space.name)}</strong><small>${space.id === active ? "Espaço aberto agora" : "Dados separados"}</small></span><span class="welcome-selected" aria-hidden="true">✓</span></label>`).join("")}
+            ${spaces.map((space, index) => {
+              const checked = space.id === active || (!active && index === 0);
+              return `<label class="welcome-space${checked ? " is-selected" : ""}"><input type="radio" name="welcomeSpace" value="${esc(space.id)}" ${checked ? "checked" : ""}><span class="welcome-selected" aria-hidden="true">✓</span><span class="welcome-avatar" aria-hidden="true">${esc(String(space.name || "E").charAt(0).toUpperCase())}</span><span class="welcome-space-copy"><strong>${esc(space.name)}</strong><small>${space.id === active ? "Espaço aberto agora" : "Espaço separado"}</small></span></label>`;
+            }).join("")}
           </div>
-          <div class="welcome-options"><label class="welcome-privacy"><input id="welcomeShowTips" type="checkbox" ${data.practical?.entryTips?"checked":""}><span>Mostrar dicas ao entrar neste espaço</span></label><label class="welcome-privacy"><input id="welcomeHideValues" type="checkbox" ${document.body.classList.contains("private-values")?"checked":""}><span>Entrar com os valores ocultos</span></label></div><div class="welcome-actions"><button type="button" class="primary" id="welcomeContinue">Entrar no espaço <span aria-hidden="true">→</span></button><button type="button" class="secondary" id="welcomeCreate">+ Criar espaço</button></div>
-          ${!window.equilibrioStartup?.awaitingChoice && (setupAvailable() || readProgress()) ? `<button type="button" class="welcome-configure" id="welcomeStartSetup">${readProgress() ? "Retomar primeira configuração" : "Preparar os meus dados e importar extrato"}</button>` : ""}
-          ${window.equilibrioStartup?.awaitingChoice ? "" : `<button type="button" class="welcome-configure" id="welcomeConfigure">${data.isDemo ? "Configurar os meus dados reais" : "Gerir os espaços nas Definições"}</button>`}
-          <p class="welcome-preference">Escolhe o espaço ao iniciar. Os dados só são apresentados depois de entrares.</p>
+          <div class="welcome-options"><label class="welcome-privacy"><input id="welcomeShowTips" type="checkbox" ${data.practical?.entryTips?"checked":""}><span>Mostrar dicas ao entrar</span></label><label class="welcome-privacy"><input id="welcomeHideValues" type="checkbox" ${document.body.classList.contains("private-values")?"checked":""}><span>Ocultar valores ao entrar</span></label></div>
+          <div class="welcome-actions"><button type="button" class="primary" id="welcomeContinue">Entrar no espaço <span aria-hidden="true">→</span></button><button type="button" class="secondary" id="welcomeCreate">+ Novo espaço</button></div>
+          ${(!isStartup && (setupAvailable() || readProgress())) || !isStartup ? `<div class="welcome-footer-links">${!isStartup && (setupAvailable() || readProgress()) ? `<button type="button" class="welcome-configure" id="welcomeStartSetup">${readProgress() ? "Retomar primeira configuração" : "Preparar os meus dados e importar extrato"}</button>` : ""}${isStartup ? "" : `<button type="button" class="welcome-configure" id="welcomeConfigure">${data.isDemo ? "Configurar os meus dados reais" : "Gerir espaços nas Definições"}</button>`}</div>` : ""}
         </div>
       </div>`;
     dialog.querySelector("#welcomeClose")?.addEventListener("click", close);
-    for(const radio of dialog.querySelectorAll('[name=welcomeSpace]'))radio.addEventListener('change',()=>{const selected=LifeUI.readSpace(radio.value);dialog.querySelector('#welcomeShowTips').checked=selected?.practical?.entryTips===true;});
+    for(const radio of dialog.querySelectorAll('[name=welcomeSpace]'))radio.addEventListener('change',()=>{
+      for(const card of dialog.querySelectorAll('.welcome-space'))card.classList.toggle('is-selected',Boolean(card.querySelector('[name=welcomeSpace]')?.checked));
+      const selected=LifeUI.readSpace(radio.value);
+      dialog.querySelector('#welcomeShowTips').checked=selected?.practical?.entryTips===true;
+    });
+    for(const card of dialog.querySelectorAll('.welcome-space'))card.addEventListener('dblclick',()=>{const radio=card.querySelector('[name=welcomeSpace]');if(!radio)return;radio.checked=true;radio.dispatchEvent(new Event('change',{bubbles:true}));dialog.querySelector('#welcomeContinue')?.click();});
     dialog.querySelector("#welcomeContinue").onclick = () => {
       const selected = dialog.querySelector('[name="welcomeSpace"]:checked')?.value;
       try {

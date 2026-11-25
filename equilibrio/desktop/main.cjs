@@ -1,4 +1,4 @@
-const { app, BrowserWindow, shell, dialog, ipcMain } = require('electron');
+const { app, BrowserWindow, shell, dialog, ipcMain, session } = require('electron');
 const path = require('node:path');
 const fsSync = require('node:fs');
 const fs = require('node:fs/promises');
@@ -9,33 +9,24 @@ if(process.argv.includes('--equilibrio-validation')) {
  if(!profile.startsWith(path.resolve(temporary)+path.sep)||!fsSync.existsSync(path.join(profile,'.equilibrio-validation')))throw Error('Perfil de validação temporário não autorizado.');
  app.setPath('appData',profile);
 }
+// Keep user data outside the application installation directory and stable
+// between reinstallations/updates. This is deliberately set before ready.
+const persistentUserData = path.join(app.getPath('appData'), 'Financas Pessoais');
+app.setPath('userData', persistentUserData);
+const gotSingleInstanceLock = app.requestSingleInstanceLock();
+
 // Recover pending file replacement before importing any application module or opening SQLite.
-function recoverBeforeLoad(appPath,userDataPath){
- const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto');
- const marker=path.join(userDataPath,'update-pending.json');
- if(!fs.existsSync(marker)){
-   const statusPath=path.join(userDataPath,'update-status.json');
-   if(fs.existsSync(statusPath)){
-     const status=JSON.parse(fs.readFileSync(statusPath));
-     if(['installing','recovering','waiting-for-close','failed-rollback-error'].includes(status.state))throw Error('Atualização histórica pendente. Recuperação controlada necessária antes de abrir a aplicação.');
-   }
-   return null;
- }
- const pointer=JSON.parse(fs.readFileSync(marker)),root=path.dirname(path.resolve(pointer.planPath||'')),updates=path.join(path.resolve(userDataPath),'updates');
- if(!root.startsWith(updates+path.sep)||path.basename(pointer.planPath)!=='update-plan.json')throw Error('Plano de recuperação fora do perfil.');
- const runtime=path.join(root,'runtime');
- for(const name of ['manual-updater.cjs','update-recovery.cjs','verified-backup.cjs']){
- const file=path.join(runtime,name);let p=file;for(;;){if(fs.existsSync(p)&&fs.lstatSync(p).isSymbolicLink())throw Error('Ligação no runtime de recuperação.');const up=path.dirname(p);if(up===p)break;p=up;}
- if(!pointer.runtimeHashes||crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex')!==pointer.runtimeHashes[name])throw Error('Runtime de recuperação inválido.');}
- const recovery=require(path.join(runtime,'update-recovery.cjs')),updater=require(path.join(runtime,'manual-updater.cjs'));
- try{return recovery.recover(pointer,appPath,userDataPath,updater.validatePackageObject);}
- catch(error){
-   if(process.platform!=='win32'||!['EACCES','EPERM'].includes(error.code)||!updater.recoverElevatedSync)throw error;
-   updater.recoverElevatedSync({planPath:pointer.planPath,userDataPath,appPath});
-   return {state:'failed-rolled-back',recoveredInterruption:true,elevated:true};
- }
+const { recoverBeforeLoad } = require('./update-recovery.cjs');
+const requireUpdateSignature = app.isPackaged;
+try {
+  if (gotSingleInstanceLock) recoverBeforeLoad(path.resolve(__dirname,'..'),persistentUserData,{
+    requireSignature: requireUpdateSignature,
+  });
+} catch (error) {
+  dialog.showErrorBox('Equilíbrio - Recuperação da atualização', error.message);
+  app.exit(1);
+  throw error;
 }
-try { recoverBeforeLoad(path.resolve(__dirname,'..'),path.join(app.getPath('appData'),'Financas Pessoais')); } catch (error) { dialog.showErrorBox('Equilíbrio — Recuperação da atualização', error.message); app.exit(1); throw error; }
 const { createServer } = require('../serve.cjs');
 const { createTrustedIpc } = require('./ipc-guard.cjs');
 const { draftStore } = require('./drafts.cjs');
@@ -55,12 +46,6 @@ const { prepareRestoreText } = require('./restore-validation.cjs');
 // Windows drivers the previous accelerated path caused visible flicker while
 // scrolling long views. This must be set before the app becomes ready.
 app.disableHardwareAcceleration();
-
-// Keep user data outside the application installation directory and stable
-// between reinstallations/updates. This is deliberately set before ready.
-const persistentUserData = path.join(app.getPath('appData'), 'Financas Pessoais');
-app.setPath('userData', persistentUserData);
-const gotSingleInstanceLock = app.requestSingleInstanceLock();
 
 // Desktop v0.16: SQLite remains the durable source; access is centralized
 // through data-service.cjs so storage rules no longer leak across the app.
@@ -92,6 +77,37 @@ let closingAfterBackup = false;
 let updateInstallPending = false;
 let updateDialogBusy = false;
 let backupQueue = Promise.resolve();
+let backupSettingsQueue = Promise.resolve();
+const RUN_INSTANCE_TOKEN = `${process.pid}-${crypto.randomUUID().slice(0, 8)}`;
+
+function serializeBackupSettings(task) {
+  const result = backupSettingsQueue.then(task);
+  backupSettingsQueue = result.catch(() => {});
+  return result;
+}
+
+function attachmentsTempDir() {
+  return path.join(app.getPath('temp'), 'Financas-Pessoais', `comprovativos-${RUN_INSTANCE_TOKEN}`);
+}
+
+function cleanupStaleAttachmentTempDirs() {
+  const base = path.join(app.getPath('temp'), 'Financas-Pessoais');
+  const own = path.basename(attachmentsTempDir());
+  try {
+    const now = Date.now();
+    for (const entry of fsSync.readdirSync(base, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue;
+      if (entry.name === own) continue;
+      if (entry.name === 'comprovativos' || entry.name.startsWith('comprovativos-')) {
+        const full = path.join(base, entry.name);
+        try {
+          const st = fsSync.statSync(full);
+          if (now - st.mtimeMs > 24 * 60 * 60 * 1000) fsSync.rmSync(full, { recursive: true, force: true });
+        } catch {}
+      }
+    }
+  } catch {}
+}
 
 // Only one installed instance should manipulate the same persistent state.
 if (!gotSingleInstanceLock) {
@@ -256,11 +272,25 @@ async function readBackupSettings() {
   }
 }
 
-async function writeBackupSettings(next) {
+async function writeBackupSettingsRaw(next) {
   const clean = sanitizeBackupSettings(next);
-  await fs.mkdir(path.dirname(backupSettingsPath()), { recursive: true });
-  await fs.writeFile(backupSettingsPath(), JSON.stringify(clean, null, 2), 'utf8');
+  await writeVerifiedAtomic(backupSettingsPath(), JSON.stringify(clean, null, 2), {
+    stageDirectory: backupStagingDirectory(),
+    retries: 2,
+  });
   return clean;
+}
+
+async function writeBackupSettings(next) {
+  return serializeBackupSettings(() => writeBackupSettingsRaw(next));
+}
+
+async function updateBackupSettings(mutator) {
+  return serializeBackupSettings(async () => {
+    const current = await readBackupSettings();
+    const next = await mutator(current);
+    return writeBackupSettingsRaw(next);
+  });
 }
 
 function backupDue(settings) {
@@ -309,8 +339,7 @@ async function writeJsonBackupTo(filePath, safeContent) {
   });
 }
 
-async function writeNativeBackup(content, { force = false, reason = 'automatic' } = {}) {
-  const safeContent = resolveBackupText({ preferred: content, dataService, readStorage: readPersistentStorageSync });
+async function writeNativeBackup(content, { force = false, reason = 'automatic', fromSqlite = false, device = '' } = {}) {
   const settings = await readBackupSettings();
   if (!settings.directory) {
     if (force) throw new Error('Escolhe primeiro uma pasta para as cópias automáticas.');
@@ -318,6 +347,13 @@ async function writeNativeBackup(content, { force = false, reason = 'automatic' 
   }
   if (!force && reason !== 'close' && !backupDue(settings)) return { skipped: true, reason: 'not-due', settings };
   if (!force && reason === 'close' && !settings.onClose) return { skipped: true, reason: 'close-disabled', settings };
+
+  if (fromSqlite && !dataService) throw new Error('A base de dados não está disponível para criar a cópia.');
+  const safeContent = resolveBackupText({
+    preferred: fromSqlite ? JSON.stringify({ backupMetadata: { device } }) : content,
+    dataService,
+    readStorage: readPersistentStorageSync,
+  });
 
   const name = `${AUTO_PREFIX}${timestampPart()}-${crypto.randomUUID().slice(0, 8)}.json`;
   const requestedPath = path.join(settings.directory, name);
@@ -341,12 +377,17 @@ async function writeNativeBackup(content, { force = false, reason = 'automatic' 
     console.warn(warning, { requestedPath, fallbackPath: filePath });
   }
 
-  settings.lastBackupAt = new Date().toISOString();
-  settings.lastBackupPath = filePath;
-  await writeBackupSettings(settings);
-  if (!fallback) await pruneBackups(settings.directory, settings.retention);
-  else await pruneBackups(path.dirname(filePath), settings.retention);
-  return { ok: true, filePath, requestedPath, name: path.basename(filePath), settings, reason, fallback, warning };
+  const updatedSettings = await updateBackupSettings((current) => {
+    if (current.directory !== settings.directory) return current;
+    return {
+      ...current,
+      lastBackupAt: new Date().toISOString(),
+      lastBackupPath: filePath,
+    };
+  });
+  if (!fallback) await pruneBackups(settings.directory, updatedSettings.retention);
+  else await pruneBackups(path.dirname(filePath), updatedSettings.retention);
+  return { ok: true, filePath, requestedPath, name: path.basename(filePath), settings: updatedSettings, reason, fallback, warning };
 }
 
 async function prepareSafetyBackup(content, { kind = 'migrations', reason = 'safety' } = {}) {
@@ -443,8 +484,8 @@ function createWindow() {
 
   mainWindow.on('close', (event) => {
     if (updateInstallPending) return;
-    if (closingAfterBackup) return;
     event.preventDefault();
+    if (closingAfterBackup) return;
     closingAfterBackup = true;
     (async () => {
       let closeWindow = true;
@@ -483,7 +524,45 @@ function createWindow() {
   mainWindow.on('closed', () => { mainWindow = null; });
 }
 
+function restoreMainWindowFocus() {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  try {
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.focus();
+    mainWindow.webContents.focus();
+  } catch {}
+  setImmediate(() => {
+    if (!mainWindow || mainWindow.isDestroyed()) return;
+    try {
+      mainWindow.focus();
+      mainWindow.webContents.focus();
+    } catch {}
+  });
+}
+
+async function runWindowDialog(fn) {
+  try {
+    return await fn();
+  } finally {
+    restoreMainWindowFocus();
+  }
+}
+
 const trustedIpc = createTrustedIpc(ipcMain, (event) => Boolean(mainWindow && !mainWindow.isDestroyed() && event.sender === mainWindow.webContents && event.senderFrame === mainWindow.webContents.mainFrame && isInternalUrl(event.senderFrame.url)));
+trustedIpc.on('financas:confirm', (event, message) => {
+  if (typeof message !== 'string' || message.length > 4000) { event.returnValue = false; return; }
+  let confirmed = false;
+  try {
+    confirmed = dialog.showMessageBoxSync(mainWindow, {
+      type: 'question', message, buttons: ['Cancelar', 'Confirmar'],
+      defaultId: 0, cancelId: 0, noLink: true,
+    }) === 1;
+  } finally {
+    event.returnValue = confirmed;
+    restoreMainWindowFocus();
+  }
+});
+
 
 // Single source of truth for the renderer/preload build identity.
 // The sandboxed preload must not require local modules directly.
@@ -503,23 +582,23 @@ for(const operation of ['read','write','remove'])trustedIpc.on('financas:draft:'
 trustedIpc.handle('equilibrio:mobile:action', async (_event,input={})=>{
  if(!mobileRuntime)throw Error('A ligação não está disponível.');
  if(['generate','certificate'].includes(input.type)){
-  const result=await mobileRuntime.action({type:input.type,host:input.host,port:input.port});const chosen=await dialog.showSaveDialog(mainWindow,{title:'Guardar certificado público para o Android',defaultPath:'Equilibrio-PC.cer',filters:[{name:'Certificado público',extensions:['cer']}]});if(!chosen.canceled){await fs.writeFile(chosen.filePath,result.caCert,'utf8');}return mobileRuntime.status();
+  const result=await mobileRuntime.action({type:input.type,host:input.host,port:input.port});const chosen=await runWindowDialog(()=>dialog.showSaveDialog(mainWindow,{title:'Guardar certificado público para o Android',defaultPath:'Equilibrio-PC.cer',filters:[{name:'Certificado público',extensions:['cer']}]}));if(!chosen.canceled){await fs.writeFile(chosen.filePath,result.caCert,'utf8');}return mobileRuntime.status();
  }
  if(input.type==='configure'){
-  const cert=await dialog.showOpenDialog(mainWindow,{title:'Certificado HTTPS deste PC',properties:['openFile'],filters:[{name:'Certificado PEM',extensions:['pem','crt']}]});if(cert.canceled)return mobileRuntime.status();
-  const key=await dialog.showOpenDialog(mainWindow,{title:'Chave privada do certificado',properties:['openFile'],filters:[{name:'Chave PEM',extensions:['pem','key']}]});if(key.canceled)return mobileRuntime.status();
+  const cert=await runWindowDialog(()=>dialog.showOpenDialog(mainWindow,{title:'Certificado HTTPS deste PC',properties:['openFile'],filters:[{name:'Certificado PEM',extensions:['pem','crt']}]}));if(cert.canceled)return mobileRuntime.status();
+  const key=await runWindowDialog(()=>dialog.showOpenDialog(mainWindow,{title:'Chave privada do certificado',properties:['openFile'],filters:[{name:'Chave PEM',extensions:['pem','key']}]}));if(key.canceled)return mobileRuntime.status();
   const read=async file=>{const st=await fs.stat(file);if(!st.isFile()||st.size>1024*1024)throw Error('Ficheiro de certificado inválido.');return fs.readFile(file,'utf8');};
   return mobileRuntime.action({type:'configure',host:input.host,port:input.port,cert:await read(cert.filePaths[0]),key:await read(key.filePaths[0])});
  }
  if(input.type==='clientConnect'&&!input.ca){
-  const chosen=await dialog.showOpenDialog(mainWindow,{title:'Certificado público do PC central',properties:['openFile'],filters:[{name:'Certificado público',extensions:['cer','crt','pem']}]});
+  const chosen=await runWindowDialog(()=>dialog.showOpenDialog(mainWindow,{title:'Certificado público do PC central',properties:['openFile'],filters:[{name:'Certificado público',extensions:['cer','crt','pem']}]}));
   if(chosen.canceled)return mobileRuntime.status();
   const stat=await fs.stat(chosen.filePaths[0]);if(!stat.isFile()||stat.size>1048576)throw Error('Certificado público inválido.');
   input={...input,ca:new crypto.X509Certificate(await fs.readFile(chosen.filePaths[0])).toString()};
  }
  if(input.type==='clientBackup'){
   const state=await mobileRuntime.action(input),content=JSON.stringify(state,null,2);
-  const chosen=await dialog.showSaveDialog(mainWindow,{title:'Guardar cópia anterior à partilha',defaultPath:'Equilibrio-antes-da-partilha.json',filters:[{name:'Cópia JSON',extensions:['json']}]});
+  const chosen=await runWindowDialog(()=>dialog.showSaveDialog(mainWindow,{title:'Guardar cópia anterior à partilha',defaultPath:'Equilibrio-antes-da-partilha.json',filters:[{name:'Cópia JSON',extensions:['json']}]}));
   if(!chosen.canceled)await writeVerifiedAtomic(chosen.filePath,content);
   return mobileRuntime.status();
  }
@@ -536,6 +615,7 @@ trustedIpc.handle('financas:storage:save', async (_event, raw) => writePersisten
 trustedIpc.handle('financas:storage:replace', async (_event, raw) => replacePersistentStorage(raw));
 trustedIpc.on('financas:storage:replace-sync', (event, raw) => { event.returnValue = replacePersistentStorageSync(raw); });
 trustedIpc.on('financas:storage:replace-guarded-sync', (event, raw) => {
+  mobileRuntime?.guardReplacement();
   if (!sqliteStorage || !raw?.expected || typeof raw.expected !== 'object') throw Error('Estado de comparação em falta.');
   const clean = sanitizeStorageMap(raw.state);
   sqliteStorage.writeState(clean, raw.expected);
@@ -545,34 +625,36 @@ trustedIpc.on('financas:storage:replace-guarded-sync', (event, raw) => {
 
 trustedIpc.handle('financas:save-json', async (_event, { defaultName, content }) => {
   if (typeof content !== 'string') throw new Error('Conteúdo de cópia inválido.');
-  const result = await dialog.showSaveDialog(mainWindow, {
+  const result = await runWindowDialog(() => dialog.showSaveDialog(mainWindow, {
     title: 'Exportar cópia de segurança',
     defaultPath: defaultName || 'financas-pessoais.json',
     filters: [{ name: 'Cópia JSON', extensions: ['json'] }],
-  });
+  }));
   if (result.canceled || !result.filePath) return null;
   await writeVerifiedAtomic(result.filePath, content, { stageDirectory: backupStagingDirectory() });
   return result.filePath;
 });
 
 trustedIpc.handle('financas:open-json', async () => {
-  const result = await dialog.showOpenDialog(mainWindow, {
+  const result = await runWindowDialog(() => dialog.showOpenDialog(mainWindow, {
     title: 'Restaurar cópia de segurança',
     properties: ['openFile'],
     filters: [{ name: 'Cópia JSON', extensions: ['json'] }],
-  });
+  }));
   if (result.canceled || !result.filePaths?.[0]) return null;
   const filePath = result.filePaths[0];
+  const stat = await fs.stat(filePath);
+  if (!stat.isFile() || stat.size > 96 * 1024 * 1024) throw new Error('A cópia selecionada é inválida ou excede o limite de 96 MB.');
   return { filePath, name: path.basename(filePath), content: await fs.readFile(filePath, 'utf8') };
 });
 
 trustedIpc.handle('financas:backup:encrypted-save', async (_event, { defaultName, content, passphrase } = {}) => {
   if (typeof content !== 'string' || typeof passphrase !== 'string') throw new Error('Dados de cópia encriptada inválidos.');
-  const result = await dialog.showSaveDialog(mainWindow, {
+  const result = await runWindowDialog(() => dialog.showSaveDialog(mainWindow, {
     title: 'Guardar cópia encriptada',
     defaultPath: String(defaultName || 'equilibrio-copia-encriptada.fpbackup').replace(/[\\/]/g, '-'),
     filters: [{ name: 'Cópia encriptada Equilíbrio', extensions: ['fpbackup'] }],
-  });
+  }));
   if (result.canceled || !result.filePath) return null;
   content = resolveBackupText({ preferred: content, dataService, readStorage: readPersistentStorageSync });
   const sealed = await encryptBackup(content, passphrase);
@@ -582,10 +664,10 @@ trustedIpc.handle('financas:backup:encrypted-save', async (_event, { defaultName
 
 trustedIpc.handle('financas:backup:encrypted-open', async (_event, passphrase) => {
   if (typeof passphrase !== 'string') throw new Error('Indica a frase-passe da cópia.');
-  const result = await dialog.showOpenDialog(mainWindow, {
+  const result = await runWindowDialog(() => dialog.showOpenDialog(mainWindow, {
     title: 'Abrir cópia encriptada', properties: ['openFile'],
     filters: [{ name: 'Cópia encriptada Equilíbrio', extensions: ['fpbackup'] }],
-  });
+  }));
   if (result.canceled || !result.filePaths?.[0]) return null;
   const filePath = result.filePaths[0];
   if ((await fs.stat(filePath)).size > 96 * 1024 * 1024) throw new Error('A cópia encriptada excede o limite permitido.');
@@ -595,26 +677,35 @@ trustedIpc.handle('financas:backup:encrypted-open', async (_event, passphrase) =
 
 trustedIpc.handle('financas:backup-settings:get', async () => readBackupSettings());
 trustedIpc.handle('financas:backup-settings:set', async (_event, patch = {}) => {
-  const current = await readBackupSettings();
-  return writeBackupSettings({ ...current, ...patch });
+  const safePatch = {};
+  if (patch && typeof patch === 'object') {
+    if (Object.hasOwn(patch, 'frequency')) safePatch.frequency = patch.frequency;
+    if (Object.hasOwn(patch, 'retention')) safePatch.retention = patch.retention;
+    if (Object.hasOwn(patch, 'onClose')) safePatch.onClose = patch.onClose;
+  }
+  return updateBackupSettings((current) => ({ ...current, ...safePatch }));
 });
 trustedIpc.handle('financas:backup-directory:choose', async () => {
   const current = await readBackupSettings();
-  const result = await dialog.showOpenDialog(mainWindow, {
+  const result = await runWindowDialog(() => dialog.showOpenDialog(mainWindow, {
     title: 'Escolher pasta para cópias automáticas',
     defaultPath: current.directory || undefined,
     properties: ['openDirectory', 'createDirectory'],
-  });
+  }));
   if (result.canceled || !result.filePaths?.[0]) return null;
-  return writeBackupSettings({ ...current, directory: result.filePaths[0] });
+  return updateBackupSettings((latest) => ({ ...latest, directory: result.filePaths[0] }));
 });
 trustedIpc.handle('financas:backup-directory:disable', async () => {
-  const current = await readBackupSettings();
-  return writeBackupSettings({ ...current, directory: '' });
+  return updateBackupSettings((current) => ({ ...current, directory: '' }));
 });
-trustedIpc.handle('financas:backup:run', async (_event, { content, force = false, reason = 'automatic' } = {}) => {
+trustedIpc.handle('financas:backup:run', async (_event, { content, force = false, reason = 'automatic', fromSqlite = false, device = '' } = {}) => {
+  if (fromSqlite === true) {
+    return createNativeBackup('', {
+      force: Boolean(force), reason, fromSqlite: true, device: String(device || '').slice(0, 80),
+    });
+  }
   if (isValidJsonText(content)) latestSnapshot = content;
-  return createNativeBackup(isValidJsonText(content) ? content : latestSnapshot, { force: Boolean(force), reason });
+  return createNativeBackup(latestSnapshot, { force: Boolean(force), reason });
 });
 trustedIpc.handle('financas:backup:list', async () => listNativeBackups());
 trustedIpc.handle('financas:spaces:protect',async (_event,content='')=>({ok:true,filePath:await prepareSafetyBackup(content,{kind:'spaces',reason:'before-space-transfer'})}));
@@ -624,7 +715,7 @@ trustedIpc.handle('financas:attachment:open', async (_event, attachment = {}) =>
   const original = path.basename(String(attachment.name || 'comprovativo'), path.extname(String(attachment.name || '')));
   const safe = original.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9_-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60) || 'comprovativo';
   const hash = crypto.createHash('sha256').update(buffer).digest('hex').slice(0, 12);
-  const dir = path.join(app.getPath('temp'), 'Financas-Pessoais', 'comprovativos');
+  const dir = attachmentsTempDir();
   await fs.mkdir(dir, { recursive: true });
   const target = path.join(dir, `${safe}-${hash}${ext}`);
   await fs.writeFile(target, buffer);
@@ -640,11 +731,11 @@ trustedIpc.handle('financas:attachment:save', async (_event, attachment = {}) =>
   const filters = mime === 'application/pdf'
     ? [{ name: 'Documento PDF', extensions: ['pdf'] }]
     : [{ name: 'Imagem', extensions: [ext.slice(1)] }];
-  const result = await dialog.showSaveDialog(mainWindow, {
+  const result = await runWindowDialog(() => dialog.showSaveDialog(mainWindow, {
     title: 'Guardar cópia do comprovativo',
     defaultPath: defaultName,
     filters,
-  });
+  }));
   if (result.canceled || !result.filePath) return { canceled: true };
   await fs.writeFile(result.filePath, buffer);
   return { canceled: false, filePath: result.filePath };
@@ -773,11 +864,12 @@ trustedIpc.on('financas:data:commit-ledger-sync', (event, payload = {}) => {
       event.returnValue = { ok: false, error: 'Camada de dados indisponível.' };
       return;
     }
-    event.returnValue = dataService.commitLedger(
-      String(payload.storageKey || ''),
-      payload.beforeLedger || {},
-      payload.afterLedger || {},
-    );
+    const key = String(payload.storageKey || '');
+    event.returnValue = payload.patchText !== undefined
+      ? dataService.commitLedgerPatch(key, payload.patchText)
+      : payload.beforeText !== undefined || payload.afterText !== undefined
+        ? dataService.commitLedgerConfirmed(key, payload.beforeText, payload.afterText)
+        : dataService.commitLedger(key, payload.beforeLedger || {}, payload.afterLedger || {});
   } catch (error) {
     console.error('Data service: commit falhou:', error);
     event.returnValue = { ok: false, error: error?.message || String(error) };
@@ -839,6 +931,7 @@ trustedIpc.handle('financas:update:install-file', async () => {
   const { pkg, validated } = await readAndValidatePackage(filePath, {
     currentVersion: APP_VERSION,
     schemaVersion: updateSchemaVersion,
+    requireSignature: requireUpdateSignature,
   });
   const confirmation = await dialog.showMessageBox(mainWindow, {
     type: 'question',
@@ -862,8 +955,10 @@ trustedIpc.handle('financas:update:install-file', async () => {
     appPath: app.getAppPath(),
     userDataPath: app.getPath('userData'),
     currentVersion: APP_VERSION,
+    schemaVersion: updateSchemaVersion,
+    requireSignature: requireUpdateSignature,
   });
-  const helper = await launchDetachedHelper({ planPath: staged.planPath, userDataPath: app.getPath('userData') });
+  const helper = await launchDetachedHelper({ planPath: staged.planPath, userDataPath: app.getPath('userData'), requireSignature: requireUpdateSignature });
   updateInstallPending = true;
   setTimeout(() => app.quit(), 450);
   return {
@@ -876,7 +971,10 @@ trustedIpc.handle('financas:update:install-file', async () => {
     helperPid: helper.pid,
     closing: true,
   };
-  } finally { updateDialogBusy = false; }
+  } finally {
+    updateDialogBusy = false;
+    if (!updateInstallPending) restoreMainWindowFocus();
+  }
 });
 
 trustedIpc.handle('financas:app-info', async () => {
@@ -924,8 +1022,19 @@ if (gotSingleInstanceLock) {
     try {
       if (sqliteInitError) throw sqliteInitError;
       await fs.mkdir(app.getPath('userData'), { recursive: true });
+      cleanupStaleAttachmentTempDirs();
       try { repairJsonRecoveryMirrorFromSqlite(); } catch (error) { console.error('Reparação do espelho JSON falhou:', error); }
       await startLocalServer();
+      session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+        if (!isInternalUrl(details.url)) return callback({ responseHeaders: details.responseHeaders });
+        const csp = "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; frame-src 'self' data: blob:; connect-src 'self' data: blob: http://127.0.0.1:* https://localhost:*; object-src 'none'; base-uri 'self'; form-action 'self'";
+        callback({
+          responseHeaders: {
+            ...details.responseHeaders,
+            'Content-Security-Policy': [csp],
+          },
+        });
+      });
       createWindow();
     } catch (error) {
       dialog.showErrorBox('Finanças Pessoais', `Não foi possível iniciar a aplicação.\n\n${error?.message || error}`);
@@ -943,6 +1052,7 @@ app.on('window-all-closed', () => {
 let mobileQuitReady=false;
 app.on('before-quit', event=>{if(mobileRuntime&&!mobileQuitReady){event.preventDefault();mobileRuntime.close().finally(()=>{mobileQuitReady=true;app.quit();});}});
 app.on('will-quit', () => {
+  try { fsSync.rmSync(attachmentsTempDir(), { recursive: true, force: true }); } catch {}
   if (sqliteStorage) { try { sqliteStorage.close(); } catch {} }
   if (localServer) {
     try { localServer.close(); } catch {}

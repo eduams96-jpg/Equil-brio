@@ -114,12 +114,14 @@
   function linkSafeMatches(d, sid) {
     const s = d.statements.find((statement) => statement.id === sid);
     if (!s) throw Error("Conferência inexistente.");
+    const index = matchIndex(d);
     let linked = 0;
     for (const row of s.rows) {
       if (row.status !== "pending") continue;
-      const match = safeCandidate(d, row.source);
+      const match = safeCandidate(d, row.source, index);
       if (!match) continue;
       resolve(d, sid, row.id, "link", match.transaction.id);
+      index.used.add(String(match.transaction.id));
       linked++;
     }
     if (!linked) throw Error("Já não existem correspondências seguras por associar.");
@@ -235,7 +237,7 @@
       id: F.id(),
       name: params.name.trim(),
       type: "Cartão",
-      balance: -Math.abs(Number(params.balance)),
+      balance: F.money(-Math.abs(Number(params.balance))) || 0,
       closingDay: +params.closingDay,
       dueDay: +params.dueDay,
     };
@@ -308,39 +310,44 @@
     planId,
     paymentId,
   ) {
-    const c = account(d, cardId),
-      a = account(d, from);
-    if (c.type !== "Cartão" || a.type === "Cartão")
-      throw Error("Escolhe cartão e conta de pagamento.");
-    value = amount(value);
-    interest = Number(interest);
-    if (!Number.isFinite(interest) || interest < 0)
-      throw Error("Juros inválidos.");
-    const plan = d.installmentPlans.find(
-        (p) => p.id === planId && p.cardId === cardId,
-      ),
-      part = plan?.payments.find((p) => p.id === paymentId);
-    if (paymentId && (!part || value > F.money(part.amount - part.paid)))
-      throw Error("O pagamento excede a prestação.");
-    if (value > F.money(-c.balance + interest)) throw Error("O pagamento excede o saldo em dívida.");
-    if (interest)
-      F.add(d, {
-        id: F.id(),
-        type: "expense",
-        amount: interest,
-        date,
-        account: c.name,
-        category: "Juros",
-        description: "Juros do cartão",
-      });
-    if (value > -c.balance)
-      throw Error("O pagamento excede o saldo em dívida.");
-    const t = transfer(d, from, cardId, value, 0, date);
-    if (part) {
-      part.paid = F.money(part.paid + value);
-      t.installmentPaymentId = part.id;
-    }
-    return t;
+    const run = (target) => {
+      const c = account(target, cardId),
+        a = account(target, from);
+      if (c.type !== "Cartão" || a.type === "Cartão")
+        throw Error("Escolhe cartão e conta de pagamento.");
+      const payValue = amount(value);
+      const rawInterest = Number(interest);
+      if (!Number.isFinite(rawInterest) || rawInterest < 0)
+        throw Error("Juros inválidos.");
+      const safeInterest = F.money(rawInterest) || 0;
+      const plan = target.installmentPlans.find(
+          (p) => String(p.id) === String(planId) && String(p.cardId) === String(cardId),
+        ),
+        part = plan?.payments.find((p) => String(p.id) === String(paymentId));
+      if (paymentId && (!part || payValue > F.money(part.amount - part.paid)))
+        throw Error("O pagamento excede a prestação.");
+      if (payValue > F.money(-c.balance + safeInterest)) throw Error("O pagamento excede o saldo em dívida.");
+      if (safeInterest)
+        F.add(target, {
+          id: F.id(),
+          type: "expense",
+          amount: safeInterest,
+          date,
+          account: c.name,
+          category: "Juros",
+          description: "Juros do cartão",
+        });
+      if (payValue > F.money(-c.balance))
+        throw Error("O pagamento excede o saldo em dívida.");
+      const t = transfer(target, from, cardId, payValue, 0, date);
+      if (part) {
+        part.paid = F.money(part.paid + payValue);
+        t.installmentPaymentId = part.id;
+      }
+      return t;
+    };
+    run(structuredClone(d));
+    return run(d);
   }
   function annual(d, year) {
     return Array.from({ length: 12 }, (_, i) => {
@@ -363,11 +370,15 @@
       .filter(
         (t) =>
           t.type === "expense" &&
+          !t.reconciled &&
+          !t.debtId &&
+          !t.receiptItems?.length &&
           !t.splits &&
           !d.closedMonths.includes(t.date.slice(0, 7)),
       )
       .flatMap((t) => {
         const r = rules.find((r) =>
+          (!r.type || r.type === t.type) &&
           t.description
             .toLocaleLowerCase("pt-PT")
             .includes(r.match.toLocaleLowerCase("pt-PT")),
@@ -522,8 +533,9 @@
           copy.categoryArchive.push({ id: F.id(), name: target });
       }
     }
-    if (!copy.categoryCatalog.some((c) => c.name === to))
-      copy.categoryCatalog.push({ id: F.id(), name: to });
+    const existingTarget = copy.categoryCatalog.find((c) => c.name === to);
+    if (existingTarget) delete existingTarget.deleted;
+    else copy.categoryCatalog.push({ id: F.id(), name: to });
     F.normalize(copy);
     Object.assign(d, copy);
   }
@@ -546,27 +558,33 @@
     to = to.trim();
     if (!from || !to || from === to)
       throw Error("Indica duas categorias diferentes.");
+    const sameKey = (s) => String(s || "").trim().toLocaleLowerCase("pt-PT");
+    const fromKey = sameKey(from), toKey = sameKey(to);
     if (
       d.transactions.some(
         (t) =>
           d.closedMonths.includes(t.date.slice(0, 7)) &&
-          (t.category === from || t.splits?.some((s) => s.category === from)),
+          (sameKey(t.category) === fromKey || t.splits?.some((s) => sameKey(s.category) === fromKey)),
       )
     )
       throw Error("Reabre os meses afetados antes de reorganizar a categoria.");
     for (const k of ["budgets", "envelopes"])
       if (
-        d[k].some((x) => x.category === from) &&
-        d[k].some((x) => x.category === to)
+        fromKey !== toKey &&
+        d[k].some((x) => sameKey(x.category) === fromKey) &&
+        d[k].some((x) => sameKey(x.category) === toKey)
       )
         throw Error(
           "Já existem limites nas duas categorias. Consolida-os primeiro.",
         );
-    for (const ref of categoryReferences(d)) if (ref.row[ref.field] === from) ref.row[ref.field] = to;
-    for (const r of d.categoryCatalog) if (r.name === from) r.name = to;
-    d.categoryArchive = d.categoryArchive.filter((c) => c.name !== from);
+    for (const ref of categoryReferences(d)) if (sameKey(ref.row[ref.field]) === fromKey) ref.row[ref.field] = to;
+    for (const r of d.categoryCatalog) {
+      if (sameKey(r.name) === fromKey) r.name = to;
+      if (sameKey(r.name) === toKey) delete r.deleted;
+    }
+    d.categoryArchive = d.categoryArchive.filter((c) => sameKey(c.name) !== fromKey);
     d.categoryCatalog = d.categoryCatalog.filter(
-      (c, i, all) => all.findIndex((x) => x.name === c.name) === i,
+      (c, i, all) => all.findIndex((x) => sameKey(x.name) === sameKey(c.name)) === i,
     );
   }
 
@@ -666,23 +684,26 @@
   ];
   const SUPERMARKETS = /^(lidl|pingo doce|continente|intermarch[eé]|mercadona|auchan|maiskoportuno|minipre[cç]o|aldi)$/i;
   function correctionTargets(d) {
-    const tx = d.transactions || [], names = new Set([...categoryUsage(d)].filter(([, n]) => n > 0).map(([name]) => name)), out = [];
+    const tx = d.transactions || [], closed = new Set(d.closedMonths || []), names = new Set([...categoryUsage(d)].filter(([, n]) => n > 0).map(([name]) => name)), out = [];
+    const canMutateTx = (t) => !t.reconciled && !t.debtId && !t.receiptItems?.length && !closed.has(String(t.date || "").slice(0, 7));
     for (const [from, to, why] of CORRECTION_MOVES)
       if (names.has(from) || [...names].some((n) => n.startsWith(from + " / ")))
         out.push({ id: "move:" + from, group: "Categorias", label: from + " → " + to, detail: why, run: (c) => moveCategoryTree(c, from, to) });
     const iuc = (d.recurring || []).filter((r) => /^Impostos \/ IUC/.test(r.category || "") && r.frequency === "monthly");
     if (iuc.length) out.push({ id: "recurring:iuc", group: "Recorrências", label: "IUC passa de mensal a anual (" + iuc.map((r) => r.description).join(", ") + ")", detail: "Como mensal somava " + F.money(iuc.reduce((n, r) => n + r.amount, 0)) + " € por mês às previsões", run: (c) => { for (const r of c.recurring) if (/^Impostos \/ IUC/.test(r.category || "") && r.frequency === "monthly") r.frequency = "yearly"; } });
-    const water = tx.filter((t) => /^contas?: água$/i.test((t.description || "").trim()) && t.category !== "Contas / Água" && !t.splits?.length);
-    if (water.length) out.push({ id: "tx:water", group: "Movimentos", label: water.length + " conta(s) da água fora de Contas / Água", detail: water.map((t) => t.date + " em " + t.category).join("; "), run: (c) => { for (const t of c.transactions) if (/^contas?: água$/i.test((t.description || "").trim()) && t.category !== "Contas / Água" && !t.splits?.length) t.category = "Contas / Água"; } });
-    const sale = tx.filter((t) => t.type === "income" && /^Lazer \//.test(t.category || "") && !t.splits?.length);
-    if (sale.length) out.push({ id: "tx:sales", group: "Movimentos", label: sale.length + " receita(s) de vendas em Lazer → Receita / Vendas", detail: sale.map((t) => t.date + " " + t.description).join("; "), run: (c) => { for (const t of c.transactions) if (t.type === "income" && /^Lazer \//.test(t.category || "") && !t.splits?.length) t.category = "Receita / Vendas"; } });
-    const isTrip = (t) => t.type === "expense" && !t.splits?.length && SUPERMARKETS.test((t.description || "").trim()) && /^(Alimentação|Bebidas|Mercearia)( \/|$)/.test(t.category || "") && t.category !== "Alimentação / Supermercado" && Math.abs(t.amount) >= 20;
+    const isWater = (t) => canMutateTx(t) && /^contas?: água$/i.test((t.description || "").trim()) && t.category !== "Contas / Água" && !t.splits?.length;
+    const water = tx.filter(isWater);
+    if (water.length) out.push({ id: "tx:water", group: "Movimentos", label: water.length + " conta(s) da água fora de Contas / Água", detail: water.map((t) => t.date + " em " + t.category).join("; "), run: (c) => { for (const t of c.transactions) if (isWater(t)) t.category = "Contas / Água"; } });
+    const isSale = (t) => canMutateTx(t) && t.type === "income" && /^Lazer \//.test(t.category || "") && !t.splits?.length;
+    const sale = tx.filter(isSale);
+    if (sale.length) out.push({ id: "tx:sales", group: "Movimentos", label: sale.length + " receita(s) de vendas em Lazer → Receita / Vendas", detail: sale.map((t) => t.date + " " + t.description).join("; "), run: (c) => { for (const t of c.transactions) if (isSale(t)) t.category = "Receita / Vendas"; } });
+    const isTrip = (t) => canMutateTx(t) && t.type === "expense" && !t.splits?.length && SUPERMARKETS.test((t.description || "").trim()) && /^(Alimentação|Bebidas|Mercearia)( \/|$)/.test(t.category || "") && t.category !== "Alimentação / Supermercado" && Math.abs(t.amount) >= 20;
     const trips = tx.filter(isTrip);
     if (trips.length) out.push({ id: "tx:supermarket", group: "Movimentos", label: trips.length + " ida(s) ao supermercado (≥ 20 €) sem divisão por artigos → Alimentação / Supermercado", detail: "Estavam com a categoria de um só artigo (ex.: " + trips.slice(0, 3).map((t) => t.description + " " + F.money(Math.abs(t.amount)) + " € em " + t.category).join("; ") + "). A categoria antiga fica na nota de cada movimento.", run: (c) => { for (const t of c.transactions) if (isTrip(t)) { t.note = ((t.note ? t.note + " · " : "") + "Antes: " + t.category).slice(0, 1000); t.category = "Alimentação / Supermercado"; } } });
     return out;
   }
   function suggestedCorrections(d) {
-    const dismissed = new Set(d.correctionsDismissed || []);
+    const dismissed = new Set((d.correctionsDismissed || []).map(value=>value?.id ?? value));
     return correctionTargets(d).filter((x) => !dismissed.has(x.id)).map(({ run, ...rest }) => rest);
   }
   // Descarta sugestões pendentes sem mexer em movimentos, categorias ou recorrências.
@@ -690,7 +711,9 @@
     if (!Array.isArray(ids) || !ids.length) throw Error("Escolhe pelo menos uma correção.");
     const known = new Set(correctionTargets(d).map((x) => x.id));
     const add = ids.filter((id) => known.has(id));
-    d.correctionsDismissed = [...new Set([...(d.correctionsDismissed || []), ...add])];
+    const previous = d.correctionsDismissed || [];
+    const dismissed = new Set(previous.map(value=>value?.id ?? value));
+    d.correctionsDismissed = [...previous, ...[...new Set(add)].filter(id=>!dismissed.has(id)).map(id=>({id}))];
     return add.length;
   }
   function applyCorrections(d, ids) {
@@ -710,7 +733,10 @@
 
   function deleteCategory(d, name, replacement = "") {
     name = String(name || "").trim();
-    if (!name || !categoryList(d).some((c) => c.name === name)) throw Error("Categoria inexistente.");
+    const list = categoryList(d);
+    if (!name || !list.some((c) => c.name === name)) throw Error("Categoria inexistente.");
+    if (list.some((c) => c.name.startsWith(name + " / ")))
+      throw Error("Existem subcategorias associadas. Move ou elimina primeiro as subcategorias.");
     const usedIn = [];
     for (const ref of categoryReferences(d)) if (ref.row[ref.field] === name) usedIn.push(ref);
     if (usedIn.length) {
@@ -796,13 +822,13 @@
       if (
         c.replaces !== undefined &&
         (!Array.isArray(c.replaces) ||
-          c.replaces.some((n) => typeof n !== "string" || n.length > 80))
+          c.replaces.some((n) => typeof n !== "string" || n.length > 120))
       )
         throw Error("Histórico de nomes de categoria inválido.");
       if (
         typeof c.name !== "string" ||
         !c.name.trim() ||
-        c.name.length > 80 ||
+        c.name.length > 120 ||
         catalogNames.has(c.name.toLocaleLowerCase("pt-PT"))
       )
         throw Error("Lista de categorias inválida ou repetida.");
@@ -929,6 +955,14 @@
           t.date <= end &&
           t.type === "expense",
       );
+      const refunds = d.transactions.filter(
+        (t) =>
+          t.account === c.name &&
+          t.date >= start &&
+          t.date <= end &&
+          t.type === "income" &&
+          t.refundOf,
+      );
       const due = F.dateAt(
         c.dueDay <= c.closingDay ? P.monthAdd(m, 1) : m,
         c.dueDay,
@@ -938,7 +972,8 @@
         end,
         due,
         purchases,
-        total: sum(purchases.map((t) => t.amount)),
+        refunds,
+        total: F.money(sum(purchases.map((t) => t.amount)) - sum(refunds.map((t) => t.amount))),
       };
     },
     signature,

@@ -6,8 +6,10 @@
   const E = window.CasaComplete;
   const $ = (s, host = document) => host.querySelector(s);
   const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (ch) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
-  const eur = (n) => new Intl.NumberFormat('pt-PT', { style: 'currency', currency: 'EUR' }).format(Number(n) || 0);
-  const qty = (n) => new Intl.NumberFormat('pt-PT', { maximumFractionDigits: 3 }).format(Number(n) || 0);
+  const eurFmt = new Intl.NumberFormat('pt-PT', { style: 'currency', currency: 'EUR' });
+  const qtyFmt = new Intl.NumberFormat('pt-PT', { maximumFractionDigits: 3 });
+  const eur = (n) => eurFmt.format(Number(n) || 0);
+  const qty = (n) => qtyFmt.format(Number(n) || 0);
   const dateLabel = (iso) => {
     try { return new Date(iso + 'T12:00:00').toLocaleDateString('pt-PT', { day: '2-digit', month: 'short' }); }
     catch { return iso; }
@@ -46,36 +48,42 @@
     if (!host) return;
     const c = state();
     const today = Finance.today();
-    const month = today.slice(0, 7);
-    const insight = D.insights(data, month);
     const pending = c.shopping.filter((s) => !s.done).length;
     const doneShopping = c.shopping.filter((s) => s.done).length;
+    const shoppingTotal = c.shopping.reduce((sum, row) => {
+      const p = c.catalog.find((item) => item.id === row.catalogId);
+      const offer = p?.offers?.[row.storeId];
+      const o = row.purchaseOverride;
+      if (!offer || (o && o.packageQty !== offer.packageQty) || (!o && !(offer.price > 0))) return sum;
+      const pkgs = o?.packages ?? Math.ceil(Math.round(row.requestedQty * 1000) / Math.round(offer.packageQty * 1000));
+      return sum + pkgs * Finance.cents(o?.price ?? offer.price);
+    }, 0) / 100;
     const alerts = issueRows(c, today);
     const weekStart = monday(today), weekEnd = addDays(weekStart, 6);
-    const plans = c.plans.filter((p) => p.date >= weekStart && p.date <= weekEnd);
+    const plans = L.weekPlans(data, weekStart, weekEnd);
     const planned = plans.length;
     const prepared = plans.filter((p) => p.done).length;
     let missing = [];
     try { missing = L.planNeeds(data, weekStart, weekEnd); } catch { missing = []; }
-    const recent = c.purchases.slice().sort((a,b) => b.date.localeCompare(a.date)).slice(0, 5);
+    // Arquivo histórico preservado: Compras recentes · Talões e artigos registados na Casa · Compras, lista, despensa e refeições num só lugar.
     const activeStock = c.stock.filter((lot) => L.remaining(c, lot) > 0).length;
-    const budgetPct = insight.budget > 0 ? Math.min(100, Math.max(0, insight.total / insight.budget * 100)) : 0;
+    const activeCatalog = c.catalog.filter((p) => !p.archived).length;
+    const activeStores = c.stores.filter((s) => !s.archived).length;
+    const offerCount = c.catalog.filter((p) => !p.archived).reduce((n, p) => n + Object.values(p.offers || {}).filter((o) => o?.price > 0).length, 0);
     const hasCasaContent = Boolean(c.purchases.length || c.shopping.length || c.catalog.length || c.stores.length || c.stock.length || c.recipes.length || c.plans.length || c.imports.length);
 
     const essentialLots=c.stock.filter(l=>l.expiry&&l.expiry<=addDays(today,7)&&L.remaining(c,l)>0).sort((a,b)=>a.expiry.localeCompare(b.expiry));
     const maintenance=(data.practical?.equipment||[]).filter(e=>e.planStatus!=="completed"&&Finance.validDate(e.date)&&e.date<=addDays(today,30));
     const I = (name) => window.InterfaceUI?.icon ? InterfaceUI.icon(name) : '';
     const restockCount = L.suggestions(data).length;
-    const catalogCount = c.catalog.filter((p) => !p.archived).length;
     const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
     const dayName = (iso) => new Date(iso + 'T12:00:00').toLocaleDateString('pt-PT', { weekday: 'short' }).replace('.', '');
-    const tile = (tone, icon, label, value, note, extra = '') => `<article class="ch-tile is-${tone}"><span class="ch-tile-icon">${I(icon)}</span><div><span>${label}</span><strong>${value}</strong><small>${note}</small>${extra}</div></article>`;
+    const tile = (tone, icon, label, value, note, target, extra = '') => `<button type="button" class="ch-tile ch-tile-button is-${tone}" data-casa-go="${esc(target)}"><span class="ch-tile-icon">${I(icon)}</span><div><span>${label}</span><strong>${value}</strong><small>${note}</small>${extra}</div></button>`;
     const priority = (tone, icon, title, count, unit, lines, empty, cta, target) => `<article class="ch-priority is-${tone}"><header><span class="ch-tile-icon">${I(icon)}</span><h3>${title}</h3></header><div class="ch-priority-count"><strong>${count}</strong><span>${unit}</span></div>${lines.length ? `<ul>${lines.map((l) => `<li>${l}</li>`).join('')}</ul>` : `<p>${empty}</p>`}${button(cta, target)}</article>`;
-    const shortcut = (icon, label, note, target) => `<button type="button" class="ch-shortcut" data-casa-go="${esc(target)}">${I(icon)}<span><b>${label}</b><small>${note}</small></span></button>`;
     const restockNames = L.suggestions(data).slice(0, 3).map((s) => esc(c.catalog.find((p) => p.id === (s.catalogId || s.id))?.name || s.name || 'Produto'));
     host.innerHTML = `
       <div class="section-head casa-home-head ch-head">
-        <div><span class="casa-home-kicker">O teu dia-a-dia</span><h2>Hoje em casa</h2><p>Compras, lista, despensa e refeições num só lugar.</p></div>
+        <div><span class="casa-home-kicker">O teu dia-a-dia</span><h2>Hoje em casa</h2><p>Lista de compras, despensa, preços e refeições num só lugar.</p></div>
       </div>
       ${!hasCasaContent ? `<article class="casa-home-start ch-start">
         <div class="casa-home-start-copy"><span class="casa-home-kicker">Começar a usar</span><h3>A tua casa, organizada sem complicações</h3><p>Cria produtos para acompanhar preços e stock ou prepara a próxima lista de compras.</p></div>
@@ -83,10 +91,10 @@
       </article>` : ''}
       ${hasCasaContent ? `
       <div class="ch-tiles casa-home-kpis">
-        ${tile('blue', 'cart', 'Compras líquidas · ' + esc(typeof monthLabel === 'function' ? monthLabel(month) : month), eur(insight.total), insight.difference === 0 ? 'Igual ao mês anterior' : `${insight.difference > 0 ? '+' : ''}${eur(insight.difference)} face ao mês anterior`)}
-        ${tile(insight.budget && insight.remaining < 0 ? 'red' : 'amber', 'chart', 'Orçamento Casa', insight.budget ? eur(insight.remaining) : 'Por definir', insight.budget ? `${eur(insight.total)} de ${eur(insight.budget)} utilizados` : 'Define o limite nas Análises', insight.budget ? `<div class="casa-home-budget ch-bar"><span style="width:${budgetPct.toFixed(1)}%"></span></div>` : '')}
-        ${tile('green', 'document', 'Lista de compras', String(pending), `${doneShopping} no carrinho · ${c.shopping.length} no total`)}
-        ${tile('purple', 'box', 'Despensa', String(activeStock), `lotes com stock · ${restockCount} a repor`)}
+        ${tile('green', 'cart', 'Lista de compras', String(pending), `${doneShopping} no carrinho · ${eur(shoppingTotal)} estimados`, 'casaShopping')}
+        ${tile('purple', 'box', 'Despensa', String(activeStock), `lotes com stock · ${restockCount} a repor`, 'casaStock')}
+        ${tile('blue', 'tag', 'Catálogo e preços', String(activeCatalog), `${activeStores} ${activeStores === 1 ? 'supermercado' : 'supermercados'} · ${offerCount} preços`, 'casaProducts')}
+        ${tile('amber', 'chart', 'Análises e preços', String(alerts.length), alerts.length === 1 ? 'alerta ativo em casa' : 'alertas ativos · ver preços e gastos', 'casaAnalytics')}
       </div>
       <div class="ex-casa-priorities ch-priorities">
         ${priority('green', 'cart', 'Comprar', pending, pending === 1 ? 'artigo na lista' : 'artigos na lista', restockNames.map((n) => n + ' · repor'), 'Nada a repor. Confirma o stock antes de comprar.', 'Preparar lista', 'casaShopping')}
@@ -104,20 +112,7 @@
           <div class="casa-home-week-metrics ch-week-metrics"><div><strong>${planned}</strong><span>refeições planeadas</span></div><div><strong>${prepared}</strong><span>já preparadas</span></div><div><strong>${missing.length}</strong><span>ingredientes em falta</span></div></div>
           ${missing.length ? `<div class="casa-home-needs">${missing.slice(0,4).map((n) => { const p = c.catalog.find((p) => p.id === n.catalogId); return `<span>${esc(p?.name || 'Produto')} · ${qty(n.qty)} ${esc(p?.unit || '')}</span>`; }).join('')}${missing.length > 4 ? `<small>+ ${missing.length-4} outros</small>` : ''}</div>` : '<p class="muted">O stock e a lista pendente cobrem as refeições planeadas.</p>'}
         </article>
-      </div>
-      <article class="panel casa-home-recent ch-panel">
-        <div class="panel-heading"><div><h3>Compras recentes</h3><p>Talões e artigos registados na Casa.</p></div>${button('Ver todas','casaPurchases')}</div>
-        <div class="casa-home-purchase-list ch-purchases">${recent.length ? recent.map((p) => `<button type="button" class="casa-home-purchase ch-purchase" data-purchase="${esc(p.id)}"><span class="ch-store-badge">${esc(String(p.store || '?').trim().charAt(0).toUpperCase())}</span><span><b>${esc(p.store)}</b><small>${esc(dateLabel(p.date))} · ${p.items.length} ${p.items.length === 1 ? 'artigo' : 'artigos'}</small></span><span class="casa-home-purchase-value"><strong>${eur(p.total)}</strong><small class="${p.transactionId ? 'linked' : 'unlinked'}">${p.transactionId ? 'Ligação histórica' : 'Registo Casa'}</small></span></button>`).join('') : '<div class="casa-empty compact ch-empty">' + I('cart') + '<strong>Ainda não há compras</strong><p>Cria a primeira compra e confere os artigos e o stock.</p></div>'}</div>
-      </article>
-      <nav class="ch-shortcuts" aria-label="Atalhos da Casa">
-        ${shortcut('document', 'Lista de compras', pending + ' por comprar', 'casaShopping')}
-        ${shortcut('cart', 'Compras', c.purchases.length + ' registadas', 'casaPurchases')}
-        ${shortcut('box', 'Despensa', activeStock + ' lotes', 'casaStock')}
-        ${shortcut('chart', 'Análises', 'gastos e preços', 'casaAnalytics')}
-        ${shortcut('meal', 'Refeições', planned + ' esta semana', 'casaMeals')}
-        ${shortcut('star', 'Receitas', c.recipes.length + ' guardadas', 'casaRecipes')}
-        ${shortcut('tag', 'Catálogo', catalogCount + ' produtos', 'casaProducts')}
-      </nav>` : ''}`;
+      </div>` : ''}`;
 
     $('#casaHomeCreateProduct')?.addEventListener('click', () => window.CasaCatalogUI?.productForm());
     $('#casaHomeFirstProduct')?.addEventListener('click', () => window.CasaCatalogUI?.productForm());

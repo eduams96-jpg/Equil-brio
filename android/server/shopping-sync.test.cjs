@@ -19,7 +19,7 @@ async function setup(t) {
   const client = new Client(store, request, { negotiate: true });
   const send = (id, values) => client.enqueue('house.shopping', { id, seed: P.id(), changedOn: '2026-11-05', values });
   const server = () => service.desktop.readSpace('main').data.casa.shopping;
-  return { client, store, send, server };
+  return { client, store, send, server, request, service };
 }
 
 test('riscar no cliente sincroniza e o PC vê done:true; desmarcar volta a false', async t => {
@@ -59,4 +59,31 @@ test('conferir artigo do catálogo: o ajuste de embalagens e a nota chegam ao PC
   await x.send(id, Compras.updateValues({ packages: '2', price: '1,2', location: 'Despensa', expiry: '', note: 'Integral' }, true, defaults));
   await x.client.sync();
   assert.equal(x.server().find(s => s.id === id).purchaseOverride, undefined);
+});
+
+test('repetir a mesma compra enviada conserva uma única linha na base Windows', async t => {
+  const x = await setup(t);
+  const id = P.id(), sent = await x.send(id, Compras.addValues({ name: 'Compra de ensaio', qty: '2' }));
+  const endpoint = '/api/v1/spaces/main/operations';
+  const first = await x.request('POST', endpoint, sent);
+  const replay = await x.request('POST', endpoint, sent);
+  assert.equal(first.status,'accepted');
+  assert.equal(replay.status,'accepted');
+  assert.equal(x.server().filter(item => item.id === id).length,1);
+});
+
+test('a edição de compras antiga fica em conflito e mantém a proposta do telemóvel', async t => {
+  const x = await setup(t);
+  const id = P.id();
+  await x.send(id, Compras.addValues({ name:'Compra de ensaio', qty:'2' }));
+  await x.client.sync();
+  await x.send(id, {operation:'update',qty:'3'});
+  const ledger = x.service.desktop.readSpace('main').data;
+  ledger.casa.shopping.find(item => item.id === id).qty = '4';
+  x.service.desktop.writeSpace('equilibrioData', ledger);
+  await x.client.sync();
+  const outcome = x.store.read().state.outbox.at(-1);
+  assert.equal(outcome.status,'conflict');
+  assert.equal(outcome.operation.payload.values.qty,'3');
+  assert.equal(x.server().find(item => item.id === id).qty,'4');
 });

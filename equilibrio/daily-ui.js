@@ -135,16 +135,30 @@
       return false;
     }
   }
-  let refreshQueued=false;
-  function requestRefresh(){
-    if(refreshQueued)return pending;
-    refreshQueued=true;
-    pending=new Promise(resolve=>queueMicrotask(()=>{refreshQueued=false;resolve(refresh());}));
+  let refreshQueued = false, fullRefreshQueued = false;
+  function requestRefresh(activeOnly = false) {
+    fullRefreshQueued ||= !activeOnly;
+    if (refreshQueued) return pending;
+    refreshQueued = true;
+    pending = new Promise((resolve) => queueMicrotask(() => {
+      const activeOnly = !fullRefreshQueued;
+      refreshQueued = fullRefreshQueued = false;
+      resolve(refresh({ activeOnly }));
+    }));
     return pending;
   }
-  async function refresh() {
+  function showBackupHint(current) {
+    const hint = $("#dailyBackupHint");
+    if (!hint) return;
+    hint.textContent = current?.receipt
+      ? current.changed
+        ? "Tens alterações por exportar."
+        : "Exportação registada: " + dateFormatter.format(new Date(current.receipt.at)) + ". Confirma o ficheiro guardado."
+      : "Ainda não há uma exportação registada deste espaço.";
+  }
+  async function refresh({ activeOnly = false } = {}) {
     const token = ++generation;
-    center.innerHTML =
+    if (!activeOnly) center.innerHTML =
       '<h2>Cópias por espaço</h2><p role="status">A verificar o estado das exportações…</p>';
     pending = (async () => {
       let receipts = {},
@@ -154,16 +168,22 @@
       } catch (error) {
         historyError = error.message;
       }
+      const active = LifeUI.activeSpace();
+      if (activeOnly && !receipts[active.key]) {
+        if (!disposed) showBackupHint();
+        return;
+      }
+      const spaces = activeOnly ? [active] : LifeUI.spaces();
       const statuses = await Promise.all(
-        LifeUI.spaces().map(async (s) => {
+        spaces.map(async (s) => {
           try {
-            const snapshot = LifeUI.readSpace(s.id),
-              hash = await fingerprint(snapshot),
-              receipt = receipts[s.key];
+            const snapshot = LifeUI.readSpace(s.id);
+            const receipt = receipts[s.key];
+            const changed = receipt ? receipt.hash !== await fingerprint(snapshot) : false;
             return {
               ...s,
               receipt,
-              changed: !!receipt && receipt.hash !== hash,
+              changed,
               accounts: snapshot.accounts.length,
               transactions: snapshot.transactions.length,
             };
@@ -173,13 +193,14 @@
         }),
       );
       if (disposed || token !== generation) return;
+      showBackupHint(statuses.find((s) => s.key === active.key));
+      if (activeOnly) return;
       lastStatuses = statuses;
       center.innerHTML =
-        "<h2>Cópias por espaço</h2><p>O registo abaixo confirma que uma transferência foi preparada neste navegador. Confirma o ficheiro na pasta onde o guardaste. A recuperação abre uma cópia num espaço novo.</p>" +
+        "<h3>Exportações por espaço</h3><p>Consulta o histórico de exportações preparadas e guarda uma cópia dos teus espaços.</p>" +
         (historyError ? '<p role="alert">' + esc(historyError) + "</p>" : "") +
         '<div class="daily-backup-actions">' +
-        b("Exportar todos", "daily-export-all") +
-        b("Recuperar uma cópia", "plan-import") +
+        b("Exportar todos os espaços", "daily-export-all") +
         "</div>" +
         statuses
           .map(
@@ -210,21 +231,14 @@
               "</div></article>",
           )
           .join("");
-      const current = statuses.find((s) => s.key === LifeUI.activeSpace().key),
-        hint = $("#dailyBackupHint");
-      if (hint)
-        hint.textContent = current?.receipt
-          ? current.changed
-            ? "Tens alterações por exportar."
-            : "Exportação registada: " +
-              new Date(current.receipt.at).toLocaleDateString("pt-PT") +
-              ". Confirma o ficheiro guardado."
-          : "Ainda não há uma exportação registada deste espaço.";
     })();
     return pending;
   }
   
+  let dailyDashboardDirty = true;
   function render() {
+    if (view !== "dashboard") { dailyDashboardDirty = true; return; }
+    dailyDashboardDirty = false;
     const lifeOverview = $("#lifeOverview");
     if (lifeOverview) lifeOverview.hidden = true;
     const all = PlanningFinance.reviewInbox(data, month).active,
@@ -241,7 +255,7 @@
         missingReceipts.slice(0, 3).map(({ item, index }) =>
           '<div><span>' + esc(item.detail) + '</span>' + b("Rever", "daily-task", index) + '</div>'
         ).join("") +
-        (missingReceipts.length > 3 ? '<small>+' + (missingReceipts.length - 3) + ' na Caixa de entrada</small>' : '') +
+        (missingReceipts.length > 3 ? '<small>+' + (missingReceipts.length - 3) + ' em Dados → A tratar</small>' : '') +
         '</div></div></div>'
       : '';
     const otherBlock = otherAttention
@@ -254,7 +268,7 @@
       '<div class="section-head"><h2>A tratar</h2><span>' + all.length + ' pontos</span></div>' +
       (receiptBlock + otherBlock || "<p>Não há pendências detetadas neste momento.</p>") +
       '<div class="daily-backup-actions">' +
-      b("Ver caixa de entrada", "life-navigate", "inboxHub") +
+      b("Ver todas as pendências", "life-navigate", "inboxHub") +
       b("Rever a semana", "life-navigate", "weeklyHub") +
       b("Ver cópias", "daily-backups") +
       '</div><p class="muted" id="dailyBackupHint"></p>';
@@ -265,7 +279,7 @@
     if (pay) {
       const salaryPanel = $("#salaryPlan");
       const explain = salaryPanel?.querySelector('[data-action="plan-explain"]');
-      if (salaryPanel && explain) {
+      if (salaryPanel && explain && !explain.closest(".salary-bottom-actions")) {
         const actions = document.createElement("div");
         actions.className = "salary-bottom-actions";
         explain.before(actions);
@@ -280,17 +294,19 @@
         if (headingPayday) headingPayday.remove();
       }
     }
-    else
-      $("#decisionPanel .decision-actions").insertAdjacentHTML(
-        "beforeend",
-        '<button type="button" class="link-button" data-action="plan-payday">Usar a data do salário</button>',
-      );
+    else {
+      const decActions = $("#decisionPanel .decision-actions");
+      if (decActions && !decActions.querySelector('[data-action="plan-payday"]')) {
+        decActions.insertAdjacentHTML(
+          "beforeend",
+          '<button type="button" class="link-button" data-action="plan-payday">Usar a data do salário</button>',
+        );
+      }
+    }
     const old = $("#spacesPortability");
     if (old) old.hidden = true;
-    for (const id of ["backupReminder"])
-      if ($("#" + id)) $("#" + id).hidden = true;
     renderImport();
-    if(view==='dashboard'||view==='settings')requestRefresh();
+    if (view === "dashboard" || view === "settings") requestRefresh(view === "dashboard");
   }
   function renderImport() {
     const ids = new Set(
@@ -331,8 +347,7 @@
     "daily-first-transaction": () => transactionForm(),
     "daily-task": (i) => {
       const t = PlanningFinance.reviewInbox(data, month).active[+i];
-      if (t?.action) actions[t.action](t.id);
-      else if (t) navigate(t.route);
+      window.ReviewUI?.openItem(t);
     },
     "daily-backups": () => {
       navigate("settings");
@@ -352,7 +367,12 @@
     previous();
     render();
   };
-  const backupNavigation=PremiumUI.navigation;PremiumUI.navigation=v=>{backupNavigation?.(v);if(v==='dashboard'||v==='settings')requestRefresh();};
+  const backupNavigation = PremiumUI.navigation;
+  PremiumUI.navigation = (v) => {
+    backupNavigation?.(v);
+    if (!window.UILifecycle?.inRender?.() && v === "dashboard" && dailyDashboardDirty) render();
+    if (!window.UILifecycle?.inRender?.() && (v === "dashboard" || v === "settings")) requestRefresh(v === "dashboard");
+  };
   window.DailyUI = {
     lastExport: (spaceKey) => {
       try {
@@ -416,6 +436,31 @@
       .replace(/[\u0300-\u036f]/g, "")
       .toLowerCase()
       .trim();
+  function inboxActionLabel(item) {
+    if (item.kind === "receipt") return "Anexar comprovativo";
+    if (item.kind === "balance") return "Conferir saldo";
+    if (item.kind === "statement") return "Conferir extrato";
+    if (item.kind === "import") return "Rever importação";
+    return "Rever registo";
+  }
+  function openInboxItem(item) {
+    if (!item) return;
+    if (item.kind === "receipt") return actions["attach-receipt"](item.id);
+    if (item.kind === "balance") return reconcileForm(item.accountId, item.difference === undefined ? F.today() : item.date);
+    if (item.kind === "statement") {
+      navigate("review");
+      const statement = document.querySelector('[data-statement-id="' + CSS.escape(String(item.id)) + '"]');
+      if (statement) {
+        for (let node = statement; node; node = node.parentElement) {
+          if (node.tagName === "DETAILS") node.open = true;
+        }
+        statement.scrollIntoView({ block: "start" });
+      }
+      return;
+    }
+    if (item.action) return actions[item.action]?.(item.id);
+    navigate(item.route);
+  }
   function inboxMeta(item, index) {
     const tx = item.id
       ? data.transactions.find((t) => String(t.id) === String(item.id))
@@ -436,27 +481,28 @@
       kind = "duplicate";
       state = "Possível duplicado";
       suggestion = "Comparar movimentos";
-    } else if (titleFold.includes("comprovativo") || titleFold.includes("diferenca")) {
-      kind = "attention";
-      state = "Atenção";
-      suggestion = titleFold.includes("comprovativo") ? "Anexar comprovativo" : "Conferir valores";
-    } else if (titleFold.startsWith("confirmar ")) {
-      kind = "other";
-      state = "Confirmar saldo";
-      suggestion = "Atualizar confirmação";
+    } else if (item.kind === "receipt") {
+      kind = "receipt";
+      state = "Comprovativo em falta";
+      suggestion = inboxActionLabel(item);
+    } else if (item.kind === "balance") {
+      kind = "balance";
+      state = item.difference === undefined ? "Saldo por conferir" : "Diferença no saldo";
+      suggestion = inboxActionLabel(item);
     } else if (titleFold.includes("importacao") || titleFold.includes("extrato")) {
       kind = "other";
       state = "Importação";
       suggestion = "Conferir importação";
     }
-    const source = tx?.account || account?.name || (item.route === "review" ? "Ficheiros importados" : "Outras fontes");
+    const source = item.sourceName || tx?.account || account?.name || (item.route === "review" ? "Ficheiros importados" : "Outras fontes");
     const description = tx?.description || tx?.beneficiary || title;
-    const date = tx?.date || account?.reconciledOn || "";
+    const date = item.date || tx?.date || account?.reconciledOn || "";
     let signedValue = null;
     if (tx && Number.isFinite(Number(tx.amount))) {
       const positive = tx.type === "income" || !!tx.refundOf;
       signedValue = (positive ? 1 : -1) * Number(tx.amount);
-    } else if (account && Number.isFinite(Number(account.balance))) signedValue = Number(account.balance);
+    } else if (Number.isFinite(item.difference)) signedValue = item.difference;
+    else if (account && Number.isFinite(Number(account.balance))) signedValue = Number(account.balance);
     const search = inboxFold([title, item.detail, description, source, state, suggestion].join(" "));
     return { item, index, tx, account, kind, state, suggestion, source, sourceKey: inboxFold(source), description, date, signedValue, search };
   }
@@ -514,7 +560,7 @@
   }
   function renderInbox() {
     const metas = active.map(inboxMeta);
-    const priority = { duplicate: 0, attention: 1, uncategorized: 2, other: 3 };
+    const priority = { duplicate: 0, balance: 1, receipt: 1, uncategorized: 2, other: 3 };
     const ordered = metas.slice().sort((a, b) => {
       if (inboxSort === "description") return a.description.localeCompare(b.description, "pt");
       if (inboxSort === "date") return String(b.date || "").localeCompare(String(a.date || ""));
@@ -524,7 +570,8 @@
       ["all", "Todos"],
       ["uncategorized", "Por categorizar"],
       ["duplicate", "Duplicados"],
-      ["attention", "Suspeitos"],
+      ["receipt", "Comprovativos em falta"],
+      ["balance", "Conferência de contas"],
       ["other", "Outros"],
     ];
     const kindCount = (key) => key === "all" ? metas.length : metas.filter((m) => m.kind === key).length;
@@ -557,7 +604,7 @@
         '<div class="data-inbox-cell"><span class="data-state ' + stateClass + '">' + esc(m.state) + '</span></div>' +
         '<div class="data-inbox-cell data-inbox-suggestion">' + esc(m.suggestion) + '</div>' +
         '<div class="data-inbox-cell data-inbox-actions">' +
-          b("Resolver", "review-resolve", m.index, "data-icon-button") +
+          b(inboxActionLabel(m.item), "review-resolve", m.index, "data-icon-button") +
           '<details class="data-row-menu"><summary aria-label="Mais opções">•••</summary><div>' +
             b("Adiar", "review-snooze", m.index, "link-button") +
             b("Dispensar", "review-dismiss", m.index, "link-button") +
@@ -571,22 +618,29 @@
     ).join("") || '<p class="muted">Nenhum aviso nesta lista.</p>';
     const deferredCountLabel = deferred.length + ' ' + (deferred.length === 1 ? 'item fora da lista ativa' : 'itens fora da lista ativa');
     $("#inboxHub").innerHTML =
-      '<div class="data-section-heading data-inbox-heading"><div class="data-section-title"><span class="data-section-icon">⇧</span><div><h2>Caixa de entrada <span class="data-title-count">' + active.length + '</span></h2><p>Revê, categoriza e resolve as pendências detetadas nos teus dados.</p></div></div></div>' +
+      '<div class="data-section-heading data-inbox-heading"><div class="data-section-title"><span class="data-section-icon">⇧</span><div><h2>A tratar <span class="data-title-count">' + active.length + '</span></h2><p>Revê, categoriza e resolve as pendências detetadas nos teus dados.</p></div></div></div>' +
       '<div class="data-inbox-filterbar">' + kindDefs.map(([key, label]) => '<button type="button" class="data-filter-chip" data-inbox-filter="' + key + '">' + label + '<span>' + kindCount(key) + '</span></button>').join("") + '</div>' +
       '<div class="data-inbox-layout"><aside class="data-inbox-sources"><h3>Fontes</h3>' +
         '<button type="button" class="data-source-button" data-inbox-source="all"><span class="data-source-label"><i class="data-source-avatar source-tone-all">◉</i><span>Todas</span></span><b>' + metas.length + '</b></button>' +
         sources.map(([name, count]) => '<button type="button" class="data-source-button" data-inbox-source="' + esc(inboxFold(name)) + '"><span class="data-source-label"><i class="data-source-avatar source-tone-' + sourceTone(name) + '">' + esc(sourceIcon(name)) + '</i><span>' + esc(name) + '</span></span><b>' + count + '</b></button>').join("") +
-        '</aside><div class="data-inbox-main"><div class="data-inbox-toolbar"><label class="data-search-field"><span>⌕</span><input id="dataInboxSearch" type="search" placeholder="Pesquisar na caixa de entrada…" autocomplete="off"></label><label class="data-sort-field"><span>Ordenar por</span><select id="dataInboxSort"><option value="priority">Prioridade</option><option value="date">Data</option><option value="description">Descrição</option></select></label></div>' +
+        '</aside><div class="data-inbox-main"><div class="data-inbox-toolbar"><label class="data-search-field"><span>⌕</span><input id="dataInboxSearch" type="search" placeholder="Pesquisar pendências…" autocomplete="off"></label><label class="data-sort-field"><span>Ordenar por</span><select id="dataInboxSort"><option value="priority">Prioridade</option><option value="date">Data</option><option value="description">Descrição</option></select></label></div>' +
         '<div class="data-inbox-table"><div class="data-inbox-th"><span></span><span>Data</span><span>Descrição</span><span>Valor</span><span>Fonte</span><span>Estado</span><span>Sugestão</span><span>Ações</span></div><div id="dataInboxTableBody">' + rows + '</div><div id="dataInboxEmpty" class="data-table-empty" hidden>Nenhum item corresponde aos filtros escolhidos.</div></div></div></div>' +
       '<details class="data-deferred data-deferred-archive"><summary><span class="deferred-archive-icon" aria-hidden="true">↶</span><span class="data-deferred-copy"><b>Adiados e dispensados</b><small>' + esc(deferredCountLabel) + '</small></span><span class="data-deferred-count">' + deferred.length + '</span></summary><div class="deferred-archive-content">' + deferredHtml + '</div></details>';
     wireInboxView();
     window.UnifiedWorkspaceUI?.enhanceInbox?.();
   }
+  let reviewInboxDirty = true;
+  const reviewInboxVisible = () => ["weeklyHub", "inboxHub", "dataHub", "insights", "reviewMonthHub"].includes(view);
   function render() {
-    const inbox = Q.reviewInbox(data, month);
-    active = inbox.active;
-    deferred = inbox.deferred;
-    renderInbox();
+    if (reviewInboxVisible()) {
+      reviewInboxDirty = false;
+      const inbox = Q.reviewInbox(data, month);
+      active = inbox.active;
+      deferred = inbox.deferred;
+      renderInbox();
+    } else {
+      reviewInboxDirty = true;
+    }
     window.DataHub?.refresh?.();
     const w = Q.weekly(data),
       hasPrevious = w.previous.transactions.length > 0;
@@ -760,26 +814,7 @@
     document.querySelectorAll('#weeklyReviewBody').forEach((n)=>n.remove());// a versão anterior pode ter sido movida para outro painel
     const weeklyBody=document.createElement('div');weeklyBody.id='weeklyReviewBody';
     while(weekly.firstChild)weeklyBody.append(weekly.firstChild);weekly.append(weeklyBody);
-    const conclusion = data.monthlyConclusions.find((r) => r.month === month);
-    $("#monthlyConclusion")?.remove();
-    $("#reviewConclusionSlot").insertAdjacentHTML(
-      "beforeend",
-      '<div id="monthlyConclusion">' +
-        (conclusion
-          ? '<p class="preserve-lines">' +
-            esc(conclusion.summary) +
-            '</p><h4>Para o próximo mês</h4><p class="preserve-lines">' +
-            esc(conclusion.next || "Sem ações definidas.") +
-            "</p>"
-          : "<p>Regista o que correu bem, o que precisa de mudar e uma ação concreta para o próximo mês.</p>") +
-        "</div>",
-    );
-    const balanceAction = $("#reviewBalanceAction");
-    if (balanceAction)
-      balanceAction.innerHTML = b(
-        conclusion ? "Editar balanço" : "Guardar balanço",
-        "review-month-note",
-      );
+
   }
   
   
@@ -822,11 +857,7 @@
     },
     "review-category-movements": (category) =>
       CompleteUI.reviewRange(month + "-01", F.dateAt(month, 31), category),
-    "review-resolve": (i) => {
-      const item = active[+i];
-      if (item?.action) actions[item.action](item.id);
-      else if (item) navigate(item.route);
-    },
+    "review-resolve": (i) => openInboxItem(active[+i]),
     "review-snooze": (i) => manage(i, "snoozed"),
     "review-dismiss": (i) => manage(i, "dismissed"),
     "review-restore": (i) => {
@@ -847,7 +878,7 @@
       const selectedMonth = month,
         note = data.monthlyConclusions.find((r) => r.month === selectedMonth);
       form(
-        "Balanço de " + esc(monthLabel(selectedMonth)),
+        "Conclusões de " + esc(monthLabel(selectedMonth)),
         '<label>O que aprendeste este mês?<textarea name="summary" required maxlength="2000" rows="4">' +
           esc(note?.summary || "") +
           '</textarea></label><label>Próximos passos<textarea name="next" maxlength="2000" rows="3">' +
@@ -865,8 +896,9 @@
               (r) => r.month !== selectedMonth,
             );
             data.monthlyConclusions.push(record);
-          }, "Balanço mensal guardado."),
-        "As notas não alteram os valores nem fecham o mês.",
+          }, "Conclusões guardadas."),
+        "As conclusões ficam guardadas na revisão do mês.",
+        "Guardar conclusões",
       );
     },
   });
@@ -875,7 +907,18 @@
     prior();
     render();
   };
-  window.ReviewUI = { render };
+  const priorNav = PremiumUI.navigation;
+  PremiumUI.navigation = (v) => {
+    priorNav?.(v);
+    if (!window.UILifecycle?.inRender?.() && reviewInboxDirty && reviewInboxVisible()) {
+      reviewInboxDirty = false;
+      const inbox = Q.reviewInbox(data, month);
+      active = inbox.active;
+      deferred = inbox.deferred;
+      renderInbox();
+    }
+  };
+  window.ReviewUI = { render, actionLabel: inboxActionLabel, openItem: openInboxItem };
   if (!window.equilibrioStartup?.awaitingChoice) render();
   if (window.equilibrioInitialRoute === "weeklyHub") navigate("weeklyHub");
 })();
@@ -952,12 +995,13 @@
     const list='<div class="ex-agenda-list">'+[...listGroups].sort(([a],[b])=>a.localeCompare(b)).map(([date,rows])=>'<section><h4>'+dateLabel(date)+'</h4>'+scheduleRows(rows,{planner:true})+'</section>').join('')+'</div>'+agendaPager('list',r.rows.length,agendaListPage);
     host.innerHTML=(agendaLayout==='calendar'?calendar:list)+(!r.rows.length?'<p class="empty-state">Sem compromissos com este filtro.</p>':'')+'<div id="agendaRows" class="ex-selected-day"><div class="ag-day-head"><h4>'+esc((d=>d.charAt(0).toUpperCase()+d.slice(1))(new Date(agendaDay+'T12:00:00').toLocaleDateString('pt-PT',{weekday:'long',day:'numeric',month:'long'})))+'</h4><small>'+(selectedDay.length?selectedDay.length+' compromisso'+(selectedDay.length===1?'':'s')+' · '+eur(F.money(selectedDay.reduce((n,p)=>n+(p.type==='income'?p.amount:p.type==='expense'?-p.amount:0),0))):'Sem compromissos')+'</small></div>'+(selectedDay.length?scheduleRows(selectedDay.slice(agendaDayPage*50,(agendaDayPage+1)*50),{planner:true}):'<p class="ag-day-empty">Nada marcado para este dia.</p>')+agendaPager('day',selectedDay.length,agendaDayPage)+'</div>';
     const dayRows=host.querySelector('#agendaRows');dayRows.hidden=agendaLayout==='list';const sidebar=document.querySelector('.planner-agenda-sidebar');sidebar.querySelector('#agendaRows')?.remove();sidebar.prepend(dayRows);dayRows.classList.add('panel');
+    let skippedBox=document.querySelector('#agendaSkipped');const skipped=window.skippedOccurrences?window.skippedOccurrences(month):[];if(!skippedBox){skippedBox=document.createElement('section');skippedBox.id='agendaSkipped';skippedBox.className='panel ag-skipped';}dayRows.after(skippedBox);skippedBox.hidden=!skipped.length;skippedBox.innerHTML=skipped.length?'<div class="ag-skipped-head"><h4>Saltados este mês</h4><small>'+skipped.length+' · não contam para a Agenda nem para os atrasos</small></div>'+skipped.map(x=>'<div class="ag-skipped-row"><div><b>'+esc(x.name)+'</b><small>'+dateLabel(x.date)+(x.amount?' · '+eur(x.amount):'')+(x.reason?' · '+esc(x.reason):'')+'</small></div><button type="button" class="secondary" data-action="restore-occurrence" data-id="'+esc(x.id)+'">Repor</button></div>').join(''):'';
     let facts=document.querySelector('#agendaMonthFacts');if(!facts){facts=document.createElement('div');facts.id='agendaMonthFacts';}
     const metrics=document.querySelector('#agendaSummary');if(metrics)metrics.prepend(facts);
     const openIncome=F.money(allRows.filter(p=>!done(p)&&p.type==='income').reduce((n,p)=>n+p.amount,0)),lateValue=F.money(allRows.filter(p=>!done(p)&&p.date<today&&p.type==='expense').reduce((n,p)=>n+p.amount,0));
     facts.innerHTML='<article class="panel approved-metric ag-tile is-out"><span>A pagar</span><strong class="amount">'+eur(r.outgoing)+'</strong><small>'+(counts.overdue?'<b class="negative">'+counts.overdue+' em atraso · '+eur(lateValue)+'</b>':'nada em atraso')+'</small></article><article class="panel approved-metric ag-tile is-in"><span>A receber</span><strong class="amount">'+eur(openIncome)+'</strong><small>entradas por registar</small></article><article class="panel approved-metric ag-tile is-done"><span>Já registado</span><strong class="amount">'+eur(r.registered)+'</strong><small>'+counts.completed+' de '+counts.all+' compromissos</small></article>';
     let services=document.querySelector('#agendaMonthServices');if(!services){services=document.createElement('article');services.id='agendaMonthServices';services.className='panel';document.querySelector('.planner-agenda-grid').after(services);}
-    const subscriptions=ExperienceFinance.agenda(data,schedule({includeCompletedGenerated:true}),month,'all').rows.filter(p=>p.source==='subscription'||p.subscriptionId);services.innerHTML='<div class="approved-card-heading"><h3>Subscrições do mês</h3><button type="button" class="secondary" id="agendaManageServices">Gerir subscrições</button></div><div class="table-wrap"><table><thead><tr><th>Serviço</th><th>Valor</th><th>Data de débito</th><th>Estado</th></tr></thead><tbody>'+subscriptions.slice(0,100).map(p=>'<tr><td><span class="provider-name">'+ProviderIcons.html(data.subscriptions.find(s=>s.id===p.subscriptionId)?.name||p.description)+esc(p.description)+'</span></td><td class="amount">'+eur(p.amount)+'</td><td>'+dateLabel(p.date)+'</td><td><span class="approved-state '+(done(p)?'confirmed':'pending')+'">'+(done(p)?'Registada':p.date<today?'Em atraso':'Prevista')+'</span></td></tr>').join('')+'</tbody></table></div>'+(!subscriptions.length?'<p class="empty-state">Sem cobranças com este filtro.</p>':'')+(subscriptions.length>100?'<p>Mostradas 100 de '+subscriptions.length+' cobranças. Usa a vista Lista para consultar as restantes.</p>':'');
+    const subscriptions=ExperienceFinance.agendaSubscriptions(data,allRows,month);services.innerHTML='<div class="approved-card-heading"><h3>Subscrições do mês</h3><button type="button" class="secondary" id="agendaManageServices">Gerir subscrições</button></div><p class="muted">As cobranças previstas vêm das subscrições configuradas. As despesas categorizadas como Subscrições aparecem como histórico.</p><div class="table-wrap"><table><thead><tr><th>Serviço</th><th>Valor</th><th>Data de débito</th><th>Estado</th></tr></thead><tbody>'+subscriptions.slice(0,100).map(p=>{const stateLabel=p.historyOnly?'Registada no histórico':done(p)?'Registada':p.date<today?'Em atraso':'Prevista';return '<tr><td><span class="provider-name">'+ProviderIcons.html(data.subscriptions.find(s=>s.id===p.subscriptionId)?.name||p.description)+'<span>'+esc(p.description)+'<br><small class="muted">'+stateLabel+'</small></span></span></td><td class="amount">'+eur(p.amount)+'</td><td>'+dateLabel(p.date)+'</td><td><span class="approved-state '+(done(p)?'confirmed':'pending')+'">'+stateLabel+'</span></td></tr>';}).join('')+'</tbody></table></div>'+(!subscriptions.length?'<p class="empty-state">Sem cobranças previstas nem despesas de subscrição registadas neste mês.</p>':'')+(subscriptions.length>100?'<p>Mostradas 100 de '+subscriptions.length+' cobranças. Usa a vista Lista para consultar as restantes.</p>':'');
     document.querySelector('#agendaManageServices').onclick=()=>PlanningManagerUI.openSubscriptions();window.UnifiedWorkspaceUI?.refreshAgenda();
     filter.querySelectorAll('[data-agenda-step]').forEach(b=>b.onclick=()=>{const d=new Date(month+'-01T12:00:00');d.setMonth(d.getMonth()+Number(b.dataset.agendaStep));month=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');document.querySelector('#monthPicker').value=month;render();});
     filter.querySelector('#agendaMonthPicker').onchange=e=>{if(/^\d{4}-\d{2}$/.test(e.target.value)){month=e.target.value;document.querySelector('#monthPicker').value=month;render();}};
@@ -1061,7 +1105,7 @@
   };
   window.WorkflowsUI = { render, backupComparison };
   const previousNavigation=PremiumUI.navigation;
-  PremiumUI.navigation=v=>{previousNavigation(v);if(v==='planner'||v==='review')render();};
+  PremiumUI.navigation=v=>{previousNavigation(v);if(!window.UILifecycle?.inRender?.()&&(v==='planner'||v==='review'))render();};
   if (!window.equilibrioStartup?.awaitingChoice) render();
 })();
 
@@ -1172,32 +1216,38 @@
   actions["category-delete"] = (name) => {
     const c = C.categoryList(data).find(x => x.name === name);
     if (!c) return notice("Categoria inexistente.", true);
-    let replacement = "";
     const isUsed = ["transactions","pendingImports","budgets","envelopes","rules","recurring","pendingPayments","annualPlans"].some(k =>
       (data[k] || []).some(r => r.category === name || (r.splits || []).some(s => s.category === name) || (r.receiptItems || []).some(s => s.category === name))
     );
     if (isUsed) {
-      const choices = C.categoryList(data).filter(x => !x.archived && x.name !== name).map(x => x.name);
-      replacement = prompt(`A categoria “${name}” tem ${c.count} movimento(s).\n\nAntes de eliminar, escreve a categoria para onde queres transferir os movimentos:\n\n${choices.join(" · ")}`, choices[0] || "") || "";
-      if (!replacement) return;
-    } else if (!confirm(`Eliminar definitivamente a categoria “${name}”?`)) return;
-    commit(() => C.deleteCategory(data, name, replacement), isUsed ? `Referências transferidas para ${replacement} e categoria eliminada.` : "Categoria eliminada.");
+      const choices = C.categoryList(data)
+        .filter(x => !x.archived && x.name !== name)
+        .map(x => [x.name, `${"— ".repeat(Math.max(0, x.level - 1))}${x.name}`]);
+      if (!choices.length) return notice("Não existe outra categoria disponível para transferir os movimentos.", true);
+      return form(
+        "Eliminar categoria em uso",
+        `<p>A categoria “${esc(name)}” está associada a ${c.count} movimento(s) ou registo(s). Escolhe a categoria de destino para preservar todo o histórico antes de eliminar.</p>` +
+          select("Transferir referências para", "replacementCategory", choices, choices[0][0]),
+        (f) => {
+          const replacement = String(f.get("replacementCategory") || "").trim();
+          if (!replacement) throw Error("Escolhe uma categoria de destino.");
+          return commit(() => C.deleteCategory(data, name, replacement), `Referências transferidas para ${replacement} e categoria eliminada.`);
+        },
+        "Todos os movimentos, orçamentos e regras associados passam para a categoria escolhida.",
+        "Transferir e eliminar",
+      );
+    }
+    return form(
+      "Eliminar categoria",
+      `<p>Eliminar definitivamente a categoria “${esc(name)}”?</p>`,
+      () => commit(() => C.deleteCategory(data, name, ""), "Categoria eliminada."),
+      "",
+      "Eliminar",
+    );
   };
-  function refresh() {
-    const dated = [
-      ...(data.transactions || []),
-      ...(data.pendingPayments || []),
-      ...(data.recurring || []),
-    ].map((t) => String(t.date || t.startDate || "").slice(0, 4)).filter((y) => /^\d{4}$/.test(y));
-    const years = new Set(dated.length ? dated : [month.slice(0, 4)]);
-    year.innerHTML = [...years]
-      .filter(Boolean)
-      .sort()
-      .reverse()
-      .map((y) => `<option>${esc(y)}</option>`)
-      .join("");
-    year.value = month.slice(0, 4);
-    mon.value = month.slice(5, 7);
+  let categoryDirectoryDirty = true;
+  function refreshCategoryDirectory() {
+    categoryDirectoryDirty = false;
     let host = document.getElementById("categoryDirectory");
     if (!host) {
       host = document.createElement("div");
@@ -1218,15 +1268,34 @@
       const status = `${parent.count ? parent.count + " movimentos" : "Sem movimentos"}${parent.archived ? " · Arquivada" : ""}`;
       return `<details class="category-family"><summary><span><b>${esc(parent.name)}</b><small>${status}</small></span><span class="category-family-count">${children.length} subcategoria${children.length === 1 ? "" : "s"}</span></summary><div class="category-family-body"><div class="row-actions category-family-actions">${button("Editar categoria", "category-edit", parent.name, "secondary")}${button(parent.archived ? "Reativar" : "Arquivar", "category-toggle", parent.name, "secondary")}${button("Eliminar", "category-delete", parent.name, "secondary danger-action")}</div>${children.length ? `<div class="category-children">${children.map(renderChild).join("")}</div>` : '<p class="muted category-no-children">Sem subcategorias.</p>'}</div></details>`;
     }).join("");
+    const correctionCount = C.suggestedCorrections(data).length;
     host.innerHTML =
       '<div class="category-directory-intro"><p>Organiza por categoria. Abre apenas o grupo que queres alterar.</p>' +
       button("+ Adicionar categoria", "category-create", "", "primary") +
       '<button type="button" class="secondary" data-category-cleanup>Arrumar repetidas</button>' +
-      (C.suggestedCorrections(data).length ? '<button type="button" class="secondary" data-category-corrections>Correções sugeridas (' + C.suggestedCorrections(data).length + ')</button>' : '') +
+      (correctionCount ? '<button type="button" class="secondary" data-category-corrections>Correções sugeridas (' + correctionCount + ')</button>' : '') +
       '</div><div class="category-directory category-directory-grouped">' +
       families +
       '</div><details class="category-tools"><summary>Regras e operações avançadas</summary></details>';
     if (advanced) host.querySelector(".category-tools").append(advanced);
+  }
+  function refresh() {
+    const dated = [
+      ...(data.transactions || []),
+      ...(data.pendingPayments || []),
+      ...(data.recurring || []),
+    ].map((t) => String(t.date || t.startDate || "").slice(0, 4)).filter((y) => /^\d{4}$/.test(y));
+    const years = new Set(dated.length ? dated : [month.slice(0, 4)]);
+    year.innerHTML = [...years]
+      .filter(Boolean)
+      .sort()
+      .reverse()
+      .map((y) => `<option>${esc(y)}</option>`)
+      .join("");
+    year.value = month.slice(0, 4);
+    mon.value = month.slice(5, 7);
+    categoryDirectoryDirty = true;
+    if (view === "settings" || !document.getElementById("categoryDirectory")) refreshCategoryDirectory();
   }
   function categoryCleanupForm() {
     const suggestions = C.categoryCleanupSuggestions(data), names = C.categoryList(data).map((c) => c.name);
@@ -1260,7 +1329,7 @@
     if (!list.length) return;
     const groups = [...new Set(list.map((x) => x.group))];
     form("Correções sugeridas",
-      `<div class="category-cleanup"><p>Resultado da revisão dos teus movimentos e categorias. Desmarca o que não quiseres. Nada é apagado: os movimentos só mudam de categoria e as recorrências de frequência.</p><p><button type="button" class="secondary danger-action" data-correction-dismiss>Descartar todas as pendentes</button></p>` +
+      `<div class="category-cleanup"><p>Resultado da revisão dos teus movimentos e categorias. Desmarca o que não quiseres. Nada é apagado: os movimentos só mudam de categoria e as recorrências de frequência.</p><p><button type="button" class="secondary danger-action" data-correction-dismiss>Descartar selecionadas</button></p>` +
       groups.map((g) => `<h3>${esc(g)}</h3><div class="cleanup-list">${list.filter((x) => x.group === g).map((x) => `<label class="cleanup-row is-strong"><input type="checkbox" data-correction="${esc(x.id)}" checked><span class="cleanup-from"><b>${esc(x.label)}</b><small>${esc(x.detail)}</small></span></label>`).join("")}</div>`).join("") + `</div>`,
       () => {
         const ids = [...document.querySelectorAll("#modalContent [data-correction]:checked")].map((b) => b.dataset.correction);
@@ -1270,9 +1339,13 @@
       "Dica: faz primeiro uma cópia de segurança em Definições → Backup.", "Aplicar");
     const dismiss = document.querySelector("#modalContent [data-correction-dismiss]");
     if (dismiss) dismiss.onclick = () => {
-      const ids = list.map((x) => x.id);
-      if (!window.confirm("Descartar as " + ids.length + " correções pendentes? Não altera movimentos nem categorias.")) return;
-      commit(() => C.dismissCorrections(data, ids), "Correções pendentes descartadas.");
+      const ids = [...document.querySelectorAll("#modalContent [data-correction]:checked")].map(b=>b.dataset.correction);
+      if (!ids.length) return notice("Escolhe pelo menos uma correção.", true);
+      if (!window.confirm("Descartar " + ids.length + " correção(ões) selecionada(s)?")) return;
+      if(commit(() => C.dismissCorrections(data, ids), "Correções descartadas.")){
+        if(C.suggestedCorrections(data).length)correctionsForm();
+        else $("#modal").close();
+      }
     };
   }
   document.addEventListener("click", (e) => { if (e.target.closest("[data-category-corrections]")) correctionsForm(); });
@@ -1280,6 +1353,11 @@
   PremiumUI.render = () => {
     previous();
     refresh();
+  };
+  const previousNav = PremiumUI.navigation;
+  PremiumUI.navigation = (target) => {
+    previousNav?.(target);
+    if (!window.UILifecycle?.inRender?.() && target === "settings" && categoryDirectoryDirty) refreshCategoryDirectory();
   };
   window.MovementUI = { enhanceForm };
   refresh();

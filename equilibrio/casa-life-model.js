@@ -78,7 +78,18 @@
  });}
  function replenish(d){return queueNeeds(d,suggestions(d));}
  function saveRecipe(d,input){return base().change(d,(draft,F)=>{let r=draft.casa.recipes.find(r=>r.id===input.id);if(input.id&&!r)throw Error('Receita não encontrada.');const next={id:r?.id||F.id(),name:String(input.name||'').trim(),servings:input.servings,notes:String(input.notes||''),ingredients:(input.ingredients||[]).map(i=>{if(i.amount===undefined)return structuredClone(i);const p=draft.casa.catalog.find(p=>p.id===i.catalogId);if(!p)throw Error('Ingrediente inválido ou repetido.');const unit=i.unit||p.unit;if(!ALL_UNITS.includes(unit)&&unit!==p.unit)throw Error('Unidade incompatível com '+p.name+' ('+p.unit+').');if(!sameKind(unit,p.unit)){const per=Number(i.per);if(!(per>0)||!Number.isFinite(per))throw Error('Indica a equivalência de '+unit+' em '+p.unit+' para '+p.name+'.');const n=Math.round(i.amount*per*1000)/1000;if(!valid(n)||n<=0)throw Error('Quantidade de '+p.name+' inválida ou demasiado pequena.');return {catalogId:p.id,qty:n,unit,per:Math.round(per*1e6)/1e6};}const n=convert(i.amount,unit,p.unit);if(!valid(n)||n<=0)throw Error('Quantidade de '+p.name+' inválida ou demasiado pequena.');return unit===p.unit?{catalogId:p.id,qty:n}:{catalogId:p.id,qty:n,unit};})};if(r)Object.assign(r,next);else draft.casa.recipes.push(next);return next.id;});}
- function plan(d,input){return base().change(d,(draft,F)=>{const old=draft.casa.plans.find(p=>p.id===input.id);if(input.id&&!old)throw Error('Refeição não encontrada.');if(old?.done)throw Error('Esta refeição já foi preparada.');if(input.remove){draft.casa.plans=draft.casa.plans.filter(p=>p.id!==input.id);return;}const row={id:old?.id||F.id(),recipeId:input.recipeId,date:input.date,meal:input.meal,servings:input.servings,done:false};if(old)Object.assign(old,row);else draft.casa.plans.push(row);return row.id;});}
+ function removeRecipe(d,id) {
+  return base().change(d,draft=>{
+   const c=draft.casa,r=c.recipes.find(r=>r.id===id&&!r.archived);
+   if(!r)throw Error('Receita não encontrada.');
+   const linked=c.plans.some(p=>p.recipeId===id)||c.stockEvents.some(e=>e.recipeId===id)||
+     c.weekTemplate?.slots.some(s=>s.recipeId===id);
+   if(linked)r.archived=true;
+   else c.recipes=c.recipes.filter(r=>r.id!==id);
+   return Boolean(linked);
+  });
+ }
+ function plan(d,input){return base().change(d,(draft,F)=>{const old=draft.casa.plans.find(p=>p.id===input.id);if(input.id&&!old)throw Error('Refeição não encontrada.');if(old?.done)throw Error('Esta refeição já foi preparada.');if(input.remove){draft.casa.plans=draft.casa.plans.filter(p=>p.id!==input.id);return;}if(draft.casa.recipes.some(r=>r.id===input.recipeId&&r.archived)&&old?.recipeId!==input.recipeId)throw Error('Escolhe uma receita ativa.');const row={id:old?.id||F.id(),recipeId:input.recipeId,date:input.date,meal:input.meal,servings:input.servings,done:false};if(old)Object.assign(old,row);else draft.casa.plans.push(row);return row.id;});}
  function recipeNeeds(c,id,servings){const r=c.recipes.find(r=>r.id===id);if(!r||!Number.isInteger(servings)||servings<1||servings>1000)throw Error('Receita ou porções inválidas.');return r.ingredients.map(i=>{const n=q(i.qty*servings/r.servings);if(!valid(n)||n<=0)throw Error('Quantidade por porção demasiado pequena.');return {catalogId:i.catalogId,qty:n};});}
  function requirements(d,recipeId,servings){const c=base().state(d);return recipeNeeds(c,recipeId,servings).map(i=>({...i,available:available(c,i.catalogId),missing:Math.max(0,q(i.qty-available(c,i.catalogId)-pending(c,i.catalogId)))}));}
  function cookQuote(d,id,servings){const c=base().state(d),F=finance(),allocations=[];for(const i of recipeNeeds(c,id,servings)){let need=units(i.qty);const lots=c.stock.filter(l=>l.catalogId===i.catalogId&&(!l.expiry||l.expiry>=F.today())).slice().sort((a,b)=>(a.expiry||'9999').localeCompare(b.expiry||'9999')||Number(b.opened||false)-Number(a.opened||false));for(const l of lots){const take=Math.min(need,units(remaining(c,l)));if(take>0)allocations.push({lotId:l.id,qty:take/1000});need-=take;}if(need>0)throw Error('Stock insuficiente ou expirado: '+c.catalog.find(p=>p.id===i.catalogId)?.name);}return allocations;}
@@ -87,9 +98,9 @@
  function addDays(date,n){const x=new Date(date+'T12:00:00Z');x.setUTCDate(x.getUTCDate()+n);return x.toISOString().slice(0,10);}
  // Planos concretos + refeições da semana-tipo nos espaços livres (a partir de "since"; um ✕ guarda o dia em skips).
  function weekPlans(c,from,to){const out=c.plans.filter(p=>p.date>=from&&p.date<=to),t=c.weekTemplate;if(!t||!t.slots.length)return out;
-  for(let date=from>t.since?from:t.since;date<=to;date=addDays(date,1)){const wd=weekdayOf(date);for(const x of t.slots){if(x.weekday!==wd||!c.recipes.some(r=>r.id===x.recipeId))continue;const key=date+'|'+x.meal;if(t.skips.includes(key)||c.plans.some(p=>p.date===date&&p.meal===x.meal))continue;out.push({id:'tpl|'+key,recipeId:x.recipeId,date,meal:x.meal,servings:x.servings,done:false,template:true});}}
+  for(let date=from>t.since?from:t.since;date<=to;date=addDays(date,1)){const wd=weekdayOf(date);for(const x of t.slots){if(x.weekday!==wd||!c.recipes.some(r=>r.id===x.recipeId&&!r.archived))continue;const key=date+'|'+x.meal;if(t.skips.includes(key)||c.plans.some(p=>p.date===date&&p.meal===x.meal))continue;out.push({id:'tpl|'+key,recipeId:x.recipeId,date,meal:x.meal,servings:x.servings,done:false,template:true});}}
   return out;}
- function saveTemplate(d,monday){return base().change(d,draft=>{const F=finance();if(!F.validDate(monday))throw Error('Semana inválida.');const end=addDays(monday,6),slots=draft.casa.plans.filter(p=>p.date>=monday&&p.date<=end).map(p=>({weekday:weekdayOf(p.date),meal:p.meal,recipeId:p.recipeId,servings:p.servings}));if(!slots.length)throw Error('Planeia pelo menos uma refeição nesta semana antes de a guardar como semana-tipo.');draft.casa.weekTemplate={since:monday,slots,skips:[]};});}
+ function saveTemplate(d,monday){return base().change(d,draft=>{const F=finance();if(!F.validDate(monday))throw Error('Semana inválida.');const end=addDays(monday,6),slots=weekPlans(draft.casa,monday,end).map(p=>({weekday:weekdayOf(p.date),meal:p.meal,recipeId:p.recipeId,servings:p.servings}));if(!slots.length)throw Error('Planeia pelo menos uma refeição nesta semana antes de a guardar como semana-tipo.');draft.casa.weekTemplate={since:monday,slots,skips:[]};});}
  function clearTemplate(d){return base().change(d,draft=>{delete draft.casa.weekTemplate;});}
  function skipTemplate(d,date,meal){return base().change(d,draft=>{const t=draft.casa.weekTemplate;if(!t)throw Error('Não há semana-tipo.');const k=date+'|'+meal;if(!t.skips.includes(k))t.skips.push(k);t.skips=t.skips.filter(x=>x.slice(0,10)>=addDays(finance().today(),-60));});}
  function planNeeds(d,from,to){
@@ -102,6 +113,6 @@
   return [...missing].map(([catalogId,n])=>({catalogId,qty:Math.max(0,q(n/1000-pending(c,catalogId)))})).filter(n=>n.qty>0);
  }
 
- const api={meals:MEALS,mealLabel,weekPlans:(d,from,to)=>weekPlans(base().state(d),from,to),saveTemplate,clearTemplate,skipTemplate,ingredientUnits,allUnits,sameKind,ingredientQty,validate,remaining,available,lot,record,policy,prices,missingPriceOffers,pending,suggestions,queueNeeds,replenish,saveRecipe,plan,requirements,cookQuote,cook,planNeeds};
+ const api={meals:MEALS,mealLabel,weekPlans:(d,from,to)=>weekPlans(base().state(d),from,to),saveTemplate,clearTemplate,skipTemplate,ingredientUnits,allUnits,sameKind,ingredientQty,validate,remaining,available,lot,record,policy,prices,missingPriceOffers,pending,suggestions,queueNeeds,replenish,saveRecipe,removeRecipe,plan,requirements,cookQuote,cook,planNeeds};
  if(typeof module==='object'&&module.exports)module.exports=api;else root.CasaLife=Object.freeze(api);
 })(globalThis);

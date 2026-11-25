@@ -1932,4 +1932,930 @@ body.equilibrio-studio #topNoticesBtn{height:36px;min-height:36px;font-size:13px
 #plansHub .u-plan-context summary{font-size:15px;line-height:1.5}
 /* @order 37133 */
 @media(max-width:900px){#plansHub .decisions-secondary-grid{grid-template-columns:minmax(0,1fr)}}
+/* @order 48001 */
+dialog.casa-compare-dialog{width:min(880px,94vw)!important;max-width:94vw!important}
+/* @order 48002 */
+dialog.casa-compare-dialog .casa-compare-table{width:100%;min-width:0!important}
+/* @order 48003 */
+dialog.casa-compare-dialog .casa-compare-table :is(th,td):first-child{white-space:normal!important;min-width:170px}
+/* @order 48004 */
+dialog.casa-compare-dialog .casa-compare-uncovered{margin:12px 0}
+/* @order 48005 */
+.casa-combined-banner{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:14px;padding:16px 18px;margin-bottom:18px;border-left:4px solid var(--amber,#d9822b)}
+/* @order 48006 */
+.casa-combined-banner p{margin:4px 0 0;color:var(--muted);font-size:13px}
+/* @order 48007 */
+.casa-split-offers{display:grid;gap:10px;margin:12px 0 16px}
+/* @order 48008 */
+.casa-split-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(220px,1.2fr);gap:12px;align-items:center;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--paper)}
+/* @order 48009 */
+.casa-split-row label{margin:0!important}
+/* @order 48010 */
+.casa-split-row small{display:block;color:var(--muted);margin-top:3px}
+/* @order 48011 */
+@media(max-width:650px){.casa-split-row{grid-template-columns:1fr}}
+/* @order 48012 */
+.casa-lot-origin{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:6px 0;font-size:12px;color:var(--muted)}
+/* @order 48013 */
+.restock-insufficient{margin-top:14px}
+/* @order 48014 */
+#casaConsumos .utility-anomaly{display:inline-block;margin-top:4px;font-size:11px}
 
+/* @order 48015 */
+#topFinanceSlot:has(#undo:not([disabled])){gap:6px!important}
+/* @order 48016 */
+#topFinanceSlot>#undo[disabled]{display:none!important}
+/* @order 48017 */
+#topFinanceSlot>#undo:not([disabled]){display:inline-grid!important;place-items:center;width:36px!important;min-width:36px!important;height:36px!important;min-height:36px!important;padding:0!important;font-size:15px!important;margin:0!important}
+/* @order 48018 */
+@media(min-width:651px){.app-topbar .top-context-controls .top-space-slot{width:126px!important;flex:0 1 126px!important;max-width:126px!important}}
+/* @order 48019 */
+@media(min-width:651px){.app-topbar .space-picker select{width:126px!important;max-width:126px!important}}
+/* @order 48020 */
+@media(min-width:651px){.app-topbar .top-search-slot{width:150px!important;max-width:150px!important;flex:0 1 150px!important}}
+/* @order 48021 */
+#modal:not(.transaction-editor) .modal-form-footer{position:sticky;bottom:0;z-index:3;display:flex;align-items:center;justify-content:flex-end;gap:10px;margin:16px -28px -26px;padding:14px 28px;background:var(--paper);border-top:1px solid var(--line)}
+/* @order 48022 */
+#modal:not(.transaction-editor) .modal-form-footer>button{margin:0!important;min-height:42px}
+/* @order 48023 */
+#modal:not(.transaction-editor) .modal-form-footer>.modal-cancel{flex:0 0 auto;width:auto!important;padding:10px 18px}
+/* @order 48024 */
+#modal:not(.transaction-editor) .modal-form-footer>button[type="submit"]{flex:1 1 auto}
+/* @order 48025 */
+@media(max-width:480px){#modal:not(.transaction-editor) .modal-form-footer{margin:14px -18px -22px;padding:12px 18px}}
+/* @order 48026 */
+body #modal button.primary.danger,body.equilibrio-studio #mainContent button.primary.danger{background:#c23b3b!important;border-color:#c23b3b!important;color:#fff!important}
+/* @order 48027 */
+body[data-theme="dark"] #modal button.primary.danger,body[data-theme="dark"].equilibrio-studio #mainContent button.primary.danger{background:#b83232!important;border-color:#e06666!important;color:#fff!important}
+/* @order 48028 */
+body.equilibrio-studio #mainContent button.secondary.danger-action{color:#b42332!important;border-color:color-mix(in srgb,#b42332 45%,var(--line))!important}
+/* @order 48029 */
+body[data-theme="dark"].equilibrio-studio #mainContent button.secondary.danger-action{color:#ff9494!important;border-color:color-mix(in srgb,#ff9494 45%,var(--line))!important}
+/* @order 48030 */
+#modalForm>.close{width:36px!important;height:36px!important;min-width:36px!important;min-height:36px!important;display:grid!important;place-items:center;border-radius:8px;color:var(--ink)}
+/* @order 48031 */
+#faqDialog{color:var(--ink)!important}
+/* @order 48032 */
+#faqDialog .faq-head button{width:36px;min-width:36px;height:36px;min-height:36px;display:grid;place-items:center;border-radius:8px;color:var(--ink)}
+/* @order 48033 */
+#faqDialog .faq-rail button{display:flex!important;align-items:center;justify-content:space-between;gap:8px}
+/* @order 48034 */
+#faqDialog .faq-topic-count{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+/* @order 48035 */
+body.equilibrio-studio :is(a,button,input,select,textarea,summary,[tabindex]):focus-visible{outline:2px solid var(--blue)!important;outline-offset:2px!important}
+/* @order 48036 */
+body.equilibrio-studio[data-theme="dark"] :is(a,button,input,select,textarea,summary,[tabindex]):focus-visible{outline-color:#4cc9a6!important}
+/* @order 48037 */
+body.equilibrio-studio :is(.amount,td.amount,th.amount){font-variant-numeric:tabular-nums}
+/* @order 48038 */
+body.equilibrio-studio .table-wrap,body.equilibrio-studio .u-table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+
+/* Polimento UI v1.0.37 — barra superior, scrollbars, hierarquia, tabelas, toast e foco */
+/* @order 48100 */
+html[data-theme="dark"],body[data-theme="dark"]{color-scheme:dark}
+/* @order 48101 */
+html[data-theme="light"],body:not([data-theme="dark"]){color-scheme:light}
+/* @order 48102 */
+body[data-theme="dark"] ::-webkit-scrollbar,html[data-theme="dark"]::-webkit-scrollbar{width:8px;height:8px}
+/* @order 48103 */
+body[data-theme="dark"] ::-webkit-scrollbar-track,html[data-theme="dark"]::-webkit-scrollbar-track{background:transparent}
+/* @order 48104 */
+body[data-theme="dark"] ::-webkit-scrollbar-thumb,html[data-theme="dark"]::-webkit-scrollbar-thumb{background:rgba(148,184,198,.26);border-radius:999px;border:2px solid transparent;background-clip:content-box}
+/* @order 48105 */
+body[data-theme="dark"] ::-webkit-scrollbar-thumb:hover,html[data-theme="dark"]::-webkit-scrollbar-thumb:hover{background:rgba(148,184,198,.48);background-clip:content-box}
+/* @order 48106 */
+body:not([data-theme="dark"]) ::-webkit-scrollbar,html[data-theme="light"]::-webkit-scrollbar{width:8px;height:8px}
+/* @order 48107 */
+body:not([data-theme="dark"]) ::-webkit-scrollbar-track,html[data-theme="light"]::-webkit-scrollbar-track{background:transparent}
+/* @order 48108 */
+body:not([data-theme="dark"]) ::-webkit-scrollbar-thumb,html[data-theme="light"]::-webkit-scrollbar-thumb{background:rgba(23,44,52,.22);border-radius:999px;border:2px solid transparent;background-clip:content-box}
+/* @order 48109 */
+body:not([data-theme="dark"]) ::-webkit-scrollbar-thumb:hover,html[data-theme="light"]::-webkit-scrollbar-thumb:hover{background:rgba(23,44,52,.4);background-clip:content-box}
+/* @order 48110 */
+@media(min-width:1181px){body.equilibrio-studio #appTopbar{grid-template-columns:auto minmax(0,1fr) auto!important;column-gap:14px!important;row-gap:0!important;padding:8px 20px!important;align-items:center!important}body.equilibrio-studio #appTopbar .top-primary-nav{justify-content:flex-start!important;gap:4px!important}body.equilibrio-studio #appTopbar .top-primary-nav>button{padding:7px 11px!important;min-height:36px!important}body.equilibrio-studio #appTopbar .topbar-tools{grid-column:auto!important;gap:8px!important;flex-wrap:nowrap!important;align-items:center!important}body.equilibrio-studio #appTopbar .top-search-slot{width:146px!important;max-width:146px!important;flex:0 1 146px!important;transition:width .18s ease,max-width .18s ease}body.equilibrio-studio #appTopbar .top-search-slot:focus-within{width:210px!important;max-width:210px!important;flex-basis:210px!important}}
+/* @order 48111 */
+body.equilibrio-studio #appTopbar .top-space-slot,body.equilibrio-studio #appTopbar .space-picker{width:auto!important;max-width:none!important;flex:0 0 auto!important}
+/* @order 48112 */
+body.equilibrio-studio #appTopbar .space-picker select#activeSpace{width:auto!important;min-width:162px!important;max-width:220px!important;padding-right:30px!important}
+/* @order 48139 */
+.sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
+
+/* ==========================================================================
+   Renovação UI v1.0.38 — Tema Grafite/Carvão Neutro + Verde-Esmeralda
+   Fases 1–4: sistema visual, modais, ecrãs financeiros, Casa, Avisos e Definições
+   ========================================================================== */
+
+/* Fase 1 — Paleta Grafite Neutro + Esmeralda e hierarquia de superfícies */
+/* @order 48200 */
+body.equilibrio-studio[data-theme="dark"]{--bg:#0c0d10!important;--canvas:#0c0d10!important;--paper:#14161a!important;--panel:#14161a!important;--surface:#14161a!important;--surface-2:#1c1f26!important;--surface-soft:#1a1d23!important;--line:rgba(255,255,255,.085)!important;--ink:#f3f4f6!important;--muted:#9ca3af!important;--blue:#0d9468!important;--accent:#10b981!important;--selected:rgba(16,185,129,.14)!important;--blue-pale:rgba(16,185,129,.13)!important;--summary-bg:#0c0d10!important;--summary-panel:#14161a!important;--summary-panel-2:#1a1d24!important;--summary-line:rgba(255,255,255,.085)!important;--summary-soft:#9ca3af!important;--summary-ink:#f3f4f6!important;--summary-green:#34d399!important;--summary-red:#f87171!important;--summary-purple:#a78bfa!important}
+/* @order 48201 */
+body.equilibrio-studio[data-theme="dark"],body.equilibrio-studio[data-theme="dark"] main,body.equilibrio-studio[data-theme="dark"] #mainContent{background:#0c0d10!important;color:#f3f4f6!important}
+/* @order 48202 */
+body.equilibrio-studio[data-theme="dark"] #appTopbar{background:#0f1115!important;border-bottom:1px solid rgba(255,255,255,.08)!important;box-shadow:none!important}
+/* @order 48203 */
+body.equilibrio-studio[data-theme="dark"] #appTopbar .top-primary-nav>button{color:#9ca3af!important;background:transparent!important;border-color:transparent!important}
+/* @order 48204 */
+body.equilibrio-studio[data-theme="dark"] #appTopbar .top-primary-nav>button:hover{color:#f3f4f6!important;background:rgba(255,255,255,.055)!important}
+/* @order 48205 */
+body.equilibrio-studio[data-theme="dark"] #appTopbar .top-primary-nav>button.active{color:#ecfdf5!important;background:rgba(16,185,129,.16)!important;border-color:rgba(16,185,129,.28)!important}
+/* @order 48206 */
+body.equilibrio-studio[data-theme="dark"] #appTopbar .top-context-controls>button,body.equilibrio-studio[data-theme="dark"] #appTopbar .topbar-tools>button:not(.primary):not(#topNoticesButton){background:transparent!important;border-color:transparent!important;color:#9ca3af!important;border-radius:9px!important}
+/* @order 48207 */
+body.equilibrio-studio[data-theme="dark"] #appTopbar .top-context-controls>button:hover,body.equilibrio-studio[data-theme="dark"] #appTopbar .topbar-tools>button:not(.primary):not(#topNoticesButton):hover{background:rgba(255,255,255,.07)!important;color:#f3f4f6!important}
+/* @order 48208 */
+body.equilibrio-studio[data-theme="dark"] #appTopbar .top-search-slot .inline-search-label{background:#181b21!important;border:1px solid rgba(255,255,255,.09)!important;border-radius:9px!important}
+/* @order 48209 */
+body.equilibrio-studio[data-theme="dark"] #appTopbar .space-picker select#activeSpace{background:#181b21!important;border:1px solid rgba(255,255,255,.09)!important;color:#f3f4f6!important;border-radius:9px!important}
+/* @order 48210 */
+body.equilibrio-studio[data-theme="dark"] :is(.panel,.card,.metric,.debt-card,.approved-metric,.u-settings-nav,.r-sidebar,.movements-sidebar,#transactions .movement-table-shell,#transactions .movement-filter-bar){background:#14161a!important;border-color:rgba(255,255,255,.08)!important;box-shadow:none!important}
+/* @order 48211 */
+body.equilibrio-studio[data-theme="dark"] :is(input,select,textarea){background:#191c22!important;border-color:rgba(255,255,255,.11)!important;color:#f3f4f6!important}
+/* @order 48212 */
+body.equilibrio-studio[data-theme="dark"] :is(input,select,textarea):focus{border-color:#10b981!important;box-shadow:0 0 0 2px rgba(16,185,129,.2)!important}
+/* @order 48213 */
+body.equilibrio-studio[data-theme="dark"] #mainContent button.secondary,body.equilibrio-studio[data-theme="dark"] #modal button.secondary{background:#1b1e25!important;border-color:rgba(255,255,255,.10)!important;color:#e5e7eb!important}
+/* @order 48214 */
+body.equilibrio-studio[data-theme="dark"] #mainContent button.secondary:hover:not(:disabled),body.equilibrio-studio[data-theme="dark"] #modal button.secondary:hover:not(:disabled){background:#232731!important;border-color:rgba(255,255,255,.18)!important;filter:none!important}
+/* @order 48215 */
+body.equilibrio-studio[data-theme="dark"] #mainContent button.primary,body.equilibrio-studio[data-theme="dark"] #modal button.primary,body.equilibrio-studio[data-theme="dark"] #appTopbar .practical-quick>summary{background:#0d9468!important;border-color:#10b981!important;color:#ffffff!important}
+/* @order 48216 */
+body.equilibrio-studio[data-theme="dark"] #mainContent button.primary:hover:not(:disabled),body.equilibrio-studio[data-theme="dark"] #modal button.primary:hover:not(:disabled){background:#10a372!important;filter:none!important}
+/* @order 48217 */
+body.equilibrio-studio[data-theme="dark"] .area-tabs{background:#14161a!important;border:1px solid rgba(255,255,255,.08)!important;padding:4px!important;border-radius:12px!important}
+/* @order 48218 */
+body.equilibrio-studio[data-theme="dark"] .area-tabs>button{color:#9ca3af!important;background:transparent!important;border-color:transparent!important}
+/* @order 48219 */
+body.equilibrio-studio[data-theme="dark"] .area-tabs>button.active{background:rgba(16,185,129,.16)!important;color:#ecfdf5!important;border-color:rgba(16,185,129,.26)!important}
+/* @order 48220 */
+body.equilibrio-studio[data-theme="dark"] .link-button{color:#34d399!important}
+/* @order 48221 */
+body.equilibrio-studio[data-theme="dark"] ::-webkit-scrollbar-thumb,html[data-theme="dark"]::-webkit-scrollbar-thumb{background:rgba(255,255,255,.16);border-radius:999px;border:2px solid transparent;background-clip:content-box}
+/* @order 48222 */
+body.equilibrio-studio[data-theme="dark"] ::-webkit-scrollbar-thumb:hover,html[data-theme="dark"]::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.32);background-clip:content-box}
+
+/* Fase 2 — Modais e formulários (Novo movimento, Despesa/Receita, stepper de data, cabeçalho) */
+/* @order 48230 */
+body.equilibrio-studio[data-theme="dark"] :is(#modal,#welcomeDialog,#faqDialog){background:#14161a!important;border:1px solid rgba(255,255,255,.11)!important;box-shadow:0 16px 40px rgba(0,0,0,.55)!important;color:#f3f4f6!important}
+/* @order 48231 */
+:is(#modal,#welcomeDialog,#faqDialog)::backdrop{background:rgba(5,6,9,.78)!important}
+/* @order 48232 */
+body.equilibrio-studio[data-theme="dark"] :is(.modal-form-footer,.transaction-editor-footer){background:#14161a!important;border-top-color:rgba(255,255,255,.09)!important}
+/* @order 48233 */
+#modalForm>.close{top:16px!important;right:16px!important;background:transparent!important;border:0!important;color:var(--muted)!important;font-size:20px!important;line-height:1!important}
+/* @order 48234 */
+#modalForm>.close:hover{background:rgba(255,255,255,.08)!important;color:var(--ink)!important}
+/* @order 48235 */
+#modal.transaction-editor .transaction-type-choices{display:grid!important;grid-template-columns:1fr 1fr!important;gap:10px!important;margin-top:6px!important}
+/* @order 48236 */
+#modal.transaction-editor .transaction-type-choices button[data-movement-type="expense"][aria-pressed="true"]{background:rgba(239,68,68,.16)!important;border-color:rgba(248,113,113,.55)!important;color:#fca5a5!important;box-shadow:inset 0 0 0 1px rgba(248,113,113,.25)!important}
+/* @order 48237 */
+body:not([data-theme="dark"]) #modal.transaction-editor .transaction-type-choices button[data-movement-type="expense"][aria-pressed="true"]{background:#fef2f2!important;border-color:#dc2626!important;color:#b91c1c!important}
+/* @order 48238 */
+#modal.transaction-editor .transaction-type-choices button[data-movement-type="income"][aria-pressed="true"]{background:rgba(16,185,129,.18)!important;border-color:rgba(52,211,153,.55)!important;color:#6ee7b7!important;box-shadow:inset 0 0 0 1px rgba(52,211,153,.25)!important}
+/* @order 48239 */
+body:not([data-theme="dark"]) #modal.transaction-editor .transaction-type-choices button[data-movement-type="income"][aria-pressed="true"]{background:#ecfdf5!important;border-color:#059669!important;color:#047857!important}
+/* @order 48240 */
+#modal.transaction-editor .date-stepper{display:flex!important;align-items:stretch!important;gap:6px!important;overflow:visible!important}
+/* @order 48241 */
+#modal.transaction-editor .date-stepper>input{flex:1 1 auto!important;min-width:0!important}
+/* @order 48242 */
+#modal.transaction-editor .date-stepper-controls{display:flex!important;flex-direction:row!important;gap:4px!important;flex:0 0 auto!important}
+/* @order 48243 */
+#modal.transaction-editor .date-stepper-controls button{width:34px!important;min-width:34px!important;height:40px!important;min-height:40px!important;padding:0!important;border-radius:8px!important;display:grid!important;place-items:center!important}
+/* @order 48244 */
+body.equilibrio-studio[data-theme="dark"] .welcome-space{background:#191c22!important;border-color:rgba(255,255,255,.09)!important}
+/* @order 48245 */
+body.equilibrio-studio[data-theme="dark"] .welcome-space.is-selected,body.equilibrio-studio[data-theme="dark"] .welcome-space[aria-pressed="true"]{background:rgba(16,185,129,.14)!important;border-color:#10b981!important}
+/* @order 48246 */
+body.equilibrio-studio[data-theme="dark"] .welcome-option{background:#181b21!important;border-color:rgba(255,255,255,.08)!important}
+
+/* Fase 3 — Ecrãs financeiros (Resumo, Revisão, Movimentos, Planos, Património) */
+/* @order 48250 */
+body.equilibrio-studio[data-theme="dark"] .summary-kpi{background:#14161a!important;border:1px solid rgba(255,255,255,.085)!important;box-shadow:0 4px 18px rgba(0,0,0,.22)!important}
+/* @order 48251 */
+body.equilibrio-studio[data-theme="dark"] .summary-kpi-balance{background:linear-gradient(145deg,rgba(56,189,248,.09) 0%,#14161a 68%)!important}
+/* @order 48252 */
+body.equilibrio-studio[data-theme="dark"] .summary-kpi-income{background:linear-gradient(145deg,rgba(16,185,129,.12) 0%,#14161a 68%)!important}
+/* @order 48253 */
+body.equilibrio-studio[data-theme="dark"] .summary-kpi-expense{background:linear-gradient(145deg,rgba(248,113,113,.10) 0%,#14161a 68%)!important}
+/* @order 48254 */
+body.equilibrio-studio[data-theme="dark"] .summary-kpi-net{background:linear-gradient(145deg,rgba(167,139,250,.10) 0%,#14161a 68%)!important}
+/* @order 48255 */
+body.equilibrio-studio[data-theme="dark"] :is(.approved-wealth-metrics>article,#reportDesk .r-metrics>article,#dataHub .u-kpi-card,#dataHub .data-kpi-card,#noticesHub .notices-kpis>article){background:linear-gradient(150deg,rgba(255,255,255,.035) 0%,#14161a 70%)!important;border:1px solid rgba(255,255,255,.085)!important;box-shadow:0 4px 16px rgba(0,0,0,.2)!important}
+/* @order 48256 */
+body.equilibrio-studio[data-theme="dark"] .u-review-navigation.rv-tabs>button[aria-pressed="true"],body.equilibrio-studio[data-theme="dark"] .u-review-navigation.rv-tabs>button.active{background:rgba(16,185,129,.14)!important;border-color:rgba(16,185,129,.45)!important;color:#ecfdf5!important}
+/* @order 48257 */
+body.equilibrio-studio[data-theme="dark"] #plansBoard.plan-workspace{--plan-accent:#10b981;--plan-deep:#14161a;--plan-on-deep:#f3f4f6}
+/* @order 48258 */
+body.equilibrio-studio[data-theme="dark"] #plansBoard .plan-saldo{background:linear-gradient(155deg,rgba(16,185,129,.15) 0%,#14161a 62%)!important;border:1px solid rgba(16,185,129,.30)!important;box-shadow:0 8px 28px rgba(0,0,0,.28)!important}
+/* @order 48259 */
+#plansBoard .plan-saldo dl{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(135px,1fr))!important;gap:14px 18px!important}
+/* @order 48260 */
+body.equilibrio-studio[data-theme="dark"] #plansBoard .plan-coverage-status,body.equilibrio-studio[data-theme="dark"] #plansBoard .plan-account{background:#14161a!important;border-color:rgba(255,255,255,.085)!important}
+/* @order 48261 */
+body.equilibrio-studio[data-theme="dark"] #transactions .movement-row:hover,body.equilibrio-studio[data-theme="dark"] #transactions tbody tr:hover{background:rgba(255,255,255,.028)!important}
+
+/* Fase 4 — Definições (cabeçalho aberto real), Avisos (filtros e ações) e Casa */
+/* @order 48270 */
+#settings.u-settings #unifiedSettings.u-settings-workspace .settings-group-details>.settings-page-heading,#settings.u-settings #unifiedSettings.u-settings-workspace .settings-page-heading{background:transparent!important;border:0!important;padding:0 0 12px!important;margin:0 0 8px!important;border-radius:0!important;box-shadow:none!important}
+/* @order 48271 */
+#settings.u-settings #unifiedSettings.u-settings-workspace .settings-page-heading h2{font-size:26px!important;letter-spacing:-.02em!important}
+/* @order 48272 */
+body.equilibrio-studio[data-theme="dark"] #settings .u-settings-nav button.active{background:rgba(16,185,129,.15)!important;border-color:rgba(16,185,129,.28)!important}
+/* @order 48273 */
+#noticesHub .notices-filter-bar :is(input,select){border-radius:10px!important;min-height:38px!important}
+/* @order 48274 */
+#noticesHub .notice-detail-actions{display:flex!important;flex-wrap:wrap!important;gap:8px!important}
+/* @order 48275 */
+#noticesHub .notice-detail-actions>button{flex:0 1 auto!important;min-width:120px!important;width:auto!important}
+/* @order 48276 */
+body.equilibrio-studio[data-theme="dark"] .notice{background:#182621!important;border:1px solid rgba(16,185,129,.38)!important;color:#ecfdf5!important}
+/* @order 48277 */
+body.equilibrio-studio[data-theme="dark"] .notice.error{background:#28171a!important;border:1px solid rgba(248,113,113,.42)!important;color:#fee2e2!important}
+/* @order 48278 */
+body.equilibrio-studio[data-theme="dark"] :is(.summary-panel,.summary-list-panel,#transactions .movement-kpi,#transactions .movements-kpis>article,#transactions .movement-summary-cards>article,#transactions .movement-kpi-card,#transactions .summary-card){background:#14161a!important;border-color:rgba(255,255,255,.085)!important;box-shadow:0 4px 16px rgba(0,0,0,.2)!important}
+/* @order 48279 */
+body.equilibrio-studio[data-theme="dark"] #transactions .advanced-search>details>summary{background:#1b1e25!important;border-color:rgba(255,255,255,.10)!important;color:#e5e7eb!important}
+/* @order 48280 */
+body.equilibrio-studio[data-theme="dark"] #transactions .advanced-search>details>summary:hover{background:#232731!important;border-color:rgba(255,255,255,.18)!important}
+
+/* @order 48113 */
+#pageTitle[tabindex="-1"]:focus,#pageTitle:focus:not(:focus-visible){outline:none!important;box-shadow:none!important}
+/* @order 48114 */
+.notice{left:auto!important;right:20px!important;bottom:18px!important;transform:none!important;max-width:min(440px,calc(100vw - 32px))!important;padding:10px 14px!important;font-size:13px!important;line-height:1.4!important;border-radius:10px!important;box-shadow:0 10px 28px rgba(0,0,0,.28)!important}
+/* @order 48115 */
+.welcome-centered{overflow-y:auto!important;max-height:min(92vh,740px)!important}
+/* @order 48116 */
+.welcome-centered .welcome-spaces{grid-template-columns:repeat(auto-fit,minmax(190px,1fr))!important;max-height:none!important;overflow:visible!important}
+/* @order 48117 */
+@media(max-width:640px){.welcome-centered .welcome-spaces{grid-template-columns:1fr!important}}
+/* @order 48118 */
+body.equilibrio-studio #mainContent .area-subtabs{background:transparent!important;border:0!important;border-bottom:1px solid var(--line)!important;border-radius:0!important;padding:0!important;gap:4px!important;box-shadow:none!important}
+/* @order 48119 */
+body.equilibrio-studio #mainContent .area-subtabs>button{background:transparent!important;border:0!important;border-bottom:2px solid transparent!important;border-radius:8px 8px 0 0!important;padding:8px 14px 10px!important;min-height:38px!important;color:var(--muted)!important;margin-bottom:-1px}
+/* @order 48120 */
+body.equilibrio-studio #mainContent .area-subtabs>button:hover{color:var(--ink)!important;background:color-mix(in srgb,var(--blue) 7%,transparent)!important}
+/* @order 48121 */
+body.equilibrio-studio #mainContent .area-subtabs>button.active,body.equilibrio-studio #mainContent .area-subtabs>button[aria-pressed="true"]{color:var(--ink)!important;border-bottom-color:var(--blue)!important;background:color-mix(in srgb,var(--blue) 10%,transparent)!important;font-weight:700!important}
+/* @order 48122 */
+body.equilibrio-studio #settings .u-settings-content .settings-page-heading,body.equilibrio-studio #settings .settings-page-heading{background:transparent!important;border:0!important;padding:2px 0 10px!important;box-shadow:none!important;border-radius:0!important}
+/* @order 48123 */
+body.equilibrio-studio #settings .settings-page-heading h2{font-size:26px!important;margin:4px 0 4px!important}
+/* @order 48124 */
+@media(min-width:1120px){#transactions .movement-table-toolbar{flex-wrap:nowrap!important;gap:10px!important}#transactions .movement-table-toolbar:has(.advanced-search details[open]){flex-wrap:wrap!important}#transactions .movement-search-wrap{flex:1 1 180px!important;min-width:140px!important}#transactions .advanced-search>details>summary{white-space:nowrap!important;padding:8px 12px!important}}
+/* @order 48125 */
+#movementCategorySearch .movement-category-filter-label{display:block;margin:0 0 10px!important}
+/* @order 48126 */
+#movementCategorySearch input{width:100%!important;min-height:34px!important;padding:6px 10px!important;font-size:12.5px!important}
+/* @order 48127 */
+#transactions .movements-table th:nth-child(6),#transactions .movements-table td:nth-child(6){text-align:right!important;font-variant-numeric:tabular-nums}
+/* @order 48128 */
+#transactions .movements-table th:nth-child(8),#transactions .movements-table td:nth-child(8){text-align:right!important}
+/* @order 48129 */
+#transactions .movements-table td:nth-child(2){font-variant-numeric:tabular-nums}
+/* @order 48130 */
+body[data-theme="dark"].equilibrio-studio :is(.approved-wealth-metrics>article,#reportDesk .r-metrics>article,#dataHub .u-kpi-card,#dataHub .data-kpi-card){background:linear-gradient(145deg,color-mix(in srgb,var(--blue) 9%,var(--paper)) 0%,var(--paper) 72%)!important;box-shadow:0 4px 16px rgba(0,0,0,.16)!important}
+/* @order 48131 */
+body:not([data-theme="dark"]).equilibrio-studio :is(.approved-wealth-metrics>article,#reportDesk .r-metrics>article,#dataHub .u-kpi-card,#dataHub .data-kpi-card){box-shadow:0 2px 10px rgba(15,35,42,.05)!important}
+/* @order 48132 */
+body.equilibrio-studio :is(.approved-wealth-metrics>article strong,#reportDesk .r-metrics>article strong,#dataHub .u-kpi-card strong,.summary-kpi strong){font-variant-numeric:tabular-nums}
+/* @order 48133 */
+#reportDesk .r-legend span:first-child{color:#37cd86!important}
+/* @order 48134 */
+#reportDesk .r-legend span:last-child{color:#f06a6a!important}
+/* @order 48135 */
+#reportDesk .r-bar{background:#37cd86!important}
+/* @order 48136 */
+#reportDesk .r-bar.r-out{background:#f06a6a!important}
+/* @order 48137 */
+body.equilibrio-studio{--summary-red:#f06a6a}
+/* @order 48138 */
+#summary .summary-donut-legend li,#summary .summary-pie-legend li{font-size:12.5px!important;gap:8px!important}
+
+/* ==========================================================================
+   Renovação UI v1.0.39 — Alinhamentos, Performance, Decisões, Inventário & Polish
+   ========================================================================== */
+
+/* @order 48300 */
+body[data-theme="dark"] select option{background:#181b22!important;color:#f3f4f6!important}
+
+/* Ecrã Login — Opção A (Cartões de Perfil) */
+/* @order 48301 */
+.welcome-shell.welcome-centered.welcome-profiles{display:block!important;padding:36px 40px 32px!important;text-align:center!important}
+/* @order 48302 */
+.welcome-profiles .welcome-hero h2{font-size:28px!important;margin:14px 0 6px!important}
+/* @order 48303 */
+.welcome-profiles .welcome-intro{max-width:none!important;margin:0 auto!important;color:var(--muted)!important;font-size:13.5px!important}
+/* @order 48304 */
+.welcome-profiles .welcome-content{padding:22px 0 0!important}
+/* @order 48305 */
+.welcome-profiles .welcome-spaces{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(175px,210px))!important;justify-content:center!important;gap:14px!important;max-height:none!important;overflow:visible!important;margin:0 0 20px!important}
+/* @order 48306 */
+.welcome-profiles .welcome-space{display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;text-align:center!important;min-height:156px!important;padding:20px 14px 16px!important;border-radius:16px!important;gap:10px!important;position:relative!important;transform:none!important}
+/* @order 48307 */
+.welcome-profiles .welcome-selected{position:absolute!important;top:12px!important;right:12px!important;margin-left:0!important}
+/* @order 48308 */
+.welcome-profiles .welcome-avatar{width:60px!important;height:60px!important;flex:0 0 60px!important;border-radius:18px!important;font-size:24px!important}
+/* @order 48309 */
+body[data-theme="dark"] .welcome-profiles .welcome-space.is-selected,body[data-theme="dark"] .welcome-profiles .welcome-space:has(input:checked){background:rgba(16,185,129,.14)!important;border-color:#10b981!important}
+/* @order 48310 */
+.welcome-profiles .welcome-options{display:flex!important;flex-wrap:wrap!important;justify-content:center!important;gap:10px!important;margin:0 0 18px!important}
+/* @order 48311 */
+.welcome-profiles .welcome-options .welcome-privacy{width:auto!important;flex:0 1 auto!important;margin:0!important;padding:8px 13px!important;font-size:12.5px!important}
+/* @order 48312 */
+.welcome-profiles .welcome-actions{display:flex!important;flex-wrap:wrap!important;justify-content:center!important;gap:12px!important;margin-top:0!important}
+/* @order 48313 */
+.welcome-profiles .welcome-actions button{min-width:170px!important;min-height:42px!important;padding:0 20px!important}
+/* @order 48314 */
+.welcome-profiles .welcome-footer-links{display:flex!important;flex-wrap:wrap!important;justify-content:center!important;gap:18px!important;margin-top:16px!important}
+/* @order 48315 */
+.welcome-profiles .welcome-configure{margin-top:0!important}
+/* @order 48316 */
+@media(max-width:600px){.welcome-shell.welcome-centered.welcome-profiles{padding:24px 18px!important}.welcome-profiles .welcome-spaces{grid-template-columns:repeat(2,minmax(0,1fr))!important}.welcome-profiles .welcome-actions button{flex:1 1 140px!important}}
+
+/* Resumo (#dashboard & Explicar variação) */
+/* @order 48320 */
+#modal.balance-variation-dialog #modalContent>.modal-form-footer{grid-column:1/-1!important;background:transparent!important;border-top:1px solid var(--line)!important;box-shadow:none!important;padding:14px 0 0!important;margin:6px 0 0!important;display:flex!important;justify-content:flex-end!important;width:100%!important}
+/* @order 48321 */
+#modal.balance-variation-dialog #modalContent>.modal-form-footer button{width:auto!important;min-width:110px!important}
+/* @order 48322 */
+body.equilibrio-studio #dashboard :is(.summary-canvas,.summary-topline,.summary-kpi-grid,.summary-chart-grid,.summary-bottom-grid){width:100%!important;max-width:none!important;margin-left:0!important;margin-right:0!important;padding-left:0!important;padding-right:0!important;box-sizing:border-box!important}
+/* @order 48323 */
+body.equilibrio-studio #dashboard :is(.summary-kpi-grid,.summary-chart-grid){margin-bottom:16px!important}
+/* @order 48324 */
+@media(min-width:1101px){body.equilibrio-studio #dashboard .summary-kpi-grid{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:16px!important}body.equilibrio-studio #dashboard :is(.summary-chart-grid,.summary-bottom-grid){grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:16px!important}}
+/* @order 48325 */
+body.equilibrio-studio #dashboard :is(#summaryPrevMonth,#summaryNextMonth){width:32px!important;min-width:32px!important;height:34px!important;min-height:34px!important;padding:0!important;font-size:16px!important;display:inline-grid!important;place-items:center!important}
+/* @order 48326 */
+body.equilibrio-studio #dashboard :is(.summary-kpi,.summary-panel){box-shadow:none!important}
+
+/* Revisão e Análise — página única equilibrada */
+/* @order 48330 */
+#weeklyHub .u-review-navigation.rv-tabs[hidden]{display:none!important}
+/* @order 48331 */
+#weeklyHub .u-split-period button{width:32px!important;min-width:32px!important;height:36px!important;min-height:36px!important;padding:0!important;font-size:16px!important}
+/* @order 48332 */
+#weeklyHub .u-split-period select{height:36px!important;min-height:36px!important}
+/* @order 48333 */
+#weeklyHub #reviewCloseMonth{height:36px!important;min-height:36px!important;padding:0 14px!important;font-size:13px!important;display:inline-flex!important;align-items:center!important;gap:6px!important}
+/* @order 48334 */
+#weeklyHub .rv-account form :is(input,button){height:38px!important;min-height:38px!important;max-height:38px!important;box-sizing:border-box!important;font-size:13px!important;margin:0!important}
+/* @order 48335 */
+#weeklyHub .rv-account form input{padding:0 11px!important}
+/* @order 48336 */
+#weeklyHub .rv-account form button{padding:0 16px!important}
+/* @order 48337 */
+#weeklyHub .rv-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:16px!important;align-items:stretch!important}
+/* @order 48338 */
+#weeklyHub .rv-accounts{grid-column:1/-1!important;grid-row:auto!important}
+/* @order 48339 */
+#weeklyHub :is(.rv-pending,.rv-categories){align-self:stretch!important;height:100%!important}
+/* @order 48340 */
+#weeklyHub .u-review-extra{margin-top:4px!important}
+/* @order 48341 */
+#weeklyHub .u-review-topic>h3{margin:2px 0 12px!important;font-size:18px!important}
+/* @order 48342 */
+#weeklyHub .u-review-combined{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:16px!important;align-items:start!important}
+/* @order 48343 */
+@media(max-width:1050px){#weeklyHub .rv-grid,#weeklyHub .u-review-combined{grid-template-columns:1fr!important}}
+
+/* Movimentos & Novo movimento */
+/* @order 48345 */
+#transactions .movement-create-actions>button{height:38px!important;min-height:38px!important;padding:0 14px!important;font-size:13px!important;line-height:1.2!important;font-weight:600!important;display:inline-flex!important;align-items:center!important;justify-content:center!important}
+/* @order 48346 */
+#transactions #movementDateOptions{position:relative!important;display:inline-flex!important;align-items:center!important;gap:8px!important;flex:0 0 auto!important}
+/* @order 48347 */
+#transactions #movementDateOptions>summary{height:36px!important;min-height:36px!important;padding:0 12px!important;font-size:12.5px!important;display:inline-flex!important;align-items:center!important;white-space:nowrap!important}
+/* @order 48348 */
+#transactions #movementDateOptions[open]>.movement-date-range{display:inline-flex!important;flex-wrap:nowrap!important;align-items:center!important;gap:6px!important;margin:0!important;width:auto!important}
+/* @order 48349 */
+#transactions #movementDateOptions[open] .movement-date-range label{flex-direction:row!important;align-items:center!important;gap:5px!important;flex:0 0 auto!important;margin:0!important;font-size:12px!important}
+/* @order 48350 */
+#transactions #movementDateOptions[open] .movement-date-range input{width:132px!important;min-width:132px!important;height:34px!important;min-height:34px!important;padding:0 8px!important;font-size:12.5px!important}
+/* @order 48351 */
+#transactions #movementDateOptions[open] #movementDateClear{width:32px!important;min-width:32px!important;height:34px!important;min-height:34px!important;padding:0!important;align-self:center!important}
+/* @order 48352 */
+body[data-theme="dark"] #transactions .advanced-search,body[data-theme="dark"] #transactions .advanced-search details,body[data-theme="dark"] #transactions .advanced-search details[open],body[data-theme="dark"] #transactions .advanced-search .filter-grid{background:#14161a!important;color:#f3f4f6!important;border-color:rgba(255,255,255,.10)!important}
+/* @order 48353 */
+body[data-theme="dark"] #transactions .advanced-search details>summary{background:#1b1e25!important;border-color:rgba(255,255,255,.10)!important;color:#e5e7eb!important}
+/* @order 48354 */
+body[data-theme="dark"] #transactions .advanced-search-actions button,body[data-theme="dark"] #transactions #savedViewsList button{background:#1b1e25!important;border-color:rgba(255,255,255,.11)!important;color:#e5e7eb!important}
+/* @order 48355 */
+body[data-theme="dark"] #transactions :is(.advanced-search-actions,#savedViewsList) button:hover{background:#232731!important;border-color:rgba(255,255,255,.20)!important}
+/* @order 48356 */
+#modal.transaction-editor .transaction-basics{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;grid-template-areas:"type type type" "amount account date"!important;gap:12px 14px!important;margin:0 0 14px!important}
+/* @order 48357 */
+#modal.transaction-editor .transaction-essential-identity{display:grid!important;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr)!important;gap:12px 14px!important;margin:0 0 14px!important}
+/* @order 48358 */
+#modal.transaction-editor #transactionMainCategory{margin-bottom:12px!important}
+/* @order 48359 */
+#modal.transaction-editor .transaction-extra-options{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:12px!important;margin:12px 0!important;align-items:start!important}
+/* @order 48360 */
+#modal.transaction-editor .transaction-extra-options>details{padding:11px 14px!important;border:1px solid var(--line)!important;border-radius:10px!important;background:var(--surface-soft)!important;overflow:visible!important}
+/* @order 48361 */
+#modal.transaction-editor .transaction-extra-options summary{height:auto!important;min-height:24px!important;line-height:1.4!important;white-space:normal!important;overflow:visible!important;padding:2px 0!important;display:list-item!important}
+/* @order 48362 */
+@media(max-width:680px){#transactions #movementDateOptions[open]{flex-wrap:wrap!important}#transactions #movementDateOptions[open]>.movement-date-range{flex-wrap:wrap!important}#modal.transaction-editor .transaction-basics{grid-template-columns:repeat(2,minmax(0,1fr))!important;grid-template-areas:"type type" "amount account" "date date"!important}#modal.transaction-editor .transaction-essential-identity,#modal.transaction-editor .transaction-extra-options{grid-template-columns:minmax(0,1fr)!important}}
+
+/* Planeamento — Agenda, Planos e Decisões */
+/* @order 48365 */
+#planner .planner-recurring-actions>button{height:38px!important;min-height:38px!important;padding:0 14px!important;font-size:13px!important;line-height:1.2!important;font-weight:600!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;border-radius:10px!important}
+/* @order 48366 */
+#planner #agendaRows .agenda31-row,#planner #agendaRows .agenda31-row:last-child{border:1px solid var(--line)!important;border-bottom:1px solid var(--line)!important;border-radius:10px!important;margin:0 0 8px!important}
+/* @order 48367 */
+.agenda31-menu>div,.agenda31-menu-portal,#mainContent .row-menu>div,#mainContent .data-row-menu>div{background:var(--paper)!important;border:1px solid var(--line)!important;border-radius:10px!important;box-shadow:0 10px 26px rgba(0,0,0,.32)!important;padding:6px!important}
+/* @order 48368 */
+body[data-theme="dark"] .agenda31-menu>div,body[data-theme="dark"] .agenda31-menu-portal,body[data-theme="dark"] .row-menu>div,body[data-theme="dark"] .data-row-menu>div{background:#181b22!important;border-color:rgba(255,255,255,.12)!important}
+/* @order 48369 */
+:is(.agenda31-menu-portal,.agenda31-menu>div,.row-menu>div,.data-row-menu>div) :is(button,.link-button,.secondary){background:transparent!important;border:0!important;box-shadow:none!important;color:var(--ink)!important;width:100%!important;justify-content:flex-start!important;text-align:left!important;min-height:32px!important;padding:6px 10px!important;border-radius:7px!important;font-size:13px!important}
+/* @order 48370 */
+body[data-theme="dark"] :is(.agenda31-menu-portal,.agenda31-menu>div,.row-menu>div,.data-row-menu>div) :is(button,.link-button,.secondary):hover{background:rgba(255,255,255,.08)!important}
+/* @order 48371 */
+body[data-theme="dark"] #plansBoard .plan-managers{background:#14161a!important;border-color:rgba(255,255,255,.09)!important}
+/* @order 48372 */
+body[data-theme="dark"] #plansBoard .plan-managers>.u-actions button{background:#1b1e25!important;border-color:rgba(255,255,255,.11)!important;color:#f3f4f6!important;min-height:38px!important;font-size:13px!important}
+/* @order 48373 */
+body[data-theme="dark"] #plansBoard .plan-managers>.u-actions button:hover{background:#242934!important;border-color:rgba(255,255,255,.18)!important}
+/* @order 48377 */
+#plansBoard .plan-decision-choices{background:var(--surface-soft)!important;padding:4px!important;border-radius:11px!important;border:1px solid var(--line)!important}
+/* @order 48378 */
+#plansBoard .plan-decision-choices button{border-color:transparent!important;background:transparent!important;min-height:36px!important;font-size:13px!important;border-radius:8px!important}
+/* @order 48379 */
+#plansBoard .plan-decision-choices button[aria-pressed="true"]{background:rgba(16,185,129,.16)!important;border-color:rgba(16,185,129,.35)!important;color:var(--ink)!important}
+/* @order 48380 */
+#plansBoard .u-decision-overview .decisions-overview{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:14px!important;margin:0!important}
+/* @order 48381 */
+#plansBoard .u-decision-overview .decisions-overview article{padding:16px 18px!important;border-radius:14px!important;display:grid!important;gap:5px!important;align-content:start!important}
+/* @order 48382 */
+#plansBoard #decisionsHub .ex-decision-columns{display:grid!important;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr)!important;gap:18px!important;align-items:stretch!important}
+/* @order 48385 */
+@media(max-width:1050px){#plansBoard .u-decision-overview .decisions-overview{grid-template-columns:repeat(2,minmax(0,1fr))!important}#plansBoard #decisionsHub .ex-decision-columns{grid-template-columns:1fr!important}}
+
+/* Património · Inventário, Casa, Dados, Avisos e Definições */
+/* @order 48386 */
+#wealthMoneyHub .wl-toolbar{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px!important;padding:14px 16px!important;border-bottom:1px solid var(--line)!important}
+/* @order 48387 */
+#wealthMoneyHub .wl-toolbar .cs-pills[hidden]{display:none!important}
+/* @order 48388 */
+#wealthMoneyHub .wl-toolbar-count{font-size:12px!important;color:var(--muted)!important;white-space:nowrap!important}
+/* @order 48389 */
+#wealthMoneyHub .wl-record{padding:13px 16px!important;border-bottom:1px solid var(--line)!important;border-radius:0!important}
+/* @order 48390 */
+#wealthMoneyHub .wl-record:hover{background:rgba(255,255,255,.03)!important}
+/* @order 48391 */
+#wealthMoneyHub .wl-record.is-selected{background:rgba(16,185,129,.11)!important;box-shadow:inset 3px 0 0 #10b981!important}
+/* @order 48392 */
+#wealthMoneyHub .u-inspector.desk-inspector{position:sticky!important;top:82px!important;border-radius:16px!important;padding:20px 22px!important}
+/* @order 48393 */
+#wealthMoneyHub .u-inspector dl{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:12px!important;margin:14px 0!important}
+/* @order 48394 */
+#dataHub #unifiedData.u-task-grid{display:grid!important;grid-template-columns:minmax(0,1fr)!important;grid-template-areas:"head" "tiles" "content"!important;gap:18px!important}
+/* @order 48395 */
+#dataHub #unifiedData>.dt-head{grid-area:head!important}
+/* @order 48396 */
+#dataHub #unifiedData>.u-task-nav.u-task-tiles{grid-area:tiles!important;position:static!important;min-height:0!important;padding:0!important;margin:0!important;border:0!important;background:transparent!important;box-shadow:none!important}
+/* @order 48397 */
+#dataHub #unifiedData>.u-task-nav.u-task-tiles>nav.dt-tiles{grid-area:auto!important;display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:14px!important;width:100%!important;margin:0!important;padding:0!important}
+/* @order 48398 */
+#dataHub #unifiedData>.u-task-nav.u-task-tiles>nav.dt-tiles>button.dt-tile{display:flex!important;align-items:flex-start!important;gap:14px!important;min-height:84px!important;padding:16px 18px!important;border:1px solid var(--line)!important;border-radius:16px!important;background:var(--paper)!important}
+/* @order 48399 */
+#dataHub #unifiedData>.u-task-nav.u-task-tiles>nav.dt-tiles>button.dt-tile[aria-current="page"]{border-color:#10b981!important;background:rgba(16,185,129,.12)!important}
+/* @order 48400 */
+#dataHub #unifiedData .u-task-content{grid-area:content!important;width:100%!important;min-width:0!important;padding:0!important}
+/* @order 48401 */
+@media(max-width:950px){#dataHub #unifiedData>.u-task-nav.u-task-tiles>nav.dt-tiles{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+/* @order 48402 */
+#noticesHub .notices-filters{grid-template-columns:minmax(180px,230px) minmax(0,1fr)!important;gap:12px!important;align-items:end!important}
+/* @order 48403 */
+#noticesHub .notices-filters>label:nth-child(1),#noticesHub .notices-filters>label:nth-child(3){position:absolute!important;width:1px!important;height:1px!important;overflow:hidden!important;clip-path:inset(50%)!important;opacity:0!important;pointer-events:none!important}
+/* @order 48404 */
+#noticesHub .notice-card{grid-template-columns:44px minmax(0,1fr)!important;gap:14px 16px!important}
+/* @order 48405 */
+#noticesHub .notice-card-actions{grid-column:2!important;display:flex!important;flex-wrap:wrap!important;justify-content:flex-start!important;gap:8px!important;padding-top:4px!important}
+/* @order 48406 */
+#noticesHub .notice-card-actions>button{min-height:34px!important;padding:0 12px!important;font-size:12.5px!important}
+/* @order 48407 */
+#settings .u-settings-content{max-width:920px!important;width:100%!important}
+/* @order 48408 */
+#settings .u-settings-content :is(.panel,.card,.settings-card){width:100%!important;box-sizing:border-box!important}
+/* @order 48409 */
+#casaHome .ch-tile-button{text-align:left!important;cursor:pointer!important;font:inherit!important;color:inherit!important;width:100%!important}
+/* @order 48410 */
+#casaHome .ch-tile-button:hover{border-color:rgba(16,185,129,.45)!important}
+/* @order 48411 */
+:is(#casaHome,#casaPurchases,#casaShopping,#casaProducts,#casaStock,#casaStores,#casaAnalytics) :is(.amount,td,strong){font-variant-numeric:tabular-nums}
+
+/* Polimentos finais pós-inspeção visual v1.0.39 */
+/* @order 48412 */
+body:not([data-theme="light"]) #welcomeDialog{--paper:#14161a;--ink:#f3f4f6;--muted:#9ca3af;--line:rgba(255,255,255,.10);--surface-2:#1c1f26;background:#14161a!important;color:#f3f4f6!important;border-color:rgba(255,255,255,.12)!important}
+/* @order 48413 */
+body:not([data-theme="light"]) #welcomeDialog .welcome-space{background:#1b1e25!important;border-color:rgba(255,255,255,.10)!important}
+/* @order 48414 */
+body:not([data-theme="light"]) #welcomeDialog .welcome-space:has(input:checked),body:not([data-theme="light"]) #welcomeDialog .welcome-space.is-selected{background:rgba(16,185,129,.14)!important;border-color:#10b981!important}
+/* @order 48415 */
+body:not([data-theme="light"]) #welcomeDialog .welcome-avatar{background:rgba(16,185,129,.18)!important;color:#6ee7b7!important}
+/* @order 48416 */
+body:not([data-theme="light"]) #welcomeDialog :is(.welcome-actions .secondary,.welcome-options .welcome-privacy){background:#1b1e25!important;border-color:rgba(255,255,255,.10)!important;color:#e5e7eb!important}
+/* @order 48417 */
+body:not([data-theme="light"]) #welcomeDialog :is(.welcome-intro,.welcome-space-copy small,.welcome-privacy){color:#9ca3af!important}
+/* @order 48418 */
+body:not([data-theme="light"]) #welcomeDialog :is(h2,.welcome-brand,.welcome-space-copy strong){color:#f3f4f6!important}
+/* @order 48419 */
+.welcome-profiles .welcome-spaces{max-width:640px!important;margin-inline:auto!important;grid-template-columns:repeat(auto-fit,minmax(165px,1fr))!important}
+/* @order 48420 */
+#modal.balance-variation-dialog #modalContent>.modal-form-footer>button.full{width:auto!important;flex:0 0 auto!important;min-width:120px!important}
+/* @order 48421 */
+#modal.transaction-editor .transaction-essential-identity>label{grid-area:auto!important;width:100%!important;margin:0!important}
+/* @order 48422 */
+#modal.transaction-editor #modalContent{gap:10px!important}
+/* @order 48423 */
+#modal.transaction-editor :is(.transaction-basics,.transaction-essential-identity){gap:10px 14px!important;margin-bottom:10px!important}
+/* @order 48424 */
+#modal.transaction-editor #transactionMainCategory{margin-bottom:10px!important}
+/* @order 48425 */
+#noticesHub .notices-detail .notice-card-actions{grid-column:1/-1!important;display:flex!important;flex-direction:row!important;flex-wrap:wrap!important;gap:8px!important;justify-content:flex-start!important;padding-top:12px!important;margin-top:8px!important}
+/* @order 48426 */
+#noticesHub .notices-detail .notice-card-actions>button{width:auto!important;flex:0 0 auto!important;min-height:36px!important;padding:0 14px!important;font-size:13px!important}
+/* @order 48427 */
+#plansBoard .u-decision-overview .decisions-overview{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))!important}
+/* @order 48428 */
+body[data-theme="dark"] #decisionsHub .simulator-baseline>div,body[data-theme="dark"] #plansBoard #decisionsHub .simulator-baseline>div{background:#191c22!important;border:1px solid rgba(255,255,255,.09)!important}
+/* @order 48429 */
+#wealthMoneyHub .wl-toolbar .cs-search{flex:1 1 auto!important;max-width:none!important}
+/* @order 48430 */
+body.equilibrio-studio #planner .planner-agenda-head :is(#addTransaction3,#manageRecurring,#addSalaryRecurring),body.equilibrio-studio #planner :is(#addTransaction3,#manageRecurring,#addSalaryRecurring){height:38px!important;min-height:38px!important;padding:0 14px!important;font-size:13px!important;line-height:1.2!important;font-weight:600!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;border-radius:10px!important}
+
+/* @order 48431 */
+body[data-theme="dark"] :is(dialog, .modal-card, #subscriptionsManagerDialog, #historyManagerDialog, .mobile-dialog, .casa-detail-dialog, .restock-forecast-dialog, .casa-compare-dialog) {
+  background: #14161a !important;
+  color: var(--ink) !important;
+  border-color: #262930 !important;
+}
+/* @order 48432 */
+.welcome-dialog::backdrop, dialog::backdrop {
+  backdrop-filter: none !important;
+}
+/* @order 48433 */
+body:not([data-theme="light"]) #welcomeDialog :is(.welcome-setup-actions .secondary, .welcome-setup-form input:not([type=radio]):not([type=checkbox]), .welcome-setup-form select, .welcome-balance-choice, .welcome-import-summary) {
+  background: #181a20 !important;
+  color: #f3f4f6 !important;
+  border-color: #262930 !important;
+}
+/* @order 48434 */
+body[data-theme="dark"] .summary-shell {
+  --paper: #14161a;
+  --line: #262930;
+}
+/* @order 48435 */
+body[data-theme="dark"] :is(.summary-donut:after, .summary-month-arrow, .summary-month-picker-wrap, .summary-date-chip, .summary-kpi-saving) {
+  background: #14161a !important;
+  border-color: #262930 !important;
+}
+/* @order 48436 */
+body[data-theme="dark"] :is(th, .table-head, .monthly-agenda-table th) {
+  background: #181a20 !important;
+  color: #9ca3af !important;
+}
+/* @order 48437 */
+body[data-theme="dark"] :is(.dropdown, .inline-search-results, .menu-popover, .workspace-bar .inline-search-label, .workspace-bar .inline-search-label input[type="search"], .data-hub-pane, .data-inbox-sources, .data-search-field, .data-sort-field select) {
+  background: #14161a !important;
+  border-color: #262930 !important;
+}
+/* @order 48438 */
+body[data-theme="dark"] :is(button.secondary, .tab-button):hover {
+  background: #1f222a !important;
+}
+/* @order 48439 */
+body:not([data-theme="dark"])[data-current-view="transactions"] .movement-inline-actions button {
+  background: #f8faf9 !important;
+  border-color: #d5ddd9 !important;
+  color: #1f2937 !important;
+}
+/* @order 48440 */
+body:not([data-theme="dark"]) .movement-description-note.note-blue { color: #1d4ed8 !important; background: rgba(37, 99, 235, 0.1) !important; border-color: rgba(37, 99, 235, 0.28) !important; }
+/* @order 48441 */
+body:not([data-theme="dark"]) .movement-description-note.note-emerald { color: #047857 !important; background: rgba(5, 150, 105, 0.1) !important; border-color: rgba(5, 150, 105, 0.28) !important; }
+/* @order 48442 */
+body:not([data-theme="dark"]) .movement-description-note.note-violet { color: #6d28d9 !important; background: rgba(124, 58, 237, 0.1) !important; border-color: rgba(124, 58, 237, 0.28) !important; }
+/* @order 48443 */
+body:not([data-theme="dark"]) .movement-description-note.note-amber { color: #b45309 !important; background: rgba(217, 119, 6, 0.12) !important; border-color: rgba(217, 119, 6, 0.3) !important; }
+/* @order 48444 */
+body:not([data-theme="dark"]) .movement-description-note.note-rose { color: #be123c !important; background: rgba(225, 29, 72, 0.1) !important; border-color: rgba(225, 29, 72, 0.28) !important; }
+
+
+
+/* @order 79001 */
+#casaShopping .shopping-promotions{display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr))}
+ /* @order 79002 */
+#casaShopping .shopping-promotion{display:grid;gap:4px;padding:12px 14px}
+ /* @order 79003 */
+#casaShopping.casa-in-store .cs-group .casa-shop-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:10px;align-items:center}
+ /* @order 79004 */
+#casaAnalytics [data-home-analysis-panel][hidden]{display:none!important}
+ /* @order 79005 */
+#casaAnalytics .home-analytics-tabs{display:flex;flex-wrap:wrap;gap:6px}
+ /* @order 79006 */
+#casaAnalytics .home-analytics-tabs [aria-pressed="true"]{border-color:var(--accent,var(--green));color:var(--accent,var(--green))}
+ /* @order 79007 */
+#casaStock .ck-card .casa-pantry-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ /* @order 79008 */
+#casaStock .pantry-history,.utility-comparison{margin-top:10px}
+ /* @order 79009 */
+@media(max-width:540px){#casaShopping.casa-in-store .cs-group .casa-shop-row{grid-template-columns:minmax(0,1fr) auto}#casaShopping.casa-in-store .cs-group .casa-shop-row>button{grid-column:2}#casaShopping.casa-in-store .casa-shop-price{padding:0;text-align:right}}
+/* @order 79021 */
+#casaShopping .shopping-promotion-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+/* @order 79022 */
+#wealthMoneyHub #unifiedInventory .u-inventory-detail .debt-history-list{padding:0!important}
+/* @order 79023 */
+#wealthMoneyHub #unifiedInventory .u-inventory-detail .debt-history-list>div{grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:start}
+/* @order 79024 */
+#wealthMoneyHub #unifiedInventory .u-inv-more-history>summary{cursor:pointer;font-size:12.5px;color:var(--blue);padding:6px 0}
+
+/* @order 79025 */
+#faqDialog .faq-technical[hidden]{display:none!important}
+/* @order 79026 */
+#faqDialog .faq-technical{margin-top:18px;border:1px solid var(--line);border-radius:12px;padding:10px 14px;background:var(--surface-soft)}
+/* @order 79027 */
+#faqDialog .faq-technical>summary{cursor:pointer;font-weight:700;padding:4px 0}
+/* @order 79028 */
+#casaShopping .cs-promo-btn{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+/* @order 79029 */
+#casaShopping .cs-promo-btn svg{width:15px;height:15px;color:var(--orange)}
+/* @order 79030 */
+#casaShopping .shopping-promotions{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(min(100%,460px),1fr))}
+/* @order 79031 */
+#casaShopping .shopping-promotion{display:grid;gap:10px;padding:14px 16px;border-radius:16px!important;border-left:4px solid var(--orange)!important}
+/* @order 79032 */
+#casaShopping .shopping-promotion.is-reached{border-left-color:var(--green)!important}
+/* @order 79033 */
+#casaShopping .shopping-promotion-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+/* @order 79034 */
+#casaShopping .shopping-promo-store{display:flex;align-items:center;gap:10px;min-width:0}
+/* @order 79035 */
+#casaShopping .shopping-promo-store>div{display:grid;gap:2px;min-width:0}
+/* @order 79036 */
+#casaShopping .shopping-promo-store small{font-size:12px;color:var(--muted)}
+/* @order 79037 */
+#casaShopping .shopping-promo-actions{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+/* @order 79038 */
+#casaShopping .shopping-promo-actions>button{min-height:30px!important;padding:4px 11px!important;font-size:12px!important}
+/* @order 79039 */
+#casaShopping .shopping-promo-status{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:99px;font-size:11.5px;font-weight:700}
+/* @order 79040 */
+#casaShopping .shopping-promo-status.is-missing{background:color-mix(in srgb,var(--orange) 15%,transparent);color:var(--orange)}
+/* @order 79041 */
+#casaShopping .shopping-promo-status.is-reached{background:color-mix(in srgb,var(--green) 15%,transparent);color:var(--green)}
+/* @order 79042 */
+#casaShopping .shopping-promo-status svg{width:13px;height:13px}
+/* @order 79043 */
+#casaShopping .shopping-promo-meter{position:relative;height:8px;border-radius:99px;background:var(--surface-soft);overflow:hidden}
+/* @order 79044 */
+#casaShopping .shopping-promo-meter i{position:absolute;left:0;top:0;bottom:0;border-radius:99px}
+/* @order 79045 */
+#casaShopping .shopping-promo-meter i.is-list{background:color-mix(in srgb,var(--blue) 55%,var(--surface-soft))}
+/* @order 79046 */
+#casaShopping .shopping-promo-meter i.is-cart{background:var(--green)}
+/* @order 79047 */
+#casaShopping .shopping-promo-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));gap:10px}
+/* @order 79048 */
+#casaShopping .shopping-promo-cell{display:grid;align-content:start;gap:3px;padding:10px 12px;border-radius:11px;background:var(--surface-soft)}
+/* @order 79049 */
+#casaShopping .shopping-promo-cell>span{font-size:11px;color:var(--muted);font-weight:600}
+/* @order 79050 */
+#casaShopping .shopping-promo-cell>strong{font-size:18px;font-weight:700}
+/* @order 79051 */
+#casaShopping .shopping-promo-cell>small{font-size:11.5px;color:var(--muted)}
+/* @order 79052 */
+#casaShopping .shopping-promo-pills{display:flex;flex-wrap:wrap;gap:6px;margin-top:2px}
+/* @order 79053 */
+#casaShopping .shopping-promo-pill{display:grid;gap:1px;padding:5px 9px;border-radius:9px;border:1px solid var(--line);background:var(--paper);font-size:11.5px}
+/* @order 79054 */
+#casaShopping .shopping-promo-pill.is-unlocked{border-color:color-mix(in srgb,var(--green) 45%,var(--line));background:color-mix(in srgb,var(--green) 10%,var(--paper))}
+/* @order 79055 */
+#casaShopping .shopping-promo-pill small{font-size:10.5px;color:var(--muted)}
+/* @order 79056 */
+#casaShopping .shopping-promo-partial{font-size:11.5px;color:var(--muted)}
+
+/* @order 79057 */
+#casaAnalytics .ca-prices-panel{display:grid;gap:14px}
+/* @order 79058 */
+#casaAnalytics .ca-store-wins{display:flex;flex-wrap:wrap;gap:10px}
+/* @order 79059 */
+#casaAnalytics .ca-win-chip{display:grid;gap:2px;padding:10px 14px;border-radius:12px;background:color-mix(in srgb,var(--green) 10%,var(--paper));border:1px solid color-mix(in srgb,var(--green) 30%,var(--line))}
+/* @order 79060 */
+#casaAnalytics .ca-win-chip strong{font-size:14px}
+/* @order 79061 */
+#casaAnalytics .ca-win-chip span{font-size:12px;color:var(--muted)}
+
+/* @order 79062 */
+#casaConsumos .ut-card-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}
+/* @order 79063 */
+#casaConsumos .ut-card-head h3{margin:0}
+/* @order 79064 */
+#casaConsumos .ut-unit-chip{font-size:12px;font-weight:700;padding:4px 10px;border-radius:99px;background:var(--surface-soft);color:var(--muted)}
+/* @order 79065 */
+#casaConsumos .ut-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:14px}
+/* @order 79066 */
+#casaConsumos .ut-kpi{display:grid;gap:3px;padding:12px 14px;border-radius:13px;background:var(--surface-soft);border:1px solid var(--line)}
+/* @order 79067 */
+#casaConsumos .ut-kpi>span{font-size:11.5px;color:var(--muted)}
+/* @order 79068 */
+#casaConsumos .ut-kpi>strong{font-size:19px!important;font-weight:700!important}
+/* @order 79069 */
+#casaConsumos .ut-kpi>small{font-size:11.5px;color:var(--muted)}
+/* @order 79070 */
+#casaConsumos .utility-comparison>summary,#casaConsumos .ut-invoices-history>summary,#casaConsumos .ut-legacy-readings>summary{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;cursor:pointer;font-weight:700;padding:8px 0}
+/* @order 79071 */
+#casaConsumos .ut-legend-qty,#casaConsumos .ut-legend-cost{display:inline-block;width:9px;height:9px;border-radius:2px;margin-left:8px;vertical-align:middle}
+/* @order 79072 */
+#casaConsumos .ut-legend-qty{background:var(--blue)}
+/* @order 79073 */
+#casaConsumos .ut-legend-cost{background:var(--green)}
+/* @order 79074 */
+#casaConsumos .ut-compare-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:16px;margin:8px 0 12px}
+/* @order 79075 */
+#casaConsumos .ut-compare-box{padding:14px;border-radius:14px;background:var(--surface-soft);border:1px solid var(--line);min-width:0}
+/* @order 79076 */
+#casaConsumos .ut-compare-box h4{margin:0 0 8px}
+/* @order 79077 */
+#casaConsumos .ut-bars{display:grid;grid-template-columns:repeat(auto-fit,minmax(42px,1fr));gap:6px;height:140px;margin:0 0 12px;padding:8px;border-radius:11px;background:var(--paper);border:1px solid var(--line)}
+/* @order 79078 */
+#casaConsumos .ut-bar-col{display:grid;grid-template-rows:auto 1fr auto;gap:4px;min-height:0;text-align:center}
+/* @order 79079 */
+#casaConsumos .ut-bar-values b{display:block;font-size:10.5px;color:var(--ink)}
+/* @order 79080 */
+#casaConsumos .ut-bar-values small{font-size:9.5px;color:var(--muted)}
+/* @order 79081 */
+#casaConsumos .ut-bar-tracks{display:flex;align-items:flex-end;justify-content:center;gap:3px;min-height:0}
+/* @order 79082 */
+#casaConsumos .ut-bar-tracks i{display:block;width:12px;min-height:4px;border-radius:4px 4px 2px 2px}
+/* @order 79083 */
+#casaConsumos .ut-bar-tracks i.is-qty{background:var(--blue)}
+/* @order 79084 */
+#casaConsumos .ut-bar-tracks i.is-cost{background:var(--green)}
+/* @order 79085 */
+#casaConsumos .ut-bar-col>span{font-size:10.5px;color:var(--muted);text-transform:capitalize;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* @order 79086 */
+#casaConsumos .ut-delta{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:99px;font-size:11.5px;font-weight:700;white-space:nowrap}
+/* @order 79087 */
+#casaConsumos .ut-delta.is-up{background:color-mix(in srgb,var(--red) 14%,transparent);color:var(--red)}
+/* @order 79088 */
+#casaConsumos .ut-delta.is-down{background:color-mix(in srgb,var(--green) 15%,transparent);color:var(--green)}
+/* @order 79089 */
+#casaConsumos .ut-delta.is-flat{background:var(--surface-soft);color:var(--muted)}
+/* @order 79090 */
+#casaConsumos .ut-row-actions{display:flex;gap:6px;flex-wrap:wrap}
+/* @order 79091 */
+#casaConsumos .ut-service-tag{display:inline-block;padding:1px 7px;border-radius:99px;font-size:10.5px;background:color-mix(in srgb,var(--blue) 14%,transparent);color:var(--blue);font-weight:600;margin-right:4px}
+/* @order 79092 */
+@media (max-width:900px){#casaConsumos .ut-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* @order 79093 */
+#wealthMoneyHub #unifiedInventory .u-inv-reconcile{padding:14px 16px;margin-bottom:14px;border-radius:16px}
+/* @order 79094 */
+#wealthMoneyHub #unifiedInventory .u-inv-reconcile[hidden]{display:none!important}
+/* @order 79095 */
+#wealthMoneyHub #unifiedInventory .u-inv-reconcile-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px}
+/* @order 79096 */
+#wealthMoneyHub #unifiedInventory .u-inv-reconcile-head h3,#wealthMoneyHub #unifiedInventory .u-inv-reconcile-head p{margin:0}
+/* @order 79097 */
+#wealthMoneyHub #unifiedInventory .u-inv-reconcile-head p{font-size:12.5px;color:var(--muted)}
+/* @order 79098 */
+#wealthMoneyHub #unifiedInventory .u-inv-reconcile-grid{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(260px,1fr);gap:14px;align-items:start}
+/* @order 79099 */
+#wealthMoneyHub #unifiedInventory .u-inv-rec-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;background:var(--surface-soft);margin-bottom:6px}
+/* @order 79100 */
+#wealthMoneyHub #unifiedInventory .u-inv-rec-row small{display:block;font-size:11.5px;color:var(--muted)}
+/* @order 79101 */
+#wealthMoneyHub #unifiedInventory .wl-record-list{max-height:460px;overflow-y:auto;padding-right:4px}
+/* @order 79102 */
+#wealthMoneyHub #unifiedInventory .u-inv-hist-scroll{max-height:210px;overflow-y:auto}
+/* @order 79103 */
+@media (max-width:900px){#wealthMoneyHub #unifiedInventory .u-inv-reconcile-grid{grid-template-columns:1fr}}
+
+/* @order 79104 */
+body[data-theme="dark"] #dashboard :is(.summary-period-control,.summary-month-picker-wrap,.summary-month-picker-wrap .period-pair,.summary-month-picker-wrap .period-pair label),#dashboard :is(.summary-period-control,.summary-month-picker-wrap,.summary-month-picker-wrap .period-pair,.summary-month-picker-wrap .period-pair label){background:transparent!important;background-color:transparent!important;border:0!important;border-color:transparent!important;box-shadow:none!important;padding:0!important}
+/* @order 79105 */
+#dashboard .summary-month-picker-wrap{min-width:0!important;height:auto!important;overflow:visible!important}
+/* @order 79106 */
+#dashboard .summary-month-picker-wrap .period-pair select{background:var(--paper)!important;border:1px solid var(--line)!important;border-radius:8px!important;height:36px!important;color:var(--ink)!important}
+/* @order 79107 */
+body[data-theme="dark"] #dashboard :is(.summary-month-arrow,.summary-month-picker-wrap .period-pair select){background:#161b22!important;border:1px solid #2b333d!important;color:#f3f4f6!important}
+
+/* @order 79108 */
+#dataHub #inboxHub .data-inbox-heading,#dataHub #inboxHub .data-inbox-sources{display:none!important}
+/* @order 79109 */
+#dataHub #unifiedData .u-inbox-workspace{display:grid!important;grid-template-columns:minmax(0,1.35fr) minmax(300px,.85fr)!important;gap:14px!important;align-items:start}
+/* @order 79110 */
+#dataHub #unifiedData .u-inbox-workspace #dataInboxInspector{position:sticky!important;top:12px!important;margin:0!important;padding:16px!important}
+/* @order 79111 */
+#dataHub #inboxHub #dataInboxTableBody{max-height:460px!important}
+/* @order 79112 */
+@media (max-width:960px){#dataHub #unifiedData .u-inbox-workspace{grid-template-columns:minmax(0,1fr)!important}#dataHub #unifiedData .u-inbox-workspace #dataInboxInspector{position:static!important}}
+
+/* @order 79113 */
+#noticesHub .nt-filters label:has(#noticeAreaFilter){display:grid!important}
+/* @order 79114 */
+#noticesHub .nt-filter-row{align-items:center!important}
+/* @order 79115 */
+#noticesHub .notices-detail .notice-card{border-left:4px solid var(--blue)!important;background:color-mix(in srgb,var(--blue) 5%,var(--paper))!important}
+
+/* @order 79116 */
+#plansBoard .pl-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+/* @order 79117 */
+#plansBoard .pl-tile{display:flex;gap:12px;align-items:flex-start;padding:14px 16px;border-radius:14px;background:var(--paper);border:1px solid var(--line);min-width:0}
+/* @order 79118 */
+#plansBoard .pl-tile>svg{flex:0 0 34px;width:34px;height:34px;padding:7px;border-radius:10px;background:color-mix(in srgb,var(--blue) 12%,transparent);color:var(--blue)}
+/* @order 79119 */
+#plansBoard .pl-tile.is-warn>svg{background:color-mix(in srgb,var(--orange) 16%,transparent);color:var(--orange)}
+/* @order 79120 */
+#plansBoard .pl-tile div{display:grid;gap:2px;min-width:0}
+/* @order 79121 */
+#plansBoard .pl-tile span{font-size:12px;color:var(--muted)}
+/* @order 79122 */
+#plansBoard .pl-tile strong{font-size:20px!important;font-weight:700!important;line-height:1.2}
+/* @order 79123 */
+#plansBoard .pl-tile small{font-size:11.5px;color:var(--muted)}
+/* @order 79125 */
+#plansBoard .plan-filters button small{display:inline-grid;place-items:center;min-width:18px;height:18px;padding:0 5px;border-radius:99px;background:var(--surface-soft);font-size:11px;margin-left:5px}
+/* @order 79126 */
+#plansBoard .plan-ledger { display:grid; border:1px solid var(--line); border-radius:14px; background:var(--paper); overflow:clip }
+/* @order 79127 */
+#plansBoard .plan-ledger .plan-record { margin:0; border:0; border-radius:0; background:transparent; box-shadow:none }
+/* @order 79128 */
+#plansBoard .plan-ledger .plan-record + .plan-record { border-top:1px solid var(--line) }
+/* @order 79129 */
+#plansHub #plansBoard .plan-ledger summary { display:grid; grid-template-columns:minmax(0,1.25fr) minmax(0,1fr) minmax(0,1fr) minmax(0,.8fr) 1rem; gap:18px; padding:16px 18px; align-items:center }
+/* @order 79130 */
+#plansBoard .plan-ledger summary:focus-visible { outline-offset:-3px }
+/* @order 79131 */
+#plansBoard .plan-ledger summary>div { display:grid; gap:5px; min-width:0; overflow-wrap:anywhere }
+/* @order 79132 */
+#plansBoard .plan-ledger .plan-figure small { display:inline; font-weight:normal }
+/* @order 79133 */
+#plansBoard .plan-meter progress { width:100%; height:8px; accent-color:var(--green) }
+/* @order 79134 */
+#plansBoard .is-over .plan-meter progress { accent-color:var(--red) }
+/* @order 79135 */
+#plansBoard .is-warn .plan-meter progress { accent-color:var(--orange) }
+/* @order 79136 */
+#plansBoard .decision-sections { display:flex; flex-wrap:wrap; gap:6px; border-bottom:1px solid var(--line); padding-bottom:8px }
+/* @order 79137 */
+#plansBoard .decision-sections button { color:var(--ink); background:transparent; border:1px solid transparent; padding:8px 14px; border-radius:8px }
+/* @order 79138 */
+#plansBoard .decision-sections button[aria-pressed=true] { background:var(--surface-soft); border-color:var(--line); font-weight:700 }
+/* @order 79139 */
+#plansBoard .decision-page { display:grid; gap:18px; min-width:0 }
+/* @order 79140 */
+#plansBoard .decision-page[hidden] { display:none!important }
+/* @order 79141 */
+#plansBoard .decision-pair { display:grid; gap:16px; grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr)); align-items:start }
+/* @order 79142 */
+#plansBoard .decision-pair>* { min-width:0; margin:0 }
+/* @order 79143 */
+#plansBoard .plan-decision-events-box { padding:16px; background:var(--paper); border:1px solid var(--line); border-radius:12px }
+/* @order 79144 */
+#plansBoard .plan-decision-events-box>summary { font-weight:700; cursor:pointer }
+/* @order 79145 */
+@media(max-width:860px){ #plansHub #plansBoard .plan-ledger summary { grid-template-columns:minmax(0,1fr) minmax(0,1fr) 1rem; gap:10px 16px } #plansHub #plansBoard .plan-ledger summary::after { grid-column:3; grid-row:1 } #plansBoard .plan-ledger .plan-meter { grid-column:1 } #plansBoard .pl-summary { grid-template-columns:repeat(2,minmax(0,1fr)) } }
+/* @order 79154 */
+#weeklyHub .rv-ribbon{padding:12px 16px;border-radius:14px;border:1px solid var(--line);background:var(--paper);display:grid;gap:8px}
+/* @order 79155 */
+#weeklyHub .rv-ribbon-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+/* @order 79156 */
+#weeklyHub .rv-ribbon-bar{height:6px;border-radius:99px;background:var(--surface-soft);overflow:hidden}
+/* @order 79157 */
+#weeklyHub .rv-ribbon-bar i{display:block;height:100%;background:var(--green);border-radius:99px}
+/* @order 79158 */
+#weeklyHub .rv-ribbon-steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+/* @order 79159 */
+#weeklyHub .rv-ribbon-step{display:flex;align-items:center;gap:8px;min-width:0}
+/* @order 79160 */
+#weeklyHub .rv-ribbon-step>div{display:grid;line-height:1.25;min-width:0}
+/* @order 79161 */
+#weeklyHub .rv-ribbon-step b{font-size:13px}
+/* @order 79162 */
+#weeklyHub .rv-ribbon-step small{font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* @order 79163 */
+#weeklyHub .rv-step-icon{display:grid;place-items:center;flex:0 0 26px;width:26px;height:26px;border-radius:50%;border:1px solid var(--line);color:var(--muted)}
+/* @order 79164 */
+#weeklyHub .rv-step-icon svg{width:14px;height:14px}
+/* @order 79165 */
+#weeklyHub .rv-ribbon-step.is-done .rv-step-icon{background:var(--green);border-color:var(--green);color:#fff}
+/* @order 79166 */
+#weeklyHub .rv-kpis-4{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:clamp(14px,1.5vw,22px)!important}
+/* @order 79167 */
+#weeklyHub .rv-mini-compare{display:grid;gap:6px;margin-bottom:12px;padding:10px 12px;border-radius:12px;background:var(--surface-soft)}
+/* @order 79168 */
+#weeklyHub .rv-mini-compare>div{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12.5px}
+/* @order 79169 */
+@media (max-width:1050px){#weeklyHub .rv-kpis-4{grid-template-columns:repeat(2,minmax(0,1fr))!important}#weeklyHub .rv-ribbon-steps{grid-template-columns:1fr}}
+/* @order 79170 */
+@media (max-width:560px){#weeklyHub .rv-kpis-4{grid-template-columns:1fr!important}}
+
+/* @order 79171 */
+#weeklyHub.u-review > :is(.rv-ribbon,.rv-kpis,#reviewWorkflow,.u-review-extra) { margin-block-start:clamp(16px,1.6vw,24px) }
+/* @order 79172 */
+#weeklyHub #reviewWorkflow.rv-grid { gap:clamp(16px,1.6vw,24px)!important }
+/* @order 79173 */
+#plansBoard .decision-premises>summary { cursor:pointer; font-weight:600; padding-block:12px }

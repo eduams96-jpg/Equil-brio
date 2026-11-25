@@ -24,7 +24,7 @@ try{
   const files=filesIn(root).filter(f=>!f.endsWith('.log')||f.startsWith('validacao/'));
   for(const f of files)if(/\.(exe|db|pem)$/i.test(f)||/(^|\/)financas\.db|private|browser-state\.json/i.test(f))throw Error('Ficheiro indevido no ZIP: '+f);
   const manifest=Object.fromEntries(files.map(f=>[f,hash(path.join(root,f))]));fs.writeFileSync(path.join(out,'ZIP-MANIFEST-SHA256.json'),JSON.stringify(manifest,null,2));
-  const name=`financas-pessoais-desktop-v${version}.zip`,target=path.join(out,name),python=process.env.PYTHON_PATH||'C:/Users/WinNAS/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/python.exe';
+  const name=`financas-pessoais-desktop-v${version}.zip`,target=path.join(out,name),python=process.env.PYTHON_PATH||'python';
   const code="import sys,json,zipfile,hashlib,pathlib\nroot=pathlib.Path(sys.argv[1]);manifest=json.loads(pathlib.Path(sys.argv[2]).read_text());out=pathlib.Path(sys.argv[3])\nwith zipfile.ZipFile(out,'w',zipfile.ZIP_DEFLATED,compresslevel=9) as z:\n for name in manifest:z.write(root/name,name)\nwith zipfile.ZipFile(out) as z:\n assert z.testzip() is None\n assert set(z.namelist())==set(manifest)\n for name,digest in manifest.items():assert hashlib.sha256(z.read(name)).hexdigest()==digest,name";
   const r=spawnSync(python,['-c',code,root,path.join(out,'ZIP-MANIFEST-SHA256.json'),target],{windowsHide:true,encoding:'utf8',timeout:120000});if(r.status!==0)throw Error(r.stdout+r.stderr);
   report.zip={verified:true,files:files.length,sha256:hash(target),size:fs.statSync(target).size};artifacts.push(name);

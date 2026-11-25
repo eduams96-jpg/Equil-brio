@@ -28,9 +28,9 @@ function createMobileRuntime(desktop,profile,{safeStorage,onChange,bridgeFactory
 
   if(input.type==='configure')return configure(input);
   if(input.type==='generate'){
-   if(service)throw Error('Pára primeiro a ligação.');if(!addresses().includes(input.host)||input.host==='127.0.0.1')throw Error('Escolhe um endereço deste PC.');
+   if(service)throw Error('Pára primeiro a ligação.');if(!addresses().includes(input.host)||input.host==='127.0.0.1'||!Number.isInteger(input.port)||input.port<1024||input.port>65535)throw Error('Escolhe um endereço deste PC e uma porta entre 1024 e 65535.');
    const passphrase=crypto.randomBytes(32).toString('base64'),r=require('node:child_process').spawnSync('powershell.exe',['-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-File',path.join(__dirname,'mobile-certificate.ps1')],{input:JSON.stringify({host:input.host,passphrase}),windowsHide:true,encoding:'utf8',timeout:30000,env:{...process.env,PSModulePath:[path.join(process.env.SystemRoot||'C:/Windows','System32/WindowsPowerShell/v1.0/Modules'),'C:/Program Files/WindowsPowerShell/Modules'].join(';')}});
-   if(r.status!==0)throw Error('Não foi possível preparar o certificado neste Windows. A configuração anterior foi conservada.');
+   if(r.error||r.status!==0||!String(r.stdout||'').trim())throw Error('Não foi possível preparar o certificado neste Windows. A configuração anterior foi conservada.');
    const generated=JSON.parse(r.stdout);await configure({...generated,passphrase,host:input.host,port:input.port});return {...status(),caCert:generated.caCert};
   }
   if(input.type==='certificate'){
@@ -44,7 +44,7 @@ function createMobileRuntime(desktop,profile,{safeStorage,onChange,bridgeFactory
    const next=bridgeFactory(profile,options);try{url=await next.listen();service=next;if(fs.existsSync(recoveryMarker))fs.unlinkSync(recoveryMarker);}catch(e){await next.close();throw e;}return status();
   }
   if(!service)throw Error('Inicia primeiro a ligação neste PC.');
-  if(input.type==='approve'){service.refresh?.();if(!desktop.listSpaces().some(s=>s.id===input.spaceId))throw Error('Escolhe o espaço a partilhar.');return {...service.approvePairing({name:typeof input.name==='string'?input.name.slice(0,60):'Dispositivo',grants:[input.spaceId]}),url};}
+  if(input.type==='approve'){service.refresh?.();if(!desktop.listSpaces().some(s=>s.id===input.spaceId))throw Error('Escolhe o espaço a partilhar.');const devName=typeof input.name==='string'&&input.name.trim()?input.name.trim().slice(0,60):'Dispositivo';return {...service.approvePairing({name:devName,grants:[input.spaceId]}),url};}
   if(input.type==='revoke'){if(!service.listDevices().some(d=>d.deviceId===input.deviceId&&!d.revoked))throw Error('Dispositivo indisponível.');service.revoke(input.deviceId);return status();}
   throw Error('Ação indisponível.');
  }

@@ -86,20 +86,6 @@
     const { cash, investments: investmentValue, assets: assetValue, debts: debtValue, monthlyPayments, net, positive, delta, previousDate, historyCount, debtCount, unchecked } = wealth;
     const share = (value) => positive ? Math.max(0, value) / positive * 100 : 0;
     const pct = (value) => `${Math.round(share(value))}%`;
-    const pending = ["Por conferir", "Rever avaliação", "Sem avaliação"];
-    const entries = [
-      ...accounts.map((item) => {
-        const posted = (data.transactions || []).filter((t) => (t.account === item.name || t.targetAccount === item.name) && t.date <= today).map((t) => t.date).filter(F.validDate).sort().at(-1);
-        const checked = F.validDate(item.reconciledOn) && (!posted || posted <= item.reconciledOn);
-        return { id: "account:" + item.id, kind: "account", name: item.name, type: item.type || "Conta", value: F.balanceAt(data, item, today), date: item.reconciledOn, status: checked ? "Conferida" : "Por conferir" };
-      }),
-      ...assets.map((item) => {
-        const date = (item.valuations || []).filter((v) => v.date <= today).map((v) => v.date).sort().at(-1);
-        const stale = !date || date < FinancePlus.monthAdd(today.slice(0, 7), -6) + "-01";
-        return { id: "asset:" + item.id, kind: "asset", name: item.name, type: item.kind || "Bem", value: LifeFinance.assetValue(item), date, status: !date ? "Sem avaliação" : stale ? "Rever avaliação" : "Avaliação registada" };
-      }),
-    ];
-    const review = entries.filter((item) => pending.includes(item.status));
     // productivity-ui.js adds "Ver composição" to this card; keep it across redraws.
     const contribution = byId("wealthContributionButton");
     const tile = (tone, icon, label, value, detail) => `<article class="ch-tile is-${tone}"><span class="ch-tile-icon">${I(icon)}</span><div><span>${label}</span><strong class="amount">${value}</strong><small>${detail}</small></div></article>`;
@@ -109,10 +95,6 @@
       ["investments", "Investimentos", investmentValue, plural(investments.length, "posição", "posições")],
       ["assets", "Bens", assetValue, plural(assets.length, "bem", "bens")],
     ];
-    const reviewCard = (item) => {
-      const account = item.kind === "account";
-      return `<article class="wl-review-card${account ? "" : " is-asset"}"><span class="wl-kind-badge kind-${item.kind}">${I(account ? "account" : "box")}</span><div class="wl-review-main"><h4>${safe(item.name)}</h4><p>${safe(item.type)} · ${F.validDate(item.date) ? (account ? "conferida a " : "avaliada a ") + dateLabel(item.date) : account ? "nunca conferida" : "sem avaliação"}</p></div><div class="wl-review-side"><strong class="amount">${money(item.value)}</strong><span class="wl-status is-pending">${safe(item.status)}</span></div><button type="button" class="secondary" data-u-open-record="${safe(item.id)}">${account ? "Conferir saldo" : "Registar avaliação"}</button></article>`;
-    };
     host.innerHTML = `
       <div class="wl-tiles">
         ${tile(net >= 0 ? "green" : "red", "chart", "Património líquido", money(net), delta === null ? "Sem valores guardados para comparar" : `${delta >= 0 ? "+" : "−"}${money(Math.abs(delta))} desde ${dateLabel(previousDate)}`)}
@@ -132,13 +114,8 @@
             ${parts.map(([key, label, value, detail]) => `<li><span class="wl-dot part-${key}"></span><div><b>${label}</b><small>${detail}</small></div><strong class="amount">${money(value)}</strong><em>${pct(value)}</em></li>`).join("")}
             <li class="is-debt"><span class="wl-dot part-debts"></span><div><b>Créditos</b><small>${plural(debtCount, "crédito em dívida", "créditos em dívida")}</small></div><strong class="amount">${debtValue ? "−" : ""}${money(debtValue)}</strong><em>${positive ? Math.round(debtValue / positive * 100) + "%" : "—"}</em></li>
           </ul>
-          <button type="button" class="wa-v3-link" data-wa-route="wealthMoneyHub">Ver inventário <span aria-hidden="true">→</span></button>
         </article>
       </div>
-      <article id="wealthInventory" class="wl-card wl-review">
-        <header class="wl-card-head"><div><h3>A rever</h3><p>Contas por conferir com o extrato e bens sem avaliação recente (6 meses).</p></div>${review.length ? `<span class="wl-count">${review.length}</span>` : ""}</header>
-        ${review.length ? `<div class="wl-review-grid">${review.slice(0, 24).map(reviewCard).join("")}</div>${review.length > 24 ? `<p class="wl-more">Mais ${review.length - 24} no <button type="button" class="wa-v3-link" data-wa-route="wealthMoneyHub">Inventário</button>.</p>` : ""}` : `<div class="wl-empty">${I("check")}<strong>Tudo em dia</strong><p>Não há contas por conferir nem bens por avaliar.</p></div>`}
-      </article>
       <p class="wl-footnote">Transferências entre contas não alteram o património. Os bens usam a última avaliação registada; a evolução usa apenas os valores guardados.</p>`;
     if (contribution) host.querySelector(".wl-composition")?.append(contribution);
   }
@@ -185,7 +162,7 @@
     const net = F.money(selected.income - selected.expense);
     const previousNet = F.money(previous.income - previous.expense);
     const closed = (data.closedMonths || []).includes(month);
-    const trend = net - previousNet;
+    const trend = F.money(net - previousNet);
     const unclassified = (data.transactions || []).filter((item) =>
       item.date?.startsWith(month) && item.type === "expense" && !item.splits &&
       (!item.category || ["Outros", "Por categorizar"].includes(item.category))).length;
@@ -256,7 +233,7 @@
 
   // Icons come from interface-ui.js, loaded later: redraw when the page is opened.
   const priorNavigation = window.PremiumUI?.navigation;
-  if (window.PremiumUI) PremiumUI.navigation = (v) => { priorNavigation?.(v); if (v === "wealth") { setupWealth(); renderWealth(); } };
+  if (window.PremiumUI) PremiumUI.navigation = (v) => { priorNavigation?.(v); if (!window.UILifecycle?.inRender?.() && v === "wealth") { setupWealth(); renderWealth(); } };
   window.WealthAnalysisV3 = { render };
   if (!window.equilibrioStartup?.awaitingChoice) render();
 })();

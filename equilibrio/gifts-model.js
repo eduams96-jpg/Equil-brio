@@ -56,7 +56,7 @@
    person,
    occasion,
    ...(input.year?{year:Number(input.year)}:existing?.year?{year:existing.year}:{}),
-   date:String(input.date??existing?.date??''),
+   date:input.date!==undefined?String(input.date||''):String(existing?.date||''),
    budget:F.money(Number(input.budget??existing?.budget??0)),
    notes:String(input.notes??existing?.notes??'').trim().slice(0,1000)
   };
@@ -72,7 +72,7 @@
   if(!person)throw Error('Indica o nome da pessoa.');
   if(!occList.length)throw Error('Seleciona pelo menos uma ocasião.');
   const draft=clone(d),saved=[];
-  for(const occ of occList)saved.push(saveTarget(draft,{person,occasion:occ,budget:input.budget??0,notes:input.notes||'',year:input.year,date:input.date}));
+  for(const occ of occList)saved.push(saveTarget(draft,{person,occasion:occ,budget:input.budget??0,notes:input.notes?input.notes:undefined,year:input.year,date:input.date}));
   d.practical=draft.practical;return saved;
  }
  function removeTarget(d,id){
@@ -127,6 +127,6 @@
    incomplete:all.filter(x=>x.stage!=='ready')
   };
  }
- function summary(d,year=null,person=''){const F=finance(),list=rows(d).filter(g=>(year===null||g.year===Number(year))&&(!person||g.person===person)),actual=list.filter(paid),missing=actual.filter(g=>g.actualCost===null).length;return{count:list.length,budget:F.money(list.reduce((n,g)=>n+g.budget,0)),spent:F.money(actual.reduce((n,g)=>n+(g.actualCost||0),0)),missing,byYear:[...new Set(list.map(g=>g.year))].sort((a,b)=>b-a).map(y=>({year:y,count:actual.filter(g=>g.year===y).length,spent:F.money(actual.filter(g=>g.year===y).reduce((n,g)=>n+(g.actualCost||0),0))}))};}
+ function summary(d,year=null,person=''){const F=finance(),list=rows(d).filter(g=>(year===null||g.year===Number(year))&&(!person||normKey(g.person)===normKey(person))),actual=list.filter(paid),missing=actual.filter(g=>g.actualCost===null).length;return{count:list.length,budget:F.money(list.reduce((n,g)=>n+g.budget,0)),spent:F.money(actual.reduce((n,g)=>n+(g.actualCost||0),0)),missing,byYear:[...new Set(list.map(g=>g.year))].sort((a,b)=>b-a).map(y=>({year:y,count:actual.filter(g=>g.year===y).length,spent:F.money(actual.filter(g=>g.year===y).reduce((n,g)=>n+(g.actualCost||0),0))}))};}
  const api={states,paid,rows,targets,commonOccasions,occasions,people,url,validate,source,diagnostic,save,remove,saveTarget,savePersonOccasions,removeTarget,yearChecklist,summary};root.GiftFinance=api;if(typeof module==='object')module.exports=api;
 })(typeof globalThis!=='undefined'?globalThis:this);

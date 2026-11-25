@@ -106,3 +106,24 @@ test('Ed25519: rollback restaura a versão anterior após corrupção do staging
   assert.equal(status?.state, 'failed-rolled-back');
   assert.equal(fs.readFileSync(path.join(appPath, 'desktop', 'version.cjs'), 'utf8'), OLD_VERSION);
 });
+
+test('Instalação e recuperação de produção exigem assinatura Ed25519', async t => {
+  const strict = { ...context, requireSignature: true };
+  const unsigned = packageOf();
+  delete unsigned.signature;
+  const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), 'equilibrio-strict-update-'));
+  t.after(() => fs.rmSync(sandbox, { recursive: true, force: true }));
+  const appPath = path.join(sandbox, 'app');
+  const userDataPath = path.join(sandbox, 'profile');
+  fs.mkdirSync(appPath);
+  assert.throws(() => U.validatePackageObject(unsigned, strict), /assinatura digital/i);
+  const validated = U.validatePackageObject(unsigned, context);
+  const options = { pkg: unsigned, validated, appPath, userDataPath, currentVersion: context.currentVersion };
+  await assert.rejects(U.stageUpdate({ ...options, requireSignature: true }), /assinatura digital/i);
+  assert.equal(fs.existsSync(userDataPath), false);
+  const staged = await U.stageUpdate(options);
+  await assert.rejects(U.launchDetachedHelper({ planPath: staged.planPath, userDataPath, requireSignature: true }), /assinatura digital/i);
+  const recovery = require('../desktop/update-recovery.cjs');
+  assert.throws(() => recovery.recoverBeforeLoad(appPath, userDataPath, strict), /assinatura digital/i);
+  assert.equal(U.validatePackageObject(packageOf(), strict).signatureVerified, true);
+});

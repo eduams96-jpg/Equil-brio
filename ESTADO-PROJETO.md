@@ -1,36 +1,67 @@
 # Estado do projeto Equilíbrio
 
 > O «cérebro» do projeto. É atualizado no fim de cada ronda de trabalho.
-> Última atualização: **17/11/2026** (entrega final 1.0.26).
+> Última atualização em **25/11/2026** (ronda 1.0.46).
 
-## Versões
+## Versões e validação
 
-| | Versão | Onde | Estado |
-|---|---|---|---|
-| Windows (PC central) | **1.0.25** instalada · **1.0.26** final: instalador + .fpupdate, 35/35 suites e 712 testes (17/11) | `entrega-v1.0.26/` · tag `v1.0.26` | ⏳ Instalar a 1.0.26 (fluxo do instalador por confirmar numa máquina limpa) |
-| Android | **1.0.1** | `entrega-android-1.0.1/` | ✅ Instalada |
-| Código por publicar | — | `main` | Nada: tudo está na 1.0.26 |
-| GitHub | — | `origin/main` | ✅ Atualizado |
+| Área | Estado |
+|---|---|
+| Windows, entrega 1.0.46 | **1.0.46** — instalador completo `Equilibrio-Setup-1.0.46.exe` (instala de raiz ou por cima da 1.0.45, mantendo os dados em AppData). Planos e Decisões redesenhados (herói ao estilo da Cobertura, cartões por plano, quatro ferramentas de decisão), Agenda com «Saltar este mês» e «Repor», setas do Resumo centradas, «Comparação detalhada» removida, conclusões do mês compactas, cores nos Relatórios, menu «…» sem sombra difusa, «Ações» alinhado e aviso claro ao criar movimento a partir do extrato. **757/757** testes unitários e 7 ensaios de interface atualizados a passar. |
+| Windows, entrega 1.0.45 | **1.0.45** em `D:\Equilibrio\Entrega-v1.0.45` (`Equilibrio-Atualizar-v1.0.45.exe`, atualização 1.0.44 → 1.0.45). Revisão final de 25/11: Dados deixou de ficar espremido numa coluna, a separação de lojas combinadas já não apaga preços, a divisão de compras responde a Enter e Escape, e o tema claro ficou legível. **757/757** testes. Ensaiado sobre uma cópia da instalação, com reversão; a instalação real continuava em 1.0.44 no fim da revisão. |
+| Windows, fonte anterior | **1.0.43** empacotada em `D:\Equilibrio\Entrega-v1.0.43-20261124` (`Equilibrio-Setup-1.0.43.exe`, `Equilibrio-Atualizar-v1.0.43.exe`, `Equilibrio-v1.0.43-Windows-x64.zip`), com SQLite/IPC/updater reforçados, segurança frontend (CSP, escaping, PDF sandbox), desempenho de DOM/pesquisa e **750/750** testes unitários a passar. |
+| Windows, entrega anterior | `D:\Equilibrio\Entrega-v1.0.42-final-20261124` (preservada). Histórico local em `entrega-v1.0.27` a `entrega-v1.0.41`. |
+| Android | **1.0.3** (`versionCode` **8**, `coreVersion` **1.0.43**), alinhada com a ponte de sincronização endurecida, links Casa validados e **345/345** testes Node a passar. [Notas do Android](android/README.md). |
+| Higiene e espaço em disco | Fuga de `perfis/` nos testes corrigida (`os.tmpdir()`), 893 pastas temporárias removidas, caminhos locais fixos eliminados de scripts e ~9,65 GB recuperados pela remoção de artefactos/temporários obsoletos (`audit-temp-99aYzJ`, `Entrega-v1.0.42` e `Entrega-v1.0.42-validada`). Chave privada Android em `D:\Equilibrio\chave-android.zip` (mover para suporte offline). |
 
-## Para fechar de vez
+## Roadmap do que falta
 
-| # | Tarefa | Quem | Estado |
-|---|---|---|---|
-| 1 | Instalar a 1.0.24 no PC | Utilizador | ✅ |
-| 2 | Instalar a Android 1.0.1 | Utilizador | ✅ |
-| 3 | Sincronização com o telemóvel | Utilizador | ✅ Fechado: exportar/importar manual nas Definições (decisão de 16/11) |
-| 4 | Acertar dados: banana em «un», distância das lojas, €/km | Utilizador | ✅ |
-| 5 | Copiar a chave Android para uma pen | Utilizador | ✅ |
-| 6 | Duplicados da conta Casa | Utilizador | ✅ Condomínio correto; Portagens removido |
-| 7 | Arrumar a base de dados: na 1.0.25, Gestão de categorias → «Correções sugeridas» → Aplicar (Casa 15, Eduardo 1) | Utilizador | ✅ Aplicadas; as pendentes para remover → botão «Descartar todas as pendentes» (código feito e testado; sai numa nova versão) |
-| 8 | Instalar a 1.0.25 e criar a semana-tipo nas Refeições | Utilizador | ✅ |
-| 10 | Sincronização automática PC ↔ telemóvel | — | ✅ Fora de âmbito (manual) |
-| 11 | Disco externo: pôr fim (12/2026) na recorrência de 92,50 € | Utilizador | ✅ |
-| 12 | Corrigir à mão as 8 descrições «Outros» e 2 «Produtos» (conta Casa) | Utilizador | ⏳ Depois (utilizador) |
-| 9 | Enviar para o GitHub | Claude | ✅ |
+| Prioridade | Trabalho pendente | Quando fica concluído |
+|---|---|---|
+| **P0 · Atualizar o PC central** | Instalar a [atualização da 1.0.32 para a 1.0.33](entrega-v1.0.33/financas-pessoais-v1.0.33.fpupdate), que corrige o restauro num perfil novo. | A aplicação abre na 1.0.33 e os três espaços, as oito contas, os 896 movimentos e os saldos coincidem com a cópia anterior à instalação. |
+| **P0 · Restauro num segundo PC** | Repetir o restauro integral num perfil novo de outro PC. O ensaio num perfil novo deste PC ficou concluído. | Depois de reabrir a aplicação, confirmar os mesmos três espaços, oito contas, 896 movimentos e saldos da cópia ensaiada, e verificar a abertura dos 11 comprovativos. [Resultado do restauro local](audit/ensaios-autonomos/RELATORIO.md). |
+| **P1 · Android físico** | Confirmar no telemóvel se a exportação e importação manual nas Definições permitem levar ao PC uma alteração feita offline na lista de compras. Ensaiar a repetição da importação e uma edição do mesmo artigo em ambos os dispositivos. | Verificar que a edição offline persiste após reabrir a app, que a repetição mantém um único registo e que a edição concorrente pode ser revista sem perder a alteração do PC. Registar qualquer limite do percurso por ficheiro. [Ensaio no emulador](audit/ensaios-autonomos/android-emulador.json). |
+| **P1 · Recuperação da chave Android** | Verificar a cópia externa da chave de assinatura num segundo Windows. | Confirmar que a cópia permite assinar com a mesma chave usada pela aplicação. [Procedimento de recuperação](RECUPERACAO-DA-ASSINATURA.md). |
+| **P2 · Reduzir a demora ao editar movimentos** | **Concluído na 1.0.36.** Ensaio isolado de 10 ciclos na mesma cópia da BD real (868 movimentos): edição completa no Electron caiu de **1 682,8 ms para 334,6 ms (-80,1%, 5× mais rápido)**; escrita e confirmação SQLite+IPC caiu de **808,5 ms para 180,1 ms (-77,7%)**. Novo `commitLedgerPatch` envia apenas o delta (~2 KB em vez de ~13,8 MB) mantendo deteção de conflito e releitura de confirmação dentro da transação SQLite (`741/741` testes a passar, incluindo conflito e reversão por trigger). | Concluído e validado. [Medições anteriores](audit/ensaios-autonomos/RELATORIO.md#edição-de-movimentos). |
+| **P3 · Evoluir preços e talões** | Aproveitar a leitura de talões para propor produto, loja, embalagem, quantidade e preço. Avaliar as fontes de folhetos e a cobertura do Open Prices. | Gravar os preços após revisão do utilizador e comparar o histórico por kg, litro ou unidade. Para os folhetos, confirmar cobertura local, permissão de uso, loja, embalagem, preço e validade da oferta. |
+
+**Tarefa pessoal pendente** — Rever as oito descrições «Outros» e as duas «Produtos» na conta Casa.
+
+**Publicação** — Enviar as entregas para o GitHub após a validação.
+
+## Revisão de UX em curso
+
+- **Primeira ronda no código** — O Resumo e a Revisão distinguem o balanço da taxa de poupança e assinalam o mês em curso. Os Relatórios usam meses completos nas médias e comparam os anos até ao mesmo dia, com aviso de histórico incompleto. Movimentos distingue as saídas pelo valor integral das despesas, e o relatório de Contas mostra o saldo no início e a variação no período.
+- **Validação desta ronda** — Cenário no navegador com dados fictícios, incluindo 0,20 € de receita, 801,71 € de saídas e 678,15 € de despesas líquidas, e melhoria do balanço face a um valor anterior negativo. A composição daqueles valores no espaço de uso diário continua por confirmar.
+- **Segunda ronda no código** — Movimentos reúne as opções de período e a pesquisa de categorias junto da lista de categorias. O formulário tem rodapé fora da área de deslocamento e identifica a data contabilística. A divisão de uma compra registada conserva o total e bloqueia parcelas que não coincidam ao cêntimo. A Revisão explica os bloqueios junto de «Fechar mês» e permite guardar conclusões independentemente do fecho.
+- **Validação da segunda ronda** — Em dados fictícios, foram verificados filtros, rodapé a 390 px, repartição de compras sem alterar o saldo após reabrir a aplicação, conclusões com o fecho bloqueado e fecho e reabertura após conferir o saldo. As alterações estão no código e aguardam instalação.
+- **Terceira ronda no código** — Dados → A tratar identifica a origem, a data e a ação de cada pendência sem repetir texto no painel lateral e limita os comprovativos em falta a despesas elegíveis. O resumo de Dados distingue linhas de CSV por aplicar de linhas de extratos guardados por conferir, e regras pessoais de regras de importação (com pré-visualização no histórico). Na Agenda, «Subscrições do mês» separa subscrições previstas de despesas registadas no histórico e mantém esse estado visível na tabela lateral. O Centro de avisos clarifica o âmbito com atalhos para a Agenda e para Dados → A tratar, cartões clicáveis e prioridade visível na lista. Em Definições → Backup e Atualização, os painéis foram consolidados com diagnóstico técnico recolhido por omissão, e o aviso de antiguidade considera a última cópia válida (manual ou automática).
+- **Validação da terceira ronda** — Passaram 734 testes (`npm test`), os ensaios de integração (`unified-03977.cjs` e `review-03966.cjs`) e um ensaio no navegador com dados fictícios verificando a resolução sincronizada de pendências entre Revisão, A tratar e Qualidade dos dados, a pré-visualização de regras de importação, a distinção de subscrições na Agenda, os filtros e atalhos do Centro de avisos e o aviso de cópia de segurança perante cópia automática recente. As alterações estão no código e aguardam instalação.
+- **Quarta ronda no código** — Cobertura mostra a passagem completa do saldo real para dinheiro reservado, protegido, reservado sem conta, compromissos a 30 dias, margem de segurança e margem após compromissos, evitando dupla contagem entre reservas e objetivos que partilham a mesma proteção. Em Planos, o guia explica Objetivos, Reservas e Orçamentos com botões diretos de criação e um painel para consolidar envelopes, planos anuais e despesas sazonais sem duplicar poupança. Em Decisões, os indicadores de margem ficam destacados no topo, as premissas (período de 3 meses completos, reservas, margem, saldo mínimo a 90 dias e premissas da Autonomia) aparecem junto ao resultado, e o histórico fica num único bloco sem título duplicado.
+- **Validação da quarta ronda** — Passaram 736 testes (`npm test`), incluindo os novos testes para contagem única de seguro anual, objetivo de poupança e orçamento mensal e para a consolidação de planos antigos, além dos ensaios no navegador (`unified-03977.cjs`, `revisao-funcional.cjs`, `practical-03961.cjs` e verificação dedicada da Ronda 4 com dados fictícios a 1440 px e 390 px). As alterações estão no código e aguardam instalação.
+- **Quinta ronda no código** — Casa. Em Gerir catálogo → Lojas, as lojas combinadas (`//`) passaram a ter deteção e fluxo de revisão/separação com pré-visualização antes de guardar, evitando atribuir preços à loja errada, e foram removidos os botões redundantes que repetiam as sub-abas (`Tabela de preços` em Produtos e `Produtos` em Lojas). Em Lista de compras → Comparar a lista, as lojas sem artigos na lista saem para um bloco recolhido, a tabela deixou de cortar horizontalmente, surgiu a poupança face à lista atual e o singular (`1 embalagem`) foi corrigido. Em Análises e Preços, as unidades pequenas (`ml`, `cl`, `g`) são apresentadas por `L` / `kg` e com mais casas decimais quando necessário, eliminando `0,00 € → 0,00 €`. Na Despensa, «Previsão de reposição» mostra apenas produtos com dados suficientes (ou estado vazio) e recolhe os restantes em `<details>`, corrigindo também a contagem de «0 registos». As compras da Casa ligam diretamente aos lotes na Despensa e permitem associar uma despesa simples existente ou registar uma despesa numa conta. Em Consumos, são recusados novos períodos futuros ou superiores a um ano e assinalados períodos anómalos existentes; em Equipamentos, as rotinas quinzenais oferecem recálculo direto pela última execução.
+- **Validação da quinta ronda** — Passaram 739 testes (`npm test`, incluindo 3 novos testes para lojas combinadas com pré-visualização, comparador/escalamento para `L` e validação de consumos/recálculo quinzenal), `npm run styles:check` e os ensaios no navegador (`revisao-funcional.cjs`, `unified-03977.cjs`, `casa-contract.cjs`, `review-03966.cjs` e verificação dedicada da Ronda 5 com dados fictícios a 1440 px e 390 px). As alterações estão no código e aguardam instalação.
+- **Sexta ronda no código** — Apresentação e navegação. Os modais passaram a ter rodapé fixo (`.modal-form-footer`) visível durante a deslocação, botão explícito «Cancelar» (exceto nos modais de leitura simples como «Fechar») e destaque destrutivo a vermelho para ações como «Eliminar espaço», além de alvo de clique confortável (`>= 36 px`) no botão de fechar. Na barra superior, «Desfazer» saiu do menu «+ Registar» e surge apenas quando há alteração reversível, e o seletor de espaço identifica «Espaço: <nome>» para não se confundir com a área Casa; no seletor completo, o título repetido foi removido e passou a suportar duplo clique para entrar. Em Definições → O teu espaço, «Reiniciar / demonstração» abre expandido (deixando os botões visíveis) e «Recuperar uma cópia anterior» formata nomes e datas de cópia de forma legível. Foram removidos os atalhos inferiores duplicados em Casa → Visão geral e o segundo «+ Manutenção» em Veículos, formatadas com vírgula decimal as quantidades na Lista de compras, reforçados os anéis de foco (`:focus-visible`) e o contraste em tema claro e escuro, e atualizada a Ajuda com os nomes atuais, contagens por tema e ações diretas de navegação.
+- **Validação da sexta ronda** — Passaram 740 testes (`npm test`), `npm run styles:check` e os ensaios no navegador (`navigation-03963.cjs`, `approved-visual-03968.cjs`, `essential-03976.cjs`, `cor-002.cjs`, `revisao-funcional.cjs`, `unified-03977.cjs` e `validate-round6.cjs` cobrindo modais, rodapé fixo, foco por teclado, tema claro e escuro e 42 verificações de largura a 1440 px, 910 px e 390 px). As seis rondas planeadas da revisão de UX estão concluídas no código e aguardam geração de entrega/instalação; a latência da edição de movimentos continua no P2.
+
+## O que já foi revisto
+
+- **Ensaios da 1.0.33** — Restauro integral num perfil novo e confirmação após reabrir. Repetição de CSV bloqueada no Windows. No Android 17 emulado, o APK de ensaio passou a associação à ponte Windows, o registo offline com reabertura, o reenvio após perda de resposta e a edição concorrente. A ligação do emulador foi feita pelo botão «Sincronizar». Passaram 727 testes Windows e 345 Android. [Relatório](audit/ensaios-autonomos/RELATORIO.md).
+- **Revisão da 1.0.32** — Confirmados no SQLite o fecho e a reabertura, a proteção de movimentos num mês fechado, o desfazer e a importação CSV. A revisão prioritária abrangeu ainda transferências, eliminação, recuperação em teste, relatórios, regras e Casa. A pesquisa no catálogo de 181 produtos passou de 39,9 para 30,2 ms de mediana. [Relatório](audit/revisao-p1-p2/RELATORIO-P1-P2.md).
+- **Fluidez:** 36 páginas em três larguras, sem erros de navegação ou largura nas passagens medidas. A auditoria incluiu ainda 12 rondas por versão no Windows, com operações em Resumo, Movimentos, Agenda, Planos e Decisões, Compras e Consumos. [Auditoria da 1.0.30](audit/fluidez-1030/AUDITORIA-FLUIDEZ-v1.0.30.md).
+- **Gravação da 1.0.31:** os sete tipos de gravação ensaiados ficaram mais rápidos. A mediana conjunta passou de **3,49 s para 2,76 s** (21%), em sete rondas por versão numa cópia dos dados. Foram confirmados o bloqueio de alterações em conflito e a reversão quando a confirmação dos dados falha. [Comparação no Windows](audit/fluidez-1031/comparacao/).
+- **Cópias de segurança:** confirmada no Windows a criação manual e automática de uma cópia com três espaços e os seus comprovativos. O ensaio de restauro integral num segundo PC permanece no roadmap.
+- **Dados e preferências já tratados:** banana em «un», distâncias das lojas, custo por km, semana-tipo nas Refeições, correções sugeridas aplicadas, Condomínio confirmado e Portagens removido. O fim em dezembro de 2026 da prestação de 92,50 € do disco externo consta como concluído no registo anterior.
 
 ## Funcionalidades recentes
 
+- **1.0.33** — Corrige a primeira gravação e o restauro num perfil Windows novo, mantendo a proteção de espaços eliminados.
+- **1.0.32** — Pesquisa de produtos com reutilização dos cartões, validação de PDFs de equipamento mais leve, fecho mensal coerente e correção da espera no atualizador em Program Files.
+- **1.0.31** — Confirma a escrita no próprio SQLite, na mesma operação. Evita pedir uma segunda leitura do espaço inteiro à base de dados.
+- **1.0.30** — Acelera o Resumo e adia a preparação da cópia automática até haver uma cópia a criar.
+- **1.0.29** — Reformulação de Planos e Decisões, com Cobertura, Planos e Decisões, pesquisa e detalhe na lista. Inclui auditoria de navegação. [Relatório da entrega](entrega-v1.0.29/RELATORIO-AUDITORIA-v1.0.29.md).
+- **1.0.28** — Consumos por período, comercializadora para eletricidade e correções nas rotinas.
+- **1.0.27** — Revisão funcional e proteção de valores. [Relatório da entrega](entrega-v1.0.27/RELATORIO-REVISAO-v1.0.27.md).
 - **1.0.26 (`entrega-v1.0.26/`):** «Descartar todas as pendentes» nas Correções sugeridas; datas mais rápidas; 4 correções (teclas, Contas → conferência, revisão semanal duplicada, nome acessível dos produtos). **Validação completa: 35/35 suites** (17/11), pacote validado. Testes de interface atualizados para os ecrãs redesenhados; Playwright passou a ser dependência do projeto (`playwright-core` 1.64.1). Notas: `equilibrio/DESKTOP-v1.0.26.md`.
 - **1.0.25 (`entrega-v1.0.25/`):**
   - Gestão de categorias → «Correções sugeridas»: a revisão de 12/11 aplicada com confirmação (`CompleteFinance.suggestedCorrections / applyCorrections`, reconhecidas pelo conteúdo, desaparecem depois de aplicadas).
@@ -46,25 +77,23 @@
 
 ## Decisões tomadas
 
-- Limpeza de 17/11: entrega 1.0.25 e ZIPs anteriores movidos para `D:CODEXarquivo-antigo-2026-11-16`; apagados só a pasta de compilação `dist-desktop` e uma cópia duplicada do .fpupdate. O APK 1.0.1 passou a constar de `entrega-v1.0.26/android/`.
-
 - O plano de refeições usa uma semana fixa, que se ajusta quando for preciso.
 - Os custos de deslocação contam por km (0,20 €/km por omissão).
 - Só se envia para o GitHub quando tudo estiver terminado.
 - Condomínio 38,75 € a 02/07: não é duplicado (junho não foi pago).
 - Aplicar todas as correções da análise de dados (12/11). As compras de supermercado já divididas por artigos ficam como estão.
-- Disco externo: são duas prestações reais. A de 92,50 € acaba em dezembro de 2026 e a de 32,50 € em janeiro de 2027. ⏳ O utilizador tem de pôr o fim (12/2026) na recorrência de 92,50 € em Planeamento → Recorrências.
+- Disco externo: são duas prestações reais. A de 92,50 € acaba em dezembro de 2026 e a de 32,50 € em janeiro de 2027. O fim de dezembro de 2026 da primeira recorrência consta como configurado.
 - Incidente de 16/11 (~11:03): durante a movimentação de `work/`, ficaram vazios `historico/baselines`, `historico/documentacao`, `equilibrio/vendor-receipts` e `equilibrio/node_modules`. Causa não confirmada (suspeita: robocopy /MOVE sobre pastas de `work/`). Restaurado: ficheiros do Git repostos com `git checkout`; `node_modules` reinstalado com `npm ci --ignore-scripts` (o binário do Electron não foi descarregado; `npm run desktop` precisa de `npm install` completo). Testes: 712 a passar.
 - Limpeza de 16/11: pastas antigas (`work/`, `coordenacao/`, `audit/`, `.superpowers/`, entregas 1.0.15–1.0.24 e android 1.0.0) movidas para `D:\CODEX\arquivo-antigo-2026-11-16\` (fora do projeto; não apagadas). Ficaram 3 ficheiros de fixtures em `work/` (ACL só de leitura, idênticos ao arquivo) que o Windows não deixou apagar. Zips de segurança em `D:\CODEX\`: código e entregas atuais.
 - Revisão de 16/11 (demonstração, navegador): 22 ecrãs abertos sem erros; ~70 botões de formulário/painel abertos sem erros; corrigido erro nas teclas (`07e96c6`). Não testados: botões que gravam, apagam ou fecham meses (só com dados reais e cópia). Código: ~26 mil linhas em `equilibrio/*.js`; ficheiros grandes (`workspace.js` 4770 linhas) são candidatos a dividir mais tarde.
 - Sincronização sem Tailscale nem rede local (16/11): o Google Drive é uma alternativa manual possível, mas copiar a base para os dois lados pode criar conflitos e perder alterações. Só uma cópia de cada vez, sempre a mais recente; a decidir. Alternativas a avaliar: Drive, pen USB ou cabo.
-- Correções pendentes (16/11): novo `correctionsDismissed` na base de dados e «Descartar todas as pendentes» na janela de Correções sugeridas. Não altera movimentos nem categorias. Testes: 712 a passar. Ainda não está numa versão instalável.
+- Correções pendentes (16/11): novo `correctionsDismissed` na base de dados e «Descartar todas as pendentes» na janela de Correções sugeridas. Não altera movimentos nem categorias. A opção foi entregue na 1.0.26.
 - Descrições vagas: 8 movimentos «Outros» e 2 «Produtos» na conta Casa (abril a novembro de 2026), a corrigir à mão. «Normal» é o nome da loja, por isso está bem.
 
 ## Notas técnicas
 
-- **Testes:** 712 a passar (`npm test` em `equilibrio/`).
-- **Release:** `node scripts/advance-version.cjs X.Y.Z "título"` → `node scripts/finalize-release.cjs ../historico/baselines/baseline-1.0.20 ../entrega-vX.Y.Z <versão anterior> --packages-only` → `node scripts/advance-version.cjs --snapshot`. A validação completa passa dos 15 minutos.
+- **Testes da 1.0.33** — 727 a passar (`npm test` em `equilibrio/`).
+- **Entrega incremental** — `node scripts/package-release.cjs <referência> <pasta-da-entrega>`, seguida de `node integration/validate-incremental-package.cjs <referência> <pasta-da-entrega>`. Avançar a versão com `node scripts/advance-version.cjs` antes de gerar o pacote.
 - **Chave Android:** `%USERPROFILE%\.codex\private\equilibrio\android-release\` (`.p12` + `password.dpapi`, que só abre neste Windows). Cópia externa: `android/scripts/backup-signing-key.ps1` (PowerShell 7). JDK em `C:\Program Files\Eclipse Adoptium\jdk-21.0.12.101-hotspot`.
-- **Análise de dados:** sempre numa cópia (`VACUUM INTO`) da `%APPDATA%\Financas Pessoais\financas.db`; nunca na base real.
+- **Análise de dados:** sempre numa cópia SQLite da `%APPDATA%\Financas Pessoais\financas.db`; nunca na base real.
 - Mais contexto histórico em `RETOMAR.md`.

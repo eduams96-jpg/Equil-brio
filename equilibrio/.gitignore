@@ -1,6 +1,19 @@
 node_modules/
 dist-desktop/
+validacao/
+perfis/
 *.log
+*.db
+*.db-*
+*.sqlite*
+*.fpupdate
+*.fpbackup
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.dpapi
+.env*
 
 # Update signing secrets stay outside the source/build
 release-secrets/

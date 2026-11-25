@@ -12,7 +12,8 @@
     indexController?.abort();indexController=new AbortController();const own=indexController;
     try{
       if(!/^data:(image\/(png|jpeg|webp)|application\/pdf);base64,[A-Za-z0-9+/=\r\n]+$/.test(a.data||''))throw Error('O ficheiro não está disponível para leitura.');
-      const base64=a.data.slice(a.data.indexOf(',')+1),binary=atob(base64),bytes=Uint8Array.from(binary,c=>c.charCodeAt(0)),file=new File([bytes],a.name||'comprovativo',{type:a.type});
+      const mime=a.type||(a.data.match(/^data:([^;]+);/)?.[1]||'application/octet-stream');
+      const base64=a.data.slice(a.data.indexOf(',')+1),binary=atob(base64),bytes=Uint8Array.from(binary,c=>c.charCodeAt(0)),file=new File([bytes],a.name||'comprovativo',{type:mime});
       const result=await ReceiptReader.read(file,s=>{const p=$('#documentIndexProgress');if(p)p.textContent=s;},own.signal,{attachment:false});
       if(own.signal.aborted||key!==origin||!$('#documentIndexProgress')||JSON.stringify(data.transactions.find(t=>t.id===tx.id))!==stamp)return;
       R.validateText(result.text);

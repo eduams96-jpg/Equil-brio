@@ -78,6 +78,8 @@ for (const base of [
     publicFiles.add("vendor-receipts/tesseract.js-core/" + base + ext);
 for (const name of ["pdf.mjs", "pdf.worker.mjs"])
   publicFiles.add("vendor-receipts/pdfjs-dist/build/" + name);
+publicFiles.add("assets/providers/continente.png");
+publicFiles.add("assets/providers/lidl.png");
 publicFiles.add("vendor-receipts/por.traineddata.gz");
 publicFiles.add("vendor-receipts/por.traineddata");
 const types = {".ttf":"font/ttf",

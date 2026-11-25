@@ -1,0 +1,104 @@
+/* @order 100200 */
+/* Ronda 1.0.46 · Resumo: as setas do mês ficam na linha dos seletores, com a mesma altura. */
+body.equilibrio-studio #dashboard .summary-period-control.summary-period-control{align-items:end!important;gap:6px!important}
+/* @order 100201 */
+body.equilibrio-studio #dashboard .summary-period-control>:is(#summaryPrevMonth,#summaryNextMonth).summary-month-arrow{align-self:flex-end!important;width:30px!important;min-width:30px!important;height:36px!important;min-height:36px!important;padding:0!important;border-radius:8px!important;display:inline-grid!important;place-items:center!important;margin:0!important}
+/* @order 100202 */
+body.equilibrio-studio #dashboard .summary-period-control>:is(#summaryPrevMonth,#summaryNextMonth).summary-month-arrow{position:relative!important;overflow:hidden!important;font-size:0!important;line-height:0!important;color:var(--ink)!important;cursor:pointer}
+/* @order 100203 */
+body.equilibrio-studio #dashboard :is(#summaryPrevMonth,#summaryNextMonth).summary-month-arrow::before{content:""!important;position:absolute!important;top:50%!important;left:50%!important;width:7px!important;height:7px!important;margin:0!important;border:0!important;border-right:2px solid currentColor!important;border-top:2px solid currentColor!important;transform:translate(-30%,-50%) rotate(-135deg)!important}
+/* @order 100204 */
+body.equilibrio-studio #dashboard #summaryNextMonth.summary-month-arrow::before{transform:translate(-70%,-50%) rotate(45deg)!important}
+/* @order 100210 */
+/* Revisão · 4. Conclusões e fecho: campos lado a lado e ações numa só linha. */
+.monthly-note.monthly-note-compact{display:grid!important;gap:10px!important;margin:0!important}
+/* @order 100211 */
+.monthly-note-compact .monthly-note-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+/* @order 100212 */
+.monthly-note-compact label{display:grid!important;gap:4px!important;margin:0!important;font-size:12px!important}
+/* @order 100213 */
+.monthly-note-compact textarea{min-height:58px!important;height:58px;resize:vertical;padding:8px 10px!important}
+/* @order 100214 */
+.monthly-note-compact .review-finish-actions{display:flex!important;flex-wrap:wrap;gap:8px!important;justify-content:flex-start!important;margin:0!important;padding:0!important;border:0!important}
+/* @order 100215 */
+.review-close-reason{margin:6px 0 0!important;font-size:12px!important}
+/* @order 100220 */
+/* Relatórios: cor por natureza do valor (receitas verde, despesas vermelho, balanço pelo sinal). */
+#reportDesk{--r-in:#1f9d6b;--r-out:#d14d5a;--r-rate:#3b82f6}
+/* @order 100221 */
+body[data-theme="dark"] #reportDesk{--r-in:#34d399;--r-out:#f87171;--r-rate:#60a5fa}
+/* @order 100222 */
+#reportDesk .r-metric{border-left:3px solid transparent!important}
+/* @order 100223 */
+#reportDesk .r-metric>svg{width:22px!important;height:22px!important;min-width:22px;min-height:22px;padding:8px!important;border-radius:10px;box-sizing:content-box!important;flex:none!important;overflow:visible}
+/* @order 100224 */
+#reportDesk .r-metric.is-income{border-left-color:var(--r-in)!important}
+/* @order 100225 */
+#reportDesk .r-metric.is-income>svg{color:var(--r-in)!important;background:color-mix(in srgb,var(--r-in) 14%,transparent)}
+/* @order 100226 */
+#reportDesk .r-metric.is-income strong,#reportDesk .r-compare-card.is-income strong,#reportDesk .r-in{color:var(--r-in)!important}
+/* @order 100227 */
+#reportDesk .r-metric.is-expense{border-left-color:var(--r-out)!important}
+/* @order 100228 */
+#reportDesk .r-metric.is-expense>svg{color:var(--r-out)!important;background:color-mix(in srgb,var(--r-out) 14%,transparent)}
+/* @order 100229 */
+#reportDesk .r-metric.is-expense strong,#reportDesk .r-compare-card.is-expense strong,#reportDesk .r-out-cell{color:var(--r-out)!important}
+/* @order 100230 */
+#reportDesk .r-metric.is-positive{border-left-color:var(--r-in)!important}
+/* @order 100231 */
+#reportDesk .r-metric.is-positive>svg{color:var(--r-in)!important;background:color-mix(in srgb,var(--r-in) 14%,transparent)}
+/* @order 100232 */
+#reportDesk .r-metric.is-negative{border-left-color:var(--r-out)!important}
+/* @order 100233 */
+#reportDesk .r-metric.is-negative>svg{color:var(--r-out)!important;background:color-mix(in srgb,var(--r-out) 14%,transparent)}
+/* @order 100234 */
+#reportDesk :is(.r-metric,.r-compare-card).is-negative strong{color:var(--r-out)!important}
+/* @order 100235 */
+#reportDesk .r-metric.is-rate{border-left-color:var(--r-rate)!important}
+/* @order 100236 */
+#reportDesk .r-metric.is-rate>svg{color:var(--r-rate)!important;background:color-mix(in srgb,var(--r-rate) 14%,transparent)}
+/* @order 100237 */
+#reportDesk .r-metric.is-rate strong{color:var(--r-rate)!important}
+/* @order 100238 */
+#reportDesk :is(td,span,b,strong).amount.positive{color:var(--r-in)!important}
+/* @order 100239 */
+#reportDesk :is(td,span,b,strong).amount.negative{color:var(--r-out)!important}
+/* @order 100240 */
+#reportDesk .r-compare-card{border-top:3px solid var(--line)!important}
+/* @order 100241 */
+#reportDesk .r-compare-card.is-income{border-top-color:var(--r-in)!important}
+/* @order 100242 */
+#reportDesk .r-compare-card.is-expense,#reportDesk .r-compare-card.is-negative{border-top-color:var(--r-out)!important}
+/* @order 100243 */
+#reportDesk .r-compare-card.is-positive{border-top-color:var(--r-in)!important}
+/* @order 100244 */
+#reportDesk .r-category-row em{background:linear-gradient(90deg,color-mix(in srgb,var(--r-out) 55%,transparent),var(--r-out))!important}
+/* @order 100250 */
+/* Movimentos · menu «…»: sem sombra difusa larga (parecia uma mancha atrás do menu). */
+body .movement-inline-actions.movement-menu-portal.movement-menu-portal{box-shadow:0 4px 12px rgba(0,0,0,.18)!important;border:1px solid var(--line)!important}
+/* @order 100251 */
+body[data-theme="dark"] .movement-inline-actions.movement-menu-portal.movement-menu-portal{box-shadow:0 4px 12px rgba(0,0,0,.35)!important;border-color:rgba(255,255,255,.1)!important}
+/* @order 100252 */
+body .movement-inline-actions.movement-menu-portal :is(button,.link-button).danger.danger{color:#e5484d!important}
+/* @order 100253 */
+/* Movimentos · cabeçalho «Ações» alinhado à direita, como os botões da linha. */
+#transactions .movement-table-header>span:last-child{text-align:right!important;justify-self:stretch!important;padding-right:14px!important}
+/* @order 100260 */
+/* Agenda · ocorrências saltadas neste mês, com «Repor». */
+#planner .ag-skipped{display:grid;gap:8px;padding:14px 16px!important;margin-top:12px}
+/* @order 100261 */
+#planner .ag-skipped-head{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:6px}
+/* @order 100262 */
+#planner .ag-skipped-head h4{margin:0;font-size:14px}
+/* @order 100263 */
+#planner .ag-skipped-head small{color:var(--muted);font-size:11.5px}
+/* @order 100264 */
+#planner .ag-skipped-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 10px;border:1px dashed var(--line);border-radius:10px}
+/* @order 100265 */
+#planner .ag-skipped-row b{display:block;font-size:13px;text-decoration:line-through;text-decoration-color:color-mix(in srgb,var(--muted) 70%,transparent)}
+/* @order 100266 */
+#planner .ag-skipped-row small{color:var(--muted);font-size:11.5px}
+/* @order 100267 */
+#planner .ag-skipped-row button{min-height:30px!important;padding:4px 12px!important;font-size:12px!important}
+/* @order 100205 */
+body.equilibrio-studio #dashboard .summary-period-control>:is(#summaryPrevMonth,#summaryNextMonth).summary-month-arrow:hover:not(:disabled){border-color:var(--accent,#10b981)!important;color:var(--accent,#10b981)!important}

@@ -318,3 +318,84 @@ body[data-current-view="dashboard"] .summary-month-picker-wrap .period-pair labe
 
 /* @order 8356 */
 #modal.transaction-editor .transaction-type-choices button{height:40px!important;min-height:40px!important;box-sizing:border-box}
+
+/* @order 8390 */
+#transactions .movement-period-group{display:flex;align-items:center;flex-wrap:wrap;gap:8px;min-width:0}
+/* @order 8391 */
+#transactions #movementDateOptions{margin:0;min-width:0}
+/* @order 8392 */
+#transactions #movementDateOptions summary{cursor:pointer;padding:8px 10px;border:1px solid var(--line);border-radius:8px}
+/* @order 8393 */
+#transactions #movementDateOptions .movement-date-range{margin-top:8px}
+/* @order 8394 */
+#modal.transaction-editor #modalContent{display:flex;flex-direction:column;max-height:76dvh;gap:0!important}
+/* @order 8395 */
+#modal.transaction-editor .transaction-editor-fields{min-height:0;overflow:auto;padding:4px 6px 12px 0;scroll-padding-block:10px}
+/* @order 8396 */
+#modal.transaction-editor .transaction-editor-fields>h2{margin-bottom:8px}
+/* @order 8397 */
+#modal.transaction-editor .transaction-editor-footer{position:static;flex:0 0 auto}
+/* @order 8398 */
+#reviewCloseReason:empty,#comparisonCloseReason:empty,#legacyMonthCloseReason:empty{display:none}
+/* @order 8399 */
+#movementCategorySearch label{display:grid;gap:5px;margin:6px 0;min-width:0}
+/* @order 8400 */
+#movementCategorySearch input{width:100%;min-width:0}
+
+/* @order 100000 */
+body.equilibrio-studio #dashboard :is(#summaryPrevMonth,#summaryNextMonth){display:inline-grid!important;place-items:center!important;width:34px!important;height:34px!important;margin:0!important;padding:0!important;align-self:center!important;font-size:0!important;line-height:1!important;transform:none!important}
+/* @order 100001 */
+#dashboard .summary-month-arrow::before{content:"";display:block;width:7px;height:7px;border-right:2px solid currentColor;border-top:2px solid currentColor;transform:rotate(45deg)}
+/* @order 100002 */
+#dashboard #summaryPrevMonth::before{transform:rotate(-135deg)}
+/* @order 100003 */
+body.equilibrio-studio #reportDesk :is(thead th,.r-table tbody th,.r-table tfoot td,.r-table tfoot th),#transactions .value-views,#transactions .value-views>summary,#casaProducts .cat-more>summary,#modal .split-choice select,#modal .split-choice option,#modal.transaction-editor .transaction-split-workbench-summary{background:var(--paper)!important;color:var(--ink)!important}
+/* @order 100004 */
+#reportDesk .r-merchant .r-merchant-name em{background:var(--merchant-color)!important}
+/* @order 100005 */
+#reportDesk .r-merchant .r-rank{color:var(--ink);background:color-mix(in srgb,var(--merchant-color) 26%,var(--paper))!important}
+/* @order 100006 */
+#casaStock .section-head .casa-actions{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;align-items:stretch;gap:8px}
+/* @order 100007 */
+#casaStock .section-head .casa-actions button{height:auto!important;min-height:42px!important;margin:0!important;padding:8px!important}
+/* @order 100008 */
+.casa-history-disclosure>summary{list-style:none;cursor:pointer}
+/* @order 100009 */
+.casa-history-disclosure>summary::-webkit-details-marker{display:none}
+/* @order 100010 */
+.casa-history-disclosure>summary::after{content:""!important;display:inline-block!important;width:7px!important;height:7px!important;margin-inline:12px;border:solid currentColor;border-width:0 2px 2px 0;transform:rotate(45deg)!important;background:none!important}
+/* @order 100011 */
+.casa-history-disclosure[open]>summary::after{transform:rotate(225deg)!important}
+/* @order 100012 */
+body.equilibrio-studio [data-eq-filter][aria-pressed=true] small{background:#fff!important;color:#14533d!important}
+/* @order 100013 */
+#modal.transaction-editor .transaction-editor-footer button[type=submit]{order:0!important}
+/* @order 100014 */
+.monthly-note{display:grid;gap:12px;margin-block:14px}
+/* @order 100015 */
+.monthly-note label{display:grid;gap:5px}
+/* @order 100016 */
+.monthly-note button{justify-self:start}
+/* @order 100017 */
+.catalog-overview,.store-coverage{padding:10px 0}
+/* @order 100018 */
+.catalog-overview>summary,.store-coverage>summary{cursor:pointer;color:var(--accent);font-weight:600}
+/* @order 100019 */
+#modal:is([data-origin="plansHub"],[data-origin="dataHub"],[data-origin="casaProducts"],[data-origin="casaStores"]){width:min(720px,95vw);border-radius:14px}
+/* @order 100020 */
+#modal:is([data-origin="plansHub"],[data-origin="dataHub"],[data-origin="casaProducts"],[data-origin="casaStores"]) #modalContent>label{display:grid;gap:6px;margin-block:10px}
+/* @order 100021 */
+@media(min-width:800px){body.equilibrio-studio #dataHub #unifiedData{display:grid!important;grid-template-columns:175px minmax(0,1fr)!important;gap:16px;align-items:start}#unifiedData .dt-head{grid-column:1/-1}body.equilibrio-studio #unifiedData .dt-compact-nav{display:grid!important;grid-template-columns:1fr!important;grid-column:1}#unifiedData .dt-compact-nav button{justify-content:flex-start}#unifiedData .dt-compact-nav small{margin-left:auto}#unifiedData .u-task-content{grid-column:2;min-width:0}}
+/* @order 100022 */
+@media(max-width:640px){#casaStock .section-head .casa-actions{grid-auto-flow:row;grid-template-columns:1fr;width:100%}}
+/* @order 100080 */
+@media(min-width:880px){#plansBoard .decision-workspace-layout{display:grid;grid-template-columns:170px minmax(0,1fr);gap:20px;align-items:start}#plansBoard .decision-sections{display:grid!important;grid-template-columns:1fr!important}#plansBoard .decision-sections button{text-align:left}#plansBoard .decision-page{min-width:0}}
+/* @order 100081 */
+#modal .catalog-options{padding:12px;border:1px solid var(--line);border-radius:8px;grid-column:1/-1}
+/* @order 100082 */
+#modal .catalog-options summary{cursor:pointer;font-weight:600}
+
+/* @order 100085 */
+.plan-contribution-preview:not(:empty){display:block;background:var(--selected);color:var(--ink);border-inline-start:3px solid var(--accent);padding:12px 16px;font-variant-numeric:tabular-nums}
+/* @order 100086 */
+@media(min-width:720px){#modal:is([data-origin="plansHub"],[data-origin="dataHub"]) #modalContent:has(>label+label){display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 16px}#modal:is([data-origin="plansHub"],[data-origin="dataHub"]) #modalContent:has(>label+label)>:not(label),#modal:is([data-origin="plansHub"],[data-origin="dataHub"]) #modalContent>label:has(textarea){grid-column:1/-1}#modal:is([data-origin="plansHub"],[data-origin="dataHub"]) #modalContent>label:only-of-type{grid-column:1/-1}}

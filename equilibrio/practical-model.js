@@ -8,6 +8,7 @@ for(const i of s.interventions)if(!s.equipment.some(e=>e.id===i.equipmentId)||!F
 for(const e of s.events)if(!text(e.title,160)||!e.title.trim()||!F.validDate(e.date)||!text(e.note,2000)||typeof e.includeInExports!=='boolean')throw Error('Acontecimento inválido.');
 for(const c of s.captures){if(!['pending','linked','discarded'].includes(c.status)||!F.validDate(c.date)||!text(c.description,160)||c.amount!==null&&!positive(c.amount)||!text(c.note,2000)||c.transactionId&&!text(c.transactionId,100))throw Error('Captura inválida.');if(c.attachment&&(!/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(c.attachment.data||'')||c.attachment.data.length>4000000||!text(c.attachment.name,160)))throw Error('Imagem da captura inválida ou demasiado grande.');}
 for(const c of s.corrections)if(!text(c.match,160)||!c.match||!text(c.category,400)||!text(c.transactionId,100)||!F.validDate(c.date))throw Error('Correção inválida.');
+if(s.ruleRejections!==undefined&&(!Array.isArray(s.ruleRejections)||s.ruleRejections.some(k=>!text(k,1200))))throw Error('Sugestões rejeitadas inválidas.');
 for(const r of s.rules)if(!text(r.match,160)||r.match.trim().length<3||!text(r.category,400)||!r.category.trim()||!Array.isArray(r.exceptions)||r.exceptions.some(e=>!text(e,160))||typeof r.active!=='boolean')throw Error('Regra pessoal inválida.');
 for(const a of s.ruleAudit)if(!F.validDate(a.date)||!text(a.ruleId,100)||!Array.isArray(a.changes)||a.changes.some(c=>!text(c.id,100)||!text(c.before,400)||!text(c.after,400)||!text(c.fingerprint,20000000)))throw Error('Histórico de regra inválido.');
 if(s.autonomy)validateAutonomy(s.autonomy);
@@ -31,8 +32,16 @@ function autonomy(d,c=state(d).autonomy){
 }
 function validateEquipmentDocument(a){
  if(!a||typeof a.name!=='string'||!a.name.trim()||a.name.length>160||a.type!=='application/pdf'||typeof a.data!=='string'||!/^data:application\/pdf;base64,[A-Za-z0-9+/]+={0,2}$/.test(a.data))throw Error('Anexa um PDF válido até 8 MB.');
- let raw;try{raw=atob(a.data.slice(a.data.indexOf(',')+1));}catch{throw Error('PDF inválido.');}
- if(!raw.startsWith('%PDF-')||raw.length>8*1024*1024||a.size!==raw.length)throw Error('O ficheiro deve ser um PDF válido até 8 MB.');
+ const encoded = a.data.slice('data:application/pdf;base64,'.length);
+ const padding = encoded.endsWith('==') ? 2 : encoded.endsWith('=') ? 1 : 0;
+ const remainder = encoded.length % 4;
+ if (remainder === 1 || (padding && remainder)) throw Error('PDF inválido.');
+ // A expressão regular acima valida todos os caracteres. Só o cabeçalho
+ // precisa de ser descodificado para conferir o formato e o tamanho.
+ const bytes = Math.floor((encoded.length - padding) * 3 / 4);
+ if (bytes < 5 || bytes > 8 * 1024 * 1024 || a.size !== bytes ||
+     !atob(encoded.slice(0, 8)).startsWith('%PDF-'))
+   throw Error('O ficheiro deve ser um PDF válido até 8 MB.');
  if(a.text!==undefined&&(typeof a.text!=='string'||a.text.length>200000))throw Error('Texto extraído do PDF do equipamento inválido.');
  if(a.ocrStatus!==undefined&&!['none','text','ocr','failed','pending','empty'].includes(a.ocrStatus))throw Error('Estado de leitura do PDF do equipamento inválido.');
 }
@@ -94,14 +103,58 @@ function observeCorrections(before,after){
  if(!changes.length)return;
  const s=writable(after);for(const t of changes){const match=norm(t.beneficiary||t.description);if(match.length<3)continue;s.corrections=s.corrections.filter(c=>c.transactionId!==t.id);s.corrections.push({id:F.id(),transactionId:t.id,match,category:t.category,date:F.today()});}s.corrections=s.corrections.slice(-1000);
 }
-function suggestions(d){
+function correctionSuggestions(d){
  const s=state(d),transactions=new Map(d.transactions.map(t=>[t.id,t])),groups=new Map();
  for(const c of s.corrections){const t=transactions.get(c.transactionId);if(!t||t.type!=='expense'||t.category!==c.category||norm(t.beneficiary||t.description)!==c.match)continue;if(!groups.has(c.match))groups.set(c.match,new Map());groups.get(c.match).set(c.transactionId,c);}
  return[...groups].filter(([match,cs])=>cs.size>=3&&new Set([...cs.values()].map(c=>c.category)).size===1&&!s.rules.some(r=>norm(r.match)===match)).map(([match,cs])=>({match,category:[...cs.values()][0].category,examples:[...cs.keys()].map(id=>transactions.get(id))}));
 }
+function overlappingRule(d, match, id) {
+ const value=' '+norm(match)+' ';
+ const personal=state(d).rules;
+ return [...personal,...(d.rules||[])].find(r=>{
+  if(r.id===id||!norm(r.match)||r.type==='income')return false;
+  const phrase=' '+norm(r.match)+' ';
+  if(!personal.includes(r)&&r.matchMode!=='phrase')return value.trim().includes(phrase.trim())||phrase.trim().includes(value.trim());
+  return value.includes(phrase)||phrase.includes(value);
+ });
+}
+function suggestionKey(r){return JSON.stringify([norm(r.match),r.category]);}
+function suggestions(d){
+ const s=state(d),groups=new Map();
+ for(const t of d.transactions){
+  const match=norm(t.beneficiary||t.description);
+  if(t.type!=='expense'||t.splits?.length||t.receiptItems?.length||t.refundOf||t.debtId||match.length<3||!t.category)continue;
+  if(!groups.has(match))groups.set(match,[]);
+  groups.get(match).push(t);
+ }
+ const candidates=new Map(),corrected=new Set(s.corrections.map(c=>c.match));
+ for(const r of correctionSuggestions(d))candidates.set(suggestionKey(r),{...r,reason:'Correções manuais concordantes'});
+ for(const [match,examples] of groups){
+  if(corrected.has(match)||examples.length<3||match.length>160||new Set(examples.map(t=>t.category)).size!==1||norm(examples[0].category)==='outros')continue;
+  const r={match,category:examples[0].category,examples,reason:'Despesas anteriores com a mesma descrição ou beneficiário e categoria'};
+  if(!candidates.has(suggestionKey(r)))candidates.set(suggestionKey(r),r);
+ }
+ const rejected=new Set(s.ruleRejections||[]);
+ return [...candidates.values()].filter(r=>!rejected.has(suggestionKey(r))&&!overlappingRule(d,r.match)&&
+  (groups.get(r.match)||[]).every(t=>t.category===r.category||norm(t.category)==='outros'))
+  .sort((a,b)=>b.examples.length-a.examples.length||a.match.localeCompare(b.match,'pt-PT')).slice(0,30);
+}
+function rejectSuggestion(d, key){
+ if(!suggestions(d).some(r=>suggestionKey(r)===key))throw Error('A sugestão já mudou.');
+ const s=writable(d);
+ s.ruleRejections=[...new Set([...(s.ruleRejections||[]),key])];
+}
+function saveRule(d,row){
+ const s=writable(d), existing=s.rules.find(r=>r.id===row.id);
+ const conflict=overlappingRule(d,row.match,row.id);
+ if(conflict&&(!existing||norm(existing.match)!==norm(row.match)||existing.category!==row.category))
+  throw Error('Já existe uma regra que pode corresponder ao mesmo movimento: '+conflict.match+'.');
+ if(existing)Object.assign(existing,row);else s.rules.push(row);
+}
+function txFingerprint(t){if(!t||typeof t!=='object')return '';if(!t.attachment)return JSON.stringify(t);const {data,...att}=t.attachment;return JSON.stringify({...t,attachment:{...att,len:String(data||'').length}});}
 function previewRule(d,r){
  const closed=new Set(d.closedMonths);
- return d.transactions.filter(t=>t.type==='expense'&&matchesRule(t,r)).map(t=>({id:t.id,before:t.category,after:r.category,description:t.description,blocked:!!(t.reconciled||closed.has(t.date.slice(0,7))||t.splits?.length||t.receiptItems?.length||t.debtId||t.debtHistoryOf||t.category===r.category),fingerprint:JSON.stringify(t)}));
+ return d.transactions.filter(t=>t.type==='expense'&&matchesRule(t,r)).map(t=>({id:t.id,before:t.category,after:r.category,description:t.description,blocked:!!(t.reconciled||closed.has(t.date.slice(0,7))||t.splits?.length||t.receiptItems?.length||t.debtId||t.debtHistoryOf||t.category===r.category),fingerprint:txFingerprint(t)}));
 }
 function applyRule(d,id,preview){
  const r=state(d).rules.find(r=>r.id===id&&r.active);if(!r)throw Error('Regra inativa ou inexistente.');
@@ -109,17 +162,17 @@ function applyRule(d,id,preview){
  const changes=current.filter(c=>!c.blocked);if(!changes.length)return 0;
  const transactions=new Map(d.transactions.map(t=>[t.id,t]));
  for(const c of changes)transactions.get(c.id).category=c.after;
- writable(d).ruleAudit.push({id:F.id(),ruleId:id,date:F.today(),changes:changes.map(c=>({...c,fingerprint:JSON.stringify(transactions.get(c.id))})),undone:false});return changes.length;
+ writable(d).ruleAudit.push({id:F.id(),ruleId:id,date:F.today(),changes:changes.map(c=>({...c,fingerprint:txFingerprint(transactions.get(c.id))})),undone:false});return changes.length;
 }
 function undoRule(d,id){
  const a=state(d).ruleAudit.find(a=>a.id===id&&!a.undone);if(!a)throw Error('Aplicação indisponível.');
  const transactions=new Map(d.transactions.map(t=>[t.id,t])),closed=new Set(d.closedMonths);
- for(const c of a.changes){const t=transactions.get(c.id);if(!t||JSON.stringify(t)!==c.fingerprint||t.reconciled||closed.has(t.date.slice(0,7)))throw Error('Um movimento mudou ou está protegido; revê-o individualmente.');}
+ for(const c of a.changes){const t=transactions.get(c.id);if(!t||txFingerprint(t)!==c.fingerprint||t.reconciled||closed.has(t.date.slice(0,7)))throw Error('Um movimento mudou ou está protegido; revê-o individualmente.');}
  for(const c of a.changes)transactions.get(c.id).category=c.before;a.undone=true;
 }
 
 function importCaptures(d,packet){if(!packet||packet.format!=='equilibrio-captures'||packet.version!==1||!Array.isArray(packet.captures)||packet.captures.length>200)throw Error('Ficheiro de capturas inválido.');const draft=clone(d),s=writable(draft);let added=0;for(const r of packet.captures){if(s.captures.some(c=>c.id===r.id)){const existing=s.captures.find(c=>c.id===r.id);if(JSON.stringify([existing.date,existing.amount,existing.description,existing.note,existing.attachment])!==JSON.stringify([r.date,r.amount,r.description,r.note||'',r.attachment]))throw Error('Identificador de captura reutilizado com conteúdo diferente.');continue;}s.captures.push({id:r.id,date:r.date,amount:r.amount,description:r.description,note:r.note||'',...(r.attachment?{attachment:clone(r.attachment)}:{}),status:'pending'});added++;}validate(draft);d.practical=draft.practical;return added;}
 function confirmCapture(d,id,choice){const c=state(d).captures.find(c=>c.id===id&&c.status==='pending');if(!c)throw Error('Captura já tratada.');const draft=clone(d),next=writable(draft).captures.find(c=>c.id===id);let t;if(choice.transactionId){t=draft.transactions.find(t=>t.id===choice.transactionId);if(!t)throw Error('Movimento inexistente.');if(t.reconciled||draft.closedMonths.includes(t.date.slice(0,7)))throw Error('Movimento protegido.');if(c.amount!==null&&F.cents(c.amount)!==F.cents(t.amount))throw Error('O valor da captura difere do movimento.');if(t.attachment&&c.attachment)throw Error('O movimento já tem comprovativo.');if(c.attachment)t.attachment=clone(c.attachment);}else{if(!choice.description?.trim()||!positive(choice.amount)||choice.amount<=0||!F.validDate(choice.date)||choice.date>F.today())throw Error('Confirma descrição, valor e data do movimento.');if(c.attachment&&choice.skipAttachment!==true)choice={...choice,attachment:clone(c.attachment)};t=F.add(draft,{id:F.id(),type:choice.type||'expense',account:choice.account,amount:choice.amount,date:choice.date,description:choice.description,category:choice.category||'Outros',...(choice.attachment?{attachment:choice.attachment}:{}),captureId:c.id});}next.status='linked';next.transactionId=t.id;F.normalize(draft);Object.assign(d,draft);return t;}
 function importRules(d){return [...state(d).rules.filter(r=>r.active).map(r=>({...r,matchMode:'phrase',type:'expense'})),...(d.rules||[])];}
-const api={removeEquipment,duplicateEquipment,equipmentWarranty,validateEquipmentDocument,interventionPayments,cancelEquipment,completeEquipment,nextEquipmentPlan,matchesRule,importRules,empty,state,writable,validate,autonomy,saveEquipment,scheduleEquipment,addIntervention,compareEvent,observeCorrections,suggestions,previewRule,applyRule,undoRule,importCaptures,confirmCapture,norm};root.PracticalFinance=api;if(typeof module==='object')module.exports=api;
+const api={removeEquipment,duplicateEquipment,equipmentWarranty,validateEquipmentDocument,interventionPayments,cancelEquipment,completeEquipment,nextEquipmentPlan,matchesRule,importRules,empty,state,writable,validate,autonomy,saveEquipment,scheduleEquipment,addIntervention,compareEvent,observeCorrections,suggestions,suggestionKey,rejectSuggestion,saveRule,overlappingRule,previewRule,applyRule,undoRule,importCaptures,confirmCapture,norm};root.PracticalFinance=api;if(typeof module==='object')module.exports=api;
 })(typeof globalThis!=='undefined'?globalThis:this);

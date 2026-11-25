@@ -1,8 +1,9 @@
 (() => {'use strict';
  const G=GiftFinance,$=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)],labels={idea:'Ideia',shopping:'A comprar',bought:'Comprado',delivered:'Entregue'},memory=new Map();
- const state=()=>{if(!memory.has(key))memory.set(key,{mode:'plan',year:String(new Date().getFullYear()),person:'',query:'',selected:'',checklistFilter:'incomplete'});return memory.get(key);};
+ const state=()=>{if(!memory.has(key))memory.set(key,{mode:'plan',year:String(new Date().getFullYear()),person:'',query:'',selected:'',status:'all',checklistFilter:'incomplete'});return memory.get(key);};
  const host=document.createElement('section');host.id='casaGifts';host.className='view casa-view gifts-page';document.querySelector('#mainContent').append(host);PremiumUI.addPage('Casa','casaGifts','Prendas');
- const field=(label,name,value='',type='text',attrs='')=>'<label>'+label+'<input name="'+name+'" type="'+type+'" value="'+esc(value??'')+'" '+attrs+'></label>',select=(label,name,items,value='',attrs='')=>'<label>'+label+'<select name="'+name+'" '+attrs+'>'+items.map(([id,text])=>'<option value="'+esc(id)+'" '+(String(id)===String(value)?'selected':'')+'>'+esc(text)+'</option>').join('')+'</select></label>';
+ const normKey=v=>String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+ const field=(label,name,value='',type='text',attrs='')=>'<label>'+esc(label)+'<input name="'+esc(name)+'" type="'+type+'" value="'+esc(value??'')+'" '+attrs+'></label>',select=(label,name,items,value='',attrs='')=>'<label>'+esc(label)+'<select name="'+esc(name)+'" '+attrs+'>'+items.map(([id,text])=>'<option value="'+esc(id)+'" '+(String(id)===String(value)?'selected':'')+'>'+esc(text)+'</option>').join('')+'</select></label>';
 
  function giftForm(id,prefill={}){
   const g=G.rows(data).find(g=>g.id===id)||{},s=state(),expenses=data.transactions.filter(t=>t.type==='expense').slice(-2000).reverse(),purchases=(data.casa?.purchases||[]).slice(-1000).reverse(),products=data.casa?.catalog||[];
@@ -24,7 +25,8 @@
     '<input type="hidden" name="giftOccasion" id="giftOccasionHidden" value="'+esc(currentOccasion)+'">'+
     field('Ano','giftYear',g.year||prefill.year||(s.year==='all'?new Date().getFullYear():s.year)||new Date().getFullYear(),'number','required min="1900" max="2200" step="1"')+
     field('Data (opcional)','giftDate',g.date||prefill.date||'','date')+
-    select('Estado','giftStatus',Object.entries(labels),g.status||'idea')+
+    select('Estado','giftStatus',Object.entries(labels),prefill.status||g.status||'idea')+
+    field('Orçamento (€; opcional)','giftBudget',g.budget??prefill.budget??'','number','min="0" step="0.01"')+
     field('Custo real (€; vazio se desconhecido)','giftActualCost',g.actualCost,'number','min="0" step="0.01"')+
     field('Link (opcional)','giftUrl',g.url,'url','maxlength="2048"')+
     select('Produto do catálogo (opcional)','giftCatalogId',[['','Sem produto associado'],...products.map(p=>[p.id,p.name])],g.catalogId)+
@@ -44,7 +46,7 @@
       year:f.get('giftYear'),
       date:f.get('giftDate'),
       status:f.get('giftStatus'),
-      budget:g.budget??prefill.budget??0,
+      budget:f.get('giftBudget')===''?0:Number(f.get('giftBudget')||0),
       actualCost:f.get('giftActualCost'),
       url:f.get('giftUrl'),
       notes:f.get('giftNotes'),
@@ -54,7 +56,7 @@
       purchaseItem:f.get('giftLinkKind')==='purchase'?f.get('giftPurchaseItem'):null
      });
      if(saved.person&&saved.occasion){
-      G.saveTarget(data,{person:saved.person,occasion:saved.occasion,budget:saved.budget,year:saved.year,date:saved.date});
+      G.saveTarget(data,{person:saved.person,occasion:saved.occasion,budget:saved.budget||undefined,year:saved.year,date:saved.date});
      }
     },'Prenda guardada. Nenhum pagamento foi criado ou alterado.');
    },
@@ -86,12 +88,107 @@
  function render(){
   if(view!=='casaGifts')return;
   const s=state(),all=G.rows(data),years=[...new Set([new Date().getFullYear(),new Date().getFullYear()+1,...all.map(g=>g.year),...G.targets(data).map(t=>t.year).filter(Boolean)])].sort((a,b)=>b-a),people=G.people(data),year=s.mode==='history'&&s.year==='all'?null:Number(s.year||new Date().getFullYear()),q=s.query.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
-  const checklistYear=year||new Date().getFullYear();
-  const checklist=G.yearChecklist(data,checklistYear);
-  const checklistRows=(s.checklistFilter==='all'?checklist.all:s.checklistFilter==='missing'?checklist.missing:checklist.incomplete).filter(item=>(!s.person||item.person===s.person)&&(!q||[item.person,item.occasion,item.notes].join(' ').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().includes(q)));
+  const dynamicHtml=()=>{
+   const all=G.rows(data),years=[...new Set([new Date().getFullYear(),new Date().getFullYear()+1,...all.map(g=>g.year),...G.targets(data).map(t=>t.year).filter(Boolean)])].sort((a,b)=>b-a),people=G.people(data),year=s.mode==='history'&&s.year==='all'?null:Number(s.year||new Date().getFullYear()),q=s.query.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+   const checklistYear=year||new Date().getFullYear();
+   const checklist=G.yearChecklist(data,checklistYear);
+   const checklistRows=(s.checklistFilter==='all'?checklist.all:s.checklistFilter==='missing'?checklist.missing:checklist.incomplete).filter(item=>(!s.person||normKey(item.person)===normKey(s.person))&&(!q||[item.person,item.occasion,item.notes].join(' ').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().includes(q)));
 
-  const list=all.filter(g=>(s.mode!=='history'||G.paid(g))&&(year===null||g.year===year)&&(!s.person||g.person===s.person)&&(!q||[g.person,g.title,g.occasion,g.notes].join(' ').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().includes(q))).sort((a,b)=>String(a.date||a.year).localeCompare(String(b.date||b.year))||a.person.localeCompare(b.person,'pt')),selected=list.find(g=>g.id===s.selected)||list[0];s.selected=selected?.id||'';
-  const totals=G.summary(data,year,s.person),history=G.summary(data,null,s.person);
+   const list=all.filter(g=>(s.status==='all'||(s.status==='paid'?G.paid(g):g.status===s.status))&&(s.mode!=='history'||G.paid(g))&&(year===null||g.year===year)&&(!s.person||normKey(g.person)===normKey(s.person))&&(!q||[g.person,g.title,g.occasion,g.notes].join(' ').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().includes(q))).sort((a,b)=>String(a.date||a.year).localeCompare(String(b.date||b.year))||a.person.localeCompare(b.person,'pt')),selected=list.find(g=>g.id===s.selected)||list[0];s.selected=selected?.id||'';
+   const totals=G.summary(data,year,s.person),history=G.summary(data,null,s.person);
+   return {
+    list, selected, checklistYear,
+    html:
+     '<div class="gift-metrics gift-metrics-3">'+
+      '<article class="panel"><span>Gasto real registado</span><strong class="amount">'+eur(totals.spent)+'</strong><small>'+totals.missing+' comprada(s) sem custo indicado</small></article>'+
+      '<article class="panel"><span>Prendas registadas</span><strong>'+totals.count+'</strong><small>'+(checklist.ready.length)+' pronta(s) em '+checklistYear+'</small></article>'+
+      '<article class="panel '+(checklist.incomplete.length?'gift-metric-missing':'')+'"><span>Falta preparar em '+checklistYear+'</span><strong>'+checklist.incomplete.length+'</strong><small>'+checklist.missing.length+' sem prenda · '+checklist.pending.length+' por comprar</small></article>'+
+     '</div>'+
+     '<nav class="eq-design-tabs" aria-label="Estado da prenda">'+[['all','Todas'],['idea','Ideias'],['shopping','Por comprar'],['paid','Compradas']].filter(([id])=>s.mode!=='history'||['all','paid'].includes(id)).map(([id,label])=>'<button type="button" class="secondary" data-gift-status="'+id+'" aria-pressed="'+(s.status===id)+'">'+label+'</button>').join('')+'</nav>'+
+     '<div class="gift-workspace"><section class="panel gift-list"><h3>'+(s.mode==='history'?'Prendas compradas e entregues':'Prendas registadas ('+list.length+')')+'</h3><div class="u-table-scroll"><table class="u-table"><thead><tr><th>Pessoa / prenda</th><th>Ocasião / ano</th><th>Estado</th><th>'+(s.mode==='history'?'Custo real':'Data')+'</th></tr></thead><tbody>'+list.map(g=>'<tr class="'+(g.id===s.selected?'is-selected':'')+'"><td><button type="button" class="u-record-button" data-gift-select="'+esc(g.id)+'" aria-pressed="'+(g.id===s.selected)+'">'+esc(g.person)+' · '+esc(g.title)+'</button></td><td><span class="gift-occasion-tag">'+esc(g.occasion||'Sem ocasião')+'</span> · '+g.year+'</td><td><span class="gift-stage-badge status-'+esc(g.status)+'">'+labels[g.status]+'</span></td><td class="amount">'+(s.mode==='history'?(g.actualCost===null?'Por indicar':eur(g.actualCost)):(g.date?dateLabel(g.date):'—'))+'</td></tr>').join('')+'</tbody></table></div>'+(!list.length?'<p class="empty-state">Ainda sem prendas neste filtro. Guarda uma ideia ou usa a lista de pessoas e ocasiões acima para começar.</p>':'')+'</section><aside class="panel gift-detail" id="giftDetail"></aside></div>'+(s.mode==='history'?'<section class="panel gift-years"><h3>Ao longo dos anos'+(s.person?' · '+esc(s.person):'')+'</h3><div class="u-table-scroll"><table class="u-table"><thead><tr><th>Ano</th><th>Compradas / entregues</th><th>Gasto real</th></tr></thead><tbody>'+history.byYear.map(row=>'<tr><td>'+row.year+'</td><td>'+row.count+'</td><td class="amount">'+eur(row.spent)+'</td></tr>').join('')+'</tbody></table></div></section>':'')+(s.mode==='plan'?'<section class="panel gift-checklist-panel" id="giftYearChecklistPanel">'+
+       '<div class="u-head">'+
+        '<div><h3>Lista de pessoas e ocasiões · O que ainda falta em '+checklistYear+'</h3>'+
+        '<p>Regista as pessoas e as ocasiões do ano (Natal, Aniversário, Dia da Mãe, etc.) para veres num relance tudo o que ainda falta definir ou comprar.</p></div>'+
+        '<div class="u-filter-bar">'+
+         [['incomplete','Em falta no ano ('+checklist.incomplete.length+')'],['missing','Sem prenda ('+checklist.missing.length+')'],['all','Lista completa ('+checklist.all.length+')']].map(([id,lbl])=>'<button type="button" class="secondary '+(s.checklistFilter===id?'active':'')+'" data-gift-check-filter="'+id+'" aria-pressed="'+(s.checklistFilter===id)+'">'+lbl+'</button>').join('')+
+         '<button type="button" class="primary" id="giftAddTargetInline">+ Adicionar pessoa / ocasiões</button>'+
+        '</div>'+
+       '</div>'+
+       (checklistRows.length?
+        '<div class="gift-checklist-grid">'+
+         checklistRows.map(item=>
+          '<article class="gift-target-card stage-'+esc(item.stage)+'">'+
+           '<div class="gift-target-main">'+
+            '<div class="gift-target-badges">'+
+             '<span class="gift-occasion-tag">🎁 '+esc(item.occasion)+'</span>'+
+             '<span class="gift-stage-badge stage-'+esc(item.stage)+'">'+esc(item.stageLabel)+'</span>'+
+            '</div>'+
+            '<h4>'+esc(item.person)+'</h4>'+
+            '<p>'+(item.gift?'Prenda: <b>'+esc(item.gift.title)+'</b>':'Ainda sem ideia ou prenda registada para '+checklistYear)+(item.notes?' · '+esc(item.notes):'')+'</p>'+
+           '</div>'+
+           '<div class="row-actions">'+
+            (item.gift?
+             '<button type="button" class="secondary" data-gift-edit-id="'+esc(item.gift.id)+'">Abrir / atualizar prenda</button>':
+             '<button type="button" class="primary" data-gift-create-target="true" data-person="'+esc(item.person)+'" data-occasion="'+esc(item.occasion)+'" data-budget="'+esc(item.budget||0)+'">+ Registar prenda</button>')+
+            (item.targetId?'<button type="button" class="secondary" data-gift-remove-target="'+esc(item.targetId)+'" title="Retirar da lista anual">×</button>':'')+
+           '</div>'+
+          '</article>'
+         ).join('')+
+        '</div>'
+        :'<div class="gift-checklist-empty"><p class="muted">'+(checklist.all.length?'Tudo preparado para este filtro em '+checklistYear+'! 🎉':'Ainda não criaste a tua lista anual de pessoas e ocasiões. Clica em "+ Adicionar pessoa / ocasiões" para registar quem queres presentear no Natal, Aniversários, etc.')+'</p></div>')+
+      '</section>'
+     :'')
+   };
+  };
+
+  function showGift(g){const detail=$('#giftDetail',host);if(!detail)return;if(g){const diag=G.diagnostic(data,g),product=data.casa?.catalog?.find(p=>p.id===g.catalogId);detail.innerHTML='<p class="eyebrow">PRENDA SELECIONADA</p><h3>'+esc(g.title)+'</h3><p><b>'+esc(g.person)+'</b> · <span class="gift-occasion-tag">'+esc(g.occasion||'Sem ocasião')+'</span> · '+g.year+'</p>'+(g.date?'<p>Data: '+dateLabel(g.date)+'</p>':'')+'<dl><dt>Estado</dt><dd>'+labels[g.status]+'</dd>'+(g.budget==null?'':'<dt>Orçamento</dt><dd class="amount">'+eur(g.budget)+'</dd>')+'<dt>Custo real</dt><dd class="amount">'+(g.actualCost===null?'Por indicar':eur(g.actualCost))+'</dd></dl><p>'+esc(g.notes)+'</p>'+(g.url?'<p><a href="'+esc(g.url)+'" target="_blank" rel="noopener noreferrer">Abrir link ↗</a></p>':'')+(product?'<p>Produto: '+esc(product.name)+'</p>':'')+(diag.linked?'<p class="gift-link-status '+(diag.changed||diag.missing?'warning':'')+'">'+(diag.missing?'O registo associado já não está disponível. O custo guardado foi preservado.':diag.changed?'O registo associado foi alterado. Confere a ligação e o custo; nada foi atualizado automaticamente.':'Associado a '+esc(diag.label)+'. O pagamento mantém-se no registo de origem.')+'</p>':'')+'<div class="u-actions">'+(!G.paid(g)?'<button type="button" class="primary" id="giftMarkBought">Marcar como comprada</button>':'')+'<button type="button" class="secondary" id="giftEdit">Editar</button><button type="button" class="secondary" id="giftRemove">Eliminar</button></div>';const bought=$('#giftMarkBought',detail);if(bought)bought.onclick=()=>giftForm(g.id,{status:'bought'});$('#giftEdit').onclick=()=>giftForm(g.id);$('#giftRemove').onclick=()=>confirmAction('Eliminar prenda','Eliminar esta prenda? O movimento financeiro ou a compra associados mantêm-se.',()=>G.remove(data,g.id));}else detail.innerHTML='<h3>Detalhe</h3><p>Seleciona uma prenda para consultar ou editar.</p>';}
+
+  function wireDynamic(res){
+   showGift(res.selected);
+   if($('#giftAddTargetInline'))$('#giftAddTargetInline').onclick=()=>targetForm(s.person||'');
+   for(const b of host.querySelectorAll('[data-gift-check-filter]')){
+    b.onclick=()=>{s.checklistFilter=b.dataset.giftCheckFilter;renderDynamic();};
+   }
+   for(const b of host.querySelectorAll('[data-gift-create-target]')){
+    b.onclick=()=>giftForm(null,{person:b.dataset.person,occasion:b.dataset.occasion,budget:Number(b.dataset.budget||0),year:res.checklistYear});
+   }
+   for(const b of host.querySelectorAll('[data-gift-edit-id]')){
+    b.onclick=()=>giftForm(b.dataset.giftEditId);
+   }
+   for(const b of host.querySelectorAll('[data-gift-remove-target]')){
+    b.onclick=()=>confirmAction('Remover da lista anual','Remover este par pessoa/ocasião da lista anual?',()=>G.removeTarget(data,b.dataset.giftRemoveTarget));
+   }
+   const giftButtons = [...host.querySelectorAll('[data-gift-select]')];
+   function selectGift(index, focus = false) {
+    const selected = res.list[index];
+    if (!selected) return;
+    s.selected = selected.id;
+    giftButtons.forEach((button, at) => {
+     button.setAttribute('aria-pressed', String(at === index));
+     button.closest('tr').classList.toggle('is-selected', at === index);
+    });
+    showGift(selected);
+    if (focus) giftButtons[index].focus();
+   }
+   giftButtons.forEach((button, index) => {
+    button.onclick = () => selectGift(index);
+    button.onkeydown = event => {
+     if (!['ArrowUp','ArrowDown','Home','End'].includes(event.key)) return;
+     event.preventDefault();
+     const next = event.key === 'Home' ? 0 : event.key === 'End' ? res.list.length - 1
+       : Math.max(0, Math.min(res.list.length - 1, index + (event.key === 'ArrowDown' ? 1 : -1)));
+     selectGift(next, true);
+    };
+   });
+   for(const b of host.querySelectorAll('[data-gift-status]'))b.onclick=()=>{s.status=b.dataset.giftStatus;renderDynamic();host.querySelector('[data-gift-status][aria-pressed=true]')?.focus();};
+  }
+  function renderDynamic(){
+   const body=$('#giftsDynamicBody',host);
+   if(!body)return render();
+   const res=dynamicHtml();
+   body.innerHTML=res.html;
+   wireDynamic(res);
+  }
 
   host.innerHTML=
    '<div class="section-head">'+
@@ -107,66 +204,14 @@
     select('Pessoa','giftsPerson',[['','Todas as pessoas'],...people.map(p=>[p,p])],s.person)+
     field('Pesquisar pessoa, ocasião ou prenda','giftsQuery',s.query,'search','placeholder="Ex.: Natal, Aniversário, Mãe…"')+
    '</div>'+
-   '<div class="gift-metrics gift-metrics-3">'+
-    '<article class="panel"><span>Gasto real registado</span><strong class="amount">'+eur(totals.spent)+'</strong><small>'+totals.missing+' comprada(s) sem custo indicado</small></article>'+
-    '<article class="panel"><span>Prendas registadas</span><strong>'+totals.count+'</strong><small>'+(checklist.ready.length)+' pronta(s) em '+checklistYear+'</small></article>'+
-    '<article class="panel '+(checklist.incomplete.length?'gift-metric-missing':'')+'"><span>Falta preparar em '+checklistYear+'</span><strong>'+checklist.incomplete.length+'</strong><small>'+checklist.missing.length+' sem prenda · '+checklist.pending.length+' por comprar</small></article>'+
-   '</div>'+
-   (s.mode==='plan'?
-    '<section class="panel gift-checklist-panel" id="giftYearChecklistPanel">'+
-     '<div class="u-head">'+
-      '<div><h3>Lista de pessoas e ocasiões · O que ainda falta em '+checklistYear+'</h3>'+
-      '<p>Regista as pessoas e as ocasiões do ano (Natal, Aniversário, Dia da Mãe, etc.) para veres num relance tudo o que ainda falta definir ou comprar.</p></div>'+
-      '<div class="u-filter-bar">'+
-       [['incomplete','Em falta no ano ('+checklist.incomplete.length+')'],['missing','Sem prenda ('+checklist.missing.length+')'],['all','Lista completa ('+checklist.all.length+')']].map(([id,lbl])=>'<button type="button" class="secondary '+(s.checklistFilter===id?'active':'')+'" data-gift-check-filter="'+id+'" aria-pressed="'+(s.checklistFilter===id)+'">'+lbl+'</button>').join('')+
-       '<button type="button" class="primary" id="giftAddTargetInline">+ Adicionar pessoa / ocasiões</button>'+
-      '</div>'+
-     '</div>'+
-     (checklistRows.length?
-      '<div class="gift-checklist-grid">'+
-       checklistRows.map(item=>
-        '<article class="gift-target-card stage-'+esc(item.stage)+'">'+
-         '<div class="gift-target-main">'+
-          '<div class="gift-target-badges">'+
-           '<span class="gift-occasion-tag">🎁 '+esc(item.occasion)+'</span>'+
-           '<span class="gift-stage-badge stage-'+esc(item.stage)+'">'+esc(item.stageLabel)+'</span>'+
-          '</div>'+
-          '<h4>'+esc(item.person)+'</h4>'+
-          '<p>'+(item.gift?'Prenda: <b>'+esc(item.gift.title)+'</b>':'Ainda sem ideia ou prenda registada para '+checklistYear)+(item.notes?' · '+esc(item.notes):'')+'</p>'+
-         '</div>'+
-         '<div class="row-actions">'+
-          (item.gift?
-           '<button type="button" class="secondary" data-gift-edit-id="'+esc(item.gift.id)+'">Abrir / atualizar prenda</button>':
-           '<button type="button" class="primary" data-gift-create-target="true" data-person="'+esc(item.person)+'" data-occasion="'+esc(item.occasion)+'" data-budget="'+esc(item.budget||0)+'">+ Registar prenda</button>')+
-          (item.targetId?'<button type="button" class="secondary" data-gift-remove-target="'+esc(item.targetId)+'" title="Retirar da lista anual">×</button>':'')+
-         '</div>'+
-        '</article>'
-       ).join('')+
-      '</div>'
-      :'<div class="gift-checklist-empty"><p class="muted">'+(checklist.all.length?'Tudo preparado para este filtro em '+checklistYear+'! 🎉':'Ainda não criaste a tua lista anual de pessoas e ocasiões. Clica em "+ Adicionar pessoa / ocasiões" para registar quem queres presentear no Natal, Aniversários, etc.')+'</p></div>')+
-    '</section>'
-   :'')+
-   '<div class="gift-workspace"><section class="panel gift-list"><h3>'+(s.mode==='history'?'Prendas compradas e entregues':'Prendas registadas ('+list.length+')')+'</h3><div class="u-table-scroll"><table class="u-table"><thead><tr><th>Pessoa / prenda</th><th>Ocasião / ano</th><th>Estado</th><th>'+(s.mode==='history'?'Custo real':'Data')+'</th></tr></thead><tbody>'+list.map(g=>'<tr class="'+(g.id===s.selected?'is-selected':'')+'"><td><button type="button" class="u-record-button" data-gift-select="'+esc(g.id)+'" aria-pressed="'+(g.id===s.selected)+'">'+esc(g.person)+' · '+esc(g.title)+'</button></td><td><span class="gift-occasion-tag">'+esc(g.occasion||'Sem ocasião')+'</span> · '+g.year+'</td><td><span class="gift-stage-badge status-'+esc(g.status)+'">'+labels[g.status]+'</span></td><td class="amount">'+(s.mode==='history'?(g.actualCost===null?'Por indicar':eur(g.actualCost)):(g.date?dateLabel(g.date):'—'))+'</td></tr>').join('')+'</tbody></table></div>'+(!list.length?'<p class="empty-state">Ainda sem prendas neste filtro. Guarda uma ideia ou usa a lista de pessoas e ocasiões acima para começar.</p>':'')+'</section><aside class="panel gift-detail" id="giftDetail"></aside></div>'+(s.mode==='history'?'<section class="panel gift-years"><h3>Ao longo dos anos'+(s.person?' · '+esc(s.person):'')+'</h3><div class="u-table-scroll"><table class="u-table"><thead><tr><th>Ano</th><th>Compradas / entregues</th><th>Gasto real</th></tr></thead><tbody>'+history.byYear.map(row=>'<tr><td>'+row.year+'</td><td>'+row.count+'</td><td class="amount">'+eur(row.spent)+'</td></tr>').join('')+'</tbody></table></div></section>':'');
+   '<div id="giftsDynamicBody"></div>';
 
-  const detail=$('#giftDetail');if(selected){const g=selected,diag=G.diagnostic(data,g),product=data.casa?.catalog?.find(p=>p.id===g.catalogId);detail.innerHTML='<p class="eyebrow">PRENDA SELECIONADA</p><h3>'+esc(g.title)+'</h3><p><b>'+esc(g.person)+'</b> · <span class="gift-occasion-tag">'+esc(g.occasion||'Sem ocasião')+'</span> · '+g.year+'</p>'+(g.date?'<p>Data: '+dateLabel(g.date)+'</p>':'')+'<dl><dt>Estado</dt><dd>'+labels[g.status]+'</dd><dt>Custo real</dt><dd class="amount">'+(g.actualCost===null?'Por indicar':eur(g.actualCost))+'</dd></dl><p>'+esc(g.notes)+'</p>'+(g.url?'<p><a href="'+esc(g.url)+'" target="_blank" rel="noopener noreferrer">Abrir link ↗</a></p>':'')+(product?'<p>Produto: '+esc(product.name)+'</p>':'')+(diag.linked?'<p class="gift-link-status '+(diag.changed||diag.missing?'warning':'')+'">'+(diag.missing?'O registo associado já não está disponível. O custo guardado foi preservado.':diag.changed?'O registo associado foi alterado. Confere a ligação e o custo; nada foi atualizado automaticamente.':'Associado a '+esc(diag.label)+'. O pagamento mantém-se no registo de origem.')+'</p>':'')+'<div class="u-actions"><button type="button" class="secondary" id="giftEdit">Editar</button><button type="button" class="secondary" id="giftRemove">Eliminar</button></div>';$('#giftEdit').onclick=()=>giftForm(g.id);$('#giftRemove').onclick=()=>confirmAction('Eliminar prenda','Eliminar esta prenda? O movimento financeiro ou a compra associados mantêm-se.',()=>G.remove(data,g.id));}else detail.innerHTML='<h3>Detalhe</h3><p>Seleciona uma prenda para consultar ou editar.</p>';
-
+  const res=dynamicHtml();
+  $('#giftsDynamicBody',host).innerHTML=res.html;
+  wireDynamic(res);
   $('#giftAdd').onclick=()=>giftForm();
   $('#giftManageTargets').onclick=manageTargets;
-  if($('#giftAddTargetInline'))$('#giftAddTargetInline').onclick=()=>targetForm(s.person||'');
-  for(const b of host.querySelectorAll('[data-gift-check-filter]')){
-   b.onclick=()=>{s.checklistFilter=b.dataset.giftCheckFilter;render();};
-  }
-  for(const b of host.querySelectorAll('[data-gift-create-target]')){
-   b.onclick=()=>giftForm(null,{person:b.dataset.person,occasion:b.dataset.occasion,budget:Number(b.dataset.budget||0),year:checklistYear});
-  }
-  for(const b of host.querySelectorAll('[data-gift-edit-id]')){
-   b.onclick=()=>giftForm(b.dataset.giftEditId);
-  }
-  for(const b of host.querySelectorAll('[data-gift-remove-target]')){
-   b.onclick=()=>confirmAction('Remover da lista anual','Remover este par pessoa/ocasião da lista anual?',()=>G.removeTarget(data,b.dataset.giftRemoveTarget));
-  }
-  for(const b of host.querySelectorAll('[data-gift-select]')){b.onclick=()=>{s.selected=b.dataset.giftSelect;render();};b.onkeydown=e=>{if(!['ArrowUp','ArrowDown','Home','End'].includes(e.key))return;e.preventDefault();const at=list.findIndex(g=>g.id===s.selected),next=e.key==='Home'?0:e.key==='End'?list.length-1:Math.max(0,Math.min(list.length-1,at+(e.key==='ArrowDown'?1:-1)));s.selected=list[next].id;render();$('[data-gift-select="'+s.selected+'"]')?.focus();};}
-  for(const b of host.querySelectorAll('[data-gift-view]'))b.onclick=()=>{s.mode=b.dataset.giftView;s.year=s.mode==='history'?'all':String(new Date().getFullYear());render();};$('[name=giftsYear]').onchange=e=>{s.year=e.target.value;render();};$('[name=giftsPerson]').onchange=e=>{s.person=e.target.value;render();};$('[name=giftsQuery]').oninput=e=>{const at=e.target.selectionStart;s.query=e.target.value;render();const input=$('[name=giftsQuery]');input.focus();input.setSelectionRange(at,at);};$('#addTransaction').hidden=true;
+  for(const b of host.querySelectorAll('[data-gift-view]'))b.onclick=()=>{s.mode=b.dataset.giftView;s.status='all';s.year=s.mode==='history'?'all':String(new Date().getFullYear());render();};$('[name=giftsYear]').onchange=e=>{s.year=e.target.value;renderDynamic();};$('[name=giftsPerson]').onchange=e=>{s.person=e.target.value;renderDynamic();};$('[name=giftsQuery]').oninput=e=>{s.query=e.target.value;renderDynamic();};$('#addTransaction').hidden=true;
  }
  UILifecycle.register('gifts',{afterRender:render,afterNavigation:render},30);window.GiftsUI=Object.freeze({render,giftForm,targetForm});
 })();

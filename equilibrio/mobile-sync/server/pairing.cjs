@@ -9,6 +9,7 @@ function createPairing(store,{now=Date.now}={}){
   return store.transact(state=>{
    if(!Array.isArray(grants)||!grants.length||new Set(grants).size!==grants.length||grants.some(id=>!Object.hasOwn(state.spaces,id)))throw fail('Espaços inválidos.');
    state.pairings??={};
+   for(const [k,p] of Object.entries(state.pairings))if(!p?.claim&&p?.expiresAt<=now())delete state.pairings[k];
    if(Object.values(state.pairings).filter(p=>!p.claim&&p.expiresAt>now()).length>=20)throw fail('Já existem demasiados códigos ativos.',429);
    let code;do{code=crypto.randomBytes(8).toString('hex').toUpperCase();}while(state.pairings[hash(code)]);
    const expiresAt=now()+120000;

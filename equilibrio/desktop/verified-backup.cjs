@@ -39,8 +39,22 @@ async function verifyExactFile(filePath, expectedBuffer, expectedHash = sha256(e
   return { size: stat.size, sha256: expectedHash };
 }
 
+const destinationQueues = new Map();
+
+function runSerialized(destination, task) {
+  const key = path.resolve(String(destination || '')).toLowerCase();
+  const prev = destinationQueues.get(key) || Promise.resolve();
+  const next = prev.catch(() => {}).then(task);
+  const cleanup = next.then(() => {}, () => {}).then(() => {
+    if (destinationQueues.get(key) === cleanup) destinationQueues.delete(key);
+  });
+  destinationQueues.set(key, cleanup);
+  return next;
+}
+
 async function writeVerifiedAtomic(destination, content, options = {}) {
-  const buffer = Buffer.isBuffer(content) ? content : Buffer.from(String(content), 'utf8');
+  return runSerialized(destination, async () => {
+    const buffer = Buffer.isBuffer(content) ? content : Buffer.from(String(content), 'utf8');
   const expectedHash = sha256(buffer);
   const retries = Math.max(1, Math.min(5, Number(options.retries) || 3));
   const stageDirectory = path.resolve(options.stageDirectory || path.dirname(destination));
@@ -93,6 +107,7 @@ async function writeVerifiedAtomic(destination, content, options = {}) {
   } finally {
     try { await fs.rm(stagePath, { force: true }); } catch {}
   }
+  });
 }
 
 module.exports = { sha256, writeBufferCompletely, verifyExactFile, writeVerifiedAtomic };

@@ -1,0 +1,24 @@
+/* @order 100100 */
+/* Revisão 1.0.45: o título da revisão só usa texto claro quando o fundo escuro do cabeçalho é desenhado. */
+#reviewMonthHub:not(.active)>h2{color:var(--ink)!important}
+/* @order 100101 */
+#reviewMonthHub:not(.active)>p:first-of-type{color:var(--muted)!important}
+/* @order 100102 */
+body:not([data-theme="dark"]) #planner .ag-chips button[aria-pressed="true"] small{background:var(--accent,#0f7a5a)!important;color:#fff!important}
+/* @order 100103 */
+body:not([data-theme="dark"]) #planner .agenda-status.planned{color:#0b5f7a!important;background:rgba(14,116,144,.12)!important}
+/* @order 100104 */
+body:not([data-theme="dark"]) #transactions .movement-table-row .movement-description-cell .movement-description-note.note-blue,body:not([data-theme="dark"]) .movements-dashboard .movement-description-note.note-blue{color:#1d4ed8!important;background:rgba(37,99,235,.1)!important}
+/* @order 100105 */
+body:not([data-theme="dark"]) .movement-type-tab.active{color:#0b6b4c!important;background:rgba(15,122,90,.12)!important}
+/* @order 100106 */
+/* Anel decorativo sem cartão por baixo aparecia como mancha escura atrás dos filtros da Casa. */
+.casa-view .section-head::after{display:none!important}
+/* @order 100107 */
+/* «outubro de 2026»: só a primeira letra em maiúscula (capitalize gerava «Outubro De 2026»). */
+#weeklyHub #analysisComparisons>.section-head p{text-transform:none!important}
+/* @order 100108 */
+#weeklyHub #analysisComparisons>.section-head p::first-letter{text-transform:uppercase}
+/* @order 100109 */
+/* Dados: a barra lateral (175 px) e as áreas da grelha tinham de concordar; o conteúdo caía na coluna estreita. */
+@media(min-width:800px){body.equilibrio-studio #dataHub #unifiedData.u-task-grid{grid-template-areas:"head head" "tabs content"!important}body.equilibrio-studio #dataHub #unifiedData>.dt-compact-nav{grid-area:tabs!important;position:sticky;top:84px}body.equilibrio-studio #dataHub #unifiedData .u-task-content{grid-area:content!important;min-width:0}}

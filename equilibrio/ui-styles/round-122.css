@@ -70,3 +70,241 @@ body[data-theme=dark] select option{background:#172e38;color:#e7f0f1}
 #modal:has(#casaCompareKm) .casa-life-table{min-width:0!important;width:100%}
 /* @order 47135 */
 #modal:has(#casaCompareKm) .casa-life-table :is(th,td){padding:10px 8px!important;white-space:nowrap}
+
+/* @order 47136 */
+#casaShopping.casa-in-store .casa-shop-check{display:flex;align-items:center;min-height:48px;gap:12px;cursor:pointer;padding:6px 0;flex:1}
+/* @order 47137 */
+#casaShopping.casa-in-store .casa-shop-check input{width:24px;height:24px;flex:0 0 24px}
+/* @order 47138 */
+#casaShopping.casa-in-store .casa-shop-row.is-done .casa-shop-check b{text-decoration:line-through;color:var(--muted)}
+/* @order 47139 */
+:is(.pl-coverage,.beneficiary-settings,#desktopAboutPanel)>summary{font-weight:700;cursor:pointer;padding-block:8px}
+/* @order 47140 */
+.provider-brand img{object-fit:contain;padding:2px;width:100%;height:100%}
+/* @order 47141 */
+@media(max-width:560px){#modal .casa-compare-opts{grid-template-columns:1fr}#modal:has(#casaCompareKm) .casa-life-table :is(th,td){white-space:normal}}
+
+/* @order 47164 */
+#casaConsumos .utility-period-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:16px}
+/* @order 47165 */
+#casaConsumos .utility-period-card{min-width:0}
+/* @order 47166 */
+#modal label:has([name=utilitySupplier])[hidden]{display:none!important}
+
+/* @order 47168 */
+#plansBoard.plan-workspace{--plan-accent:#16705d;--plan-deep:#103c35;--plan-on-deep:#f2fbf7;display:grid;gap:16px}
+/* @order 47169 */
+#plansBoard .plan-masthead{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;border-bottom:1px solid var(--line)}
+/* @order 47170 */
+#plansBoard .plan-masthead h2{margin:0 0 14px;font-size:clamp(1.65rem,3vw,2.35rem);line-height:1.1;letter-spacing:-.035em}
+/* @order 47171 */
+#plansBoard .plan-navigation{display:flex;gap:4px;padding:0;margin-bottom:-1px}
+/* @order 47172 */
+#plansBoard .plan-navigation button{border:0;border-bottom:3px solid transparent;border-radius:7px 7px 0 0;background:transparent;color:var(--muted);font:inherit;font-weight:700;padding:11px 15px;cursor:pointer}
+/* @order 47173 */
+#plansBoard .plan-navigation button[aria-current=page]{border-bottom-color:var(--plan-accent);color:var(--ink);background:color-mix(in srgb,var(--plan-accent) 12%,var(--paper))}
+/* @order 47174 */
+#plansBoard :is(.plan-funding,.plan-records,.plan-decisions){display:grid;gap:22px;min-width:0}
+/* @order 47175 */
+#plansBoard .plan-funding-primary{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(240px,1fr);gap:16px}
+/* @order 47176 */
+#plansBoard .plan-saldo{display:grid;gap:12px;background:var(--plan-deep);color:var(--plan-on-deep);border-radius:17px;padding:clamp(18px,3vw,36px);min-width:0}
+/* @order 47177 */
+#plansBoard .plan-saldo h3{font-size:1rem;font-weight:600;margin:0;color:#cce6dc}
+/* @order 47178 */
+#plansBoard .plan-saldo>.amount{font-size:clamp(2rem,6vw,4.5rem);letter-spacing:-.055em;line-height:1.04;color:inherit;overflow-wrap:anywhere}
+/* @order 47179 */
+#plansBoard progress{width:100%;height:8px;border:0;border-radius:6px;overflow:hidden;background:var(--line);accent-color:var(--plan-accent)}
+/* @order 47180 */
+#plansBoard progress::-webkit-progress-bar{background:var(--line);border-radius:6px}
+/* @order 47181 */
+#plansBoard progress::-webkit-progress-value{background:var(--plan-accent)}
+/* @order 47182 */
+#plansBoard .plan-saldo progress::-webkit-progress-bar{background:#28554c}
+/* @order 47183 */
+#plansBoard .plan-saldo progress::-webkit-progress-value{background:#96d8bd}
+/* @order 47184 */
+#plansBoard .plan-saldo dl{display:flex;gap:clamp(16px,6vw,64px);flex-wrap:wrap;margin:2px 0 0}
+/* @order 47185 */
+#plansBoard .plan-saldo :is(dt,dd){color:inherit;margin:0}
+/* @order 47186 */
+#plansBoard .plan-saldo dt{color:#cce6dc;font-size:.85rem}
+/* @order 47187 */
+#plansBoard .plan-coverage-status{border:1px solid var(--line);border-radius:17px;background:var(--paper);padding:22px;display:grid;align-content:center;justify-items:start;gap:10px}
+/* @order 47188 */
+#plansBoard .plan-coverage-status svg{width:23px;height:23px;color:var(--blue)}
+/* @order 47189 */
+#plansBoard .plan-coverage-status :is(h3,p){margin:0 0 5px}
+/* @order 47190 */
+#plansBoard .plan-accounts ul{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,270px),1fr));list-style:none;gap:12px;padding:0;margin:0}
+/* @order 47191 */
+#plansBoard .plan-account{display:grid;gap:13px;min-width:0;border:1px solid var(--line);border-radius:12px;padding:14px 16px;background:var(--paper)}
+/* @order 47192 */
+#plansBoard .plan-account-name{display:flex;align-items:center;gap:10px;overflow-wrap:anywhere}
+/* @order 47193 */
+#plansBoard .plan-account-name svg{width:20px;height:20px;flex:none}
+/* @order 47194 */
+#plansBoard .plan-account-name h4{margin:0}
+/* @order 47195 */
+#plansBoard .plan-account-name span,#plansBoard .plan-account dt{font-size:.82rem;color:var(--muted)}
+/* @order 47196 */
+#plansBoard .plan-account.is-deficit .plan-account-name span{color:var(--red,#b74545);font-weight:700}
+/* @order 47197 */
+#plansBoard .plan-account dl{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin:0;gap:8px}
+/* @order 47198 */
+#plansBoard .plan-account dd{margin:2px 0 0;overflow-wrap:anywhere}
+/* @order 47199 */
+#plansBoard .plan-record-controls{display:flex;gap:12px;flex-wrap:wrap;align-items:end}
+/* @order 47222 */
+#plansBoard .plan-query{flex:1 1 180px;margin:0}
+/* @order 47223 */
+#plansBoard .plan-query input{max-width:340px}
+/* @order 47224 */
+#plansBoard .plan-month{flex:0 1 190px;margin:0}
+/* @order 47200 */
+#plansBoard :is(.plan-filters,.plan-decision-choices,.plan-detail-actions){display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+/* @order 47201 */
+#plansBoard :is(.plan-filters,.plan-decision-choices) button[aria-pressed=true]{border-color:var(--plan-accent);background:color-mix(in srgb,var(--plan-accent) 18%,var(--paper));color:var(--ink)}
+/* @order 47202 */
+#plansBoard .plan-record-group h3{margin:0 0 8px}
+/* @order 47203 */
+#plansBoard .plan-record{border:1px solid var(--line);border-radius:10px;background:var(--paper);margin-bottom:7px;min-width:0}
+/* @order 47204 */
+#plansBoard .plan-record>summary{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) minmax(0,.8fr) 18px;gap:12px;padding:12px 14px;align-items:center;cursor:pointer;list-style:none;overflow-wrap:anywhere}
+/* @order 47205 */
+#plansBoard .plan-record>summary::after{content:"";width:.55rem;height:.55rem;border:solid currentColor;border-width:0 1.5px 1.5px 0;transform:rotate(45deg);justify-self:center;align-self:center;color:var(--muted)}
+/* @order 47206 */
+#plansBoard .plan-record[open]>summary::after{transform:rotate(225deg)}
+/* @order 47207 */
+#plansBoard .plan-record>summary::-webkit-details-marker{display:none}
+/* @order 47208 */
+#plansBoard .plan-record>summary small{display:block;color:var(--muted);line-height:1.25}
+/* @order 47209 */
+#plansBoard .plan-record[open]>summary{background:color-mix(in srgb,var(--plan-accent) 9%,var(--paper));border-radius:10px 10px 0 0}
+/* @order 47210 */
+#plansBoard .plan-record-detail{border-top:1px solid var(--line);padding:14px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+/* @order 47211 */
+#plansBoard .plan-record-detail :is(h4,p){margin:0 0 5px}
+/* @order 47212 */
+#plansBoard .plan-detail-actions{grid-column:1/-1}
+/* @order 47213 */
+#plansBoard :is(.plan-managers,.plan-decision-context,.plan-decision-records,.plan-empty){border:1px solid var(--line);background:var(--paper);border-radius:12px;padding:14px}
+/* @order 47214 */
+#plansBoard :is(.plan-managers,.plan-decision-context,.plan-decision-records)>summary{cursor:pointer;font-weight:700}
+/* @order 47215 */
+#plansBoard .plan-managers>.u-actions,#plansBoard .plan-decision-context>.pl-context{margin-top:12px}
+/* @order 47216 */
+#plansBoard .u-decision-pane #decisionsHub{display:block;min-width:0}
+/* @order 47217 */
+#plansBoard .plan-decision-top h3{margin:0 0 8px}
+/* @order 47218 */
+#plansBoard .plan-decision-choices svg{width:17px;height:17px;vertical-align:middle}
+/* @order 47219 */
+@media(max-width:740px){#plansBoard .plan-funding-primary{grid-template-columns:minmax(0,1fr)}#plansBoard .plan-record>summary{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 16px;gap:6px 10px}#plansBoard .plan-record-name{grid-column:1/3;grid-row:1}#plansBoard .plan-record>summary::after{grid-column:3;grid-row:1}#plansBoard .plan-record-amount{grid-column:1;grid-row:2}#plansBoard .plan-record-account{grid-column:2;grid-row:2}#plansBoard .plan-record-detail{grid-template-columns:minmax(0,1fr)}#plansBoard .plan-masthead{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start}#plansBoard .plan-masthead>div{display:contents}#plansBoard .plan-masthead h2{grid-column:1;grid-row:1;margin:0}#plansBoard .plan-masthead>.u-add-menu{position:relative;grid-column:2;grid-row:1}#plansBoard .plan-navigation{grid-column:1/-1;grid-row:2}#plansBoard .plan-navigation button{padding-inline:10px}}
+
+/* @order 47220 */
+#plansBoard #decisionsHub :is(.decisions-hero,.decision-flow){display:none!important}
+/* @order 47221 */
+#plansBoard .plan-decision-records>div:not(:empty){margin-top:12px}
+
+/* @order 47225 */
+body[data-theme=dark].equilibrio-studio #appTopbar .top-primary-nav .top-nav-link.active{color:#dff5ef!important}
+/* @order 47226 */
+body[data-theme=dark].equilibrio-studio #appTopbar .practical-quick>summary{color:#fff!important}
+/* @order 47227 */
+body[data-theme=dark] #plansBoard .plan-account.is-deficit .plan-account-name span{color:#ffb0ab}
+
+/* @order 47228 */
+#weeklyHub .u-review-combined > #insights { grid-column: 1 / -1; }
+/* @order 47229 */
+#faqDialog .faq-technical { margin-top: 32px; }
+/* @order 47230 */
+#unifiedData .dt-clear-imports { margin-bottom: 12px; }
+/* @order 47231 */
+.eq-design-split, #documentsHub .document-library {
+  display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);
+  gap:var(--desk-gap,16px);align-items:start;
+}
+/* @order 47232 */
+.eq-design-split>* {min-width:0}
+/* @order 47233 */
+.eq-design-tabs {display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-block:12px}
+/* @order 47234 */
+.eq-design-tabs button[aria-pressed=true] {background:var(--selected);color:var(--ink);border-color:var(--blue)}
+/* @order 47235 */
+.eq-design-tabs :is(input[type=search],.dt-clear-imports) {margin:0 0 0 auto}
+/* @order 47236 */
+:is(.eq-design-split,.document-library,.documents-missing,.statement-review,.statement-row,.review-layout,.rules-suggestions,.rules-workspace,.rules-history,.rule-suggestion,.u-import-extras)[hidden] {display:none!important}
+/* @order 47237 */
+#plansBoard .plan-record>summary {grid-template-columns:minmax(0,1.25fr) minmax(0,1fr) minmax(0,1fr) 14px}
+/* @order 47238 */
+#plansBoard .plan-record>summary>div:last-child {display:none}
+/* @order 47239 */
+#plansBoard .plan-record[open]>summary {border-radius:inherit}
+/* @order 47240 */
+#plansBoard .plan-record-inspector {padding:16px}
+/* @order 47241 */
+#plansBoard .plan-record-inspector .plan-record-detail {grid-template-columns:1fr;padding:12px 0 0}
+/* @order 47242 */
+#decisionsHub .decision-impact-card {min-width:0;padding:16px;background:var(--surface-soft)}
+/* @order 47243 */
+#decisionsHub .decision-impact-card h3 {margin:0 0 12px}
+/* @order 47244 */
+#documentsHub .document-select {border-bottom:0!important;padding:8px!important}
+/* @order 47245 */
+#documentsHub .document-preview {min-height:0}
+/* @order 47246 */
+#documentsHub .document-preview iframe {height:320px}
+/* @order 47247 */
+#casaEquipment .eq-design-split .eq-grid {grid-template-columns:minmax(0,1fr)!important;margin:0!important}
+/* @order 47248 */
+.dossier-register {padding:12px}
+/* @order 47249 */
+:is(.dossier-register,.import-statement-register) label {display:grid;gap:5px;margin-block-end:12px}
+/* @order 47250 */
+.dossier-register-workspace .dossier2-grid {grid-template-columns:minmax(0,1fr)!important}
+/* @order 47251 */
+#casaGifts .gift-checklist-panel {margin-block-start:18px}
+/* @order 47252 */
+#review .statement-review {overflow-wrap:anywhere}
+/* @order 47253 */
+@media(max-width:1000px) {
+ .eq-design-split, #documentsHub .document-library {grid-template-columns:minmax(0,1fr)}
+}
+/* @order 47254 */
+@media(max-width:590px) {
+ #plansBoard .plan-record>summary {grid-template-columns:minmax(0,1fr) minmax(0,1fr) 14px}
+ #plansBoard .plan-record>summary .plan-meter {grid-column:1/3;grid-row:2}
+ #plansBoard .plan-record>summary::after {grid-column:3;grid-row:1}
+}
+/* @order 47255 */
+.dossier-register-workspace :is(.dossier2-facts,.dossier2-grid,.dossier2-card)[hidden] {display:none!important}
+/* @order 47256 */
+#personalRules .rule-suggestion-detail .rule-suggestion:not([hidden]) {display:grid;gap:8px;padding:12px;border:0}
+/* @order 47257 */
+#personalRules .rule-suggestion-detail[hidden] {display:none!important}
+/* @order 47258 */
+#documentsHub .document-filter-grid {margin-bottom:8px}
+/* @order 47259 */
+.import-statement-detail .statement-review {margin-top:0}
+/* @order 79174 */
+@media (min-width:1101px) and (max-height:950px) {
+  body[data-current-view="dashboard"] #mainContent {padding-block:6px!important;row-gap:6px!important}
+  body[data-current-view="dashboard"] #demoBanner {padding-block:4px!important;margin-block:4px!important}
+  #dashboard .summary-shell {gap:4px!important}
+  #dashboard .summary-topline {padding-block:0!important;margin-block:0!important}
+  body.equilibrio-studio #dashboard :is(.summary-kpi-grid,.summary-chart-grid,.summary-bottom-grid) {margin-block:0!important;padding-block:0!important}
+  #dashboard .summary-kpi {height:auto!important;min-height:0!important;padding-block:6px!important}
+  #dashboard .summary-panel {min-height:0!important;padding:8px!important}
+  #dashboard .summary-panel .summary-panel-heading {min-height:0!important;margin-block:0 4px!important;padding-block:0!important}
+  #dashboard .summary-panel :is(#summaryBalanceChart,#chart) {height:clamp(118px,calc(45vh - 225px),195px)!important;min-height:0!important;flex:1 1 auto!important}
+  #dashboard .summary-panel .summary-donut {width:clamp(112px,17vh,150px)!important;height:auto!important;aspect-ratio:1}
+  #dashboard .summary-donut-layout {min-height:0!important;padding-block:0!important}
+  #dashboard .summary-list-panel .summary-list {margin-block:0!important;padding-block:0!important}
+  #dashboard .summary-list :is(.summary-account-row,.summary-movement-row) {min-height:0!important;padding-block:2px!important}
+  body[data-current-view="dashboard"] #mainContent .area-tabs {margin-bottom:4px!important}
+  body[data-current-view="dashboard"] #demoBanner > div {display:flex;align-items:baseline;flex-wrap:wrap;gap:6px}
+  #dashboard .summary-kpi :is(#incomeTrend,#expenseTrend) {display:inline!important}
+  #dashboard .summary-kpi :is(#incomeBreakdownButton,#expenseBreakdownButton) {display:inline-block!important;margin:0 0 0 6px!important;padding-block:0!important}
+  #dashboard .summary-list .summary-date-chip {height:30px!important;min-height:0!important}
+}

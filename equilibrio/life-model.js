@@ -45,38 +45,46 @@
   function sharedOutstanding(d) {
     return sum(d.sharedExpenses.map((s) => s.amount - received(d, s.id)));
   }
+  function totalRefundedFor(d, transactionId, excludeSharedId) {
+    const shared = sum(
+      (d.sharedExpenses || [])
+        .filter((s) => String(s.transactionId) === String(transactionId) && String(s.id) !== String(excludeSharedId))
+        .map((s) => s.amount),
+    );
+    const directRefunds = sum(
+      (d.transactions || [])
+        .filter((t) => t.type === "income" && String(t.refundOf || "") === String(transactionId) && !t.sharedExpenseId)
+        .map((t) => t.amount),
+    );
+    return F.money(shared + directRefunds);
+  }
   function share(d, transactionId, person, amount, id) {
     const original = d.transactions.find(
-      (t) => t.id === transactionId && t.type === "expense" && !t.debtId,
+      (t) => String(t.id) === String(transactionId) && t.type === "expense" && !t.debtId,
     );
     if (!original || !text(person) || !Number.isFinite(amount) || amount <= 0)
       throw Error("Escolhe uma despesa, uma pessoa e um valor positivo.");
     if (d.closedMonths.includes(original.date.slice(0, 7)))
       throw Error("Reabre o mês antes de alterar a partilha.");
-    const others = sum(
-      d.sharedExpenses
-        .filter((s) => s.transactionId === transactionId && s.id !== id)
-        .map((s) => s.amount),
-    );
-    if (F.money(others + amount) > original.amount)
+    if (F.money(totalRefundedFor(d, transactionId, id) + amount) > original.amount)
       throw Error("As partes a receber excedem o valor da compra.");
     if (id && received(d, id) > amount)
       throw Error("O valor não pode ser inferior ao que já recebeste.");
     const record = {
       id: id || F.id(),
-      transactionId,
+      transactionId: original.id,
       person: person.trim(),
       amount: F.money(amount),
     };
     if (id) {
-      const index = d.sharedExpenses.findIndex((s) => s.id === id);
+      const index = d.sharedExpenses.findIndex((s) => String(s.id) === String(id));
       if (index < 0) throw Error("Partilha inexistente.");
       d.sharedExpenses[index] = record;
     } else d.sharedExpenses.push(record);
     return record;
   }
   function receiveShare(d, id, amount, account, when) {
-    const s = d.sharedExpenses.find((s) => s.id === id);
+    const s = d.sharedExpenses.find((s) => String(s.id) === String(id));
     if (
       !s ||
       !Number.isFinite(amount) ||
@@ -84,6 +92,16 @@
       amount > F.money(s.amount - received(d, id))
     )
       throw Error("O recebimento excede o valor por receber.");
+    const original = d.transactions.find((t) => String(t.id) === String(s.transactionId));
+    if (original) {
+      const alreadyRefunded = sum(
+        (d.transactions || [])
+          .filter((t) => t.type === "income" && String(t.refundOf || "") === String(original.id))
+          .map((t) => t.amount),
+      );
+      if (F.money(alreadyRefunded + amount) > original.amount)
+        throw Error("Os reembolsos excedem o valor da despesa original.");
+    }
     requireDate(when);
     return F.add(d, {
       id: F.id(),
@@ -314,17 +332,17 @@
       if (e.document) add("Comprovativo", e.id, e.document.name, e.name + (e.purchaseDate ? " " + e.purchaseDate : ""), "documentsHub", e.document.text || "");
     }
     for (const r of d.practical?.routines || [])
-      add("Rotina", r.id, r.name, r.nextDate || "", "casaEquipment", [r.notes || "", ...(r.checklist || []).map(c => c.text)].join(" "));
+      add("Rotina", r.id, r.title || r.name, r.nextDate || "", "casaEquipment", [r.notes || "", ...(r.checklist || []).map(c => c.label || c.text)].join(" "));
     for (const v of d.practical?.vehicles || []) {
-      add("Veículo", v.id, v.name, [v.plate, v.brandModel].filter(Boolean).join(" "), "casaVehicles", [v.notes || "", ...(v.maintenance || []).map(m => m.description), ...(v.documents || []).map(doc => [doc.title, doc.name, doc.text].join(" "))].join(" "));
-      for (const doc of v.documents || []) add("Comprovativo", doc.id, doc.title || doc.name, v.name + " " + (doc.date || ""), "documentsHub", [doc.name, doc.text || ""].join(" "));
+      add("Veículo", v.id, v.name, [v.plate, v.makeModel || v.brandModel].filter(Boolean).join(" "), "casaVehicles", [v.notes || "", ...(v.maintenance || []).map(m => m.description), ...(v.documents || []).map(doc => [doc.title, doc.document?.name || doc.name, doc.document?.text || doc.text].join(" "))].join(" "));
+      for (const doc of v.documents || []) add("Comprovativo", doc.id, doc.title || doc.document?.name || doc.name, v.name + " " + (doc.date || ""), "documentsHub", [doc.document?.name || doc.name, doc.document?.text || doc.text || ""].join(" "));
     }
     for (const h of d.practical?.housing || []) {
-      add("Habitação", h.id, h.name, [h.address, h.reference].filter(Boolean).join(" "), "casaHousing", [h.notes || "", ...(h.documents || []).map(doc => [doc.title, doc.name, doc.text].join(" "))].join(" "));
-      for (const doc of h.documents || []) add("Comprovativo", doc.id, doc.title || doc.name, h.name + " " + (doc.date || ""), "documentsHub", [doc.name, doc.text || ""].join(" "));
+      add("Habitação", h.id, h.name, [h.addressNote || h.address, h.taxId || h.reference].filter(Boolean).join(" "), "casaHousing", [h.notes || "", ...(h.documents || []).map(doc => [doc.title, doc.document?.name || doc.name, doc.document?.text || doc.text].join(" "))].join(" "));
+      for (const doc of h.documents || []) add("Comprovativo", doc.id, doc.title || doc.document?.name || doc.name, h.name + " " + (doc.date || ""), "documentsHub", [doc.document?.name || doc.name, doc.document?.text || doc.text || ""].join(" "));
     }
-    for (const u of d.casa?.utilityReadings || [])
-      add("Consumo", u.id, ({ water: "Água", electricity: "Eletricidade", gas: "Gás" }[u.utility] || u.utility) + " · " + u.reading + " " + u.unit, u.date, "casaConsumos", [u.meterLabel || "", u.note || ""].join(" "));
+    for (const u of [...(d.casa?.utilityReadings || []), ...(d.casa?.utilityMonthly || []), ...(d.casa?.utilityPeriods || [])])
+      add("Consumo", u.id, ({ water: "Água", electricity: "Eletricidade", gas: "Gás", sanitation: "Saneamento" }[u.utility] || u.utility) + " · " + (u.reading ?? u.consumption ?? "") + " " + (u.unit || ""), u.date || u.periodEnd || u.month || "", "casaConsumos", [u.meter || u.meterLabel || "", u.supplier || "", u.note || ""].join(" "));
     // Intercalar os tipos mantém resultados relevantes visíveis dentro do limite.
     const matches = [], lists = [...groups.values()];
     for (let i = 0; matches.length < 100 && lists.some(xs => i < xs.length); i++)
@@ -333,7 +351,7 @@
   }
   function trade(d, p) {
     requireDate(p.date);
-    const holding = d.investments.find((i) => i.id === p.investmentId),
+    const holding = d.investments.find((i) => String(i.id) === String(p.investmentId)),
       a = d.accounts.find(
         (a) =>
           a.name === p.account &&
@@ -347,19 +365,20 @@
       throw Error("Operação inválida.");
     const units = Number(p.units),
       price = Number(p.price),
-      fee = Number(p.fee);
+      rawFee = Number(p.fee);
     if (
-      !nonnegative(fee) ||
+      !nonnegative(rawFee) ||
       !Number.isFinite(price) ||
       price <= 0 ||
       (p.kind !== "dividend" &&
         (!Number.isFinite(units) || units <= 0 || units !== +units.toFixed(8)))
     )
       throw Error("Quantidade, preço ou comissão inválidos.");
+    const fee = F.money(rawFee);
     if ((!i.units || i.units < 0) && i.cost > 0)
       throw Error("Define primeiro as unidades iniciais desta posição.");
     if (
-      d.investmentTrades.some((t) => t.investmentId === i.id && t.date > p.date)
+      d.investmentTrades.some((t) => String(t.investmentId) === String(i.id) && t.date > p.date)
     )
       throw Error(
         "Regista as operações por ordem de data. Reverte primeiro as operações posteriores.",
@@ -367,6 +386,7 @@
     const before = clone(i);
     const held = i.units || 0,
       gross = F.money(p.kind === "dividend" ? price : units * price);
+    if (!(gross > 0)) throw Error("O valor bruto da operação tem de ser positivo.");
     let delta,
       realized = 0,
       costReleased = 0;
@@ -522,9 +542,14 @@
       }),
       cats = new Map(),
       entries = F.expenseEntries(d, year),
+      entriesByMonth = new Map(),
       sumRows = (rows) => F.money(rows.reduce((n, x) => n + (+x.amount || 0), 0));
-    for (const e of entries)
+    for (const e of entries) {
       cats.set(e.category, F.money((cats.get(e.category) || 0) + e.amount));
+      const em = String(e.date || "").slice(0, 7);
+      if (!entriesByMonth.has(em)) entriesByMonth.set(em, []);
+      entriesByMonth.get(em).push(e);
+    }
 
     const comparableMonths = selectedMonthCount,
       ytdMonths = months.slice(0, comparableMonths),
@@ -545,7 +570,7 @@
       .map(([category, total]) => ({
         category,
         total,
-        months: months.map((m) => sumRows(F.expenseEntries(d, m.month).filter((e) => e.category === category))),
+        months: months.map((m) => sumRows((entriesByMonth.get(m.month) || []).filter((e) => e.category === category))),
       }));
 
     const recentEnd = year === currentYear ? +currentMonth.slice(5) : 12,
@@ -553,9 +578,9 @@
       prior = months.slice(Math.max(0, recentEnd - 6), Math.max(0, recentEnd - 3)),
       recentCats = new Map(), priorCats = new Map();
     for (const m of recent)
-      for (const e of F.expenseEntries(d, m.month)) recentCats.set(e.category, F.money((recentCats.get(e.category) || 0) + e.amount));
+      for (const e of entriesByMonth.get(m.month) || []) recentCats.set(e.category, F.money((recentCats.get(e.category) || 0) + e.amount));
     for (const m of prior)
-      for (const e of F.expenseEntries(d, m.month)) priorCats.set(e.category, F.money((priorCats.get(e.category) || 0) + e.amount));
+      for (const e of entriesByMonth.get(m.month) || []) priorCats.set(e.category, F.money((priorCats.get(e.category) || 0) + e.amount));
     const risingCategories = [...new Set([...recentCats.keys(), ...priorCats.keys()])]
       .map((category) => {
         const recentAverage = F.money((recentCats.get(category) || 0) / Math.max(1, recent.length)),
@@ -590,8 +615,17 @@
         remainingKnown = F.upcoming(d, monthKey).filter((x) => x.date > F.today()),
         knownIncome = sum(remainingKnown.filter((x) => x.type === "income").map((x) => x.amount)),
         knownExpense = sum(remainingKnown.filter((x) => x.type === "expense").map((x) => x.amount)),
-        runRateExpense = F.money(actual.expense / elapsedDays * daysInMonth),
-        runRateIncome = F.money(actual.income / elapsedDays * daysInMonth);
+        monthEntries = entriesByMonth.get(monthKey) || [],
+        isFixedExpense = (e) => {
+          const src = e.refundOf ? transactionsById.get(String(e.refundOf)) : e;
+          return Boolean(src && (src.recurringRuleId || src.subscriptionId || src.debtId || src.expenseNature === "fixed"));
+        },
+        fixedActualExpense = sumRows(monthEntries.filter(isFixedExpense)),
+        variableActualExpense = Math.max(0, F.money(actual.expense - fixedActualExpense)),
+        fixedActualIncome = sum((d.transactions || []).filter((t) => t.date.startsWith(monthKey) && t.type === "income" && !t.refundOf && (t.recurringRuleId || t.expenseNature === "fixed")).map((t) => t.amount)),
+        variableActualIncome = Math.max(0, F.money(actual.income - fixedActualIncome)),
+        runRateExpense = F.money(fixedActualExpense + knownExpense + variableActualExpense / elapsedDays * daysInMonth),
+        runRateIncome = F.money(fixedActualIncome + knownIncome + variableActualIncome / elapsedDays * daysInMonth);
       forecast = {
         month: monthKey,
         actualIncome: actual.income,

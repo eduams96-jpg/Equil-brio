@@ -24,8 +24,8 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
   await page.locator('#agendaMonthPicker').fill('2026-09');assert.equal(await page.evaluate(()=>month),'2026-09');await page.locator('[data-agenda-today]').click();
   await page.locator('[data-agenda-layout=calendar]').click();await page.locator('[data-agenda-day$="-15"]').click();assert.match(await page.locator('#agendaRows').innerText(),/Eletricidade/);
   if(require('./_version.cjs').revision()>=69){await page.locator('#agendaRows .agenda31-menu > summary').first().click();await page.locator('.agenda31-menu-portal [data-action=settle-pending]').click();}else await page.locator('#agendaRows .approved-day-action').click();assert.equal(await page.locator('#modal').evaluate(n=>n.open),true);await page.evaluate(()=>document.querySelector('#modal').close());
-  await page.evaluate(()=>navigate('wealth'));assert.equal(await page.locator('#wealth .wl-tiles .ch-tile').count(),4);assert.equal(await page.locator('#wealthInventory [data-u-open-record]').count(),2);assert.match(await page.locator('#wealthInventory').innerText(),/conferir|avaliação/i);
-  await page.locator('#wealthInventory [data-u-open-record="asset:car"]').click();assert.equal(await page.locator('#wealthMoneyHub').isVisible(),true);assert.equal(await page.locator('.u-inspector h3').innerText(),'Automóvel');
+  await page.evaluate(()=>navigate('wealth'));assert.equal(await page.locator('#wealth .wl-tiles .ch-tile').count(),4);assert.equal(await page.locator('#wealthInventory').count(),0);
+  await page.evaluate(()=>navigate('wealthMoneyHub'));await page.locator('[data-u-wealth="asset:car"] .u-record-button').click();assert.equal(await page.locator('#wealthMoneyHub').isVisible(),true);assert.equal(await page.locator('.u-inspector h3').innerText(),'Automóvel');
   for(const [width,height,scale] of [[390,844,1],[768,900,1],[1024,768,1],[1440,900,1],[1920,1080,1],[1440,900,1.25],[1440,900,1.5]]) {
    await page.setViewportSize({width:Math.floor(width/scale),height:Math.floor(height/scale)});
    for(const view of ['planner','plansHub','decisionsHub','wealth','wealthMoneyHub','wealthHoldingsHub']) {

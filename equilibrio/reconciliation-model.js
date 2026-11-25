@@ -104,12 +104,14 @@ function monthReview(d, month) {
  });
  const transfers=d.transactions.filter(t=>t.type==='transfer'&&t.transferStatus==='pending'&&t.date<=end);
  const imports=(d.pendingImports||[]).filter(t=>!t.date||t.date<=end);
+ const statementRows=(d.statements||[]).flatMap(statement=>statement.rows||[]).filter(row=>row.status==='pending'&&row.source?.date?.startsWith(month));
  const confirmed=accounts.filter(a=>a.confirmed).length,blockers=[];
  if(!complete)blockers.push('O mês ainda não terminou. Podes conferir os saldos até hoje.');
  if(!accounts.length)blockers.push('Adiciona uma conta antes de fechar o mês.');
  if(confirmed<accounts.length)blockers.push('Confere o saldo de '+(accounts.length-confirmed)+' conta(s) na data indicada.');
  if(transfers.length)blockers.push(transfers.length+' transferência(s) por confirmar até ao fim deste mês.');
  if(imports.length)blockers.push(imports.length+' movimento(s) importado(s) por rever até ao fim deste mês.');
+ if(statementRows.length)blockers.push(statementRows.length+' linha(s) de extrato por conferir neste mês.');
  return{month,end,date,future,complete,accounts,confirmed,transfers,imports,blockers,ready:!blockers.length,closed:(d.closedMonths||[]).includes(month)};
 }
 function setMonthClosed(d,month,closed,budgets){

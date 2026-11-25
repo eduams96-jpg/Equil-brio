@@ -16,7 +16,6 @@
         noticePriority: 'all',
         noticeState: 'active',
         noticeQuery: '',
-        utilityFilter: 'all',
         vehicleId: '',
         housingId: '',
         pdfQuery: '',
@@ -167,27 +166,31 @@
     const byAreaCount = areaId => areaId === 'all' ? allActive.length : allActive.filter(n => n.area === areaId).length;
     const selected=res.rows.find(n=>n.id===s.noticeSelected)||res.rows[0];s.noticeSelected=selected?.id||'';
     const I = name => window.InterfaceUI?.icon ? InterfaceUI.icon(name) : '';
-    const master=res.rows.map(n=>`<button type="button" class="notice-list-item nt-row priority-${esc(n.priority)} ${n.id===s.noticeSelected?'is-selected':''}" data-notice-select="${esc(n.id)}" aria-pressed="${n.id===s.noticeSelected}"><span class="nt-row-icon" aria-hidden="true">${areaIcons[n.area]||'🔔'}</span><span class="notice-list-title">${esc(n.title)}</span><strong class="amount">${n.amount!==null&&n.amount!==undefined?eur(n.amount):''}</strong><small>${n.date?dateLabel(n.date)+' · ':''}${esc(n.areaLabel)}</small><span class="notice-state-tag state-${esc(n.effectiveState)}">${esc(stateLabels[n.effectiveState]||n.effectiveState)}</span></button>`).join('');
-    const kpi = (tone, icon, label, value, note, state, id) => `<button type="button" class="ch-tile nt-kpi is-${tone}${s.noticeState === state ? ' is-active' : ''}" data-notice-kpi="${state}"><span class="ch-tile-icon">${I(icon)}</span><div><span>${label}</span><strong id="${id}">${value}</strong><small>${note}</small></div></button>`;
+    const master=res.rows.map(n=>{const stateText=stateLabels[n.effectiveState]||n.effectiveState,tagText=n.priority==='high'&&n.effectiveState!=='overdue'?'Alta · '+stateText:stateText;return `<button type="button" class="notice-list-item nt-row priority-${esc(n.priority)} ${n.id===s.noticeSelected?'is-selected':''}" data-notice-select="${esc(n.id)}" aria-pressed="${n.id===s.noticeSelected}"><span class="nt-row-icon" aria-hidden="true">${areaIcons[n.area]||'🔔'}</span><span class="notice-list-title">${esc(n.title)}</span><strong class="amount">${n.amount!==null&&n.amount!==undefined?eur(n.amount):''}</strong><small>${n.date?dateLabel(n.date)+' · ':''}${esc(n.areaLabel)}</small><span class="notice-state-tag state-${esc(n.effectiveState)}">${esc(tagText)}</span></button>`;}).join('');
+    const kpi = (tone, icon, label, value, note, state, id) => `<button type="button" class="ch-tile nt-kpi is-${tone}${(state === 'high' ? s.noticeState === 'active' && s.noticePriority === 'high' : s.noticeState === state && s.noticePriority === 'all') ? ' is-active' : ''}" data-notice-kpi="${state}"><span class="ch-tile-icon">${I(icon)}</span><div><span>${label}</span><strong id="${id}">${value}</strong><small>${note}</small></div></button>`;
     const states = [['active', 'Ativos'], ['overdue', 'Em atraso'], ['snoozed', 'Adiados'], ['dismissed', 'Dispensados'], ['resolved', 'Concluídos'], ['all', 'Todos']];
 
     noticesHost.innerHTML =
       `<div class="section-head notices-hero-head nt-head">` +
         `<div>` +
-          `<h2>Centro de avisos geral</h2><p>Pagamentos, garantias, validades, rotinas e datas da casa num só lugar.</p>` +
+          `<h2>Centro de avisos</h2>` +
         `</div>` +
         `<div class="row-actions">` +
-          `<button type="button" class="secondary" data-notice-settings>${I('gear')}Configurar avisos</button>` +
+          `<button type="button" class="secondary" data-goto-related="planner">Abrir Agenda</button><button type="button" class="secondary" data-goto-related="inboxHub">Ver pendências de dados</button><button type="button" class="secondary" data-notice-settings>${I('gear')}Configurar avisos</button>` +
         `</div>` +
       `</div>` +
-      `<div class="u-metrics notices-kpis nt-kpis">` +
-        kpi('blue', 'bell', 'Avisos ativos', res.counts.active, 'Total a aguardar atenção', 'active', 'noticesActiveCount') +
-        kpi(res.counts.high ? 'red' : 'green', 'alert', 'Prioridade alta / Atraso', res.counts.high, 'Vencidos ou muito próximos', 'overdue', 'noticesHighCount') +
-        kpi('amber', 'clock', 'Adiados', res.counts.snoozed, 'Temporariamente silenciados', 'snoozed', 'noticesSnoozedCount') +
-        kpi('purple', 'check', 'Dispensados', res.counts.dismissed, 'Arquivados sem alterar origem', 'dismissed', 'noticesDismissedCount') +
-      `</div>` +
+      `<div id="noticesKpisWrap" class="u-metrics notices-kpis nt-kpis"></div>` +
+      `<section class="panel notices-toolbar nt-toolbar">` +
+        `<div class="nt-filter-row"><div class="cs-pills nt-states" role="group" aria-label="Estado">${states.map(([id, label]) => `<button type="button" class="${s.noticeState === id ? 'active' : ''}" data-notice-state-pill="${id}" aria-pressed="${s.noticeState === id}">${label}</button>`).join('')}</div>` +
+        `<div class="notices-filters nt-filters">` +
+          select('Origem', 'noticeAreaFilter', noticeAreas.map(([id, label]) => [id, id === 'all' ? 'Todas (' + byAreaCount('all') + ')' : `${label} (${byAreaCount(id)})`]), s.noticeArea, 'id="noticeAreaFilter"') +
+          select('Prioridade', 'noticePriorityFilter', [['all', 'Todas'], ['high', 'Alta'], ['medium', 'Média'], ['low', 'Baixa']], s.noticePriority, 'id="noticePriorityFilter"') +
+          field('Pesquisar', 'noticeQueryInput', s.noticeQuery, 'search', 'id="noticeQueryInput" placeholder="Procurar aviso…"') +
+        `</div></div>` +
+      `</section>` +
+      `<section class="panel notices-list-panel" id="noticesListPanel"></section>` +
       `<details class="panel notices-sources-explainer">` +
-        `<summary><span><strong>Que dados alimentam o Centro de Avisos?</strong><small>Clica para ver todas as origens monitorizadas automaticamente neste espaço financeiro</small></span></summary>` +
+        `<summary><span><strong>Origens monitorizadas automaticamente</strong><small>Ver regras de deteção deste espaço</small></span></summary>` +
         `<div class="notices-sources-grid">` +
           `<div class="notices-source-item"><strong>📅 Pagamentos, Agenda e Recorrências</strong><p>Compromissos agendados, regras recorrentes ativas (ex.: água, eletricidade, gás, internet, renda), subscrições, prestações e créditos mensais dentro do prazo que escolheste ou em atraso.</p></div>` +
           `<div class="notices-source-item"><strong>🛡️ Garantias</strong><p>Garantias de equipamentos registados em <em>Casa → Equipamentos</em> e movimentos financeiros com data de garantia dentro do prazo configurado.</p></div>` +
@@ -195,67 +198,96 @@
           `<div class="notices-source-item"><strong>🔧 Equipamentos e rotinas</strong><p>Planos de manutenção/substituição de equipamentos domésticos e rotinas preventivas periódicas com data próxima ou em atraso.</p></div>` +
           `<div class="notices-source-item"><strong>🚗🏠 Veículos e Habitação</strong><p>Datas de Inspeção (IPO), Seguro, IUC e Revisão em <em>Casa → Veículos</em>, bem como Seguros, IMI, Condomínio e Contratos em <em>Casa → Habitação</em>.</p></div>` +
         `</div>` +
-      `</details>` +
-      `<section class="panel notices-toolbar nt-toolbar">` +
-        `<div class="cs-pills nt-areas" role="group" aria-label="Origem">${noticeAreas.map(([id, label]) => `<button type="button" class="${s.noticeArea === id ? 'active' : ''}" data-notice-area-pill="${id}" aria-pressed="${s.noticeArea === id}">${id === 'all' ? 'Todas' : (areaIcons[id] || '') + ' ' + esc(label)}<small>${byAreaCount(id)}</small></button>`).join('')}</div>` +
-        `<div class="nt-filter-row"><div class="cs-pills nt-states" role="group" aria-label="Estado">${states.map(([id, label]) => `<button type="button" class="${s.noticeState === id ? 'active' : ''}" data-notice-state-pill="${id}" aria-pressed="${s.noticeState === id}">${label}</button>`).join('')}</div>` +
-        `<div class="notices-filters nt-filters">` +
-          select('Origem', 'noticeAreaFilter', noticeAreas, s.noticeArea, 'id="noticeAreaFilter"') +
-          select('Prioridade', 'noticePriorityFilter', [['all', 'Todas as prioridades'], ['high', 'Alta'], ['medium', 'Média'], ['low', 'Baixa']], s.noticePriority, 'id="noticePriorityFilter"') +
-          select('Estado', 'noticeStateFilter', [['active', 'Ativos'], ['overdue', 'Em atraso'], ['snoozed', 'Adiados'], ['dismissed', 'Dispensados'], ['resolved', 'Liquidados / Concluídos'], ['all', 'Todos']], s.noticeState, 'id="noticeStateFilter"') +
-          field('Pesquisar aviso', 'noticeQueryInput', s.noticeQuery, 'search', 'id="noticeQueryInput" placeholder="Procurar água, seguro, veículo, equipamento…"') +
-        `</div></div>` +
-      `</section>` +
-      `<section class="panel notices-list-panel" id="noticesListPanel"><div class="notices-workbench"><nav class="notices-master" aria-label="Lista de avisos">${master||'<p class="muted">Sem avisos neste filtro.</p>'}</nav><div class="notices-detail">` +
-        (res.rows.length
-          ? `<div class="notices-list">${[selected].filter(Boolean).map(n =>
-              `<article class="notice-card priority-${esc(n.priority)} state-${esc(n.effectiveState)}" data-notice-row="${esc(n.id)}">` +
-                `<div class="notice-card-icon" aria-hidden="true">${areaIcons[n.area] || '🔔'}</div>` +
-                `<div class="notice-card-main">` +
-                  `<div class="notice-card-badges">` +
-                    `<span class="notice-badge priority-${esc(n.priority)}">Prioridade ${esc(priorityLabels[n.priority] || n.priority)}</span>` +
-                    `<span class="notice-area-tag">${esc(n.areaLabel)}</span>` +
-                    `<span class="notice-state-tag state-${esc(n.effectiveState)}">${esc(stateLabels[n.effectiveState] || n.effectiveState)}${n.snoozedUntil ? ' até ' + dateLabel(n.snoozedUntil) : ''}</span>` +
-                  `</div>` +
-                  `<h3>${esc(n.title)}</h3>` +
-                  `<p class="notice-card-meta">` +
-                    `<span>${esc(n.detail)}</span>` +
-                    (n.date ? `<span class="notice-meta-pill">📅 ${dateLabel(n.date)}</span>` : '') +
-                    (n.amount !== null && n.amount !== undefined ? `<strong class="notice-meta-amount">${eur(n.amount)}</strong>` : '') +
-                  `</p>` +
-                `</div>` +
-                `<div class="row-actions notice-card-actions">` +
-                  btn('Abrir origem', 'notice-open', n.id, '', 'primary') +
-                  (n.isActive
-                    ? btn('Adiar 7 dias', 'notice-snooze-7', n.id) +
-                      btn('Adiar até…', 'notice-snooze-custom', n.id) +
-                      btn('Dispensar', 'notice-dismiss', n.id)
-                    : n.reviewed
-                      ? btn('Repor ativo', 'notice-restore', n.id)
-                      : '') +
-                `</div>` +
-              `</article>`
-            ).join('')}</div>`
-          : `<div class="notices-empty-state"><span aria-hidden="true">✨</span><h3>Sem avisos para o filtro selecionado</h3><p>Quando existirem pagamentos próximos na Agenda, garantias a expirar, validades na despensa ou rotinas pendentes, aparecerão aqui organizados por prioridade.</p></div>`) +
-      `</div></div></section>`;
+      `</details>`;
 
-    noticesHost.append($('#noticesHub .notices-sources-explainer'));
-    for(const button of $$('[data-notice-select]',noticesHost))button.onclick=()=>{s.noticeSelected=button.dataset.noticeSelect;renderNoticesHub();};
+    const drawNoticeResults = (currentRes = null) => {
+      const r = currentRes || D.notices(data, {
+        area: s.noticeArea,
+        priority: s.noticePriority,
+        status: s.noticeState,
+        query: s.noticeQuery,
+      });
+      const sel = r.rows.find(n => n.id === s.noticeSelected) || r.rows[0];
+      s.noticeSelected = sel?.id || '';
+      const masterHtml = r.rows.map(n => {
+        const stateText = stateLabels[n.effectiveState] || n.effectiveState;
+        const tagText = n.priority === 'high' && n.effectiveState !== 'overdue' ? 'Alta · ' + stateText : stateText;
+        return `<button type="button" class="notice-list-item nt-row priority-${esc(n.priority)} ${n.id === s.noticeSelected ? 'is-selected' : ''}" data-notice-select="${esc(n.id)}" aria-pressed="${n.id === s.noticeSelected}"><span class="nt-row-icon" aria-hidden="true">${areaIcons[n.area] || '🔔'}</span><span class="notice-list-title">${esc(n.title)}</span><strong class="amount">${n.amount !== null && n.amount !== undefined ? eur(n.amount) : ''}</strong><small>${n.date ? dateLabel(n.date) + ' · ' : ''}${esc(n.areaLabel)}</small><span class="notice-state-tag state-${esc(n.effectiveState)}">${esc(tagText)}</span></button>`;
+      }).join('');
+      const kpiWrap = $('#noticesKpisWrap', noticesHost);
+      if (kpiWrap) {
+        kpiWrap.innerHTML =
+          kpi('blue', 'bell', 'Ativos', r.counts.active, 'Por ver', 'active', 'noticesActiveCount') +
+          kpi(r.counts.high ? 'red' : 'green', 'alert', 'Prioridade alta / Atraso', r.counts.high, 'Urgentes', 'high', 'noticesHighCount') +
+          kpi('amber', 'clock', 'Adiados', r.counts.snoozed, 'Silenciados', 'snoozed', 'noticesSnoozedCount') +
+          kpi('purple', 'check', 'Dispensados', r.counts.dismissed, 'Arquivados', 'dismissed', 'noticesDismissedCount');
+        for (const tile of $$('[data-notice-kpi]', kpiWrap)) tile.onclick = () => {
+          s.noticeState = tile.dataset.noticeKpi === 'high' ? 'active' : tile.dataset.noticeKpi;
+          s.noticePriority = tile.dataset.noticeKpi === 'high' ? 'high' : 'all';
+          renderNoticesHub();
+        };
+      }
+      const listPanel = $('#noticesListPanel', noticesHost);
+      if (listPanel) {
+        listPanel.innerHTML =
+          `<div class="notices-workbench"><div class="notices-master" role="group" aria-label="Lista de avisos">${masterHtml}</div><div class="notices-detail">` +
+            (r.rows.length
+              ? `<div class="notices-list">${[sel].filter(Boolean).map(n =>
+                  `<article class="notice-card priority-${esc(n.priority)} state-${esc(n.effectiveState)}" data-notice-row="${esc(n.id)}">` +
+                    `<div class="notice-card-icon" aria-hidden="true">${areaIcons[n.area] || '🔔'}</div>` +
+                    `<div class="notice-card-main">` +
+                      `<div class="notice-card-badges">` +
+                        `<span class="notice-badge priority-${esc(n.priority)}">Prioridade ${esc(priorityLabels[n.priority] || n.priority)}</span>` +
+                        `<span class="notice-area-tag">${esc(n.areaLabel)}</span>` +
+                        `<span class="notice-state-tag state-${esc(n.effectiveState)}">${esc(stateLabels[n.effectiveState] || n.effectiveState)}${n.snoozedUntil ? ' até ' + dateLabel(n.snoozedUntil) : ''}</span>` +
+                      `</div>` +
+                      `<h3>${esc(n.title)}</h3>` +
+                      `<p class="notice-card-meta">` +
+                        `<span>${esc(n.detail)}</span>` +
+                        (n.date ? `<span class="notice-meta-pill">📅 ${dateLabel(n.date)}</span>` : '') +
+                        (n.amount !== null && n.amount !== undefined ? `<strong class="notice-meta-amount">${eur(n.amount)}</strong>` : '') +
+                      `</p>` +
+                    `</div>` +
+                    `<div class="row-actions notice-card-actions">` +
+                      btn('Abrir origem', 'notice-open', n.id, '', 'primary') +
+                      (n.isActive
+                        ? btn('Adiar 7 dias', 'notice-snooze-7', n.id) +
+                          btn('Adiar até…', 'notice-snooze-custom', n.id) +
+                          btn('Dispensar', 'notice-dismiss', n.id)
+                        : n.reviewed
+                          ? btn('Repor ativo', 'notice-restore', n.id)
+                          : '') +
+                    `</div>` +
+                  `</article>`
+                ).join('')}</div>`
+              : `<div class="notices-empty-state"><span aria-hidden="true">✨</span><h3>Sem avisos para o filtro selecionado</h3><p>Quando existirem pagamentos próximos na Agenda, garantias a expirar, validades na despensa ou rotinas pendentes, aparecerão aqui organizados por prioridade.</p></div>`) +
+          `</div></div>`;
+        const selectedButton = $('.nt-row.is-selected', listPanel);
+        if (selectedButton) {
+          selectedButton.after($('.notices-detail', listPanel));
+          selectedButton.setAttribute('aria-controls', 'noticeSelectedDetail');
+          $('.notices-detail', listPanel).id = 'noticeSelectedDetail';
+        }
+        for (const button of $$('[data-notice-select]', listPanel)) button.onclick = () => {
+          s.noticeSelected = button.dataset.noticeSelect;
+          drawNoticeResults();
+          $('.nt-row.is-selected', listPanel)?.focus({ preventScroll: true });
+        };
+      }
+    };
+
+    drawNoticeResults(res);
     for (const pill of $$('[data-notice-area-pill]', noticesHost)) {
       pill.onclick = () => { s.noticeArea = pill.dataset.noticeAreaPill; renderNoticesHub(); };
     }
     for (const pill of $$('[data-notice-state-pill]', noticesHost)) pill.onclick = () => { s.noticeState = pill.dataset.noticeStatePill; renderNoticesHub(); };
-    for (const tile of $$('[data-notice-kpi]', noticesHost)) tile.onclick = () => { s.noticeState = tile.dataset.noticeKpi; renderNoticesHub(); };
-    $('#noticeAreaFilter', noticesHost).onchange = e => { s.noticeArea = e.target.value; renderNoticesHub(); };
-    $('#noticePriorityFilter', noticesHost).onchange = e => { s.noticePriority = e.target.value; renderNoticesHub(); };
-    $('#noticeStateFilter', noticesHost).onchange = e => { s.noticeState = e.target.value; renderNoticesHub(); };
+    for (const link of $$('[data-goto-related]', noticesHost)) link.onclick = () => navigate(link.dataset.gotoRelated);
+    const areaSel=$('#noticeAreaFilter', noticesHost); if(areaSel) areaSel.onchange = e => { s.noticeArea = e.target.value; renderNoticesHub(); };
+    const prioSel=$('#noticePriorityFilter', noticesHost); if(prioSel) prioSel.onchange = e => { s.noticePriority = e.target.value; renderNoticesHub(); };
+    const stateSel=$('#noticeStateFilter', noticesHost); if(stateSel) stateSel.onchange = e => { s.noticeState = e.target.value; renderNoticesHub(); };
     $('#noticeQueryInput', noticesHost).oninput = e => {
-      const pos = e.target.selectionStart;
       s.noticeQuery = e.target.value;
-      renderNoticesHub();
-      const input = $('#noticeQueryInput', noticesHost);
-      input?.focus();
-      try { input?.setSelectionRange(pos, pos); } catch {}
+      drawNoticeResults();
     };
     $('#addTransaction').hidden = true;
   }
@@ -274,14 +306,7 @@
   // ============================================================================
   // 2. EQUIPAMENTOS: CUSTO ACUMULADO E ROTINAS DOMÉSTICAS
   // ============================================================================
-  const frequencyLabels = {
-    weekly: 'Semanal',
-    monthly: 'Mensal',
-    bimonthly: 'Bimestral',
-    quarterly: 'Trimestral',
-    semiannual: 'Semestral',
-    annual: 'Anual',
-  };
+  const frequencyLabels = Object.fromEntries(Object.entries(D.FREQUENCIES).map(([key, rule]) => [key, rule.label]));
 
   function enhanceEquipmentPage() {
     if (view !== 'casaEquipment') return;
@@ -369,8 +394,10 @@
             const days = dueDays(r);
             const tone = days < 0 ? 'late' : days <= 7 ? 'soon' : 'ok';
             const statusText = days < 0 ? `Em atraso · ${Math.abs(days)} dia(s)` : days === 0 ? 'Para hoje' : `Daqui a ${days} dia(s)`;
-            const freqText = frequencyLabels[r.frequency] || r.frequency;
-            const lastExec = (r.history || []).at(-1);
+            const freqText = frequencyLabels[D.routineFrequency(r)] || r.frequency;
+            const lastExec = D.latestRoutineRun(r);
+            const expectedNext = lastExec ? D.routineNextFromHistory(r, D.routineFrequency(r)) : '';
+            const canRecalc = Boolean(expectedNext && expectedNext !== r.nextDate);
             const doneItems = (r.checklist || []).filter(c => c.done).length, totalItems = (r.checklist || []).length;
             return `<article class="panel routine-card is-${tone}" data-routine-id="${esc(r.id)}">` +
               `<div class="routine-card-top"><span class="routine-status">${esc(statusText)}</span><span class="routine-freq">${esc(freqText)}</span></div>` +
@@ -389,6 +416,7 @@
                 : '') +
               `<div class="row-actions">` +
                 btn('Concluir', 'routine-complete', r.id, 'title="Concluir e avançar para a próxima data"', 'primary') +
+                (canRecalc ? btn('Recalcular prazo', 'routine-recalculate', r.id, `title="Recalcular pela última execução (${dateLabel(lastExec.date)} → ${dateLabel(expectedNext)})"`) : '') +
                 btn('Editar', 'routine-form', r.id) +
                 btn('Eliminar', 'routine-remove', r.id, '', 'secondary danger') +
               `</div>` +
@@ -412,12 +440,15 @@
     const r = D.routines(data).find(x => String(x.id) === String(id)) || {};
     const equipOptions = [['', 'Sem equipamento específico'], ...P.state(data).equipment.map(e => [e.id, e.name])];
     const checklistLines = (r.checklist || []).map(c => c.label).join('\n');
+    const latest = D.latestRoutineRun(r);
+    let manual=false,recalc=false;
     form(
       r.id ? 'Editar rotina doméstica' : 'Nova rotina doméstica',
       field('Nome da rotina', 'routineTitle', r.title || '', 'text', 'required maxlength="160"') +
         field('Divisão / área', 'routineArea', r.area || 'Geral', 'text', 'maxlength="80"') +
-        select('Periodicidade', 'routineFrequency', Object.entries(frequencyLabels), r.frequency || 'monthly') +
+        select('Periodicidade', 'routineFrequency', Object.entries(frequencyLabels), D.routineFrequency(r) || 'monthly') +
         field('Próxima data prevista', 'routineNextDate', r.nextDate || F.today(), 'date', 'required') +
+        (latest ? '<p class="muted" id="routineDateInfo">Última execução em '+dateLabel(latest.date)+'</p><button type="button" class="secondary" id="routineRecalculate">Recalcular pela última execução</button>' : '') +
         select('Equipamento associado (opcional)', 'routineEquipmentId', equipOptions, r.equipmentId || '') +
         `<label>Passos da lista de verificação (um por linha)<textarea name="routineChecklist" rows="4" maxlength="4000" placeholder="Ex.: Desligar quadro&#10;Limpar filtro&#10;Testar funcionamento">${esc(checklistLines)}</textarea></label>` +
         field('Notas', 'routineNotes', r.notes || '', 'text', 'maxlength="1000"'),
@@ -428,6 +459,8 @@
           area: f.get('routineArea'),
           frequency: f.get('routineFrequency'),
           nextDate: f.get('routineNextDate'),
+          keepNextDate: manual,
+          recalculateFromLast: recalc,
           equipmentId: f.get('routineEquipmentId'),
           checklist: String(f.get('routineChecklist') || ''),
           notes: f.get('routineNotes'),
@@ -435,13 +468,20 @@
       }, 'Rotina doméstica guardada.'),
       'As rotinas domésticas geram avisos preventivos e não alteram saldos nem criam despesas.',
     );
+    if(latest){
+      const frequency=$('[name=routineFrequency]'),date=$('[name=routineNextDate]'),info=$('#routineDateInfo');
+      const update=()=>{date.value=D.routineNextFromHistory(r,frequency.value)||date.value;if(info)info.textContent=`Última execução em ${dateLabel(latest.date)} → próxima: ${dateLabel(date.value)}`;};
+      date.oninput=()=>{manual=true;recalc=false;};
+      frequency.onchange=()=>{if(!manual){recalc=true;update();}};
+      $('#routineRecalculate').onclick=()=>{manual=false;recalc=true;update();};
+    }
   }
 
   function routineCompleteForm(id) {
     const r = D.routines(data).find(x => String(x.id) === String(id));
     if (!r) return;
     form(
-      'Concluir rotina · ' + r.title,
+      'Concluir rotina · ' + esc(r.title),
       field('Data de realização', 'completedOn', F.today(), 'date', 'required') +
         field('Observações desta execução', 'note', '', 'text', 'maxlength="500"'),
       f => commit(() => {
@@ -455,209 +495,173 @@
   }
 
   // ============================================================================
-  // 3. CASA -> CONSUMOS (ÁGUA, ELETRICIDADE E GÁS)
+  // 3. CASA -> CONSUMOS
   // ============================================================================
-  const utilityLabels = { water: 'Água', electricity: 'Eletricidade', gas: 'Gás' };
-  const utilityIcons = { water: '💧', electricity: '⚡', gas: '🔥' };
-  const utilityUnitsDefault = { water: 'm³', electricity: 'kWh', gas: 'm³ / kWh' };
-  // O gás só aparece se já existirem leituras antigas de gás neste espaço.
-  const utilityList = () => ['water', 'electricity', ...(D.utilityReadings(data).some(r => r.utility === 'gas') ? ['gas'] : [])];
-  const utilityUnit = u => (u === 'electricity' ? 'kWh' : 'm3');
-  const electricityPeriods = [['vazio', 'Vazio'], ['ponta', 'Ponta'], ['cheio', 'Cheio']];
-  const kindLabels = {
-    reading: 'Leitura acumulada',
-    reset: 'Substituição / reinício de contador',
-  };
+  const utilityLabels = { water: 'Água e saneamento', sanitation: 'Saneamento (histórico)', electricity: 'Eletricidade', gas: 'Gás' };
+  const utilityIcons = { water: '💧', sanitation: '💧', electricity: '⚡', gas: '🔥' };
+  const utilityUnitsDefault = { water: 'm³', sanitation: 'm³', electricity: 'kWh', gas: 'm³' };
+  const utilityList = () => ['water', 'electricity', ...(D.monthlyUtility(data,'gas').rows.length ? ['gas'] : [])];
+  const utilityUnit = u => u === 'electricity' ? 'kWh' : 'm3';
+  const utilityUnitFmt = new Intl.NumberFormat('pt-PT', { style: 'currency', currency: 'EUR', minimumFractionDigits: 3, maximumFractionDigits: 4 });
+
+  function utilityDeltaBadge(diff, pct, suffix = '') {
+    if (diff === null || diff === undefined) return '<span class="ut-delta is-flat">—</span>';
+    const cls = diff > 0.0001 ? 'is-up' : diff < -0.0001 ? 'is-down' : 'is-flat';
+    const arrow = diff > 0.0001 ? '▲ ' : diff < -0.0001 ? '▼ ' : '';
+    const pctText = pct !== null && pct !== undefined ? ` (${pct > 0 ? '+' : ''}${String(pct).replace('.', ',')}%)` : '';
+    return `<span class="ut-delta ${cls}">${arrow}${diff > 0 ? '+' : ''}${suffix}${esc(pctText)}</span>`;
+  }
+
+  function utilityTotalsBlock(totals, unit, year) {
+    if (!totals.length) return '<p class="muted">Sem períodos completos para comparar.</p>';
+    const shown = totals.slice(0, year ? 6 : 12);
+    const maxUnits = Math.max(1, ...shown.map(r => r.consumption || 0));
+    const maxCost = Math.max(1, ...shown.map(r => r.cost || 0));
+    const chart = `<div class="ut-bars">${shown.slice().reverse().map(row => {
+      const label = year ? row.period : new Date(row.period + '-01T12:00:00').toLocaleDateString('pt-PT', { month: 'short', year: '2-digit' }).replace('.', '');
+      const unitH = Math.max(6, Math.round((row.consumption / maxUnits) * 100));
+      const costH = row.cost !== null ? Math.max(6, Math.round((row.cost / maxCost) * 100)) : 0;
+      return `<div class="ut-bar-col" title="${esc(year ? row.period : monthLabel(row.period))}: ${row.consumption} ${unit}${row.cost !== null ? ' · ' + eur(row.cost) : ''}">
+        <div class="ut-bar-values"><b>${row.cost !== null ? eur(row.cost).replace(/,\d+\s?€/, '€') : ''}</b><small>${row.consumption} ${unit}</small></div>
+        <div class="ut-bar-tracks"><i class="is-qty" style="height:${unitH}%"></i>${row.cost !== null ? `<i class="is-cost" style="height:${costH}%"></i>` : ''}</div>
+        <span>${esc(label)}</span>
+      </div>`;
+    }).join('')}</div>`;
+    const table = '<div class="u-table-scroll"><table class="u-table ut-compare-table"><thead><tr><th>Período</th><th>Consumo</th><th>Var. consumo</th><th>Fatura / custo</th><th>Var. valor</th><th>Média</th></tr></thead><tbody>' +
+      shown.map(row => {
+        const diffQty = row.consumptionDiff === null ? '<span class="ut-delta is-flat">—</span>' : utilityDeltaBadge(row.consumptionDiff, row.consumptionPct, `${String(row.consumptionDiff).replace('.', ',')} ${unit}`);
+        const diffMoney = row.costDiff === null ? '<span class="ut-delta is-flat">—</span>' : utilityDeltaBadge(row.costDiff, row.costPct, eur(row.costDiff));
+        const unitStr = row.unitCost !== null ? `${utilityUnitFmt.format(row.unitCost)}/${unit}` : '';
+        const dayStr = row.dailyCost !== null ? `${eur(row.dailyCost)}/dia` : '';
+        return `<tr><th scope="row">${esc(year ? row.period : monthLabel(row.period))}</th>` +
+          `<td><b>${String(row.consumption).replace('.', ',')} ${unit}</b></td>` +
+          `<td>${diffQty}</td>` +
+          `<td class="amount"><b>${row.cost === null ? '—' : eur(row.cost)}</b>${row.costs < row.count ? '<br><small class="muted">parcial</small>' : row.bills < row.costs ? '<br><small class="muted">estimativa</small>' : ''}</td>` +
+          `<td>${diffMoney}</td>` +
+          `<td><small>${esc([unitStr, dayStr].filter(Boolean).join(' · ') || '—')}</small></td></tr>`;
+      }).join('') + '</tbody></table></div>';
+    return chart + table;
+  }
 
   function renderConsumos() {
     if (view !== 'casaConsumos') return;
-    const s = uiState();
-    const comp = D.utilityComparison(data, { utility: s.utilityFilter });
-
-    const summaryCards = utilityList().map(u => {
-      const fullComp = D.utilityComparison(data, { utility: u });
-      let latestInterval = fullComp.intervals[0] || null;
-      // Vários contadores ou períodos lidos no mesmo dia (Vazio, Ponta, Cheio): mostra o total e o detalhe.
-      const sameDay = latestInterval ? fullComp.intervals.filter(r => r.date === latestInterval.date) : [];
-      let breakdown = '';
-      if (sameDay.length > 1) {
-        const known = sameDay.filter(r => r.consumption !== null);
-        const sum = k => Math.round(known.reduce((n, r) => n + (r[k] || 0), 0) * 1000) / 1000;
-        const periodOf = r => electricityPeriods.findIndex(([, label]) => r.meter.endsWith(' · ' + label));
-        const short = r => (periodOf(r) >= 0 ? electricityPeriods[periodOf(r)][1] : r.meter);
-        breakdown = sameDay.slice().sort((a, b) => periodOf(a) - periodOf(b) || a.meter.localeCompare(b.meter, 'pt-PT')).map(r => `${esc(short(r))}: <b>${r.consumption !== null ? r.consumption : r.reading} ${esc(r.unitLabel)}</b>`).join(' · ');
-        latestInterval = { ...latestInterval, meter: `${sameDay.length} leituras no mesmo dia`, consumption: known.length ? sum('consumption') : null, deltaConsumption: known.some(r => r.deltaConsumption !== null) ? sum('deltaConsumption') : null, deltaPercent: null };
+    const I = n => window.InterfaceUI?.icon ? InterfaceUI.icon(n) : '';
+    const cards = utilityList().map(utility => {
+      const { rows, average } = D.monthlyUtility(data, utility);
+      const unit = utilityUnitsDefault[utility], electricity = utility === 'electricity';
+      const legacyIntervals = D.utilityComparison(data, { utility }).intervals.concat(utility === 'water' ? D.utilityComparison(data, { utility: 'sanitation' }).intervals : []).filter(r => r.kind !== 'monthly');
+      const months = D.utilityTotals(rows, false), years = D.utilityTotals(rows, true);
+      const pastRows = rows.filter(r => !r.future);
+      const pastAverage = pastRows.length ? Math.round((pastRows.reduce((s, r) => s + r.reading, 0) / pastRows.length) * 1000) / 1000 : average;
+      const latest = pastRows[0] || rows[0] || null;
+      const bills = new Map();
+      for (const row of pastRows) {
+        const key = row.period.start + ':' + row.period.end;
+        const bill = bills.get(key) || {cents:0, units:row.reading, complete:true};
+        if (row.cost === null) bill.complete = false;
+        else bill.cents += F.cents(row.cost);
+        bills.set(key, bill);
       }
-      const uMonthly = fullComp.monthly;
-      if (!latestInterval) {
-        return `<article class="panel utility-summary-card utility-card-${u} is-empty" data-utility-card="${u}">` +
-          `<div class="utility-card-head"><span class="utility-card-icon" aria-hidden="true">${utilityIcons[u]}</span><div><h3>${utilityLabels[u]}</h3><small>${utilityUnitsDefault[u]}</small></div></div>` +
-          `<div class="utility-card-empty"><p class="muted">Sem leituras registadas.</p><small>Regista a primeira leitura do contador para iniciar o acompanhamento mensal.</small></div></article>`;
-      }
-      const deltaClass = latestInterval.deltaConsumption > 0 ? 'is-up' : latestInterval.deltaConsumption < 0 ? 'is-down' : 'is-neutral';
-      return `<article class="panel utility-summary-card utility-card-${u}" data-utility-card="${u}">` +
-        `<div class="utility-card-head">` +
-          `<span class="utility-card-icon" aria-hidden="true">${utilityIcons[u]}</span>` +
-          `<div><h3>${utilityLabels[u]} (${esc(latestInterval.unitLabel)})</h3><small>${esc(latestInterval.meter)}</small></div>` +
-          `<span class="utility-interval-badge status-${esc(latestInterval.intervalKind)}">${esc(latestInterval.intervalLabel)}</span>` +
-        `</div>` +
-        `<div class="utility-card-kpi">` +
-          `<span>Último consumo apurado</span>` +
-          `<strong class="amount">${latestInterval.consumption !== null ? `${latestInterval.consumption} ${esc(latestInterval.unitLabel)}` : esc(latestInterval.intervalLabel)}</strong>` +
-          (breakdown ? `<small>${breakdown} · ${dateLabel(latestInterval.date)}</small>` : `<small>Leitura de <b>${latestInterval.reading} ${esc(latestInterval.unitLabel)}</b> em ${dateLabel(latestInterval.date)}</small>`) +
-        `</div>` +
-        `<p class="utility-delta ${deltaClass}">${latestInterval.deltaConsumption !== null ? `Variação face ao intervalo anterior: <b>${latestInterval.deltaConsumption >= 0 ? '+' : ''}${latestInterval.deltaConsumption} ${esc(latestInterval.unitLabel)}</b>${latestInterval.deltaPercent !== null ? ` (${latestInterval.deltaPercent >= 0 ? '+' : ''}${latestInterval.deltaPercent}%)` : ''}` : 'Regista mais uma leitura para comparar a evolução entre períodos.'}</p>` +
-        (uMonthly.length
-          ? `<div class="u-table-scroll utility-mini-table"><table class="u-table"><thead><tr><th>Mês</th><th>Consumo</th><th>Intervalos</th><th>Estado</th></tr></thead><tbody>` +
-              uMonthly.slice(0, 6).map(m =>
-                `<tr><td><b>${esc(m.month)}</b></td><td><b>${m.consumption} ${esc(m.unitLabel)}</b></td><td>${m.intervalsCount}</td><td><span class="utility-state-dot">${m.hasIncompleteIntervals ? 'Parcial/Alargado' : 'Regular'}</span></td></tr>`
-              ).join('') +
-            `</tbody></table></div>`
-          : '') +
-      `</article>`;
+      const latestBill = bills.values().next().value;
+      const latestCost = latestBill?.complete ? latestBill.cents / 100 : null;
+      const priced = [...bills.values()].filter(bill => bill.complete);
+      const totalCents = priced.reduce((sum,bill) => sum + bill.cents, 0);
+      const totalUnits = priced.reduce((sum,bill) => sum + bill.units, 0);
+      const avgCost = priced.length ? F.money(totalCents / 100 / priced.length) : null;
+      const avgUnitCost = totalUnits > 0 ? totalCents / 100 / totalUnits : null;
+      const curYear = years[0] || null;
+      const prevYear = years[1] || null;
+      const yearBadge = curYear && curYear.costDiff !== null ? utilityDeltaBadge(curYear.costDiff, curYear.costPct, eur(curYear.costDiff)) : '';
+      const kpis = pastRows.length ? `<div class="ut-kpis">
+        <div class="ut-kpi"><span>Última fatura</span><strong>${latestCost !== null ? eur(latestCost) : String(latest.reading).replace('.', ',') + ' ' + unit}</strong><small>${dateLabel(latest.period.start)} a ${dateLabel(latest.period.end)}${latest.days ? ' · ' + latest.days + ' dias' : ''}</small></div>
+        <div class="ut-kpi"><span>Média por período</span><strong>${String(pastAverage).replace('.', ',')} ${unit}</strong><small>${avgCost !== null ? 'Fatura média: ' + eur(avgCost) : 'Sem valor de fatura'}</small></div>
+        <div class="ut-kpi"><span>Preço médio efetivo</span><strong>${avgUnitCost !== null ? utilityUnitFmt.format(avgUnitCost) + ' / ' + unit : '—'}</strong><small>${latest?.days && latestCost !== null ? eur(latestCost / latest.days) + ' / dia na última' : 'Calculado pelas faturas'}</small></div>
+        <div class="ut-kpi"><span>Total ${esc(curYear?.period || '')}</span><strong>${curYear?.cost != null ? eur(curYear.cost) : (curYear ? String(curYear.consumption).replace('.', ',') + ' ' + unit : '—')}</strong><small>${curYear ? `${String(curYear.consumption).replace('.', ',')} ${unit}` : ''}${prevYear ? ' · vs ' + prevYear.period + ' ' : ''}</small>${yearBadge}</div>
+      </div>` : '';
+      const history = rows.map(r => {
+        const legacyTag = r.utility === 'sanitation' ? '<span class="ut-service-tag">Saneamento (histórico)</span> ' : '';
+        return `<tr>
+          <th scope="row">${legacyTag}${dateLabel(r.period.start)} a ${dateLabel(r.period.end)}${r.anomaly ? `<br><span class="notice-state-tag state-overdue utility-anomaly">${esc(r.anomaly)}</span>` : r.days ? `<br><small class="muted">${r.days} ${r.days === 1 ? 'dia' : 'dias'}</small>` : ''}</th>
+          ${electricity ? `<td>${esc(r.supplier || '—')}</td>` : ''}
+          <td><b>${String(r.reading).replace('.', ',')} ${unit}</b></td>
+          <td>${r.change === null ? '—' : utilityDeltaBadge(r.change, null, `${String(r.change).replace('.', ',')} ${unit}`)}</td>
+          <td class="amount"><b>${r.cost === null ? '—' : eur(r.cost)}</b>${!electricity && r.billAmount == null ? '<br><small class="muted">estimativa</small>' : r.days && r.cost != null ? `<br><small class="muted">${eur(r.cost / r.days)}/dia</small>` : ''}</td>
+          <td><div class="ut-row-actions">${btn('Editar', 'utility-form', r.id)}${btn('Eliminar', 'utility-remove', r.id)}</div></td>
+        </tr>`;
+      }).join('');
+      const oldReadingsHtml = legacyIntervals.length ? `<details class="ut-legacy-readings"><summary>Leituras acumuladas antigas (${legacyIntervals.length})</summary><div class="u-table-scroll"><table class="u-table"><thead><tr><th>Data</th><th>Leitura</th><th>Consumo</th><th>Nota</th><th>Ações</th></tr></thead><tbody>${legacyIntervals.slice().reverse().map(r => `<tr><td>${dateLabel(r.date)}</td><td>${r.reading} ${unit}</td><td>${r.consumption !== null ? r.consumption + ' ' + unit : esc(r.intervalLabel)}</td><td>${esc(r.note || '—')}</td><td><div class="ut-row-actions">${btn('Editar', 'utility-form', r.id)}${btn('Eliminar', 'utility-remove', r.id)}</div></td></tr>`).join('')}</tbody></table></div></details>` : '';
+      return `<article class="panel utility-period-card">
+        <div class="ut-card-head"><h3><span aria-hidden="true">${utilityIcons[utility]}</span> ${utilityLabels[utility]}</h3><span class="ut-unit-chip">${bills.size} ${bills.size === 1 ? 'período' : 'períodos'} · ${unit}</span></div>
+        ${rows.length ? `${kpis}
+        <details open class="utility-comparison"><summary><span>Comparar meses e anos</span><small><i class="ut-legend-qty"></i> Consumo (${unit}) · <i class="ut-legend-cost"></i> Valor (€)</small></summary>
+        <div class="ut-compare-grid">
+          <section class="ut-compare-box"><h4>Por mês</h4>${utilityTotalsBlock(months, unit, false)}</section>
+          <section class="ut-compare-box"><h4>Por ano</h4>${utilityTotalsBlock(years, unit, true)}</section>
+        </div></details>
+        <details class="ut-invoices-history" ${rows.length <= 6 ? 'open' : ''}><summary>Histórico de faturas (${rows.length})</summary>
+        <div class="u-table-scroll"><table class="u-table"><thead><tr><th>Período</th>
+        ${electricity ? '<th>Comercializadora</th>' : ''}
+        <th>Consumo</th><th>Variação</th><th>${electricity ? 'Custo variável' : 'Valor da fatura'}</th><th>Ações</th>
+        </tr></thead><tbody>${history}</tbody></table></div></details>${oldReadingsHtml}` : `<p class="muted">Sem consumos registados.</p>${oldReadingsHtml}`}
+      </article>`;
     }).join('');
-
-    consumosHost.innerHTML =
-      `<div class="section-head consumos-hero-head">` +
-        `<div><p class="eyebrow">CASA · CONSUMOS DOMÉSTICOS</p><h2>Consumos de água e eletricidade</h2>` +
-        `<p>Regista leituras de contador e acompanha a evolução física mensal (m³ e kWh). As leituras são independentes dos movimentos bancários e nunca criam despesas duplicadas.</p></div>` +
-        
-      `</div>` +
-      `<div class="utility-summary-grid" id="utilityMonthlyComparison">${summaryCards}</div>` +
-      `<section class="panel consumos-form-panel">` +
-        `<div class="u-head"><div><h3>Registar nova leitura de contador</h3><p>Introduz o valor acumulado visível no visor do contador. Para um contador novo que começou do zero, escolhe "Substituição / reinício de contador".</p></div></div>` +
-        `<form id="utilityReadingForm" class="form-grid consumos-form-grid">` +
-          select('Serviço', 'utility', utilityList().map(u => [u, `${utilityIcons[u]} ${utilityLabels[u]}`]), s.utilityDraft || 'water') +
-          select('Contagem', 'mode', [['tri', 'Tri-horária (Vazio, Ponta e Cheio)'], ['single', 'Simples (uma leitura)']], s.utilityMode || 'tri') +
-          field('Contador', 'meter', 'Contador principal', 'text', 'maxlength="80"') +
-          field('Data da leitura', 'date', F.today(), 'date', 'required') +
-          field('Leitura acumulada no visor', 'reading', '', 'number', 'min="0" step="0.001" placeholder="Ex.: 142.5"') +
-          electricityPeriods.map(([id, label]) => field(`${label} (kWh acumulados)`, 'reading_' + id, '', 'number', 'min="0" step="0.001" placeholder="Leitura do visor"')).join('') +
-          select('Tipo de registo', 'kind', Object.entries(kindLabels), 'reading') +
-          field('Nota ou observação (opcional)', 'note', '', 'text', 'maxlength="500" placeholder="Ex.: Leitura comunicada ao fornecedor"') +
-          `<div class="row-actions consumos-submit-row"><button type="submit" class="primary">Guardar leitura</button></div>` +
-        `</form>` +
-      `</section>` +
-      `<section class="panel consumos-history-panel">` +
-        `<div class="u-head"><div><h3>Histórico de leituras e intervalos apurados</h3><p>Diferença real entre leituras consecutivas do mesmo contador e média diária.</p></div>` +
-        `<div class="u-filter-bar">` +
-          [['all', 'Todos os serviços'], ...utilityList().map(u => [u, `${utilityIcons[u]} ${utilityLabels[u]} (${utilityUnitsDefault[u]})`])].map(([id, label]) =>
-            `<button type="button" class="secondary ${s.utilityFilter === id ? 'active' : ''}" data-utility-filter="${id}" aria-pressed="${s.utilityFilter === id}">${label}</button>`
-          ).join('') +
-        `</div></div>` +
-        (comp.intervals.length
-          ? `<div class="u-table-scroll" id="utilityReadingsTable"><table class="u-table consumos-table"><thead><tr><th>Data</th><th>Serviço</th><th>Contador</th><th>Leitura no visor</th><th>Consumo no intervalo</th><th>Duração e média</th><th>Estado do intervalo</th><th>Ações</th></tr></thead><tbody>` +
-              comp.intervals.map(r =>
-                `<tr data-utility-row="${esc(r.id)}">` +
-                  `<td><b>${dateLabel(r.date)}</b></td>` +
-                  `<td><span class="utility-service-pill service-${esc(r.utility)}">${utilityIcons[r.utility] || ''} <b>${esc(r.utilityLabel)}</b></span></td>` +
-                  `<td>${esc(r.meter)}</td>` +
-                  `<td><b>${r.reading} ${esc(r.unitLabel)}</b></td>` +
-                  `<td>${r.consumption !== null ? `<strong class="utility-consumption-val">${r.consumption} ${esc(r.unitLabel)}</strong>` : '<span class="muted">—</span>'}</td>` +
-                  `<td>${r.days !== null ? `${r.days} dia(s)${r.dailyAverage !== null ? `<br><small class="muted">${r.dailyAverage} ${esc(r.unitLabel)}/dia</small>` : ''}` : '—'}</td>` +
-                  `<td><span class="utility-interval-badge status-${esc(r.intervalKind)}">${esc(r.intervalLabel)}</span>${r.note ? `<br><small class="muted">${esc(r.note)}</small>` : ''}</td>` +
-                  `<td class="row-actions">${btn('Editar', 'utility-form', r.id)}${btn('Eliminar', 'utility-remove', r.id)}</td>` +
-                `</tr>`
-              ).join('') +
-            `</tbody></table></div>`
-          : `<div class="consumos-empty-state"><p class="empty-state">Ainda não existem leituras registadas para este filtro.</p></div>`) +
-      `</section>`;
-
-    const inlineForm = $('#utilityReadingForm', consumosHost);
-    if (inlineForm) {
-      const uSel = $('[name=utility]', inlineForm);
-      const modeSel = $('[name=mode]', inlineForm);
-      const row = name => $(`[name=${name}]`, inlineForm).closest('label');
-      const isTri = () => uSel.value === 'electricity' && modeSel.value === 'tri';
-      const syncFields = () => {
-        const tri = isTri();
-        row('mode').hidden = uSel.value !== 'electricity';
-        row('reading').hidden = tri;
-        $('[name=reading]', inlineForm).required = !tri;
-        for (const [id] of electricityPeriods) row('reading_' + id).hidden = !tri;
-        s.utilityDraft = uSel.value;
-        s.utilityMode = modeSel.value;
-      };
-      uSel.onchange = syncFields;
-      modeSel.onchange = syncFields;
-      syncFields();
-      inlineForm.onsubmit = e => {
-        e.preventDefault();
-        const fd = new FormData(inlineForm);
-        try {
-          const utility = fd.get('utility');
-          const meter = String(fd.get('meter') || '').trim() || 'Contador principal';
-          const base = { utility, unit: utilityUnit(utility), date: fd.get('date'), kind: fd.get('kind'), note: fd.get('note') };
-          const inputs = isTri()
-            ? electricityPeriods.filter(([id]) => String(fd.get('reading_' + id)).trim() !== '').map(([id, label]) => ({ ...base, meter: `${meter} · ${label}`, reading: Number(fd.get('reading_' + id)) }))
-            : [{ ...base, meter, reading: Number(fd.get('reading')) }];
-          if (!inputs.length) throw Error('Indica pelo menos uma leitura: Vazio, Ponta ou Cheio.');
-          commit(() => {
-            D.saveUtilityReadings(data, inputs);
-          }, inputs.length > 1 ? `${inputs.length} leituras guardadas. Nenhum movimento financeiro foi criado.` : 'Leitura de consumo guardada. Nenhum movimento financeiro foi criado.');
-        } catch (err) {
-          notice(err.message, true);
-        }
-      };
-    }
-
-    for (const b of $$('[data-utility-filter]', consumosHost)) {
-      b.onclick = () => { s.utilityFilter = b.dataset.utilityFilter; renderConsumos(); };
-    }
+    consumosHost.innerHTML = `<div class="section-head consumos-hero-head">
+      <div><h2>Consumos</h2><p>Regista água e saneamento (na mesma fatura) e eletricidade pelo período da fatura e compara meses e anos.</p></div>
+      <button type="button" class="primary" id="addUtilityMonthly">${I('plus')}Registar consumo</button>
+    </div><div class="utility-period-grid">${cards}</div>`;
+    $('#addUtilityMonthly', consumosHost).onclick = () => monthlyUtilityForm();
     $('#addTransaction').hidden = true;
   }
 
-  function enhanceCasaAnalyticsWithConsumos() {
-    if (view !== 'casaAnalytics') return;
-    const host = $('#casaAnalytics');
-    if (!host) return;
-    let card = $('#casaAnalyticsConsumosShortcut', host);
-    if (!card) {
-      card = document.createElement('section');
-      card.id = 'casaAnalyticsConsumosShortcut';
-      card.className = 'panel casa-analytics-consumos-shortcut';
-      host.append(card);
-    } else {
-      card.classList.add('casa-analytics-consumos-shortcut');
-    }
-    const readings = D.utilityReadings(data);
-    const count = readings.length;
-    const byUtil = utilityList().map(u => {
-      const comp = D.utilityComparison(data, { utility: u });
-      const latest = comp.intervals[0];
-      return `<div class="casa-analytics-utility-chip"><span>${utilityIcons[u]} ${utilityLabels[u]}</span><strong>${latest && latest.consumption !== null ? `${latest.consumption} ${esc(latest.unitLabel)}` : latest ? `${latest.reading} ${esc(latest.unitLabel)}` : 'Sem leituras'}</strong></div>`;
-    }).join('');
-    card.innerHTML =
-      `<div class="u-head"><div><h3>Consumos de água e eletricidade</h3>` +
-      `<p>${count} leitura(s) de contador registada(s) neste espaço financeiro.</p></div>` +
-      `<div class="u-actions">${btn('Abrir Consumos', 'open-consumos', '', '', 'primary')}</div></div>` +
-      `<div class="casa-analytics-utility-chips">${byUtil}</div>`;
+  function monthlyUtilityForm(r) {
+    const period = r ? D.utilityPeriod(r) : { start: '', end: '' };
+    const effectiveUtility = r?.utility || 'water';
+    const services = ['water', ...(effectiveUtility === 'sanitation' ? ['sanitation'] : []), 'electricity', ...(r?.utility === 'gas' || D.monthlyUtility(data, 'gas').rows.length ? ['gas'] : [])];
+    const oldRateNote = r && r.utility !== 'electricity' && r.billAmount == null && r.unitPrice != null
+      ? `<p class="muted">Este registo antigo calcula estimativa pela tarifa (${eur(r.reading * r.unitPrice)}). Indica o valor da fatura para o substituir.</p>`
+      : '';
+    form(r ? 'Editar consumo' : 'Registar consumo',
+      select('Serviço (unidade)', 'monthlyUtility', services.map(u => [u, utilityLabels[u] + ' · ' + utilityUnitsDefault[u]]), effectiveUtility) +
+      '<div class="two-cols">' + field('De', 'periodStart', period.start, 'date', 'required') +
+        field('Até', 'periodEnd', period.end, 'date', 'required') + '</div>' +
+      field('Comercializadora (opcional)', 'utilitySupplier', r?.supplier || '', 'text', 'maxlength="120"') +
+      field('Consumo do período', 'monthlyConsumption', r?.reading ?? '', 'number', 'required min="0" step="0.001"') +
+      field('Tarifa por unidade em euros (opcional)', 'monthlyRate', r?.unitPrice ?? '', 'number', 'min="0" max="1000" step="0.0001"') +
+      field('Valor da fatura (€)', 'monthlyBill', r?.billAmount ?? '', 'number', 'min="0" step="0.01"') +
+      oldRateNote +
+      field('Nota (opcional)', 'monthlyNote', r?.note || '', 'text', 'maxlength="500"'),
+      f => commit(() => D.saveUtilityReading(data, {
+        id: r?.id, kind: 'monthly', utility: f.get('monthlyUtility'),
+        unit: utilityUnit(f.get('monthlyUtility')), periodStart: f.get('periodStart'), periodEnd: f.get('periodEnd'),
+        supplier: f.get('utilitySupplier'), reading: f.get('monthlyConsumption'),
+        unitPrice: f.get('monthlyUtility') === 'electricity' && f.has('monthlyRate') ? f.get('monthlyRate') : null, billAmount: f.get('monthlyBill'), note: f.get('monthlyNote'), meter: 'Consumo por período',
+      }), 'Consumo guardado.'),
+      'Usa as datas indicadas na fatura (máximo 1 ano; o início não pode ser futuro). Para água e saneamento regista o valor total da fatura; na eletricidade podes indicar a comercializadora e a tarifa.');
+    const service = $('[name=monthlyUtility]'), supplier = $('[name=utilitySupplier]');
+    const rate = $('[name=monthlyRate]'), bill = $('[name=monthlyBill]');
+    const syncSupplier = () => {
+      const electricity = service.value === 'electricity';
+      for (const [input, visible] of [[supplier, electricity], [rate, electricity], [bill, !electricity]]) {
+        input.disabled = !visible;
+        input.closest('label').hidden = !visible;
+      }
+    };
+    service.onchange = syncSupplier;
+    syncSupplier();
   }
 
   function utilityForm(id) {
-    const r = D.utilityReadings(data).find(x => String(x.id) === String(id)) || {};
-    form(
-      r.id ? 'Editar leitura de contador' : 'Registar leitura de contador',
-      select('Serviço', 'utilityType', (r.id ? [r.utility] : utilityList()).map(u => [u, utilityLabels[u]]), r.utility || 'water') +
-        field('Data da leitura', 'utilityDate', r.date || F.today(), 'date', 'required') +
-        field('Leitura no contador (acumulada)', 'utilityReading', r.reading ?? '', 'number', 'required min="0" step="0.001"') +
-        select('Tipo de registo', 'utilityKind', Object.entries(kindLabels), r.kind || 'reading') +
-        field('Identificação do contador (opcional)', 'utilityMeterLabel', r.meter || 'Contador principal', 'text', 'maxlength="80"') +
-        field('Nota (opcional)', 'utilityNote', r.note || '', 'text', 'maxlength="500"'),
-      f => commit(() => {
-        D.saveUtilityReading(data, {
-          id: r.id,
-          utility: f.get('utilityType'),
-          unit: r.unit || utilityUnit(f.get('utilityType')),
-          date: f.get('utilityDate'),
-          reading: Number(f.get('utilityReading')),
-          kind: f.get('utilityKind'),
-          meter: f.get('utilityMeterLabel'),
-          note: f.get('utilityNote'),
-        });
-      }, 'Leitura de consumo guardada. Nenhum movimento financeiro foi criado.'),
-      'Para contador novo ou substituído que recomeçou do zero, escolhe "Substituição / reinício de contador". Assim a leitura anterior não gera consumo negativo nem artificial.',
-    );
+    const row=D.utilityReadings(data).find(r=>String(r.id)===String(id));
+    if(!row)return;
+    if(row.kind==='monthly') return monthlyUtilityForm(row);
+    const electricity=row.utility==='electricity';
+    form('Editar leitura antiga · '+esc(utilityLabels[row.utility]||row.utility),
+      field('Data','readingDate',row.date,'date','required')+
+      field('Leitura ('+(utilityUnitsDefault[row.utility]||row.unit)+')','readingValue',row.reading,'number','required min="0" step="0.001"')+
+      (electricity?field('Tarifa por unidade em euros (opcional)','readingPrice',row.unitPrice??'','number','min="0" max="1000" step="0.0001"'):'')+
+      field('Nota (opcional)','readingNote',row.note||'','text','maxlength="500"'),
+      f=>commit(()=>D.saveUtilityReading(data,{id:row.id,kind:row.kind,utility:row.utility,unit:row.unit,meter:row.meter,date:f.get('readingDate'),reading:f.get('readingValue'),...(electricity?{unitPrice:f.get('readingPrice')}:{}),note:f.get('readingNote')}),'Registo atualizado.'),
+      'Leitura histórica preservada.');
   }
 
   // ============================================================================
@@ -683,7 +687,7 @@
     return `<div class="dossier2-fact is-${tone}"><span>${esc(label)}</span><strong>${dateLabel(date)}${km ? ` · ${esc(km)}` : ''}</strong><small>${hint}</small></div>`;
   };
   const dossierCard = (title, count, body, action = '', wide = false) =>
-    `<section class="panel dossier2-card${wide ? ' is-wide' : ''}"><header><h3>${esc(title)}${count === null ? '' : ` <small>${count}</small>`}</h3>${action}</header>${body}</section>`;
+    `<section class="panel dossier2-card${wide ? ' is-wide' : ''}${title === 'Documentos PDF' ? ' dossier-documents' : ''}"><header><h3>${esc(title)}${count === null ? '' : ` <small>${count}</small>`}</h3>${action}</header>${body}</section>`;
   const dossierEmpty = text => `<p class="dossier2-empty">${esc(text)}</p>`;
   const dossierDocs = (docs, prefix, removeAction, tag = null) => docs.length
     ? `<div class="dossier2-docs">` + docs.map(doc =>
@@ -694,6 +698,63 @@
         `</div>`).join('') + `</div>`
     : '';
 
+  const dossierTable = (kind, list, selected, columns, cells) => {
+    if (!list.length) return '';
+    const labels = columns.map(label => `<th>${esc(label)}</th>`).join('');
+    const rows = list.map(item => {
+      const active = item.id === selected?.id;
+      const values = cells(item).map(value => `<td>${esc(value)}</td>`).join('');
+      return `<tr class="${active ? 'is-selected' : ''}"><td><button type="button" class="u-record-button" data-${kind}-select="${esc(item.id)}" aria-pressed="${active}">${esc(item.name)}</button></td>${values}</tr>`;
+    }).join('');
+    return `<section class="panel dossier-register"><label>Pesquisar <input type="search" data-dossier-query placeholder="Nome ou registo"></label><div class="u-table-scroll"><table class="u-table"><thead><tr>${labels}</tr></thead><tbody>${rows}</tbody></table></div><p class="empty-state" data-dossier-empty hidden>Nenhum registo encontrado.</p></section>`;
+  };
+  function bindDossierFilter(host, kind) {
+    const query = $('[data-dossier-query]', host);
+    if (!query) return;
+    const rows = $$('.dossier-register tbody tr', host), empty = $('[data-dossier-empty]', host);
+    const state = uiState(), key = kind+'Query';
+    query.value = state[key] || '';
+    query.oninput = () => {
+      state[key] = query.value;
+      const value=PracticalFinance.norm(query.value);
+      for(const row of rows)row.hidden=!PracticalFinance.norm(row.textContent).includes(value);
+      empty.hidden=rows.some(row=>!row.hidden);
+    };
+    query.oninput();
+  }
+  function dossierTabs(host, kind, tabs, active) {
+    const detail = $('.dossier2', host);
+    if (!detail) return;
+    const nav = document.createElement('nav');
+    nav.className = 'eq-design-tabs';
+    nav.setAttribute('aria-label', 'Secções da ficha');
+    nav.innerHTML = tabs.map(([id,label]) => `<button type="button" class="secondary" data-dossier-tab="${id}">${label}</button>`).join('');
+    $('.dossier2-hero', detail).before(nav);
+    const dates = $('.dossier2-facts.is-dates', detail);
+    const stats = $('.dossier2-facts:not(.is-dates)', detail);
+    const cards = $('.dossier2-grid', detail);
+    const apply = button => {
+      const tab = button.dataset.dossierTab;
+      uiState()[kind+'Tab'] = tab;
+      for (const choice of nav.querySelectorAll('button')) choice.setAttribute('aria-pressed', String(choice===button));
+      dates.hidden = !['overview','dates'].includes(tab);
+      stats.hidden = !['overview','costs'].includes(tab);
+      cards.hidden = tab === 'dates' || (tab === 'costs' && kind !== 'vehicle');
+      for (const card of cards.children) {
+        if (tab === 'costs' && kind === 'vehicle') {
+          const title = card.querySelector('h3')?.textContent || '';
+          card.hidden = !/Manuten|Abastec/i.test(title);
+        } else {
+          card.hidden = tab === 'documents' ? !card.classList.contains('dossier-documents') : tab === 'history' && card.classList.contains('dossier-documents');
+        }
+      }
+    };
+    for (const button of nav.querySelectorAll('button')) button.onclick = () => apply(button);
+    apply(nav.querySelector('[data-dossier-tab="'+(active||'overview')+'"]'));
+  }
+  function dossierNext(entries) {
+    return entries.filter(([,date])=>date).sort((a,b)=>a[1].localeCompare(b[1]))[0] || ['—',''];
+  }
   function renderVehicles() {
     if (view !== 'casaVehicles') return;
     const s = uiState();
@@ -709,13 +770,8 @@
         `<div><h2>Veículos</h2><p>Quilometragem, manutenções, prazos e documentos de cada veículo.</p></div>` +
         `<div class="row-actions">${btn('Pesquisar nos PDFs', 'open-pdf-search', 'vehicle')}${btn('+ Novo veículo', 'vehicle-form', '', '', 'primary')}</div>` +
       `</div>` +
-      (list.length > 1
-        ? `<div class="u-filter-bar dossier2-selector">` +
-            list.map(v =>
-              `<button type="button" class="secondary ${v.id === s.vehicleId ? 'active' : ''}" data-vehicle-select="${esc(v.id)}" aria-pressed="${v.id === s.vehicleId}">${esc(v.name)}${v.plate ? ` · ${esc(v.plate)}` : ''}</button>`
-            ).join('') +
-          `</div>`
-        : '') +
+      '<div class="eq-design-split dossier-register-workspace">' +
+      dossierTable('vehicle', list, selected, ['Veículo','Próximo prazo','Data'], v => { const [label,date]=dossierNext([['Inspeção',v.nextInspectionDate],['Seguro',v.insuranceDate],['IUC',v.iucDate],['Revisão',v.nextMaintenanceDate]]); return [label,date?dateLabel(date):'—']; }) +
       (summary
         ? `<div class="dossier2" id="vehicleDossierView">` +
             `<section class="panel dossier2-hero">` +
@@ -745,7 +801,7 @@
                   ? table(['Data', 'Descrição', 'Km', 'Custo', 'Movimento', ''], selected.maintenance.slice().sort((a, b) => b.date.localeCompare(a.date)).map(m =>
                       `<tr><td>${dateLabel(m.date)}</td><td>${esc(m.description)}</td><td>${m.km !== null && m.km !== undefined ? `${m.km.toLocaleString('pt-PT')} km` : '—'}</td><td class="amount">${eur(m.cost)}</td><td>${m.transactionId ? 'Associado' : 'Só na ficha'}</td><td>${btn('Remover', 'vehicle-sub-remove', `${selected.id}:maintenance:${m.id}`)}</td></tr>`).join(''))
                   : dossierEmpty('Sem manutenções registadas neste veículo.'),
-                btn('+ Manutenção', 'vehicle-maintenance-form', selected.id), true) +
+                '', true) +
               dossierCard('Quilometragem', (selected.mileageLog || []).length,
                 (selected.mileageLog || []).length
                   ? table(['Data', 'Km', 'Nota', ''], selected.mileageLog.slice().sort((a, b) => b.date.localeCompare(a.date)).map(m =>
@@ -761,10 +817,12 @@
             `</div>` +
             `<div class="dossier2-danger">${btn('Eliminar veículo', 'vehicle-remove', selected.id, '', 'secondary danger')}</div>` +
           `</div>`
-        : `<p class="empty-state">Adiciona um veículo para acompanhar quilometragem, revisões, inspeção, seguro e documentos PDF.</p>`);
+        : `<p class="empty-state">Adiciona um veículo para acompanhar quilometragem, revisões, inspeção, seguro e documentos PDF.</p>`) + '</div>';
+    bindDossierFilter(vehiclesHost,'vehicle');
+    dossierTabs(vehiclesHost,'vehicle',[['overview','Ficha'],['dates','Próximas datas'],['costs','Custos']],s.vehicleTab);
 
     for (const b of $$('[data-vehicle-select]', vehiclesHost)) {
-      b.onclick = () => { s.vehicleId = b.dataset.vehicleSelect; renderVehicles(); };
+      b.onclick = () => { s.vehicleId = b.dataset.vehicleSelect; renderVehicles(); $('[data-vehicle-select][aria-pressed=true]', vehiclesHost)?.focus({preventScroll:true}); };
     }
     $('#addTransaction').hidden = true;
   }
@@ -831,11 +889,11 @@
     if (!v) return;
     const expenses = [['', 'Sem movimento associado (apenas registo na ficha)'], ...data.transactions.filter(t => t.type === 'expense').slice(-300).reverse().map(t => [t.id, `${dateLabel(t.date)} · ${t.description} · ${eur(t.amount)}`])];
     form(
-      'Registar abastecimento · ' + v.name,
+      'Registar abastecimento · ' + esc(v.name),
       field('Data', 'fDate', F.today(), 'date', 'required') +
         field('Quantidade (L ou kWh)', 'fQuantity', '', 'number', 'required min="0.001" step="0.001"') +
         select('Unidade', 'fUnit', [['L', 'Litros (L)'], ['kWh', 'kWh']], v.fuelType === 'electric' ? 'kWh' : 'L') +
-        number('Custo total (€)', 'fCost', 0) +
+        field('Custo total (€)', 'fCost', 0, 'number', 'required min="0" step="0.01"') +
         field('Quilometragem atual (km)', 'fKm', v.currentKm || 0, 'number', 'required min="0" max="5000000" step="1"') +
         field('Posto / local (opcional)', 'fStation', '', 'text', 'maxlength="120"') +
         select('Despesa existente em Movimentos (opcional)', 'fTx', expenses, '') +
@@ -868,12 +926,14 @@
     const candidates = data.transactions.filter(t => t.type === 'expense' && !linked.has(String(t.id)) && relevant(t)).slice(-100).reverse();
     const expenses = [['', candidates.length ? 'Sem movimento associado (apenas registo na ficha)' : 'Sem despesas de veículo encontradas (apenas registo na ficha)'], ...candidates.map(t => [t.id, `${dateLabel(t.date)} · ${t.description} · ${eur(t.amount)}`])];
     form(
-      'Registar manutenção · ' + v.name,
+      'Registar manutenção · ' + esc(v.name),
       field('Descrição da intervenção', 'mDesc', '', 'text', 'required maxlength="240"') +
         field('Data', 'mDate', F.today(), 'date', 'required') +
         select('Tipo', 'mKind', Object.entries(D.VEHICLE_MAINT_KINDS), 'revision') +
-        number('Custo (€)', 'mCost', 0) +
+        field('Custo (€)', 'mCost', 0, 'number', 'required min="0" step="0.01"') +
         field('Quilometragem (km, opcional)', 'mKm', v.currentKm || '', 'number', 'min="0" max="5000000" step="1"') +
+        field('Próxima data (opcional)', 'mNextDate', '', 'date') +
+        field('Próxima quilometragem (km, opcional)', 'mNextKm', '', 'number', 'min="0" max="5000000" step="1"') +
         select('Despesa do veículo em Movimentos (opcional)', 'mTx', expenses, '') +
         field('Nota (opcional)', 'mNote', '', 'text', 'maxlength="500"'),
       f => commit(() => {
@@ -883,6 +943,8 @@
           kind: f.get('mKind'),
           cost: Number(f.get('mCost')),
           km: f.get('mKm'),
+          nextDate: f.get('mNextDate'),
+          nextKm: f.get('mNextKm'),
           transactionId: f.get('mTx'),
           note: f.get('mNote'),
         });
@@ -965,13 +1027,8 @@
         `<div><h2>Habitação</h2><p>Prazos, documentos e tudo o que está ligado à casa.</p></div>` +
         `<div class="row-actions">${btn('Pesquisar nos PDFs', 'open-pdf-search', 'housing')}${btn('+ Nova habitação', 'housing-form', '', '', 'primary')}</div>` +
       `</div>` +
-      (list.length > 1
-        ? `<div class="u-filter-bar dossier2-selector">` +
-            list.map(h =>
-              `<button type="button" class="secondary ${h.id === s.housingId ? 'active' : ''}" data-housing-select="${esc(h.id)}" aria-pressed="${h.id === s.housingId}">${esc(h.name)}</button>`
-            ).join('') +
-          `</div>`
-        : '') +
+      '<div class="eq-design-split dossier-register-workspace">' +
+      dossierTable('housing', list, selected, ['Habitação','Próximo prazo','Data'], h => { const [label,date]=dossierNext([['Seguro',h.insuranceDate],['Condomínio',h.condominiumDate],['IMI',h.imiDate],...(h.imiDates||[]).filter(d=>d!==h.imiDate).map(d=>['IMI',d])]); return [label,date?dateLabel(date):'—']; }) +
       (summary
         ? `<div class="dossier2" id="housingDossierView">` +
             `<section class="panel dossier2-hero">` +
@@ -989,6 +1046,7 @@
                 dossierDue('Seguro da habitação', selected.insuranceDate) +
                 dossierDue('Condomínio / assembleia', selected.condominiumDate) +
                 dossierDue('IMI', selected.imiDate) +
+                (selected.imiDates || []).filter(d => d !== selected.imiDate).map((d, idx) => dossierDue(`IMI (${idx + 2}.ª data)`, d)).join('') +
               `</div>` +
               (selected.notes ? `<p class="dossier2-notes">${esc(selected.notes)}</p>` : '') +
             `</section>` +
@@ -1015,10 +1073,12 @@
             `</div>` +
             `<div class="dossier2-danger">${btn('Eliminar dossier', 'housing-remove', selected.id, '', 'secondary danger')}</div>` +
           `</div>`
-        : `<p class="empty-state">Cria o dossier da habitação para centralizar documentos PDF, prazos de seguro, IMI e condomínio, equipamentos e despesas.</p>`);
+        : `<p class="empty-state">Cria o dossier da habitação para centralizar documentos PDF, prazos de seguro, IMI e condomínio, equipamentos e despesas.</p>`) + '</div>';
+    bindDossierFilter(housingHost,'housing');
+    dossierTabs(housingHost,'housing',[['overview','Ficha'],['documents','Documentos'],['history','Histórico']],s.housingTab);
 
     for (const b of $$('[data-housing-select]', housingHost)) {
-      b.onclick = () => { s.housingId = b.dataset.housingSelect; renderHousing(); };
+      b.onclick = () => { s.housingId = b.dataset.housingSelect; renderHousing(); $('[data-housing-select][aria-pressed=true]', housingHost)?.focus({preventScroll:true}); };
     }
     $('#addTransaction').hidden = true;
   }
@@ -1039,7 +1099,8 @@
         field('Valor patrimonial (€; opcional)', 'hPropertyValue', h.propertyValue || '', 'number', 'min="0" step="0.01" placeholder="Ex.: 180000"') +
         field('Renovação do seguro da habitação (opcional)', 'hInsurance', h.insuranceDate || '', 'date') +
         field('Próxima data de condomínio / assembleia (opcional)', 'hCondo', h.condominiumDate || '', 'date') +
-        field('Prazo de IMI / imposto (opcional)', 'hTax', h.imiDate || '', 'date') +
+        field('Prazo principal de IMI (opcional)', 'hTax', h.imiDate || '', 'date') +
+        field('Outros prazos de IMI (AAAA-MM-DD, separados por vírgula)', 'hTaxDates', (h.imiDates||[]).join(', '), 'text', 'maxlength="150"') +
         field('Notas', 'hNotes', h.notes || '', 'text', 'maxlength="2000"'),
       f => commit(() => {
         const saved = D.saveHousing(data, {
@@ -1053,6 +1114,7 @@
           insuranceDate: f.get('hInsurance'),
           condominiumDate: f.get('hCondo'),
           imiDate: f.get('hTax'),
+          imiDates: f.get('hTaxDates').split(',').map(date=>date.trim()).filter(Boolean),
           notes: f.get('hNotes'),
         });
         uiState().housingId = saved.id;
@@ -1141,36 +1203,38 @@
         field('Pesquisar palavra, artigo, matrícula, apólice ou referência nos PDFs', 'pdfSearchInput', s.pdfQuery, 'search', 'id="pdfContentSearchInput" placeholder="Ex.: caldeira, apólice, travões, IMI, frigorífico…"') +
         select('Origem documental', 'pdfSourceSelect', Object.entries(sourceLabels), s.pdfSource, 'id="pdfContentSourceFilter"') +
       `</div>` +
-      `<div id="pdfContentSearchResults" class="pdf-search-results">` +
-        (s.pdfQuery.trim()
-          ? (results.length
-              ? results.map(r =>
-                  `<article class="pdf-search-hit" data-pdf-hit="${esc(r.id)}">` +
-                    `<div class="pdf-hit-main">` +
-                      `<span class="notice-area-tag">${esc(r.sourceLabel)}</span> ` +
-                      `<b>${esc(r.title)}</b> · <small>${dateLabel(r.date)} · ${esc(r.fileName)}</small>` +
-                      `<p class="pdf-hit-excerpt">${esc(r.excerpt)}</p>` +
-                    `</div>` +
-                    `<div class="row-actions">` +
-                      (r.attachment ? btn('Abrir PDF', 'pdf-hit-open-file', r.id) : '') +
-                      btn('Abrir origem', 'pdf-hit-open-origin', r.id) +
-                    `</div>` +
-                  `</article>`
-                ).join('')
-              : `<p class="practical-empty">Nenhum PDF ou fatura contém “${esc(s.pdfQuery)}” neste filtro.</p>`)
-          : `<p class="muted">Escreve um termo acima para pesquisar no texto extraído e OCR de todos os PDFs do espaço.</p>`) +
-      `</div>`;
+      `<div id="pdfContentSearchResults" class="pdf-search-results"></div>`;
+
+    const drawPdfResults = () => {
+      const box = $('#pdfContentSearchResults', panel);
+      if (!box) return;
+      const filtered = s.pdfQuery.trim() ? D.searchPdfs(data, s.pdfQuery, { sourceKind: s.pdfSource }) : [];
+      box.innerHTML = s.pdfQuery.trim()
+        ? (filtered.length
+            ? filtered.map(r =>
+                `<article class="pdf-search-hit" data-pdf-hit="${esc(r.id)}">` +
+                  `<div class="pdf-hit-main">` +
+                    `<span class="notice-area-tag">${esc(r.sourceLabel)}</span> ` +
+                    `<b>${esc(r.title)}</b> · <small>${dateLabel(r.date)} · ${esc(r.fileName)}</small>` +
+                    `<p class="pdf-hit-excerpt">${esc(r.excerpt)}</p>` +
+                  `</div>` +
+                  `<div class="row-actions">` +
+                    (r.attachment ? btn('Abrir PDF', 'pdf-hit-open-file', r.id) : '') +
+                    btn('Abrir origem', 'pdf-hit-open-origin', r.id) +
+                  `</div>` +
+                `</article>`
+              ).join('')
+            : `<p class="practical-empty">Nenhum PDF ou fatura contém “${esc(s.pdfQuery)}” neste filtro.</p>`)
+        : `<p class="muted">Escreve um termo acima para pesquisar no texto extraído e OCR de todos os PDFs do espaço.</p>`;
+    };
+    drawPdfResults();
 
     const input = $('#pdfContentSearchInput', panel);
     const filter = $('#pdfContentSourceFilter', panel);
     if (input) {
       input.oninput = e => {
-        const pos = e.target.selectionStart;
         s.pdfQuery = e.target.value;
-        renderPdfSearchPanel();
-        const next = $('#pdfContentSearchInput', panel);
-        next?.focus();
-        try { next?.setSelectionRange(pos, pos); } catch {}
+        drawPdfResults();
       };
     }
     if (filter) {
@@ -1228,29 +1292,28 @@
     }
     let indexed = 0;
     let preservedOnFailure = 0;
+    const updates = [];
     for (const item of catalog) {
       try {
         const res = await readPdfFromDataUrl(item.attachment);
-        commit(() => {
-          D.updatePdfText(
-            data,
-            { sourceKind: item.sourceKind, ownerId: item.ownerId, docId: item.docId },
-            res.text,
-            res.ocrStatus,
-          );
-        }, 'Texto extraído de PDF.');
+        updates.push({ item, text: res.text, ocrStatus: res.ocrStatus });
         if (res.text) indexed++;
       } catch {
-        commit(() => {
-          D.updatePdfText(
-            data,
-            { sourceKind: item.sourceKind, ownerId: item.ownerId, docId: item.docId },
-            '',
-            'failed',
-          );
-        }, 'PDF preservado após tentativa de leitura.');
+        updates.push({ item, text: '', ocrStatus: 'failed' });
         preservedOnFailure++;
       }
+    }
+    if (updates.length) {
+      commit(() => {
+        for (const u of updates) {
+          D.updatePdfText(
+            data,
+            { sourceKind: u.item.sourceKind, ownerId: u.item.ownerId, docId: u.item.docId },
+            u.text,
+            u.ocrStatus,
+          );
+        }
+      }, `${indexed} PDF(s) indexado(s) para pesquisa.`);
     }
     renderPdfSearchPanel();
     notice(`${indexed} PDF(s) indexado(s) para pesquisa${preservedOnFailure ? ` · ${preservedOnFailure} PDF(s) preservado(s) sem texto legível` : ''}.`);
@@ -1295,6 +1358,9 @@
         case 'routine-complete':
           routineCompleteForm(id);
           break;
+        case 'routine-recalculate':
+          commit(() => D.recalculateRoutine(data, id), 'Próxima data recalculada pela última execução.');
+          break;
         case 'routine-remove':
           confirmAction('Eliminar rotina doméstica', 'Eliminar esta rotina doméstica e o seu histórico?', () => D.removeRoutine(data, id));
           break;
@@ -1308,7 +1374,8 @@
           utilityForm(id);
           break;
         case 'utility-remove':
-          confirmAction('Eliminar leitura de contador', 'Eliminar esta leitura? Nenhuma despesa é alterada.', () => D.removeUtilityReading(data, id));
+          if(D.utilityReadings(data).some(r=>String(r.id)===String(id)))
+            confirmAction('Eliminar consumo', 'Queres eliminar este registo de consumo?', () => D.removeUtilityReading(data, id));
           break;
         case 'vehicle-form':
           vehicleForm(id);
@@ -1399,7 +1466,7 @@
     }
   });
 
-  function noticeSettings(){const p=D.noticePreferences(data),labels={payments:'Pagamentos e renovações',warranties:'Garantias',food:'Validades da despensa',routines:'Equipamentos e rotinas',dossiers:'Veículos e habitação'};form('Configurar avisos',Object.entries(labels).map(([id,label])=>'<div class="notice-preference-row"><label class="checkbox"><input type="checkbox" name="noticeEnabled_'+id+'" '+(p.enabled[id]?'checked':'')+'>'+label+'</label>'+field('Avisar com antecedência (dias)','noticeDays_'+id,p.days[id],'number','min="0" max="365" required')+'</div>').join('')+field('Prioridade alta quando faltarem até (dias)','noticeUrgent',p.urgentDays,'number','min="0" max="30" required'),f=>commit(()=>D.saveNoticePreferences(data,{enabled:Object.fromEntries(Object.keys(labels).map(id=>[id,f.has('noticeEnabled_'+id)])),days:Object.fromEntries(Object.keys(labels).map(id=>[id,Number(f.get('noticeDays_'+id))])),urgentDays:Number(f.get('noticeUrgent'))}),'Configuração de avisos guardada neste espaço.'),'Escolhe as origens e os prazos. Vencidos têm prioridade alta. Estas opções não pagam, dispensam nem alteram os registos de origem.');}
+  function noticeSettings(){const p=D.noticePreferences(data),labels={payments:'Pagamentos e renovações',warranties:'Garantias',food:'Validades da despensa',routines:'Equipamentos e rotinas',dossiers:'Veículos e habitação'};form('Configurar avisos',Object.entries(labels).map(([id,label])=>'<div class="notice-preference-row"><label class="checkbox"><input type="checkbox" name="noticeEnabled_'+id+'" '+(p.enabled[id]?'checked':'')+'>'+label+'</label>'+field('Avisar com antecedência (dias)','noticeDays_'+id,p.days[id],'number','min="0" max="365" required')+'</div>').join('')+field('Antecedências de veículos e habitação (dias, separadas por vírgula)','dossierStages',p.dossierStages.join(', '),'text','maxlength="50"')+field('Prioridade alta quando faltarem até (dias)','noticeUrgent',p.urgentDays,'number','min="0" max="30" required'),f=>commit(()=>D.saveNoticePreferences(data,{enabled:Object.fromEntries(Object.keys(labels).map(id=>[id,f.has('noticeEnabled_'+id)])),days:Object.fromEntries(Object.keys(labels).map(id=>[id,Number(f.get('noticeDays_'+id))])),urgentDays:Number(f.get('noticeUrgent')),dossierStages:[...new Set(f.get('dossierStages').split(',').map(n=>n.trim()).filter(Boolean).map(Number))]}),'Configuração de avisos guardada neste espaço.'),'Escolhe as origens e os prazos. Vencidos têm prioridade alta. Estas opções não pagam, dispensam nem alteram os registos de origem.');}
   document.addEventListener('click',e=>{if(e.target.closest('[data-notice-settings]'))noticeSettings();});
 
   function renderAll() {
@@ -1408,7 +1475,6 @@
     if (view === 'noticesHub') renderNoticesHub();
     if (view === 'casaEquipment') enhanceEquipmentPage();
     if (view === 'casaConsumos') renderConsumos();
-    if(view==='casaAnalytics')document.getElementById('casaAnalyticsConsumosShortcut')?.remove();
     if (view === 'casaVehicles') renderVehicles();
     if (view === 'casaHousing') renderHousing();
     if (view === 'dataHub' || view === 'documentsHub') renderPdfSearchPanel();

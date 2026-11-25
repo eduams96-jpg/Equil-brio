@@ -1,13 +1,11 @@
 # Pastas do Equilíbrio
 
-- RETOMAR.md e ESTADO-PROJETO.md: estado atual e próximos passos — ponto de entrada.
-- equilibrio/: fonte Windows 1.0.26 e regras únicas da partilha/Android.
-- android/: fonte canónica Android, projeto nativo, testes e compilação documentada.
-- entrega-v1.0.26/: entrega final Windows (instalador, .fpupdate, instruções, validação, SHA-256) e `android/` com o APK 1.0.1 (fora do Git; está na GitHub Release, exceto o APK).
-- entrega-android-1.0.1/: APK Android 1.0.1 assinado, hash e instruções (fora do Git).
-- docs/superpowers/: especificações e planos de desenvolvimento.
-- historico/: documentação e baselines por versão (base das atualizações .fpupdate).
-- perfis/ e sources/: dados pessoais e material preservados, fora do GitHub.
-- PILOTO-FINAL.md e RECUPERACAO-DA-ASSINATURA.md: tarefas pendentes do proprietário.
-
-Fora do projeto, em `D:\CODEX\`: os dois ZIPs `*-FINAL-v1.0.26.zip` e `arquivo-antigo-2026-11-16\` (entregas 1.0.15–1.0.25, ZIPs anteriores, `work/`, `coordenacao/`; nada foi apagado).
+- [ESTADO-PROJETO.md](ESTADO-PROJETO.md): estado atual e histórico de validação do projeto.
+- [equilibrio/](equilibrio/): fonte Windows Desktop (`1.0.43` após auditoria profunda e geração de entrega) e regras partilhadas em `mobile-sync/`.
+- [android/](android/): fonte canónica Android (`1.0.3`, `versionCode` `8`, alinhada com `coreVersion` `1.0.43`), projeto Capacitor/Java e 345 testes.
+- [entrega-v1.0.27](entrega-v1.0.27/) .. [entrega-v1.0.41](entrega-v1.0.41/): histórico de entregas Windows anteriores.
+- `D:\Equilibrio\Entrega-v1.0.43-20261124/`: entrega Windows atual (`1.0.43`, instalador NSIS, atualizador delta a partir da `1.0.42` e ZIP standalone).
+- `D:\Equilibrio\Entrega-v1.0.42-final-20261124/`: entrega anterior preservada.
+- `D:\Equilibrio\Equilibrio-Instalador-v1.0.26.zip` e `D:\Equilibrio\Equilibrio-v1.0.26.zip`: arquivos preservados da `1.0.26`.
+- `D:\Equilibrio\chave-android.zip`: cópia da chave de assinatura Android (ficheiro sensível do proprietário; recomendada guarda offline).
+- [perfis/](perfis/): perfis/dados locais preservados; fuga de perfis temporários nos testes eliminada.

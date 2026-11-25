@@ -24,7 +24,7 @@ function portable(source,current){
 
  validate(source);validate(current);
 
- if(current.serverId!=='unpaired'||current.outbox.length||current.confirmed.ledger.transactions.length||['movementDraft','commitmentDraft','paymentDraft','houseDraft','accountDraft'].some(k=>current[k])||(current.confirmed.ledger.casa?.catalog||[]).length||(current.confirmed.ledger.pendingPayments||[]).length)throw Error('A passagem exige um dispositivo vazio e sem associação. Os dados existentes foram preservados.');
+ if(!P.isBlankOffline(current)) throw Error('A passagem exige um dispositivo vazio e sem associação. Os dados existentes foram preservados.');
 
  if(source.blocked||source.outbox.some(r=>['conflict','rejected','blocked'].includes(r.status)&&!r.resolution))throw Error('Resolve as propostas em revisão no aparelho de origem antes da passagem.');
 

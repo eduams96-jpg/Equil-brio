@@ -2,6 +2,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const ligacao = require('./ligacao.cjs');
+const P = require('../../../shared/protocol.cjs');
 const { ctx, demo, empty } = require('./fixtures.cjs');
 
 const AMOUNT = /\d,\d{2}\s?€/;
@@ -23,9 +24,12 @@ test('Ligação associada oferece sincronizar; associação por concluir oferece
 });
 
 test('Ligação exige confirmar a substituição quando há dados locais', () => {
-  assert.doesNotMatch(ligacao.render(ctx(empty()), {}), /name="replaceLocal" value="yes" required/);
-  const some = ligacao.render(withOutbox(empty(), [entry('movement.add', { description: 'X' }, { status: 'pending' })]), {});
-  assert.match(some, /name="replaceLocal" value="yes" required/);
+  const local = P.offlineFixture('phone');
+  const render = () => ligacao.render(ctx(local.confirmed.ledger, { state: local }), {});
+  const confirmation = /name="replaceLocal" value="yes" required/;
+  assert.doesNotMatch(render(), confirmation);
+  require('../../../shared/house.cjs').Casa.shopping(local.confirmed.ledger, 'add', { name: 'Pão', qty: '1' });
+  assert.match(render(), confirmation);
 });
 
 test('Ligação lista a fila e oferece Rever nos conflitos', () => {

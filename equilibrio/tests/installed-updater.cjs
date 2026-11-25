@@ -1,20 +1,44 @@
 'use strict';
-const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),fsp=require('node:fs/promises'),os=require('node:os'),path=require('node:path');
-const U=require('../desktop/manual-updater.cjs');
-test('Atualizador: verifica escrita e remove o ensaio de acesso',async()=>{
- const dir=fs.mkdtempSync(path.join(os.tmpdir(),'equilibrio-access-'));
- try{assert.equal(await U.needsElevation(dir),false);assert.deepEqual(fs.readdirSync(dir),[]);}finally{fs.rmSync(dir,{recursive:true,force:true});}
-});
-test('Atualizador: acesso recusado pede elevação, outras falhas não são ignoradas',async()=>{
- if(process.platform!=='win32')return;
- const original=fsp.open;try{
-  fsp.open=async()=>{throw Object.assign(Error('Recusado'),{code:'EACCES'});};assert.equal(await U.needsElevation('C:/synthetic'),true);
-  fsp.open=async()=>{throw Object.assign(Error('Disco indisponível'),{code:'EIO'});};await assert.rejects(()=>U.needsElevation('C:/synthetic'),/Disco/);
- }finally{fsp.open=original;}
-});
-test('Atualizador: caminhos com espaços e apóstrofos permanecem argumentos literais na elevação',()=>{
- const args=U.elevationCommand("C:\\teste d'uso\\helper.cjs",'C:\\teste\\plan.json','C:\\teste\\ack.txt');
- const outer=Buffer.from(args.at(-1),'base64').toString('utf16le');assert.ok(outer.includes('-Verb RunAs'));assert.ok(outer.includes('-WindowStyle Hidden'));
- const encoded=outer.match(/'-EncodedCommand','([^']+)'/)[1],inner=Buffer.from(encoded,'base64').toString('utf16le');
- assert.ok(inner.includes("d''uso"));assert.ok(inner.includes("ELECTRON_RUN_AS_NODE='1'"));assert.ok(inner.includes('WriteAllText'));assert.ok(!inner.includes('ExecutionPolicy'));
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const fsp = require('node:fs/promises');
+const os = require('node:os');
+const path = require('node:path');
+const U = require('../desktop/manual-updater.cjs');
+
+test('Atualizador encaminha instalações protegidas para o instalador oficial', async t => {
+  if (process.platform !== 'win32') return;
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'equilibrio-update-protected-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const appPath = path.join(root, 'app');
+  const userDataPath = path.join(root, 'profile');
+  fs.mkdirSync(appPath);
+  const content = Buffer.from("const APP_VERSION = '0.2.0';");
+  const pkg = {
+    format: U.UPDATE_FORMAT, formatVersion: 1, appId: U.UPDATE_APP_ID, version: '0.2.0',
+    minSchemaVersion: 2,
+    files: [{ path: 'desktop/version.cjs', size: content.length,
+      sha256: U.sha256Buffer(content), contentBase64: content.toString('base64') }],
+  };
+  pkg.manifestSha256 = U.sha256Buffer(Buffer.from(U.canonicalManifestForHash(pkg)));
+  const currentVersion = '0.1.0';
+  const validated = U.validatePackageObject(pkg, { currentVersion, schemaVersion: 2 });
+  const options = { pkg, validated, appPath, userDataPath, currentVersion };
+
+  const write = t.mock.method(fsp, 'writeFile', async () => {
+    throw Object.assign(new Error('Acesso recusado'), { code: 'EACCES' });
+  });
+  await assert.rejects(U.stageUpdate(options), /instalador oficial/);
+  assert.equal(fs.existsSync(userDataPath), false);
+  assert.deepEqual(fs.readdirSync(appPath), []);
+
+  write.mock.mockImplementation(async () => {
+    throw Object.assign(new Error('Disco indisponível'), { code: 'EIO' });
+  });
+  await assert.rejects(U.stageUpdate(options), error => error.cause?.code === 'EIO');
+
+  write.mock.restore();
+  await U.stageUpdate(options);
+  assert.deepEqual(fs.readdirSync(appPath), []);
 });

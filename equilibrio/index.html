@@ -2,6 +2,10 @@
 <html lang="pt-PT">
   <head>
     <meta charset="UTF-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; worker-src 'self' blob:; child-src 'self' blob: data:; frame-src 'self' blob: data:; connect-src 'self' data: blob: https:; object-src 'none'; base-uri 'none'; form-action 'self'"
+    />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#14213d" />
     <meta
@@ -12,7 +16,7 @@
     <link rel="icon" href="Equilibrio.ico" />
       <link rel="stylesheet" href="ui.css" />
   </head>
-  <body data-build="1.0.26">
+  <body data-build="1.0.46">
     <a class="skip-link" href="#mainContent">Saltar para o conteúdo</a>
     <button type="button" id="menuBackdrop" aria-label="Fechar menu"></button>
     <div
@@ -64,9 +68,6 @@
         <button type="button" class="nav-link" data-view="planningPlus">
           ▢ <span>Planeamento+</span>
         </button>
-        <button type="button" class="nav-link" data-view="casaPurchases">
-          🏠 <span>Compras</span>
-        </button>
         <button type="button" class="nav-link" data-view="casaShopping">
           🛒 <span>Lista de compras</span>
         </button>
@@ -92,7 +93,7 @@
           ↥ Importar extrato CSV
         </button>
         <button type="button" id="resetData" class="text-button danger">↻ Repor dados</button>
-        <div id="appBuildBadge" class="app-build-badge" title="Build em execução">v1.0.26</div>
+        <div id="appBuildBadge" class="app-build-badge" title="Build em execução">v1.0.46</div>
       </div>
     </aside>
     <main id="mainContent">
@@ -155,11 +156,11 @@
             </article>
             <article class="summary-kpi summary-kpi-expense">
               <span class="summary-kpi-icon" aria-hidden="true">↘</span>
-              <div><p>Despesas (mês)</p><strong id="expenseValue">€0,00</strong><small id="expenseTrend">— vs. mês anterior</small><button type="button" class="link-button" id="expenseBreakdownButton">Ver cálculo</button></div>
+              <div><p>Despesas líquidas</p><strong id="expenseValue">€0,00</strong><small id="expenseTrend">— vs. mês anterior</small><button type="button" class="link-button" id="expenseBreakdownButton">Ver cálculo</button></div>
             </article>
             <article class="summary-kpi summary-kpi-saving">
               <span class="summary-kpi-icon" aria-hidden="true">◎</span>
-              <div><p>Poupança (mês)</p><strong id="savingValue">€0,00</strong><small><b id="savingRate">—</b> da tua receita</small></div>
+              <div><p>Balanço do mês</p><strong id="savingValue">€0,00</strong><small><b id="savingRate">—</b></small></div>
             </article>
           </div>
 
@@ -222,6 +223,7 @@
             </div>
           </div>
           <div class="movements-hero-actions">
+            <div class="movement-period-group" role="group" aria-label="Período dos movimentos">
             <div class="movements-period-control" aria-label="Período dos movimentos">
               <span class="movements-period-icon" aria-hidden="true">▣</span>
               <label class="movement-direct-month"><span>Mês</span><select id="movementMonthSelect" aria-label="Mês dos movimentos"></select></label><label class="movement-direct-year"><span>Ano</span><select id="movementYearSelect" aria-label="Ano dos movimentos"></select></label><strong id="movementsPeriodLabel" class="movement-period-status" aria-live="polite">—</strong>
@@ -229,12 +231,20 @@
               <button type="button" class="movement-period-arrow" data-action="tx-month-next" aria-label="Mês seguinte">›</button>
             </div>
             <button type="button" id="movementHistoryToggle" class="movement-history-toggle" aria-pressed="false">Todo o histórico</button>
-            <div class="movement-type-tabs" role="tablist" aria-label="Filtrar movimentos por tipo">
-              <button type="button" class="movement-type-tab active" data-tx-type-tab="all">Todos</button>
-              <button type="button" class="movement-type-tab" data-tx-type-tab="expense">Despesas</button>
-              <button type="button" class="movement-type-tab" data-tx-type-tab="income">Receitas</button>
-              <button type="button" class="movement-type-tab" data-tx-type-tab="transfer">Transferências</button>
-              <button type="button" class="movement-type-tab" data-tx-type-tab="recurring">Recorrentes</button>
+            <details id="movementDateOptions"><summary>Intervalo de datas</summary>
+              <div class="movement-date-range">
+                <label><span>De</span><input id="movementDateStart" type="date" aria-label="Data inicial"></label>
+                <label><span>Até</span><input id="movementDateEnd" type="date" aria-label="Data final"></label>
+                <button type="button" id="movementDateClear" class="movement-date-clear" title="Limpar intervalo" aria-label="Limpar filtro de datas">×</button>
+              </div>
+            </details>
+            </div>
+            <div class="movement-type-tabs" role="group" aria-label="Filtrar movimentos por tipo">
+              <button type="button" class="movement-type-tab active" data-tx-type-tab="all" aria-pressed="true">Todos</button>
+              <button type="button" class="movement-type-tab" data-tx-type-tab="expense" aria-pressed="false">Despesas</button>
+              <button type="button" class="movement-type-tab" data-tx-type-tab="income" aria-pressed="false">Receitas</button>
+              <button type="button" class="movement-type-tab" data-tx-type-tab="transfer" aria-pressed="false">Transferências</button>
+              <button type="button" class="movement-type-tab" data-tx-type-tab="recurring" aria-pressed="false">Recorrentes</button>
             </div>
           </div>
         </div>
@@ -242,15 +252,15 @@
         <div class="movement-kpi-grid" aria-label="Resumo do período">
           <article class="movement-kpi movement-kpi-income">
             <span class="movement-kpi-icon" aria-hidden="true">↑</span>
-            <div><p>Entradas</p><strong id="movementIncomeKpi">0,00 €</strong><small id="movementIncomeTrend">No período selecionado</small></div>
+            <div><p>Entradas por receitas e reembolsos</p><strong id="movementIncomeKpi">0,00 €</strong><small id="movementIncomeTrend">No período selecionado</small></div>
           </article>
           <article class="movement-kpi movement-kpi-expense">
             <span class="movement-kpi-icon" aria-hidden="true">↓</span>
-            <div><p>Saídas</p><strong id="movementExpenseKpi">0,00 €</strong><small id="movementExpenseTrend">No período selecionado</small></div>
+            <div><p title="Despesas registadas, incluindo capital de créditos e antes de descontar reembolsos. As transferências e os ajustes ficam fora deste total.">Saídas por despesas</p><strong id="movementExpenseKpi">0,00 €</strong><small id="movementExpenseTrend">No período selecionado</small></div>
           </article>
           <article class="movement-kpi movement-kpi-balance">
             <span class="movement-kpi-icon" aria-hidden="true">=</span>
-            <div><p>Saldo do período</p><strong id="movementNetKpi">0,00 €</strong><small id="movementNetTrend">Entradas menos saídas</small></div>
+            <div><p>Entradas menos saídas</p><strong id="movementNetKpi">0,00 €</strong><small id="movementNetTrend">Sem transferências nem ajustes</small></div>
           </article>
           <article class="movement-kpi movement-kpi-review">
             <span class="movement-kpi-icon" aria-hidden="true">◷</span>
@@ -266,6 +276,7 @@
             </section>
             <section class="movement-filter-section">
               <div class="movement-filter-heading"><h3>Categorias</h3><span aria-hidden="true">⌃</span></div>
+              <div id="movementCategorySearch"></div>
               <div id="movementCategoryFilters" class="movement-filter-list"></div>
             </section>
             <section class="movement-filter-section">
@@ -280,11 +291,6 @@
                 <span aria-hidden="true">⌕</span>
                 <input id="searchTransactions" placeholder="Pesquisar movimentos…" />
               </label>
-              <div class="movement-date-range" aria-label="Filtrar movimentos por datas">
-                <label><span>De</span><input id="movementDateStart" type="date" aria-label="Data inicial"></label>
-                <label><span>Até</span><input id="movementDateEnd" type="date" aria-label="Data final"></label>
-                <button type="button" id="movementDateClear" class="movement-date-clear" title="Limpar intervalo" aria-label="Limpar filtro de datas">×</button>
-              </div>
               <label class="movement-sort-wrap">Ordenar por
                 <select id="transactionSort" aria-label="Ordenar movimentos">
                   <option value="date-desc">Data (mais recentes)</option>
@@ -392,7 +398,7 @@
             <div class="review-message" id="reviewMessage"></div>
             <div id="reviewTable"></div>
             <div class="review-learning">
-              <label class="checkbox"><input type="checkbox" id="learnImportRules" checked> Memorizar as categorias e beneficiários confirmados</label>
+              <label class="checkbox"><input type="checkbox" id="learnImportRules"> Memorizar as categorias e beneficiários confirmados</label>
               <small>Quando o estabelecimento é identificável, cria uma regra reutilizável para os próximos extratos.</small>
             </div>
             <div class="review-actions">
@@ -434,7 +440,7 @@
           </div>
           <div class="header-actions">
             <select id="reportYear" class="report-select"></select
-            ><button type="button" id="closeMonth" class="secondary">Fechar mês</button>
+            ><button type="button" id="closeMonth" class="secondary" aria-describedby="legacyMonthCloseReason">Fechar mês</button><p id="legacyMonthCloseReason" class="muted"></p>
           </div>
         </div>
         <div class="report-cards" id="reportCards"></div>
@@ -664,15 +670,15 @@
             </button>
           </article>
           <article class="panel">
-            <h2>Os teus dados</h2>
+            <h2>Exportação e restauro</h2>
             <p id="storageInfo"></p>
             <p>
               Os dados pertencem ao Espaço Financeiro atual. Mantém uma cópia
               de segurança fora da aplicação para poderes recuperar tudo se necessário.
             </p>
             <div class="settings-data-command-grid">
-              <button type="button" class="settings-command primary" id="backupSettings"><span>Guardar cópia</span><small>Exportar o Espaço atual</small></button>
-              <button type="button" class="settings-command secondary" id="restoreSettings"><span>Restaurar cópia</span><small>Substituir os dados do espaço atual</small></button>
+              <button type="button" class="settings-command primary" id="backupSettings"><span>Exportar este espaço</span><small>Guardar em JSON</small></button>
+              <button type="button" class="settings-command secondary" id="restoreSettings"><span>Abrir cópia JSON</span><small>Escolher como recuperar os dados</small></button>
               <button type="button" class="settings-command secondary" id="rawBackup"><span>Dados originais</span><small>Exportação técnica para diagnóstico</small></button>
             </div>
           </article>

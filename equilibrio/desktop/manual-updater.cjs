@@ -103,6 +103,7 @@ function signPackageObject(pkg, privateKey, keyId = UPDATE_SIGNATURE_KEY_ID) {
 
 function verifyPackageSignature(pkg, context = {}) {
   if (pkg.signature == null) {
+    if (context.requireSignature) throw new Error('A atualização tem de ter uma assinatura digital reconhecida.');
     return false;
   }
   const signature = pkg.signature;
@@ -168,7 +169,13 @@ function validatePackageObject(pkg, context = {}) {
   };
 }
 
+const MAX_UPDATE_PACKAGE_BYTES = 128 * 1024 * 1024;
+
 async function readAndValidatePackage(filePath, context) {
+  const stat = await fs.stat(filePath);
+  if (!stat.isFile() || stat.size <= 0 || stat.size > MAX_UPDATE_PACKAGE_BYTES) {
+    throw new Error('O ficheiro .fpupdate tem um tamanho inválido.');
+  }
   const text = await fs.readFile(filePath, 'utf8');
   let pkg;
   try { pkg = JSON.parse(text); } catch { throw new Error('O ficheiro .fpupdate não contém JSON válido.'); }
@@ -177,15 +184,13 @@ async function readAndValidatePackage(filePath, context) {
 }
 
 async function ensureWritableDirectory(directory) {
-  const probe = path.join(directory, `.financas-update-write-test-${process.pid}-${Date.now()}`);
+  const probe = path.join(directory, `.financas-update-write-test-${crypto.randomUUID()}`);
   try {
-    await fs.writeFile(probe, 'ok', 'utf8');
+    await fs.writeFile(probe, 'ok', { flag: 'wx' });
     await fs.rm(probe, { force: true });
     return true;
   } catch (error) {
     try { await fs.rm(probe, { force: true }); } catch {}
-    // Staging and rollback are written to the profile. Only file replacement
-    // needs administrator rights, requested after staging has been verified.
     if(process.platform==='win32'&&['EACCES','EPERM'].includes(error.code))return false;
     const wrapped = new Error('Não foi possível verificar o acesso à pasta da aplicação.');
     wrapped.cause = error;
@@ -211,12 +216,15 @@ async function safeUpdateTarget(root, relative) {
   return current;
 }
 
-async function stageUpdate({ pkg, validated, appPath, userDataPath, currentVersion }) {
-  const checked = validatePackageObject(pkg, { currentVersion, schemaVersion: Number(pkg.minSchemaVersion || 0) });
+async function stageUpdate({ pkg, validated, appPath, userDataPath, currentVersion, schemaVersion, requireSignature = false }) {
+  const effectiveSchema = Number(schemaVersion ?? pkg.minSchemaVersion ?? 0);
+  const checked = validatePackageObject(pkg, { currentVersion, schemaVersion: effectiveSchema, requireSignature });
   if (checked.manifestSha256 !== validated.manifestSha256) throw new Error('O pacote mudou depois da validação.');
   validated = checked;
   if (fsSync.existsSync(path.join(userDataPath,'update-pending.json'))) throw new Error('Existe uma atualização pendente; recupera antes de preparar outra.');
-  await ensureWritableDirectory(appPath);
+  if (!await ensureWritableDirectory(appPath)) {
+    throw new Error('Esta instalação está numa pasta protegida. Usa o instalador oficial para atualizar.');
+  }
   const stamp = new Date().toISOString().replace(/[:.]/g, '-');
   const root = path.join(userDataPath, 'updates', `from-${currentVersion}-to-${validated.version}-${stamp}`);
   const stagingDir = path.join(root, 'staged');
@@ -250,7 +258,7 @@ async function stageUpdate({ pkg, validated, appPath, userDataPath, currentVersi
   const plan = {
     format: 'financas-pessoais-update-plan',
     version: 2,
-    schemaVersion: Number(pkg.minSchemaVersion || 0),
+    schemaVersion: effectiveSchema,
     manifestSha256: validated.manifestSha256,
     createdAt: new Date().toISOString(),
     parentPid: process.pid,
@@ -267,174 +275,21 @@ async function stageUpdate({ pkg, validated, appPath, userDataPath, currentVersi
   const planPath = path.join(root, 'update-plan.json');
   await writeVerifiedAtomic(planPath, JSON.stringify(plan, null, 2));
   await writeVerifiedAtomic(path.join(root, 'package.json'), JSON.stringify(pkg));
-  const runtimeHashes = {};
-  for (const name of ['manual-updater.cjs','update-recovery.cjs','verified-backup.cjs']) {
-    const bytes = await fs.readFile(path.join(__dirname,name));
-    await writeVerifiedAtomic(path.join(root,'runtime',name), bytes);
-    runtimeHashes[name] = sha256Buffer(bytes);
-  }
   const marker = path.join(userDataPath,'update-pending.json');
   if (fsSync.existsSync(marker)) throw new Error('Existe uma atualização pendente; recupera antes de preparar outra.');
-  await writeVerifiedAtomic(marker, JSON.stringify({planPath,planSha256:Recovery.planHash(plan),runtimeHashes}));
+  await writeVerifiedAtomic(marker, JSON.stringify({planPath,planSha256:Recovery.planHash(plan)}));
   return { root, stagingDir, rollbackDir, planPath, plan };
 }
 
-function helperSource(expectedAppPath, expectedProfile, recoveryOnly = false) {
-  return String.raw`const fs = require('node:fs');
-const fsp = require('node:fs/promises');
-const path = require('node:path');
-const crypto = require('node:crypto');
-
-const planPath = process.argv[2];
-const EXPECTED_APP_PATH = ${JSON.stringify(expectedAppPath)};
-const EXPECTED_PROFILE = ${JSON.stringify(expectedProfile)};
-function sha256(buffer){ return crypto.createHash('sha256').update(buffer).digest('hex'); }
-function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
-function pidAlive(pid){ try { process.kill(pid, 0); return true; } catch { return false; } }
-async function targetFor(root, relative){
-  if(typeof relative!=='string'||relative.includes('\\')||relative.startsWith('/')||relative.split('/').some(p=>!p||p==='.'||p==='..'||/[<>:"|?*\x00-\x1f]/.test(p)||/[. ]$/.test(p)))throw Error('Caminho inseguro no plano.');
-  let target=path.resolve(root);
-  for(const part of relative.split('/')){
-    const stat=await fsp.lstat(target).catch(e=>{if(e.code==='ENOENT')return null;throw e;});
-    if(stat?.isSymbolicLink())throw Error('Ligação no destino da atualização.');
-    target=path.join(target,part);
-  }
-  const stat=await fsp.lstat(target).catch(e=>{if(e.code==='ENOENT')return null;throw e;});
-  if(stat?.isSymbolicLink()||stat?.isDirectory())throw Error('Destino inválido.');
-  return target;
-}
-async function ensureParent(file){ await fsp.mkdir(path.dirname(file), { recursive:true }); }
-async function writeStatus(plan, status){
-  await ensureParent(plan.statusPath);
-  const tmp = plan.statusPath + '.tmp';
-  await fsp.writeFile(tmp, JSON.stringify({ ...status, at:new Date().toISOString() }, null, 2), 'utf8');
-  await fsp.rename(tmp, plan.statusPath).catch(async()=>{ await fsp.rm(plan.statusPath,{force:true}); await fsp.rename(tmp, plan.statusPath); });
-}
-async function restore(plan){
-  const Recovery=require(path.join(path.dirname(planPath),'runtime','update-recovery.cjs'));
-  Recovery.restoreVerified(plan);
-}
-(async()=>{
-  let plan;
-  let installationStarted = false;
-  try {
-    const rawPlan = JSON.parse(await fsp.readFile(planPath, 'utf8'));
-    const profile=EXPECTED_PROFILE,marker=path.join(profile,'update-pending.json');
-    const pointer=JSON.parse(await fsp.readFile(marker,'utf8'));
-    if(path.resolve(pointer.planPath)!==path.resolve(planPath))throw Error('Plano pendente diferente.');
-    for(const name of ['manual-updater.cjs','update-recovery.cjs','verified-backup.cjs']){
-      const file=path.join(path.dirname(planPath),'runtime',name);
-      if(fs.lstatSync(file).isSymbolicLink()||sha256(await fsp.readFile(file))!==pointer.runtimeHashes?.[name])throw Error('Runtime de recuperação inválido.');
-    }
-    const Recovery=require(path.join(path.dirname(planPath),'runtime','update-recovery.cjs'));
-    const Updater=require(path.join(path.dirname(planPath),'runtime','manual-updater.cjs'));
-    plan=Recovery.validatePending(pointer,EXPECTED_APP_PATH,profile,Updater.validatePackageObject);
-    if (${JSON.stringify(recoveryOnly)}) {
-      Recovery.recover(pointer,EXPECTED_APP_PATH,profile,Updater.validatePackageObject);
-      process.exit(0);
-    }
-    pointer.helperPid=process.pid;Recovery.atomic(marker,Buffer.from(JSON.stringify(pointer)));
-    await writeStatus(plan, { state:'waiting-for-close', fromVersion:plan.currentVersion, toVersion:plan.expectedVersion });
-    const deadline = Date.now() + 120000;
-    while (pidAlive(Number(plan.parentPid)) && Date.now() < deadline) await sleep(500);
-    if (pidAlive(Number(plan.parentPid))) throw new Error('A aplicação não fechou dentro do tempo limite.');
-    await sleep(700);
-    for(const item of plan.rollbackManifest){
-      await targetFor(plan.appPath,item.path);
-      if(item.existed && item.sha256){
-        const backup=await targetFor(plan.rollbackDir,item.path);
-        if(sha256(await fsp.readFile(backup))!==item.sha256)throw Error('Cópia de reversão corrompida: '+item.path);
-      }
-    }
-    await writeStatus(plan, { state:'installing', fromVersion:plan.currentVersion, toVersion:plan.expectedVersion });
-    installationStarted = true;
-    for (const file of plan.files) {
-      const source = await targetFor(plan.stagingDir, file.path);
-      const target = await targetFor(plan.appPath, file.path);
-      const content = await fsp.readFile(source);
-      if (sha256(content) !== file.sha256) throw new Error('Checksum do staging inválido: ' + file.path);
-      await ensureParent(target);
-      const tempTarget = target + '.update-tmp';
-      try {
-        const handle=await fsp.open(tempTarget,'wx');
-        try{await handle.writeFile(content);await handle.sync();}finally{await handle.close();}
-        if (sha256(await fsp.readFile(tempTarget)) !== file.sha256) throw new Error('Falha ao validar escrita: ' + file.path);
-        await fsp.rename(tempTarget, target);
-        if(sha256(await fsp.readFile(target))!==file.sha256)throw Error('Ficheiro instalado não confirmado: '+file.path);
-      }finally{await fsp.rm(tempTarget,{force:true}).catch(()=>{});}
-    }
-    const versionText = await fsp.readFile(path.join(plan.appPath, ...plan.versionFile.split('/')), 'utf8');
-    const match = versionText.match(/APP_VERSION\s*=\s*['\"]([^'\"]+)['\"]/);
-    if (!match || match[1] !== plan.expectedVersion) throw new Error('A versão instalada não corresponde à esperada.');
-    await writeStatus(plan, { state:'success', fromVersion:plan.currentVersion, toVersion:plan.expectedVersion, rollbackDir:plan.rollbackDir });
-    Recovery.finish(pointer,plan,profile);
-  } catch (error) {
-    try { if (plan && installationStarted) { await writeStatus(plan,{state:'installing',rollbackStarted:true,fromVersion:plan.currentVersion,toVersion:plan.expectedVersion,error:String(error?.message||error)}); await restore(plan); } } catch (rollbackError) {
-      if (plan) await writeStatus(plan, { state:'failed-rollback-error', fromVersion:plan.currentVersion, toVersion:plan.expectedVersion, error:String(error?.message||error), rollbackError:String(rollbackError?.message||rollbackError) });
-      process.exit(2);
-    }
-    if (plan) await writeStatus(plan, { state:installationStarted?'failed-rolled-back':'failed-before-install', fromVersion:plan.currentVersion, toVersion:plan.expectedVersion, error:String(error?.message||error), rollbackDir:plan.rollbackDir });
-    if(plan && installationStarted){
-      const Recovery=require(path.join(path.dirname(planPath),'runtime','update-recovery.cjs'));
-      const profile=path.dirname(plan.statusPath),pointer=JSON.parse(await fsp.readFile(path.join(profile,'update-pending.json'),'utf8'));
-      Recovery.finish(pointer,plan,profile);
-    }
-    process.exit(1);
-  }
-})();`;
-}
-
-function powershellLiteral(value) { return "'" + String(value).replaceAll("'", "''") + "'"; }
-function elevationCommand(helperPath, planPath, acknowledgement, wait = false) {
-  const inner = "$ErrorActionPreference='Stop';$env:ELECTRON_RUN_AS_NODE='1';" +
-    '$p=Start-Process -FilePath ' + powershellLiteral(process.execPath) +
-    " -ArgumentList @(" + powershellLiteral('"'+helperPath+'"') + ',' + powershellLiteral('"'+planPath+'"') +
-    ") -WindowStyle Hidden -PassThru" + (wait ? ' -Wait' : '') + ';' +
-    (wait ? 'exit $p.ExitCode' : '[System.IO.File]::WriteAllText('+powershellLiteral(acknowledgement)+', [string]$p.Id)');
-  const encoded = Buffer.from(inner,'utf16le').toString('base64');
-  const outer = "$ErrorActionPreference='Stop';try{$p=Start-Process -FilePath powershell.exe -Verb RunAs -WindowStyle Hidden -ArgumentList @('-NoProfile','-NonInteractive','-EncodedCommand'," +
-    powershellLiteral(encoded) + ') -Wait -PassThru;exit $p.ExitCode}catch{exit 1}';
-  return ['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from(outer,'utf16le').toString('base64')];
-}
-async function needsElevation(appPath) {
-  if(process.platform!=='win32')return false;
-  const probe=path.join(appPath,'.update-access-'+crypto.randomUUID());
-  try{const file=await fs.open(probe,'wx');await file.close();await fs.rm(probe);return false;}
-  catch(error){if(['EACCES','EPERM'].includes(error.code))return true;throw error;}
-}
-// Interrupted replacement in Program Files must be recovered before SQLite opens.
-function recoverElevatedSync({planPath,userDataPath,appPath}) {
-  const pointer=JSON.parse(fsSync.readFileSync(path.join(userDataPath,'update-pending.json'),'utf8'));
-  Recovery.validatePending(pointer,appPath,userDataPath,validatePackageObject);
-  if(Recovery.alive(pointer.helperPid)||Recovery.alive(JSON.parse(fsSync.readFileSync(planPath)).parentPid))throw Error('A atualização ainda está em curso.');
-  const helperPath=path.join(path.dirname(planPath),'recover-elevated.cjs');
-  fsSync.writeFileSync(helperPath,helperSource(appPath,userDataPath,true));
-  const result=require('node:child_process').spawnSync('powershell.exe',elevationCommand(helperPath,planPath,null,true),{windowsHide:true,encoding:'utf8'});
-  if(result.status!==0||fsSync.existsSync(path.join(userDataPath,'update-pending.json')))throw Error('A recuperação requer autorização de administrador do Windows.');
-}
-async function launchDetachedHelper({ planPath, userDataPath }) {
-  const helperDir = path.join(userDataPath, 'update-runtime');
-  await fs.mkdir(helperDir, { recursive: true });
-  const helperPath = path.join(helperDir, 'update-helper.cjs');
+async function launchDetachedHelper({ planPath, userDataPath, requireSignature = false }) {
+  const helperPath = path.join(__dirname, 'update-helper.cjs');
   const pointer=JSON.parse(await fs.readFile(path.join(userDataPath,'update-pending.json'),'utf8'));
   if(path.resolve(pointer.planPath)!==path.resolve(planPath))throw new Error('Plano pendente diferente.');
   const expected=JSON.parse(await fs.readFile(planPath,'utf8'));
-  Recovery.validatePending(pointer,expected.appPath,userDataPath,validatePackageObject);
-  await writeVerifiedAtomic(helperPath, helperSource(expected.appPath,userDataPath));
-  if(await needsElevation(expected.appPath)) {
-    const acknowledgement=path.join(helperDir,'launched-'+crypto.randomUUID()+'.txt');
-    const launcher=spawn('powershell.exe',elevationCommand(helperPath,planPath,acknowledgement),{windowsHide:true,stdio:'ignore'});
-    const code=await new Promise((resolve,reject)=>{launcher.once('error',reject);launcher.once('exit',resolve);});
-    if(code!==0||!fsSync.existsSync(acknowledgement)) {
-      await writeVerifiedAtomic(expected.statusPath,JSON.stringify({state:'failed-before-install',fromVersion:expected.currentVersion,toVersion:expected.expectedVersion,error:'Autorização de administrador cancelada. Nenhum ficheiro instalado.'}));
-      await fs.rm(path.join(userDataPath,'update-pending.json'),{force:true});
-      throw Error('A atualização não foi iniciada. Autoriza o pedido do Windows para atualizar a instalação.');
-    }
-    const pid=Number(await fs.readFile(acknowledgement,'utf8'));await fs.rm(acknowledgement,{force:true});
-    if(!Number.isSafeInteger(pid)||pid<=0)throw Error('O Windows não confirmou o arranque do atualizador.');
-    return {pid,helperPath,elevated:true};
-  }
-  const child = spawn(process.execPath, [helperPath, planPath], {
+  Recovery.validatePending(pointer,expected.appPath,userDataPath,(pkg,context) =>
+    validatePackageObject(pkg,{...context,requireSignature}));
+  const mode = requireSignature ? 'signed' : 'development';
+  const child = spawn(process.execPath, [helperPath, planPath, expected.appPath, userDataPath, mode], {
     detached: true,
     stdio: 'ignore',
     windowsHide: true,
@@ -459,9 +314,6 @@ async function clearUpdateStatus(userDataPath) {
 }
 
 module.exports = {
-  needsElevation,
-  elevationCommand,
-  recoverElevatedSync,
   UPDATE_FORMAT,
   UPDATE_FORMAT_VERSION,
   UPDATE_APP_ID,

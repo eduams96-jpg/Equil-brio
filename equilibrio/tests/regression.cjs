@@ -119,7 +119,7 @@ test('UI Movimentos, Agenda, Resumo e Análises: regressões da v0.34.4',()=>{
  assert.match(workspace,/Beneficiário/);
  assert.match(workspace,/Data · categoria · conta/);
  assert.match(workspace,/receipt-missing-icon/);
- assert.match(workspace,/dateStepperField\("Data", "date"/);
+ assert.match(workspace,/dateStepperField\("Data contabilística", "date"/);
  assert.match(workspace,/source: "completed"/);
  assert.match(workspace,/actualDate: t\.date/);
  assert.match(index,/planner-commitments-panel/);
@@ -197,9 +197,38 @@ test('Casa: resumo próprio, compras independentes e ligações históricas cons
  assert.match(version,/APP_VERSION = '\d+\.\d+\.\d+'/ );
 });
 
-test('Servidor: todos os scripts/estilos HTML e bloqueio de ficheiros privados',async()=>{
- const server=require('../serve.cjs').createServer();await new Promise(r=>server.listen(0,'127.0.0.1',r));
- try{const base=`http://127.0.0.1:${server.address().port}`;const html=await(await fetch(base)).text();for(const m of html.matchAll(/(?:src|href)="([^"#]+\.(?:js|css))"/g))assert.equal((await fetch(base+'/'+m[1])).status,200,m[1]);assert.equal((await fetch(base+'/desktop/main.cjs')).status,404);}finally{server.closeAllConnections?.();await new Promise(resolve=>server.close(resolve));}
+test('Servidor: todos os scripts/estilos HTML e bloqueio de ficheiros privados',async t=>{
+ const http=require('node:http');
+ const {once}=require('node:events');
+ const {listenForTest}=require('./helpers/local-http.cjs');
+ const server=require('../serve.cjs').createServer();
+ t.after(async()=>{
+   server.closeAllConnections();
+   if(server.listening)await new Promise(resolve=>server.close(resolve));
+ });
+ const base=await listenForTest(t,server,async()=>{
+   const listening=once(server,'listening');
+   server.listen(0,'127.0.0.1');
+   await listening;
+   return 'http://127.0.0.1:'+server.address().port;
+ });
+ function get(route){
+   return new Promise((resolve,reject)=>{
+     http.get(new URL(route,base),async response=>{
+       try {
+         const chunks=[];
+         for await(const chunk of response)chunks.push(chunk);
+         resolve({status:response.statusCode,body:Buffer.concat(chunks).toString('utf8')});
+       } catch(error){reject(error);}
+     }).on('error',reject);
+   });
+ }
+ const index=await get('/');
+ assert.equal(index.status,200);
+ const assets=Array.from(index.body.matchAll(/(?:src|href)="([^"#]+\.(?:js|css))"/g),m=>m[1]);
+ assert.ok(assets.includes('ui.css'));
+ for(const asset of assets)assert.equal((await get('/'+asset)).status,200,asset);
+ assert.equal((await get('/desktop/main.cjs')).status,404);
 });
 for(const fail of [false,true])test('Atualização real em sandbox: '+(fail?'rollback após checksum inválido':'instalação'),async t=>{
  const dir=temp(t),appPath=path.join(dir,'app'),userDataPath=path.join(dir,'data');fs.mkdirSync(path.join(appPath,'desktop'),{recursive:true});fs.writeFileSync(path.join(appPath,'desktop/version.cjs'),"const APP_VERSION = '0.28.0';");
@@ -1067,7 +1096,8 @@ test('v0.39.20: navegação principal passa ao topo e manutenção sai da sideba
  assert.match(features,/desktopUpdateButton[\s\S]*exportData[\s\S]*importData/);
  assert.match(life,/topSpaceSlot/);
  assert.match(life,/topSearchSlot/);
- assert.match(desktop,/Definições → Manutenção e dados/);
+ assert.match(desktop,/getElementById\("faqDesktopDiagnostics"\)/);
+ assert.match(fs.readFileSync(path.join(__dirname,"..","interface-ui.js"),"utf8"),/<summary>Diagnóstico técnico<\/summary>/);
  assert.match(css,/\.sidebar\{[\s\S]*display:none!important/);
  assert.match(css,/body\[data-current-view="dataHub"\] #mainContent>header/);
 });

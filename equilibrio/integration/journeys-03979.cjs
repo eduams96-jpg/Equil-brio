@@ -32,9 +32,9 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
   await page.locator('#unifiedInventorySearch').fill('nenhum');await search('Viatura especial','Bem');assert.match(await page.locator('.u-inspector').innerText(),/Viatura especial/);
   await search('Fundo especial','Investimento');assert.match(await page.locator('.u-inspector').innerText(),/Fundo especial/);
   await search('Crédito especial','Crédito');assert.match(await page.locator('.u-inspector').innerText(),/Crédito especial/);
-  await search('Curso especial','Objetivo');assert.match(await page.locator('#unifiedPlanDetail').innerText(),/Curso especial/);
-  await search('Reserva especial','Reserva');assert.match(await page.locator('#unifiedPlanDetail').innerText(),/Reserva especial/);
-  await search('Casa','Orçamento');assert.match(await page.locator('#unifiedPlanDetail').innerText(),/Casa/);
+  await search('Curso especial','Objetivo');assert.match(await page.locator('.plan-record[open]>summary').innerText(),/Curso especial/);
+  await search('Reserva especial','Reserva');assert.match(await page.locator('.plan-record[open]>summary').innerText(),/Reserva especial/);
+  await search('Casa','Orçamento');assert.match(await page.locator('.plan-record[open]>summary').innerText(),/Casa/);
   await search('Serviço especial','Subscrição');assert.match(await page.locator('.u-sub-detail').innerText(),/Serviço especial/);await page.locator('#subscriptionsManagerDialog .plan-manager-close').click();
   await search('sabonete especial','Comprovativo');assert.equal(await page.evaluate(()=>view),'dataHub');assert.equal(await page.locator('[data-document-select=old]').getAttribute('aria-pressed'),'true');
   await page.locator('#documentsHub [data-action=life-doc-movement][data-id=old]:visible').click();assert.match(await page.locator('#modalContent').innerText(),/Compra antiga especial/);await page.locator('#modal').evaluate(d=>d.close());
@@ -42,7 +42,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
   await search('Compra antiga especial','Movimento');assert.match(await page.locator('#modalContent').innerText(),/Compra antiga especial/);await page.locator('#modal').evaluate(d=>d.close());
   for(const theme of ['light','dark'])for(const width of [390,768,1440]){
    await page.setViewportSize({width,height:1000});await page.evaluate(t=>document.body.dataset.theme=t,theme);
-   await search('Casa','Orçamento');assert.match(await page.locator('#unifiedPlanDetail').innerText(),/Casa/);
+   await search('Casa','Orçamento');assert.match(await page.locator('.plan-record[open]>summary').innerText(),/Casa/);
    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2),'Search journey overflow '+width);
   }
   assert.equal(await page.evaluate(()=>month),monthBefore,'Opening exact movements changed period');assert.equal(await page.locator('#searchTransactions').inputValue(),'sem resultados','Opening exact movements lost search');

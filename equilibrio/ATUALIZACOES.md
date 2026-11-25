@@ -1,3 +1,47 @@
+# 1.0.43 · Revisão profunda e endurecimento
+
+Auditoria completa ao projeto Windows, partilha em rede e Android, empacotada na **1.0.43** (`D:\Equilibrio\Entrega-v1.0.43-20261124`):
+
+- **Instalador e higiene:** resgate e correção de [build/Setup1042.cs](build/Setup1042.cs) e [build/build-setup-1042.py](build/build-setup-1042.py), remoção de caminhos fixos em scripts/testes, correção de fugas para `perfis/`, atualização de `package.json:build.files` e `.gitignore`, e recuperação de ~9,65 GB pela limpeza de artefactos obsoletos.
+- **Desktop, SQLite e atualizador:** endurecimento de `storage-sqlite.cjs`, `data-service.cjs`, `desktop-bridge.js`, `attachment.cjs`, `verified-backup.cjs` (serialização e limpeza não-rejeitante), `manual-updater.cjs`, `update-helper.cjs` (`writeVerifiedAtomic`, `ESRCH` e limpeza de `profile`) e `main.cjs`.
+- **Núcleo financeiro, Casa, Prendas e Dossiers:** normalização uniforme de IDs string/numéricos, validações atómicas e de meses fechados em `finance.js`, `planning-model.js`, `space-transfer-model.js`, `features-model.js` e `complete-model.js`; melhorias de importação/OCR e de cálculo de autonomia/experiência; correções críticas em `gifts-ui.js` (modo histórico), `casa-model.js` (`setOffersBatch`, proteção contra remoção com ligações ativas), `casa-catalog-ui.js`, `casa-life-ui.js`, `casa-daily-ui.js` e `dossiers-ui.js` (Consumos, Veículos, Habitação e lotes de PDF).
+- **Segurança, acessibilidade e fluidez UI:** política CSP no HTML, escaping em `select()`, `field()`, `empty()`, `metric()` e `button()`, validação HTTPS em `window.open` e `ProviderIcons.resolve`, `sandbox="allow-same-origin"` na pré-visualização PDF, restauração de foco em modais, suporte a tecla Espaço, guardas por vista ativa com flags dirty, `MutationObserver` restrito às vistas ativas e 10 campos de pesquisa refatorados sem perda de foco/IME no Windows.
+- **Sincronização móvel e Android 1.0.3:** autenticação antes de `refresh()` em rotas protegidas, comparação em tempo constante com verificação de comprimento e tratamento seguro de `revoke()` em `mobile-sync/server/service.cjs`; melhorias em `mobile-connection-ui.js`, `client.cjs`, `protocol.cjs`, `pairing.cjs`, `shared-space-client.cjs` e `mobile-sync-runtime.cjs`; alinhamento do bundle Android para `1.0.3` (`versionCode` `8`, `coreVersion` `1.0.42`).
+
+# 1.0.41 · Integridade e desempenho
+
+As instalações de produção verificam a assinatura Ed25519 dos pacotes `.fpupdate` antes de preparar a atualização, antes de a aplicar e durante a recuperação. Para gerar um pacote, define `EQUILIBRIO_UPDATE_SIGNING_KEY` com o caminho absoluto da chave privada de publicação. Usa `EQUILIBRIO_UPDATE_SIGNING_KEY_ID` se a chave corresponder a outro identificador reconhecido.
+
+A migração SQLite recupera a base original quando é interrompida entre as duas renomeações. A passagem entre dispositivos e o emparelhamento protegem os dados da Lista de compras mesmo sem movimentos.
+
+Em Casa, **Preços** mostra 40 produtos por página e **Produtos** mostra 48 cartões. A pesquisa abrange todo o catálogo. É possível editar preços em várias páginas e guardá-los em conjunto. Enter e Shift+Enter avançam e recuam na mesma coluna.
+
+Para atualizar uma instalação numa pasta protegida do Windows, usa o instalador oficial. O atualizador integrado destina-se a instalações em pastas onde a conta consegue escrever. As instruções abaixo sobre pacotes históricos aplicam-se às versões a que se referem.
+
+# 1.0.39 — Revisão UI transversal, performance e auditoria total
+
+Melhoria abrangente de fluidez, alinhamento e clareza em todas as áreas do Equilíbrio: otimização de renderização e scroll no modo escuro (substituição de `html:has(...)` por `html[data-theme]` e remoção de `backdrop-filter`/sombras pesadas), novo ecrã inicial de seleção de espaço em cartões de perfil centrados (estilo desktop/Netflix), alinhamento exato de cartões e modais no **Resumo** (incluindo correção do rodapé `Fechar` em `Explicar variação` e setas de mês compactas), unificação de **Revisão e análise** numa única página com alturas idênticas (`Extrato`/`Conferir` e fecho de mês) e remoção de quadros redundantes, relatório **Exportar HTML** redesenhado com KPIs e gráfico SVG mensal, reformulação em 3 blocos orientados a compras em **Novo movimento** (sem corte de «Nota e cor (opcional)»), filtro `Intervalo de datas` em linha, botões de ação uniformes e fundos grafite corretos em **Movimentos**, **Planos** e **Agenda** (bordas fechadas nos compromissos do dia, menu `•••` grafite a fechar ao clicar fora e subscrições pagas visíveis no mês), renovação completa de **Decisões**, remoção de duplicações na Visão Geral do **Património** com rework do **Inventário**, e refinamento de **Casa**, **Dados**, **Avisos** e **Definições**. Atualização direta desde 1.0.33 a 1.0.38.
+
+# 1.0.38 — Tema Grafite e Esmeralda — renovação visual
+
+Renovação completa do modo escuro para uma paleta neutra Grafite/Carvão (`#0c0d10` fundo, `#14161a` cartões elevados, bordas subtis `rgba` e destaque verde-esmeralda `#10b981`) em todas as áreas do programa: barra superior translúcida com ícones utilitários limpos (*ghost*), modais com fundo desfocado e destaque inequívoco entre `Despesa` (coral) e `Receita` (esmeralda), correção do stepper de data, cartão hero de Cobertura renovado em Planos e decisões, cabeçalho aberto sem caixa em Definições, filtros/ações afinados no Centro de avisos e cartões KPI uniformes em Resumo, Movimentos, Património, Relatórios e Dados. Atualização direta desde 1.0.33 a 1.0.37.
+
+# 1.0.37 — Polimento visual e barra superior compacta
+
+Ronda de polimento UI transversal: barra superior compactada numa única linha em desktop (≥ 1181 px) com seletor de espaço sem corte (`Espaço: Eduardo`), barras de deslocação discretas adaptadas ao modo escuro e claro (`color-scheme`), barra de ferramentas de Movimentos numa linha com filtro lateral de categoria compacto e valores tabulares, sub-abas de 2.º nível com separador fino em sublinhado, profundidade uniforme nos cartões KPI de Património, Relatórios e Dados, paleta de gráficos unificada entre Resumo e Relatórios, aviso toast compacto no canto inferior direito, grelha equilibrada no ecrã de escolha de espaço e remoção do contorno de foco programático no título principal. Atualização desde 1.0.33, 1.0.34, 1.0.35 e 1.0.36.
+
+# 1.0.36 — Edição de movimentos 5× mais rápida
+
+Conclui a otimização P2 da edição de movimentos no Windows Desktop: introdução de gravação incremental por patch (`commitLedgerPatch`) com confirmação de releitura e controlo de concorrência dentro da transação SQLite (enviando ~2 KB em vez de ~13,8 MB por IPC), preservação da posição original do movimento em `F.update` sem deslocar centenas de `sort_order`, clonagem seletiva em `F.update` e atualização diferida da cache local `localStorage` no Desktop. A edição completa de um movimento caiu de **1,68 s para 335 ms** de mediana (-80%). Atualização desde 1.0.33, 1.0.34 e 1.0.35.
+
+# 1.0.35 — Correção Desktop e gravação mais rápida
+
+Corrige o erro no arranque Desktop (`FileProtection.lastForSpace`) que impedia o tema escuro e o acesso às Definições após a 1.0.34. Reduz para metade o tempo de escrita e confirmação no SQLite ao editar movimentos (de 561 ms para 280 ms de mediana no ensaio isolado) através de prepared statements pré-compilados, comparação rápida de JSON antes da verificação profunda, eliminação da escrita redundante de 6,9 MB em `app_state` e redução de clones e redesenhos ocultos. Atualização desde 1.0.33 e 1.0.34.
+
+# 1.0.34 — Revisão de UX e navegação
+
+Revisão transversal de clareza, cálculos e navegação nas 6 áreas do Equilíbrio: percentagens e médias fiáveis com meses completos e indicação de período parcial; filtros de Movimentos unificados, divisão de compra com soma exata e motivo de bloqueio no fecho mensal; pendências e avisos com origem e ação direta, separação de regras/importações/subscrições e aviso de cópia ligado à última cópia válida; Cobertura, Objetivos, Reservas e Orçamentos clarificados; correções em Casa (lojas, comparação, arredondamento e consumos); e padrões uniformes de contraste, foco, botões Cancelar em modais, remoção de atalhos duplicados e Ajuda alinhada. Atualização desde 1.0.33.
+
 # 1.0.25 — Semana-tipo nas refeições e correções sugeridas
 
 Refeições: «Repetir esta semana todas as semanas» cria uma semana-tipo que aparece em todas as semanas seguintes; um dia pode ser alterado ou saltado. Categorias: «Correções sugeridas» aplica, com confirmação, as correções da revisão dos dados (categorias repetidas, IUC anual, vendas em Receita, idas ao supermercado sem divisão). Atualização desde 1.0.20 a 1.0.24.

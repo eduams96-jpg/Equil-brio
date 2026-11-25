@@ -9,3 +9,47 @@ test('saldo usa openingBalance mais ledger na data e conta arquivada é consult�
 test('filtros inválidos falham e ano vazio fica consultável',()=>{const d=seed();assert.throws(()=>R.analyse(d,{account:'gone'}),/conta/);assert.throws(()=>R.analyse(d,{year:'bad'}),/inválido/);assert.throws(()=>R.analyse(d,{period:'bad'}),/inválido/);const r=R.analyse(d,{year:'2024'});assert.equal(r.income,0);assert.equal(r.expense,0);assert.equal(r.months.length,12);});
 
 test('Saldos de Relatórios: cálculo linear equivale a balanceAt para muitas contas e datas',()=>{const d=F.empty();d.ledgerCoreVersion=1;d.accounts=Array.from({length:40},(_,i)=>({id:'a'+i,name:'Conta '+i,openingBalance:100,balance:100,type:'Banco'}));d.transactions=Array.from({length:2000},(_,i)=>({id:'t'+i,account:'Conta '+i%40,type:i%3?'expense':'transfer',targetAccount:i%3?undefined:'Conta '+(i+1)%40,transferStatus:i%3?undefined:'confirmed',date:'2026-03-31',targetDate:'2026-04-01',amount:(i%99+1)/100,description:'Teste',category:'Casa'}));F.refreshBalances(d);for(const period of ['q1','q2','year'])for(const r of R.analyse(d,{year:'2026',period}).accounts)assert.equal(r.balance,F.balanceAt(d,d.accounts.find(a=>a.id===r.id),R.analyse(d,{year:'2026',period}).asAt));});
+
+test('períodos parciais comparam o mesmo dia e as médias usam apenas meses completos',()=>{
+  const d=seed();
+  F.add(d,{id:'prior-early',type:'income',amount:80,date:'2025-04-05',account:'Banco',description:'Abril anterior',category:'Salário'});
+  F.add(d,{id:'prior-late',type:'income',amount:200,date:'2025-04-25',account:'Banco',description:'Fim de abril anterior',category:'Salário'});
+  F.add(d,{id:'this-early',type:'income',amount:0.2,date:'2026-04-05',account:'Banco',description:'Abril atual',category:'Salário'});
+  F.add(d,{id:'this-late',type:'income',amount:300,date:'2026-04-25',account:'Banco',description:'Fim de abril atual',category:'Salário'});
+
+  const cut=R.analyse(d,{year:'2026',asOf:'2026-04-19'});
+  const detail=R.detail(d,{year:'2026',result:cut});
+  assert.equal(cut.income,1000.2);
+  assert.equal(cut.months[3].status,'partial');
+  assert.equal(cut.months[4].status,'future');
+  assert.equal(detail.elapsed,3);
+  assert.equal(detail.averageIncome,333.33);
+  assert.equal(detail.averageExpense,26.67);
+  assert.equal(detail.previous.asAt,'2025-04-19');
+  assert.equal(detail.previous.income,80);
+  assert.equal(detail.coverageComplete,false);
+  assert.equal(R.detail(d,{year:'2026',period:'m04',asOf:'2026-04-19'}).averageIncome,null);
+});
+
+test('percentagens financeiras com bases residuais ou negativas ficam indisponíveis',()=>{
+  const d=seed();
+  F.add(d,{id:'residual',type:'income',amount:0.2,date:'2026-02-10',account:'Banco',description:'Receita residual',category:'Juros'});
+  const result=R.analyse(d,{year:'2026',period:'m02',asOf:'2026-02-19'});
+  assert.equal(result.saving,-79.8);
+  assert.equal(result.rate,null);
+  assert.equal(F.percentageChange(100,-50),null);
+  assert.equal(F.percentageChange(80,0.2),null);
+  assert.equal(F.percentageChange(80,40),100);
+});
+
+test('saldo por conta explica a ponte entre início e fim do período',()=>{
+  const d=seed();
+  F.add(d,{id:'transfer',type:'transfer',amount:50,date:'2026-02-11',account:'Banco',targetAccount:'Cartão',description:'Transferência'});
+  const [bank,card]=R.analyse(d,{year:'2026',period:'m02',asOf:'2026-02-28'}).accounts;
+  assert.equal(bank.startBalance,1900);
+  assert.equal(bank.balanceChange,-130);
+  assert.equal(bank.expense,80);
+  assert.equal(bank.balance,1770);
+  assert.equal(card.balanceChange,50);
+  assert.equal(card.expense,0);
+});

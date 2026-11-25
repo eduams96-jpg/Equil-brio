@@ -2,8 +2,6 @@
 
 const P=require('./protocol.cjs');
 
-function blank(state){return state?.serverId==='unpaired'&&!state.movementDraft&&!(state.commitmentDraft||state.paymentDraft||state.houseDraft||state.accountDraft)&&!(state.confirmed.ledger.pendingPayments||[]).length&&!(state.confirmed.ledger.casa?.catalog||[]).length&&!(state.confirmed.ledger.casa?.stock||[]).length&&state.outbox.length===0&&state.confirmed.ledger.transactions.length===0;}
-
 function endpoint(url){if(typeof url==='string'){try{const u=new URL(url);if(u.protocol==='https:'&&!u.username&&!u.password&&u.pathname==='/'&&!u.search&&!u.hash&&u.port!=='0')return u.origin;}catch{}}if(typeof url!=='string'||!/^http:\/\/127\.0\.0\.1:\d{1,5}$/.test(url)||new URL(url).port==='0')throw Error('Neste ensaio usa o endereço local apresentado no PC.');return url;}
 
 function credential(){return Array.from(globalThis.crypto.getRandomValues(new Uint8Array(32)),b=>b.toString(16).padStart(2,'0')).join('');}
@@ -46,7 +44,7 @@ class Association{
   const allowReplace=options.replaceLocal===true&&options.expectedRevision===captured.revision&&!!this.adapter.restoreWithCheckpoint;
   if(!allowReplace&&['movementDraft','commitmentDraft','paymentDraft','houseDraft','accountDraft'].some(k=>before[k]))throw Error('Conclui ou descarta o rascunho antes de associar este dispositivo.');
 
-  if(!blank(before)&&!allowReplace)throw Error('A base local contém dados. Os dados existentes foram preservados. Revê a substituição pelos dados do PC; o estado local será conservado num ponto anterior.');
+  if(!P.isBlankOffline(before)&&!allowReplace)throw Error('A base local contém dados. Os dados existentes foram preservados. Revê a substituição pelos dados do PC; o estado local será conservado num ponto anterior.');
 
   const normalized=String(code).replace(/[-\s]/g,'').toUpperCase();if(!/^[A-F0-9]{16}$/.test(normalized))throw Error('Indica o código apresentado no PC.');
 
@@ -54,7 +52,7 @@ class Association{
 
   if(info.protocolVersion!==1||!P.safeId(info.serverId)||!P.safeId(info.epoch))throw Error('Servidor incompatível.');
 
-  await this.vault.write({kind:'pairing',url,code:normalized,requestId:P.id(),credential:credential(),serverId:info.serverId,epoch:info.epoch,...(!blank(before)?{replaceRevision:captured.revision,replaceFingerprint:await fingerprint(before)}:{})});
+  await this.vault.write({kind:'pairing',url,code:normalized,requestId:P.id(),credential:credential(),serverId:info.serverId,epoch:info.epoch,...(!P.isBlankOffline(before)?{replaceRevision:captured.revision,replaceFingerprint:await fingerprint(before)}:{})});
 
   return this.resume();
 
@@ -81,11 +79,11 @@ class Association{
 
   const old=await this.adapter.read();
 
-  if(blank(old.state)||pending.replaceRevision===old.revision&&pending.replaceFingerprint===await fingerprint(old.state)){
+  if(P.isBlankOffline(old.state)||pending.replaceRevision===old.revision&&pending.replaceFingerprint===await fingerprint(old.state)){
 
    const next=P.local(bootstrap,paired.deviceId);next.hidden=old.state.hidden;
 
-   if(!blank(old.state)){if(!this.adapter.restoreWithCheckpoint)throw Error('A recuperação segura não está disponível.');await this.adapter.restoreWithCheckpoint(next,old.revision);}else await this.adapter.replace(next,old.revision);
+   if(!P.isBlankOffline(old.state)){if(!this.adapter.restoreWithCheckpoint)throw Error('A recuperação segura não está disponível.');await this.adapter.restoreWithCheckpoint(next,old.revision);}else await this.adapter.replace(next,old.revision);
 
   }else if(old.state.serverId!==paired.serverId||old.state.epoch!==paired.epoch||old.state.deviceId!==paired.deviceId||old.state.spaceId!==spaceId){
 

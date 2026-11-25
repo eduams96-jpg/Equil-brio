@@ -13,11 +13,22 @@ function fixture(){
  ledger.accounts=[{id:'bank',name:'Conta à ordem',type:'Banco',openingBalance:2000,balance:2000},{id:'cash',name:'Carteira',type:'Dinheiro',openingBalance:100,balance:100}];
  return ledger;
 }
+function emptyOfflineLedger(){
+ return {...Finance.empty(),ledgerCoreVersion:1};
+}
+function isBlankOffline(state){
+ if(state?.serverId!=='unpaired'||state.confirmed?.cursor!==0||state.outbox?.length!==0||
+    state.blocked||state.transferRecord||['movementDraft','commitmentDraft','paymentDraft','houseDraft','accountDraft'].some(key=>state[key]))return false;
+ const ledger=state.confirmed?.ledger;
+ if(!Array.isArray(ledger?.accounts)||!Array.isArray(ledger.transactions))return false;
+ const baseline=emptyOfflineLedger();
+ const candidate={...baseline,...ledger};
+ return same(candidate,baseline)||same(candidate,fixture());
+}
 function revisions(ledger){return Object.fromEntries([['months',1],['categories',1],...ledger.accounts.map(a=>['account:'+a.id,1]),...ledger.transactions.map(t=>['transaction:'+t.id,1]),...(ledger.pendingPayments||[]).map(t=>['commitment:'+t.id,1])]);}
 function requirements(ledger,command,payload){
  if(!payload||!safeId(payload.id))throw Error('Identificador de movimento inválido.');
  if(command.startsWith('house.'))return House.requirements(ledger,command,payload);
- if(command.startsWith('house.'))return House.apply(ledger,command,payload);
  if(command.startsWith('commitment.'))return Commitments.requirements(ledger,command,payload);
  if(command.startsWith('account.'))return Accounts.requirements(ledger,command,payload);
  if(!['movement.add','movement.update','movement.delete','transfer.add','transfer.update'].includes(command))throw Error('Comando não suportado neste protótipo.');
@@ -132,4 +143,4 @@ function view(state){
  const derived={confirmed:state.confirmed,outbox:state.outbox.filter(row=>['pending','sending'].includes(row.status)).map(row=>({...row,operation:{...row.operation,readSet:effectiveReadSet(state,row.operation)}}))};
  return projected(derived);
 }
-module.exports={compactReceipts,Finance,copy,id,safeId,fixture,revisions,requirements,apply,prepare,local,offlineFixture,applyReceipt,effectiveReadSet,view};
+module.exports={compactReceipts,Finance,copy,id,safeId,fixture,emptyOfflineLedger,isBlankOffline,revisions,requirements,apply,prepare,local,offlineFixture,applyReceipt,effectiveReadSet,view};

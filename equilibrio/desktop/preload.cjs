@@ -25,6 +25,7 @@ try {
 
 contextBridge.exposeInMainWorld('financasDesktop', {
   isDesktop: true,
+  confirm: message => ipcRenderer.sendSync('financas:confirm', message),
   readDraft: (space) => ipcRenderer.sendSync('financas:draft:read', space),
   writeDraft: (space, value) => ipcRenderer.sendSync('financas:draft:write', {space,value}),
   removeDraft: (space) => ipcRenderer.sendSync('financas:draft:remove', space),
@@ -41,6 +42,8 @@ contextBridge.exposeInMainWorld('financasDesktop', {
   chooseBackupDirectory: () => ipcRenderer.invoke('financas:backup-directory:choose'),
   disableBackupDirectory: () => ipcRenderer.invoke('financas:backup-directory:disable'),
   runBackup: (content, options = {}) => ipcRenderer.invoke('financas:backup:run', { content, ...options }),
+  runBackupFromSqlite: ({ force, reason, device } = {}) =>
+    ipcRenderer.invoke('financas:backup:run', { fromSqlite: true, force, reason, device }),
   listBackups: () => ipcRenderer.invoke('financas:backup:list'),
   readBackup: (filePath) => ipcRenderer.invoke('financas:backup:read',filePath),
   protectSpaceTransfer: (content) => ipcRenderer.invoke('financas:spaces:protect',content),
@@ -68,6 +71,10 @@ contextBridge.exposeInMainWorld('financasDesktop', {
   dataReadSpaceSync: (spaceId) => ipcRenderer.sendSync('financas:data:space-sync', String(spaceId || '')),
   dataReadDomainSync: (spaceId, domain) => ipcRenderer.sendSync('financas:data:domain-sync', { spaceId, domain }),
   dataCommitLedgerSync: (storageKey, beforeLedger, afterLedger) => ipcRenderer.sendSync('financas:data:commit-ledger-sync', { storageKey, beforeLedger, afterLedger }),
+  dataCommitLedgerConfirmedSync: (storageKey, beforeText, afterText) =>
+    ipcRenderer.sendSync('financas:data:commit-ledger-sync', { storageKey, beforeText, afterText }),
+  dataCommitLedgerPatchSync: (storageKey, patchText) =>
+    ipcRenderer.sendSync('financas:data:commit-ledger-sync', { storageKey, patchText }),
   dataUpsertEntitySync: (spaceId, domain, entity) => ipcRenderer.sendSync('financas:data:entity-upsert-sync', { spaceId, domain, entity }),
   dataDeleteEntitySync: (spaceId, domain, entityId) => ipcRenderer.sendSync('financas:data:entity-delete-sync', { spaceId, domain, entityId }),
   migrateJson: (incomingContent, currentContent) => ipcRenderer.invoke('financas:migration:apply', { incomingContent, currentContent }),

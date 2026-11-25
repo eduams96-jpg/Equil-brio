@@ -2126,3 +2126,6 @@ body[data-theme="dark"] #monthlyReviewBody td.negative{color:#ffadb6!important}
 @media(max-width:700px) { .summary-chart-grid {grid-template-columns:1fr!important;} }
 /* @order 6900 */
 .summary-expense-explanation{margin:12px 0 0;color:var(--muted);font-size:12px;line-height:1.5;overflow-wrap:anywhere;}
+
+/* @order 79014 */
+body[data-current-view="dashboard"] :is(.summary-period-control,.summary-month-picker-wrap,.summary-month-picker-wrap .period-pair,.summary-month-picker-wrap .period-pair label){background:transparent!important;box-shadow:none!important}

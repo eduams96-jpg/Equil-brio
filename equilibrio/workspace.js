@@ -20,13 +20,15 @@ const sum = (items, f = (x) => x) =>
 let key = "equilibrioData";
 // Há páginas fora da Casa por atualizar depois de gravações com redesenho leve.
 let pendingFullRender = false;
+const dateFormatter = new Intl.DateTimeFormat("pt-PT");
+const monthFormatter = new Intl.DateTimeFormat("pt-PT", { month: "long", year: "numeric" });
+const shortMonthFormatter = new Intl.DateTimeFormat("pt-PT", { month: "short" });
 const dateLabel = (s) =>
-  F.validDate(s) ? new Date(s + "T12:00").toLocaleDateString("pt-PT") : "—";
-const monthLabel = (m) =>
-  new Date(m + "-01T12:00").toLocaleDateString("pt-PT", {
-    month: "long",
-    year: "numeric",
-  });
+  F.validDate(s) ? dateFormatter.format(new Date(s + "T12:00")) : "—";
+const monthLabel = (m) => {
+  const date = new Date(m + "-01T12:00");
+  return Number.isNaN(date.getTime()) ? "Invalid Date" : monthFormatter.format(date);
+};
 let month = F.today().slice(0, 7),
   view = "dashboard",
   undoState = null,
@@ -250,9 +252,9 @@ function notice(text, error = false) {
   clearTimeout(notice.timer);
   if (!error) notice.timer = setTimeout(() => (host.hidden = true), 4200);
 }
-function commit(fn, message = "Alterações guardadas.") {
+function commit(fn, message = "Alterações guardadas.", options = {}) {
   F.renderCache?.clear(); window.equilibrioDataRevision = (window.equilibrioDataRevision || 0) + 1;
-  let durablySaved = false;
+  let durablySaved = false, updatingInterface = false;
   const before = structuredClone(data);
   try {
     if (window.CompleteUI && !window.CompleteUI.canWrite())
@@ -270,12 +272,12 @@ function commit(fn, message = "Alterações guardadas.") {
     }
     window.PlanningFinance?.validateChanges(before, data);
     window.PracticalFinance?.observeCorrections(before, data);
-    data = F.normalize(data);
+    data = F.normalize(data, { inPlace: true });
     FinancePlus.audit(before, data, message);
     FinancePlus.snapshot(data);
-    let desktopSaved = false;
+    let desktopSaved = false, confirmation;
     if (window.DesktopPersistence?.commitLedgerDirect) {
-      window.DesktopPersistence.commitLedgerDirect(before, data, key);
+      confirmation = window.DesktopPersistence.commitLedgerDirect(before, data, key);
       desktopSaved = true;
     } else if (window.DesktopPersistence?.saveSpaceDirect) {
       window.DesktopPersistence.saveSpaceDirect(data, key);
@@ -285,31 +287,56 @@ function commit(fn, message = "Alterações guardadas.") {
       desktopSaved = true;
     }
     durablySaved = desktopSaved;
-    // SQLite is the source of truth for the critical domains. After a
-    // successful write, read those domains back before refreshing the UI/cache.
-    if (desktopSaved && window.DesktopPersistence?.refreshCriticalDomains) {
+    // Recento Desktop confirma a escrita dentro da transação SQLite.
+    // Versões anteriores da ponte continuam a reler o espaço após guardar.
+    if (confirmation?.confirmed === true) {
+      if (typeof confirmation.confirmedLedgerText === "string")
+        data = F.normalize(JSON.parse(confirmation.confirmedLedgerText));
+    } else if (desktopSaved && window.DesktopPersistence?.refreshCriticalDomains) {
       const refreshed = window.DesktopPersistence.refreshCriticalDomains();
       if (refreshed && refreshed.ok === false)
         throw Error("A alteração foi gravada, mas não foi possível confirmá-la através do SQLite.");
     }
     try {
-      localStorage.setItem(key, JSON.stringify(data));
+      const cacheText = confirmation?.confirmed === true && confirmation.confirmedLedgerText === undefined
+        ? confirmation.cacheText
+        : undefined;
+      if (desktopSaved) {
+        const snapKey = key, snapData = data, snapText = cacheText;
+        clearTimeout(commit._cacheTimer);
+        commit._pendingCache = () => {
+          commit._pendingCache = null;
+          clearTimeout(commit._cacheTimer);
+          try {
+            localStorage.setItem(snapKey, snapText ?? JSON.stringify(snapData));
+            window.CompleteUI?.updatedFromDisk();
+          } catch (cacheError) {
+            console.warn("O cache local não pôde ser atualizado; SQLite mantém a alteração guardada.", cacheError);
+          }
+        };
+        commit._cacheTimer = setTimeout(commit._pendingCache, 150);
+      } else {
+        localStorage.setItem(key, cacheText ?? JSON.stringify(data));
+      }
     } catch (cacheError) {
       if (!desktopSaved) throw cacheError;
       console.warn("O cache local não pôde ser atualizado; SQLite mantém a alteração guardada.", cacheError);
     }
     durablySaved = true;
-    window.CompleteUI?.updatedFromDisk();
+    if (!desktopSaved) window.CompleteUI?.updatedFromDisk();
     window.FileProtection?.saved(data);
-    undoState = before;
-    render({ light: JSON.stringify([before.accounts, before.transactions]) === JSON.stringify([data.accounts, data.transactions]) });
+    if (!options?.preserveUndo) undoState = before;
+    const light = window.CasaRenderUI?.lightView?.(view) === true &&
+      JSON.stringify([before.accounts, before.transactions]) === JSON.stringify([data.accounts, data.transactions]);
+    updatingInterface = true;
+    render({ light });
     restoreMovementContext();
     notice(message);
     return true;
   } catch (e) {
     movementReturnContext = null;
     if (durablySaved) {
-      storageProblem = true;
+      if (!updatingInterface) storageProblem = true;
       console.error('Alteração gravada; atualização da interface falhou:', e);
       notice('A alteração foi guardada, mas a interface não foi atualizada. Reabre a aplicação antes de continuar.', true);
       return true;
@@ -328,6 +355,8 @@ function commit(fn, message = "Alterações guardadas.") {
     return false;
   }
 }
+window.flushPendingLocalCache = () => { if (typeof commit._pendingCache === "function") commit._pendingCache(); };
+window.addEventListener("beforeunload", window.flushPendingLocalCache);
 let activeRenderTotalsCache = null;
 function totalsFor(prefix) {
   const cacheKey = String(prefix || "");
@@ -351,13 +380,13 @@ function spent(c) {
 }
 const find = (list, id) => data[list].find((x) => String(x.id) === String(id));
 function button(text, action, id = "", cls = "secondary") {
-  return `<button type="button" class="${cls}" data-action="${action}" data-id="${esc(id)}">${text}</button>`;
+  return `<button type="button" class="${cls}" data-action="${esc(action)}" data-id="${esc(id)}">${esc(text)}</button>`;
 }
 function empty(text) {
-  return `<div class="empty-state"><span>◇</span><p>${text}</p></div>`;
+  return `<div class="empty-state"><span>◇</span><p>${esc(text)}</p></div>`;
 }
 function metric(label, value, hint = "") {
-  return `<article class="summary-card"><p>${label}</p><strong>${value}</strong>${hint ? `<small>${hint}</small>` : ""}</article>`;
+  return `<article class="summary-card"><p>${esc(label)}</p><strong>${esc(value)}</strong>${hint ? `<small>${esc(hint)}</small>` : ""}</article>`;
 }
 function progress(value, max) {
   return `<div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.min(100, Math.max(0, Math.round((value / Math.max(max, 1)) * 100)))}"><i class="${value > max ? "warn" : ""}" style="width:${Math.min(100, Math.max(0, (value / Math.max(max, 1)) * 100))}%"></i></div>`;
@@ -404,11 +433,16 @@ function closeAgendaMenuPortal(menu) {
   list.removeAttribute('style');
   menu.append(list);
 }
+function closeAllAgendaMenus(exceptMenu = null) {
+  for (const menu of document.querySelectorAll('.agenda31-menu[open]')) {
+    if (menu !== exceptMenu) menu.open = false;
+  }
+}
 document.addEventListener('toggle', event => {
   const menu = event.target;
   if (!(menu instanceof HTMLDetailsElement) || !menu.matches('.agenda31-menu')) return;
   if (!menu.open) return closeAgendaMenuPortal(menu);
-  for (const other of document.querySelectorAll('.agenda31-menu[open]')) if (other !== menu) other.open = false;
+  closeAllAgendaMenus(menu);
   const list = menu.querySelector(':scope>div');
   if (!list) return;
   const anchor = menu.querySelector('summary').getBoundingClientRect();
@@ -420,16 +454,31 @@ document.addEventListener('toggle', event => {
   const box = list.getBoundingClientRect();
   if (box.bottom > innerHeight - 8) list.style.top = Math.max(8, anchor.top - 6 - box.height) + 'px';
 }, true);
-document.addEventListener('click', event => {
+document.addEventListener('pointerdown', event => {
   for (const menu of document.querySelectorAll('.agenda31-menu[open]')) {
-    if (!menu.querySelector('summary').contains(event.target)) menu.open = false;
+    const portal = agendaMenuPortals.get(menu);
+    if (!menu.contains(event.target) && !(portal && portal.contains(event.target))) menu.open = false;
+  }
+}, true);
+document.addEventListener('click', event => {
+  const inPortal = event.target.closest('.agenda31-menu-portal');
+  if (inPortal && event.target.closest('button, a')) {
+    setTimeout(() => closeAllAgendaMenus(), 0);
+    return;
+  }
+  for (const menu of document.querySelectorAll('.agenda31-menu[open]')) {
+    const summary = menu.querySelector('summary');
+    if (summary && !summary.contains(event.target) && !agendaMenuPortals.get(menu)?.contains(event.target)) menu.open = false;
   }
   setTimeout(() => {
     for (const [menu, list] of agendaMenuPortals) if (!menu.isConnected) { agendaMenuPortals.delete(menu); list.remove(); }
   });
-});
+}, true);
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape') closeAllAgendaMenus();
+}, true);
 addEventListener('scroll', () => {
-  for (const menu of document.querySelectorAll('.agenda31-menu[open]')) menu.open = false;
+  closeAllAgendaMenus();
 }, true);
 function compactTransactionActions(t) {
   const fragment = document.createElement('template');
@@ -475,14 +524,14 @@ function row(t, actions = false) {
             ? "−"
             : "+"
           : "↔";
-  const after = balanceAfterTransaction(t);
+  const after = actions ? balanceAfterTransaction(t) : NaN;
   const balanceHtml = Number.isFinite(after)
     ? `<small class="balance-after">${eur(after)}</small>`
     : "";
   const receiptState = ["income", "expense"].includes(t.type)
     ? (t.attachment
       ? `<span class="receipt-indicator has-receipt" title="${esc(t.attachment.name || "Comprovativo associado")}">📎 Comprovativo</span>`
-      : t.receiptRequired === true ? '<span class="receipt-indicator no-receipt receipt-missing-icon" title="Comprovativo em falta" aria-label="Comprovativo em falta"><span aria-hidden="true"></span></span>' : '')
+      : F.missingReceipt(t) ? '<span class="receipt-indicator no-receipt receipt-missing-icon" title="Comprovativo em falta" aria-label="Comprovativo em falta"><span aria-hidden="true"></span></span>' : '')
     : "";
   const linkedRefunds = actions && t.type === "expense"
     ? data.transactions.filter((row) => String(row.refundOf || "") === String(t.id))
@@ -548,7 +597,7 @@ function navigateCore(v, skipEnhancement = false) {
       : $(`[data-view="${v}"] span`)?.textContent || "Definições";
   closeMenu();
   if (location.hash !== '#' + v) history.replaceState(null, "", "#" + v);
-  if (changed) { renderVisibleCore(v); if (v === "transactions") renderTransactions(); }
+  if (changed) { renderVisibleCore(v); if (v === "transactions") renderTransactions(); if (collectionDirty[v]) renderCollections(v); }
   if (!skipEnhancement) window.PremiumUI?.navigation(v);
   if (dataSection) window.DataHub?.show?.(dataSection);
   if (changed && !$("#modal")?.open) {
@@ -604,18 +653,41 @@ function dashboardBalanceAt(m) {
     return F.money(data.accounts.reduce((sum, account) => sum + (+account.balance || 0), 0));
   }
 }
+function savingsRateLabel(rate, income, digits = 0) {
+  if (rate === null) return income > 0 ? "Receita insuficiente para calcular a taxa" : "Sem receitas registadas";
+  return rate.toLocaleString("pt-PT", { maximumFractionDigits: digits }) + "%";
+}
+function reviewSavingsLabel(income, expense) {
+  const rate = F.savingsRate(income, expense);
+  return savingsRateLabel(rate, income) + (rate === null ? "" : " das receitas");
+}
+function currentMonthReview() {
+  if (!activeRenderTotalsCache) return ReconciliationModel.monthReview(data, month);
+  return activeRenderTotalsCache.monthReview ??= ReconciliationModel.monthReview(data, month);
+}
+function monthlyComparisonLabel(selectedMonth, current, previous, previousYear) {
+  const currentMonth = F.today().slice(0, 7);
+  if (selectedMonth === currentMonth) return "Mês em curso · comparação parcial";
+  if (selectedMonth > currentMonth) return "Mês futuro";
+  const difference = (reference) => {
+    const delta = F.money(current - reference);
+    const rate = F.percentageChange(current, reference);
+    const value = rate === null ? eur(delta) : Math.round(rate) + "%";
+    return (delta > 0 ? "+" : "") + value;
+  };
+  return difference(previous) + " vs. mês anterior · " + difference(previousYear) + " vs. ano anterior";
+}
 function dashboardTrend(current, previous, kind = "neutral") {
   const hostClass = (change) => {
     if (!Number.isFinite(change) || change === 0) return "neutral";
     if (kind === "expense") return change > 0 ? "negative" : "positive";
     return change > 0 ? "positive" : "negative";
   };
-  if (!Number.isFinite(previous) || Math.abs(previous) < 0.005)
-    return { text: "— vs. mês anterior", cls: "neutral" };
-  const pct = ((current - previous) / Math.abs(previous)) * 100;
-  const rounded = Math.round(Math.abs(pct));
-  const arrow = pct > 0 ? "↑" : pct < 0 ? "↓" : "→";
-  return { text: `${arrow} ${rounded}% vs. mês anterior`, cls: hostClass(pct) };
+  const delta = F.money(current - previous);
+  const pct = F.percentageChange(current, previous);
+  const arrow = delta > 0 ? "↑" : delta < 0 ? "↓" : "→";
+  const difference = pct === null ? eur(Math.abs(delta)) : `${Math.round(Math.abs(pct))}%`;
+  return { text: `${arrow} ${difference} vs. mês anterior`, cls: hostClass(delta) };
 }
 function summaryAxisAmount(value) {
   const numeric = Number(value) || 0;
@@ -750,12 +822,11 @@ function summaryRenderAccounts(total) {
 function summaryDateChip(date) {
   const d = new Date(String(date) + "T12:00:00");
   if (Number.isNaN(d.getTime())) return `<span class="summary-date-chip">—</span>`;
-  return `<span class="summary-date-chip"><b>${String(d.getDate()).padStart(2, "0")}</b><small>${d.toLocaleDateString("pt-PT", { month: "short" }).replace(".", "").toUpperCase()}</small></span>`;
+  return `<span class="summary-date-chip"><b>${String(d.getDate()).padStart(2, "0")}</b><small>${shortMonthFormatter.format(d).replace(".", "").toUpperCase()}</small></span>`;
 }
-function summaryRenderRecent() {
+function summaryRenderRecent(tx) {
   const host = $("#summaryRecentTransactions");
   if (!host) return;
-  const tx = F.sortTransactions(data, data.transactions.filter((t) => t.date.startsWith(month) && !(t.type === "adjustment" && t.description === "Ajuste após conferência do extrato")), "desc").slice(0, 5);
   host.innerHTML = tx.length ? tx.map((t, i) => {
     const sign = t.type === "income" ? "+" : t.type === "expense" ? "−" : t.type === "adjustment" ? (+t.delta < 0 ? "−" : "+") : "↔";
     const amount = t.type === "adjustment" ? Math.abs(+t.delta || 0) : +t.amount || 0;
@@ -766,7 +837,7 @@ function summaryRenderUpcoming() {
   const host = $("#summaryUpcomingPayments");
   if (!host) return;
   let items = [];
-  try { items = schedule().filter((p) => p.source !== "completed" && p.type === "expense" && String(p.date || "").startsWith(month)); } catch { items = []; }
+  try { items = schedule({ selectedMonthOnly: true }).filter((p) => p.source !== "completed" && p.type === "expense" && String(p.date || "").startsWith(month)); } catch { items = []; }
   items = items.sort((a, b) => String(a.date).localeCompare(String(b.date))).slice(0, 5);
   host.innerHTML = items.length ? items.map((p, i) => {
     const d = String(p.date || ""), today = F.today();
@@ -796,20 +867,23 @@ function summaryCalculation(type) {
 }
 function renderDashboard() {
   const t = totalsFor(month);
-  const previousMonth = dashboardMonthOffset(month, -1), previous = totalsFor(previousMonth);
+  const previousMonth = dashboardMonthOffset(month, -1), currentMonth = F.today().slice(0, 7);
   const saving = F.money(t.income - t.expense);
   $("#balanceValue").textContent = eur(t.balance);
   $("#incomeValue").textContent = eur(t.income);
   $("#expenseValue").textContent = eur(t.expense);
   $("#savingValue").textContent = eur(saving);
   $("#savingValue").className = saving < 0 ? "negative" : "";
-  $("#savingRate").textContent = t.income ? Math.round((saving / t.income) * 100) + "%" : "—";
+  $("#savingRate").textContent = reviewSavingsLabel(t.income, t.expense);
   const previousBalance = dashboardBalanceAt(previousMonth);
   const balanceDelta = F.money(t.balance - previousBalance);
   const balanceTrend = $("#balanceTrend");
   balanceTrend.textContent = `${balanceDelta >= 0 ? "+" : "−"} ${eur(Math.abs(balanceDelta))} vs. mês anterior`;
   balanceTrend.className = balanceDelta > 0 ? "positive" : balanceDelta < 0 ? "negative" : "neutral";
-  const incomeTrend = dashboardTrend(t.income, previous.income, "income"), expenseTrend = dashboardTrend(t.expense, previous.expense, "expense");
+  const status = month >= currentMonth ? { text: month === currentMonth ? "Mês em curso" : "Mês futuro", cls: "neutral" } : null;
+  const previous = status ? null : totalsFor(previousMonth);
+  const incomeTrend = status || dashboardTrend(t.income, previous.income, "income");
+  const expenseTrend = status || dashboardTrend(t.expense, previous.expense, "expense");
   $("#incomeTrend").textContent = incomeTrend.text; $("#incomeTrend").className = incomeTrend.cls;
   $("#expenseTrend").textContent = expenseTrend.text; $("#expenseTrend").className = expenseTrend.cls;
   const dashboardBalances = $("#dashboardAccountBalances");
@@ -818,7 +892,7 @@ function renderDashboard() {
     : empty("Adiciona uma conta para veres aqui o respetivo saldo.");
   const chartRows = (count) => Array.from({ length: count }, (_, i) => {
     const m = dashboardMonthOffset(month, i - count + 1);
-    const shortMonth = new Date(m + "-01T12:00").toLocaleDateString("pt-PT", { month: "short" }).replace(".", "");
+    const shortMonth = shortMonthFormatter.format(new Date(m + "-01T12:00")).replace(".", "");
     return { ...totalsFor(m), month: m, label: count > 12 ? `${shortMonth} ${m.slice(2, 4)}` : shortMonth };
   });
   const balanceRows = chartRows(summaryBalanceMonths);
@@ -826,9 +900,12 @@ function renderDashboard() {
   summaryIncomeExpenseChart("#chart", chartRows(summaryIncomeMonths));
   summaryRenderDonut(t.expense);
   summaryRenderAccounts(t.balance);
-  summaryRenderRecent();
+  const recent = F.sortTransactions(data, data.transactions.filter((t) =>
+    t.date.startsWith(month) && !(t.type === "adjustment" && t.description === "Ajuste após conferência do extrato")
+  ), "desc").slice(0, 5);
+  summaryRenderRecent(recent);
   summaryRenderUpcoming();
-  $("#recentTransactions").innerHTML = F.sortTransactions(data, data.transactions.filter((t) => t.date.startsWith(month) && !(t.type === "adjustment" && t.description === "Ajuste após conferência do extrato")), "desc").slice(0, 4).map((t) => row(t)).join("") || empty("Ainda não há movimentos neste mês.");
+  $("#recentTransactions").innerHTML = recent.slice(0, 4).map((t) => row(t)).join("") || empty("Ainda não há movimentos neste mês.");
   $("#budgetPreview").innerHTML = data.budgets.slice(0, 3).map(budgetRow).join("") || empty("Define o primeiro limite mensal.");
   $("#goalPreview").innerHTML = data.goals.slice(0, 3).map(goalRow).join("") || empty("Cria um objetivo de poupança.");
   const picker = $("#monthPicker"), prev = $("#summaryPrevMonth"), next = $("#summaryNextMonth");
@@ -840,7 +917,7 @@ function renderDashboard() {
 }
 
 function movementNeedsReview(t) {
-  return !!(t?.needsReview || t?.reviewRequired || (t?.receiptRequired === true && !t?.attachment));
+  return !!(t?.needsReview || t?.reviewRequired || F.missingReceipt(t));
 }
 function movementCategoryRoot(t) {
   return F.categoryParts(t?.category || "")[0] || (t?.type === "transfer" ? "Transferências" : "Outras");
@@ -923,7 +1000,7 @@ function filteredTransactions(scopeRows = null) {
   let rows = (scopeRows || movementScopeRows()).filter((t) =>
     (!account || t.account === account || t.targetAccount === account) &&
     (!transactionCategoryFilter || movementCategoryRoot(t) === transactionCategoryFilter) &&
-
+    (!transactionTagFilter || (t.tags || []).includes(transactionTagFilter)) &&
     (transactionStatusFilter === "all" || (transactionStatusFilter === "review" ? movementNeedsReview(t) : !movementNeedsReview(t))) &&
     movementMatchesSearch(t,terms)
   );
@@ -969,13 +1046,6 @@ function movementTotals(rows) {
   const income = sum(rows.filter((t) => t.type === "income"), (t) => +t.amount || 0);
   const expense = sum(rows.filter((t) => t.type === "expense"), (t) => +t.amount || 0);
   return { income, expense, net: F.money(income - expense), review: rows.filter(movementNeedsReview).length };
-}
-function movementTrendText(current, previous, kind) {
-  if (!previous) return "Sem base no período anterior";
-  const pct = Math.round(((current - previous) / Math.abs(previous)) * 100);
-  const arrow = pct > 0 ? "↑" : pct < 0 ? "↓" : "→";
-  const suffix = kind === "expense" ? (pct > 0 ? "Mais do que no período anterior" : pct < 0 ? "Menos do que no período anterior" : "Igual ao período anterior") : (pct > 0 ? "Mais do que no período anterior" : pct < 0 ? "Menos do que no período anterior" : "Igual ao período anterior");
-  return `${arrow} ${Math.abs(pct)}% · ${suffix}`;
 }
 function movementActionsHtml(t) {
   const canEdit = ["income", "expense", "transfer"].includes(t.type) && !t.debtId;
@@ -1051,6 +1121,7 @@ function movementRenderHeaderAndKpis(periodRows = null) {
   const advanced = window.CompleteUI?.getFilters?.() || {};
   if ($("#movementDateStart") && $("#movementDateStart").value !== (advanced.start || "")) $("#movementDateStart").value = advanced.start || "";
   if ($("#movementDateEnd") && $("#movementDateEnd").value !== (advanced.end || "")) $("#movementDateEnd").value = advanced.end || "";
+  $("#movementDateOptions summary").textContent = advanced.start || advanced.end ? "Intervalo de datas ativo" : "Intervalo de datas";
   if (periodLabel) {
     if (advanced.start || advanced.end) {
       const from = advanced.start ? dateLabel(advanced.start) : "início";
@@ -1068,18 +1139,21 @@ function movementRenderHeaderAndKpis(periodRows = null) {
   $$("[data-tx-type-tab]").forEach((button) => {
     const active = button.dataset.txTypeTab === activeType;
     button.classList.toggle("active", active);
-    button.setAttribute("aria-selected", active ? "true" : "false");
+    button.setAttribute("aria-pressed", active ? "true" : "false");
   });
   const base = periodRows || movementPeriodRows(), totals = movementTotals(base);
   const customDates = Boolean(advanced.start || advanced.end);
-  const previousMonth = dashboardMonthOffset(month, -1), previousTotals = customDates ? null : movementTotals(movementPeriodRows(previousMonth));
+  const currentMonth = F.today().slice(0, 7);
+  const allHistory = $("#periodFilter")?.value === "all";
+  const trendText = customDates ? "Intervalo personalizado · sem comparação mensal" : allHistory ? "Todo o histórico" :
+    month === currentMonth ? "Mês em curso" : month > currentMonth ? "Mês futuro" : null;
+  const previousTotals = trendText ? null : movementTotals(movementPeriodRows(dashboardMonthOffset(month, -1)));
   if ($("#movementIncomeKpi")) $("#movementIncomeKpi").textContent = eur(totals.income);
   if ($("#movementExpenseKpi")) $("#movementExpenseKpi").textContent = totals.expense ? `−${eur(totals.expense)}` : eur(0);
   if ($("#movementNetKpi")) { $("#movementNetKpi").textContent = `${totals.net < 0 ? "−" : totals.net > 0 ? "+" : ""}${eur(Math.abs(totals.net))}`; $("#movementNetKpi").className = totals.net < 0 ? "negative" : totals.net > 0 ? "positive" : ""; }
   if ($("#movementReviewKpi")) $("#movementReviewKpi").textContent = `${totals.review} movimento${totals.review === 1 ? "" : "s"}`;
-  const trendText = customDates ? "Intervalo personalizado · sem comparação mensal" : null;
-  if ($("#movementIncomeTrend")) $("#movementIncomeTrend").textContent = trendText || movementTrendText(totals.income, previousTotals.income, "income");
-  if ($("#movementExpenseTrend")) $("#movementExpenseTrend").textContent = trendText || movementTrendText(totals.expense, previousTotals.expense, "expense");
+  if ($("#movementIncomeTrend")) $("#movementIncomeTrend").textContent = trendText || dashboardTrend(totals.income, previousTotals.income).text;
+  if ($("#movementExpenseTrend")) $("#movementExpenseTrend").textContent = trendText || dashboardTrend(totals.expense, previousTotals.expense).text;
 }
 function movementFilterButton(kind, value, label, count, active, icon = "●", tone = 1) {
   const markup = kind === 'category' && value ? movementCategoryIcon(label) : esc(icon);
@@ -1133,6 +1207,7 @@ window.resetMovementDashboardFilters = () => {
 };
 function renderTransactions() {
   if (window.equilibrioStartup?.awaitingChoice) return;
+  document.querySelectorAll(".movement-menu-portal").forEach((n) => n.remove());
   // A mesma base era filtrada três vezes em cada refresh (KPIs, sidebar e tabela).
   // Calcula uma vez e reutiliza-a durante este render.
   const periodRows = movementPeriodRows();
@@ -1172,8 +1247,8 @@ function renderTransactions() {
     const amount = t.type === "adjustment" ? Math.abs(+t.delta || 0) : +t.amount || 0;
     const category = movementCategoryRoot(t), noteTone = F.noteTone(t);
     const subtitle = t.note ? `<small class="movement-description-note note-${esc(noteTone)}">${esc(t.note)}</small>` : t.beneficiary ? `<small>${esc(t.beneficiary)}</small>` : "";
-    const receiptPending = t.receiptRequired === true && !t.attachment
-      ? '<span class="movement-receipt-pending" title="Pedir fatura / comprovativo pendente">Pedir fatura</span>'
+    const receiptPending = F.missingReceipt(t)
+      ? '<span class="movement-receipt-pending" title="Foi pedido um comprovativo para esta despesa">Comprovativo em falta</span>'
       : "";
     const accountName = t.type === "transfer" && t.targetAccount ? `${t.account} → ${t.targetAccount}` : (t.account || "—");
     const review = movementNeedsReview(t);
@@ -1205,41 +1280,57 @@ function renderTransactions() {
   };
   window.FeatureUI?.refreshSelection?.();
 }
-function renderCollections() {
-  $("#budgetsGrid").innerHTML =
-    data.budgets
-      .map(
-        (b) =>
-          `<article class="budget-card">${budgetRow(b)}<div class="row-actions">${button("Editar", "budget", b.id)}${button("Apagar", "delete-budget", b.id, "link-button danger")}</div></article>`,
-      )
-      .join("") || empty("Cria um orçamento para acompanhar uma categoria.");
-  $("#goalsGrid").innerHTML =
-    data.goals
-      .map(
-        (g) =>
-          `<article class="goal-card"><div class="goal-icon">◎</div>${goalRow(g)}<p>${eur(Math.max(0, g.target - g.current) / (g.planMonths || 12))}/mês para atingir em ${g.planMonths || 12} meses.</p><div class="row-actions">${button("Reservar", "goal-fund", g.id)}${button("Editar", "goal", g.id, "link-button")}${button("Apagar", "delete-goal", g.id, "link-button danger")}</div></article>`,
-      )
-      .join("") || empty("Define para que estás a poupar.");
-  $("#accountsGrid").innerHTML =
-    data.accounts
-      .map(
-        (a) =>
-          `<article class="account-card"><h3>${esc(a.name)}</h3><strong>${eur(a.balance)}</strong><small>${esc(a.type)}${a.reconciledOn ? " · Confirmada em " + dateLabel(a.reconciledOn) : ""}</small><div class="row-actions">${button("Confirmar saldo", "reconcile", a.id)}${button("Editar", "account", a.id, "link-button")}${button("Apagar", "delete-account", a.id, "link-button danger")}</div></article>`,
-      )
-      .join("") || empty("Adiciona uma conta para começar.");
+const collectionDirty = { budgets: true, goals: true, accounts: true };
+function renderCollections(targetView = null) {
+  if (!targetView) collectionDirty.budgets = collectionDirty.goals = collectionDirty.accounts = true;
+  const active = targetView || view;
+  if (active === "budgets" && collectionDirty.budgets) {
+    collectionDirty.budgets = false;
+    $("#budgetsGrid").innerHTML =
+      data.budgets
+        .map(
+          (b) =>
+            `<article class="budget-card">${budgetRow(b)}<div class="row-actions">${button("Editar", "budget", b.id)}${button("Apagar", "delete-budget", b.id, "link-button danger")}</div></article>`,
+        )
+        .join("") || empty("Cria um orçamento para acompanhar uma categoria.");
+  }
+  if (active === "goals" && collectionDirty.goals) {
+    collectionDirty.goals = false;
+    $("#goalsGrid").innerHTML =
+      data.goals
+        .map(
+          (g) =>
+            `<article class="goal-card"><div class="goal-icon">◎</div>${goalRow(g)}<p>${eur(Math.max(0, g.target - g.current) / (g.planMonths || 12))}/mês para atingir em ${g.planMonths || 12} meses.</p><div class="row-actions">${button("Reservar", "goal-fund", g.id)}${button("Editar", "goal", g.id, "link-button")}${button("Apagar", "delete-goal", g.id, "link-button danger")}</div></article>`,
+        )
+        .join("") || empty("Define para que estás a poupar.");
+  }
+  if (active === "accounts" && collectionDirty.accounts) {
+    collectionDirty.accounts = false;
+    $("#accountsGrid").innerHTML =
+      data.accounts
+        .map(
+          (a) =>
+            `<article class="account-card"><h3>${esc(a.name)}</h3><strong>${eur(a.balance)}</strong><small>${esc(a.type)}${a.reconciledOn ? " · Confirmada em " + dateLabel(a.reconciledOn) : ""}</small><div class="row-actions">${button("Confirmar saldo", "reconcile", a.id)}${button("Editar", "account", a.id, "link-button")}${button("Apagar", "delete-account", a.id, "link-button danger")}</div></article>`,
+        )
+        .join("") || empty("Adiciona uma conta para começar.");
+  }
 }
 let activeRenderScheduleCache = null;
 function schedule(options = {}) {
   const includeCompletedGenerated = options === true || Boolean(options?.includeCompletedGenerated);
-  const cacheKey = `${month}|${includeCompletedGenerated ? 1 : 0}|${F.today()}`;
+  const selectedMonthOnly = options?.selectedMonthOnly === true;
+  const today = F.today();
+  const cacheKey = [month, includeCompletedGenerated, selectedMonthOnly, today].join("|");
   if (activeRenderScheduleCache?.has(cacheKey)) return activeRenderScheduleCache.get(cacheKey);
   // A Agenda é temporal, não fica limitada ao mês selecionado: mostra atrasos,
   // próximos 30 dias e compromissos posteriores (incluindo subscrições).
   const months = new Set([month]);
-  const base = new Date(F.today() + "T12:00");
-  for (let i = -2; i <= 12; i++) {
-    const d = new Date(base.getFullYear(), base.getMonth() + i, 1);
-    months.add(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`);
+  if (!selectedMonthOnly) {
+    const base = new Date(today + "T12:00");
+    for (let i = -2; i <= 12; i++) {
+      const d = new Date(base.getFullYear(), base.getMonth() + i, 1);
+      months.add(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`);
+    }
   }
   const generated = [...months].flatMap((m) => F.upcoming(data, m, includeCompletedGenerated ? { includeCompleted: true } : undefined));
   const postedDebtMonths = new Set();
@@ -1303,8 +1394,11 @@ function schedule(options = {}) {
   const cleanScheduleText = (value) => {const raw=String(value||'');if(activeRenderScheduleTextCache?.has(raw))return activeRenderScheduleTextCache.get(raw);const text=raw.trim().toLocaleLowerCase('pt-PT').replace(/\s+/g,' ');activeRenderScheduleTextCache?.set(raw,text);return text;};
   const postedPendingIds = new Set();
   const unlinkedPendingMatches = new Map();
-  const pendingMonths = new Set(data.pendingPayments.map(p=>String(p.date||'').slice(0,7)));
-  for (const tx of data.pendingPayments.length ? data.transactions : []) {
+  const pendingPayments = selectedMonthOnly
+    ? data.pendingPayments.filter((p) => String(p.date || "").startsWith(month))
+    : data.pendingPayments;
+  const pendingMonths = new Set(pendingPayments.map(p=>String(p.date||'').slice(0,7)));
+  for (const tx of pendingPayments.length ? data.transactions : []) {
     if (tx.pendingId) postedPendingIds.add(String(tx.pendingId));
     if (tx.pendingId || tx.recurringRuleId || tx.subscriptionId || tx.debtId) continue;
     if (!pendingMonths.has(String(tx.date||'').slice(0,7))) continue;
@@ -1312,7 +1406,7 @@ function schedule(options = {}) {
     if (!unlinkedPendingMatches.has(matchKey)) unlinkedPendingMatches.set(matchKey, new Set());
     unlinkedPendingMatches.get(matchKey).add(F.cents(tx.amount));
   }
-  const pendingRows = data.pendingPayments
+  const pendingRows = pendingPayments
     .filter((p) => {
       if (postedPendingIds.has(String(p.id))) return false;
       const matchKey = `${String(p.date || "").slice(0, 7)}|${p.type}|${p.account}|${cleanScheduleText(p.description)}`;
@@ -1372,6 +1466,7 @@ function scheduleRows(items, options = {}) {
         } else if (p.source === "recurring") {
           actions =
             button("Editar série", "recurring", p.ruleId || p.id, "link-button") +
+            button("Saltar este mês", "skip-occurrence", `recurring~${p.ruleId || p.id}~${p.originalDate || p.date}`, "link-button") +
             button("Ajustar ocorrência", "adjust-occurrence", `recurring~${p.ruleId || p.id}~${p.originalDate || p.date}`, "link-button") +
             button("Histórico", "recurring-history", `recurring~${p.ruleId || p.id}`, "link-button") +
             button("Apagar recorrência", "delete-recurring", p.ruleId || p.id, "link-button danger") +
@@ -1384,6 +1479,7 @@ function scheduleRows(items, options = {}) {
         } else if (p.source === "subscription") {
           actions =
             button("Editar série", "life-subscription", p.subscriptionId, "link-button") +
+            button("Saltar este mês", "skip-occurrence", `subscription~${p.subscriptionId}~${p.originalDate || p.date}`, "link-button") +
             button("Ajustar ocorrência", "adjust-occurrence", `subscription~${p.subscriptionId}~${p.originalDate || p.date}`, "link-button") +
             button("Histórico", "recurring-history", `subscription~${p.subscriptionId}`, "link-button") +
             button("Registar", "settle-recurring", p.id + "~" + p.date, "link-button");
@@ -1415,6 +1511,7 @@ function scheduleRows(items, options = {}) {
 }
 
 function renderPlanning() {
+  document.querySelectorAll(".agenda31-menu-portal").forEach((n) => n.remove());
   const items = schedule().filter(x => x.date.startsWith(month)),
     openItems = items.filter((x) => x.source !== "completed"),
     out = sum(
@@ -1537,8 +1634,11 @@ function renderReports() {
   $("#alertsList").innerHTML =
     alerts.map((a) => `<div class="alert">${esc(a)}</div>`).join("") ||
     '<div class="alert good">Não há alertas para este mês.</div>';
-  const closed = data.closedMonths.includes(month);
+  const closeReview = currentMonthReview();
+  const closed = closeReview.closed;
   $("#closeMonth").textContent = closed ? "Reabrir mês" : "Fechar mês";
+  $("#closeMonth").disabled = !closed && !closeReview.ready;
+  $("#legacyMonthCloseReason").textContent = closed ? "" : closeReview.blockers.join(" ");
   $("#monthChecklist").innerHTML = [
     [
       "Movimentos",
@@ -1547,7 +1647,7 @@ function renderReports() {
     ],
     [
       "Contas confirmadas",
-      ReconciliationModel.monthReview(data, month).confirmed +
+      closeReview.confirmed +
         " de " +
         data.accounts.length,
     ],
@@ -1591,15 +1691,12 @@ function renderReports() {
     previousYearMonth = `${monthDate.getFullYear() - 1}-${String(monthDate.getMonth() + 1).padStart(2, "0")}`,
     previousTotals = totalsFor(previousMonth),
     yearAgoTotals = totalsFor(previousYearMonth),
-    changeLabel = (now, before) => before
-      ? `${now - before >= 0 ? "+" : ""}${Math.round(((now - before) / Math.abs(before)) * 100)}%`
-      : "sem base",
     annualInsight = window.LifeFinance?.annualReport?.(data, month.slice(0, 4)),
     forecast = annualInsight?.forecast?.month === month ? annualInsight.forecast : null;
   $("#monthlySummary").innerHTML =
-    `<div class="summary-row"><span>Receitas</span><b>${eur(tot.income)}</b><small>${changeLabel(tot.income, previousTotals.income)} vs. mês anterior · ${changeLabel(tot.income, yearAgoTotals.income)} vs. ano anterior</small></div>` +
-    `<div class="summary-row"><span>Despesas</span><b>${eur(tot.expense)}</b><small>${changeLabel(tot.expense, previousTotals.expense)} vs. mês anterior · ${changeLabel(tot.expense, yearAgoTotals.expense)} vs. ano anterior</small></div>` +
-    `<div class="summary-row"><span>Diferença</span><b class="${tot.income - tot.expense >= 0 ? "positive" : "negative"}">${eur(tot.income - tot.expense)}</b><small>${tot.income ? Math.round(((tot.income - tot.expense) / tot.income) * 100) + "% das receitas" : "Sem receitas registadas"}</small></div>` +
+    `<div class="summary-row"><span>Receitas</span><b>${eur(tot.income)}</b><small>${monthlyComparisonLabel(month, tot.income, previousTotals.income, yearAgoTotals.income)}</small></div>` +
+    `<div class="summary-row"><span>Despesas</span><b>${eur(tot.expense)}</b><small>${monthlyComparisonLabel(month, tot.expense, previousTotals.expense, yearAgoTotals.expense)}</small></div>` +
+    `<div class="summary-row"><span>Balanço do mês</span><b class="${tot.income - tot.expense >= 0 ? "positive" : "negative"}">${eur(tot.income - tot.expense)}</b><small>${reviewSavingsLabel(tot.income, tot.expense)}</small></div>` +
     `<div class="summary-row"><span>Movimentos</span><b>${data.transactions.filter((t) => t.date.startsWith(month)).length}</b><small>${cats.length} categorias com despesa</small></div>` +
     (forecast ? `<div class="summary-row summary-row-forecast"><span>Previsão fim do mês</span><b class="${forecast.balance >= 0 ? "positive" : "negative"}">${eur(forecast.balance)}</b><small>${eur(forecast.income)} receitas · ${eur(forecast.expense)} despesas projetadas</small></div>` : "");
 }
@@ -1727,8 +1824,8 @@ function renderWealth() {
     metric("Total pago registado", eur(totalPaid), totalInterestCharges ? `${eur(totalInterestCharges)} em juros e encargos.` : "Capital, juros e encargos registados.");
   $("#debtGrid").innerHTML =
     data.debts
-      .map((d) => {
-        const m = debtMetrics(d), end = d.endDate ? dateLabel(d.endDate) : "Sem data contratual",
+      .map((d, i) => {
+        const m = debtMetricsList[i], end = d.endDate ? dateLabel(d.endDate) : "Sem data contratual",
           forecast = m.projection.possible ? dateLabel(m.projection.endDate) : "Prestação insuficiente",
           forecastMonths = m.projection.months === 0 ? "Liquidado" : m.projection.months ? `${m.projection.months} ${m.projection.months === 1 ? "mês" : "meses"}` : "—",
           history = m.history.length
@@ -1825,15 +1922,14 @@ function learnImportRule(transaction, category, beneficiary) {
   const existing = data.rules.find((r) => F.importNormalize(r.match) === normalized);
   if (existing) {
     // Regras criadas manualmente nunca são silenciosamente reescritas.
-    if (existing.source !== "import-learning") {
-      if (!existing.beneficiary && beneficiary) existing.beneficiary = beneficiary;
-      return false;
-    }
+    if (existing.source !== "import-learning" || existing.active===false ||
+      window.PracticalFinance?.overlappingRule(data,rawKey,existing.id)) return false;
     existing.category = category;
     if (beneficiary) existing.beneficiary = beneficiary;
     existing.active = true;
     return true;
   }
+  if(window.PracticalFinance?.overlappingRule(data,rawKey))return false;
   data.rules.push({
     id: F.id(),
     match: rawKey.slice(0, 100),
@@ -1846,20 +1942,22 @@ function learnImportRule(transaction, category, beneficiary) {
   return true;
 }
 
-let storageInfoCacheData = null;
-let storageInfoCacheKb = 0;
+const storageInfoCache = new WeakMap();
 let activeRenderScheduleTextCache=null;
 function storageInfoKb() {
-  if (storageInfoCacheData !== data) {
-    storageInfoCacheData = data;
-    storageInfoCacheKb = Math.round(new Blob([JSON.stringify(data)]).size / 1024);
+  if (!storageInfoCache.has(data)) {
+    storageInfoCache.set(data, Math.round(new Blob([JSON.stringify(data)]).size / 1024));
   }
-  return storageInfoCacheKb;
+  return storageInfoCache.get(data);
 }
 
 function renderVisibleCore(v) {
   if (window.equilibrioStartup?.awaitingChoice) return;
   if (v === 'dashboard') renderDashboard();
+  if (v === 'settings') {
+    $("#storageInfo").textContent =
+      `${data.accounts.length} contas · ${data.transactions.length} movimentos · ${storageInfoKb()} KB guardados neste navegador.`;
+  }
   if (v === 'planner') renderPlanning();
   if (v === 'review' || v === 'dataHub' && window.UnifiedWorkspaceUI?.dataTask() === 'imports') renderReview();
   if (v === 'plansHub') renderPlanning();
@@ -1894,8 +1992,6 @@ function render(options) {
   // Agenda e importações são construídas ao entrar na respetiva página.
   // Não recalcular páginas ocultas em cada gravação ou pesquisa.
   $("#profileName").value = data.profile || "";
-  $("#storageInfo").textContent =
-    `${data.accounts.length} contas · ${data.transactions.length} movimentos · ${storageInfoKb()} KB guardados neste navegador.`;
   navigate(view, true);
   window.FeatureUI?.render();
   window.PremiumUI?.render();
@@ -1910,10 +2006,10 @@ function render(options) {
   }
 }
 function field(label, name, value = "", type = "text", attrs = "") {
-  return `<label>${label}<input name="${name}" type="${type}" value="${esc(value)}" ${attrs}></label>`;
+  return `<label>${esc(label)}<input name="${esc(name)}" type="${type}" value="${esc(value)}" ${attrs}></label>`;
 }
 function dateStepperField(label, name, value, attrs = "") {
-  return `<label class="date-stepper-field">${label}<span class="date-stepper-control"><input name="${name}" type="date" value="${esc(value)}" ${attrs}><span class="date-stepper-buttons"><button type="button" data-date-step="1" aria-label="Dia seguinte" title="Dia seguinte">▲</button><button type="button" data-date-step="-1" aria-label="Dia anterior" title="Dia anterior">▼</button></span></span></label>`;
+  return `<label class="date-stepper-field">${esc(label)}<span class="date-stepper-control"><input name="${esc(name)}" type="date" value="${esc(value)}" ${attrs}><span class="date-stepper-buttons"><button type="button" data-date-step="1" aria-label="Dia seguinte" title="Dia seguinte">▲</button><button type="button" data-date-step="-1" aria-label="Dia anterior" title="Dia anterior">▼</button></span></span></label>`;
 }
 function bindDateStepper(host, name) {
   const input = host?.querySelector(`[name="${name}"]`);
@@ -1955,8 +2051,8 @@ function number(label, name, value = 0, min = 0) {
     `required min="${min}" step="0.01"`,
   );
 }
-function select(label, name, options, value) {
-  return `<label>${label}<select name="${name}">${options
+function select(label, name, options, value, attrs = "") {
+  return `<label>${esc(label)}<select name="${esc(name)}"${attrs ? " " + attrs : ""}>${options
     .map((o) => {
       const [v, l] = Array.isArray(o) ? o : [o, o];
       return `<option value="${esc(v)}" ${String(v) === String(value) ? "selected" : ""}>${esc(l)}</option>`;
@@ -1987,6 +2083,7 @@ function canLeaveForm() {
   }
   return !formStatus().dirty || window.confirm('Descartar as alterações deste formulário que ainda não foram guardadas?');
 }
+let lastModalOpener = null;
 function closeForm() {
   if (!canLeaveForm()) return false;
   window.DraftUI?.discard();
@@ -2006,6 +2103,7 @@ function form(title, fields, action, help = "", submit = "Guardar") {
   window.DraftUI?.suspend();
   formRevision++;
   $('#modalForm .close').disabled = false;
+  $("#modal").dataset.origin = view;
   $("#modal").classList.remove("import-dialog", "transaction-editor", "financial-detail-dialog", "balance-variation-dialog");
   const formSpace = key;
   const returnView = view;
@@ -2017,17 +2115,27 @@ function form(title, fields, action, help = "", submit = "Guardar") {
       );
     return action(values);
   };
+  const isReadOnlyClose = /^(Fechar|Concluir)$/i.test(String(submit || "").trim());
+  const isDestructive = /^(Eliminar|Apagar|Remover|Substituir dados)/i.test(String(submit || "").trim()) || /^(Eliminar|Apagar|Remover)\b/i.test(String(title || "").trim());
+  const safeTitle = /[<>]/.test(String(title ?? "")) ? esc(title) : String(title ?? "");
   $("#modalContent").innerHTML =
-    `<h2 id="formTitle">${title}</h2>${help ? `<p class="modal-subtitle">${help}</p>` : ""}<div id="formError" role="alert" hidden></div>${fields}<button class="primary full" type="submit">${submit}</button>`;
-  $("#modal").showModal();
+    `<h2 id="formTitle">${safeTitle}</h2>${help ? `<p class="modal-subtitle">${help}</p>` : ""}<div id="formError" role="alert" hidden></div>${fields}<div class="modal-form-footer"><button class="primary full${isDestructive ? " danger" : ""}" type="submit">${esc(submit)}</button>${isReadOnlyClose ? "" : '<button type="button" class="secondary modal-cancel" data-modal-cancel>Cancelar</button>'}</div>`;
+  const cancelBtn = $("#modalContent [data-modal-cancel]");
+  if (cancelBtn) cancelBtn.onclick = closeForm;
+  if (!$("#modal").open) {
+    lastModalOpener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    $("#modal").showModal();
+  }
   const revision = formRevision;
   formBaseline = null;
   queueMicrotask(() => { if (formRevision === revision) formBaseline = formFingerprint(); });
   setTimeout(
-    () =>
+    () => {
+      if (revision !== formRevision || !$("#modal").open) return;
       $(
         "#modalContent input, #modalContent select, #modalContent textarea",
-      )?.focus(),
+      )?.focus();
+    },
     0,
   );
 }
@@ -2061,6 +2169,12 @@ async function attachmentFromFile(file) {
   });
 }
 
+function movementFormAccount() {
+  if (view !== "transactions") return undefined;
+  const name = $("#accountFilter")?.value;
+  return data.accounts.find(a => !a.archived && a.name === name)?.name;
+}
+
 function transactionForm(id) {
   if (!requireAccounts()) return;
   const t = id ? find("transactions", id) : null;
@@ -2069,6 +2183,7 @@ function transactionForm(id) {
   if (t?.source === 'Casa integrado') return window.CasaUI?.openPurchase(t.sourceId);
   if (t && data.closedMonths.includes(t.date.slice(0, 7)))
     return notice("Reabre o mês para editar este movimento.", true);
+  const editingTransaction = Boolean(t);
   const cats = [
     ...new Set([
       "Alimentação",
@@ -2090,7 +2205,7 @@ function transactionForm(id) {
     formSubcategory = formCategoryParts[1] || "",
     formCategoryDetail = formCategoryParts[2] || "",
     formCategorySubdetail = formCategoryParts[3] || "";
-  const splitEditor = `<div class="transaction-split-launcher" id="transactionSplitLauncher"><div><b>Compra com várias categorias</b><small id="transactionSplitStatus">${t?.splits?.length ? `${t.splits.length} parcelas configuradas` : "Mantém o formulário simples e abre um editor próprio quando precisares."}</small></div><button type="button" id="openTransactionSplitWorkbench" class="secondary">${t?.splits?.length ? "Editar divisão" : "Dividir compra"}</button></div><input name="useSplits" type="hidden" value="${t?.splits?.length ? "1" : ""}"><section class="transaction-split-workbench" id="transactionSplitWorkbench" hidden><div class="transaction-split-workbench-card"><div class="transaction-split-workbench-head"><div><p class="eyebrow">Compra repartida</p><h3>Distribuir por categorias</h3><p>Adiciona as categorias, subcategorias e valores desta compra. O saldo da conta continua a baixar apenas uma vez pelo total do movimento.</p></div><button type="button" id="closeTransactionSplitWorkbench" class="secondary">Voltar ao movimento</button></div><div class="transaction-split-workbench-summary"><strong id="transactionSplitPurchaseTotal">Total: ${eur(t?.amount || 0)}</strong><span id="transactionSplitTotal" role="status"></span></div><div id="transactionSplitRows"></div><div class="transaction-split-workbench-footer"><button type="button" id="transactionAddSplit" class="secondary">+ Adicionar linha</button><button type="button" id="removeTransactionSplit" class="link-button danger">Remover divisão</button><button type="button" id="doneTransactionSplit" class="primary">Concluir divisão</button></div></div></section>`;
+  const splitEditor = `<div class="transaction-split-launcher" id="transactionSplitLauncher"><div><b>Compra com várias categorias</b><small id="transactionSplitStatus">${t?.splits?.length ? `${t.splits.length} parcelas configuradas` : "Mantém o formulário simples e abre um editor próprio quando precisares."}</small></div><button type="button" id="openTransactionSplitWorkbench" class="secondary">${t?.splits?.length ? "Editar divisão" : "Dividir compra"}</button></div><input name="useSplits" type="hidden" value="${t?.splits?.length ? "1" : ""}"><section class="transaction-split-workbench" id="transactionSplitWorkbench" hidden><div class="transaction-split-workbench-card"><div class="transaction-split-workbench-head"><div><p class="eyebrow">Compra repartida</p><h3>Distribuir por categorias</h3><p>Adiciona as categorias, subcategorias e valores desta compra. O saldo da conta continua a baixar apenas uma vez pelo total do movimento.</p></div><button type="button" id="closeTransactionSplitWorkbench" class="secondary">Voltar ao movimento</button></div><div class="transaction-split-workbench-summary"><strong id="transactionSplitPurchaseTotal">Total: ${eur(t?.amount || 0)}</strong>${editingTransaction ? '<label>Corrigir total (€)<input type="number" id="splitAmountEdit" min="0.01" step="0.01"></label>' : ''}<span id="transactionSplitTotal" role="status"></span></div><div id="transactionSplitRows"></div><div class="transaction-split-workbench-footer"><button type="button" id="transactionAddSplit" class="secondary">+ Adicionar linha</button><button type="button" id="removeTransactionSplit" class="link-button danger">Remover divisão</button><button type="button" id="doneTransactionSplit" class="primary">Concluir divisão</button></div></div></section>`;
   form(
     t ? "Editar movimento" : "Novo movimento",
     select(
@@ -2109,7 +2224,7 @@ function transactionForm(id) {
         "text",
         'required maxlength="160" list="movementDescriptions"',
       ) +
-      `<div class="two-cols">${number("Valor (€)", "amount", t?.amount || "", 0.01)}${dateStepperField("Data", "date", t?.date || F.today(), `required max="${F.today()}"`)}</div>` +
+      `<div class="two-cols">${number("Valor (€)", "amount", t?.amount || "", 0.01)}${dateStepperField("Data contabilística", "date", t?.date || F.today(), `required max="${F.today()}"`)}</div>` +
       '<div id="transactionMainCategory">' + field(
         "Categoria",
         "category",
@@ -2153,7 +2268,7 @@ function transactionForm(id) {
         .join("")}</datalist>` +
       accountSelect(
         "account",
-        t?.account ||
+        t?.account || movementFormAccount() ||
           data.transactions
             .slice()
             .reverse()
@@ -2227,7 +2342,8 @@ function transactionForm(id) {
         });
         if (txSplits.length < 2 || txSplits.some((x) => !x.category || !Number.isFinite(x.amount) || x.amount <= 0))
           throw Error("Adiciona pelo menos duas parcelas válidas à compra.");
-        if (txSplits.reduce((n, x) => n + F.cents(x.amount), 0) !== F.cents(+f.get("amount")))
+        const totalCents = F.cents(+f.get("amount"));
+        if (txSplits.reduce((n, x) => n + F.cents(x.amount), 0) !== totalCents)
           throw Error("A soma das parcelas tem de coincidir exatamente com o valor total do movimento.");
         if (f.has("recurring"))
           throw Error("Uma compra dividida por categorias não pode ser transformada diretamente numa recorrência.");
@@ -2304,29 +2420,31 @@ function transactionForm(id) {
   window.MovementUI?.enhanceForm(t);
   $("#modal").classList.add('transaction-editor');
   const editor=$('#modalContent'),identity=document.createElement('div'),basics=document.createElement('div');
-  identity.className='transaction-identity';basics.className='transaction-basics';
+  identity.className='transaction-identity transaction-essential-identity';basics.className='transaction-basics';
   const moveField=(name,host)=>{const label=editor.querySelector('[name='+name+']')?.closest('label');if(label)host.append(label);};
+  moveField('type',basics);moveField('amount',basics);moveField('account',basics);moveField('date',basics);
   moveField('description',identity);moveField('beneficiary',identity);
-  moveField('type',basics);moveField('date',basics);moveField('account',basics);moveField('amount',basics);
-  $('#formError').after(identity,basics);
+  $('#formError').after(basics,identity);
   editor.querySelectorAll('.two-cols').forEach(n=>{if(!n.children.length)n.remove();});
   const notes=document.createElement('div');notes.className='transaction-notes';editor.querySelector('[name=note]').closest('label').before(notes);moveField('note',notes);moveField('noteColor',notes);
   const noteDisclosure=document.createElement('details');noteDisclosure.className='transaction-note-disclosure';noteDisclosure.innerHTML='<summary>Nota e cor (opcional)</summary>';notes.before(noteDisclosure);noteDisclosure.append(notes);noteDisclosure.open=!!t?.note||!!t?.noteColor;
   const depth=editor.querySelector('.category-depth-fields'),depthDisclosure=document.createElement('details');depthDisclosure.className='transaction-depth-disclosure';depthDisclosure.innerHTML='<summary>Mais níveis de categoria</summary>';depth.before(depthDisclosure);depthDisclosure.append(depth);depthDisclosure.open=!!formCategoryDetail||!!formCategorySubdetail;
   const options=[...editor.querySelectorAll('details')].find(el=>el.querySelector(':scope>summary')?.textContent==='Comprovativo e outras opções');
   if(options){options.classList.add('transaction-options-disclosure');const pair=document.createElement('div');pair.className='transaction-extra-options';noteDisclosure.before(pair);pair.append(noteDisclosure,options);}
-  identity.classList.add('transaction-essential-identity');
   basics.querySelector('[name=type]').closest('label').classList.add('transaction-type-field');
   for(const name of ['amount','account','date'])basics.querySelector('[name='+name+']').closest('label').classList.add('transaction-'+name+'-field');
-  moveField('beneficiary',basics);basics.querySelector('[name=beneficiary]').closest('label').classList.add('transaction-beneficiary-field');
-  basics.append(identity);
+  identity.querySelector('[name=description]')?.closest('label')?.classList.add('transaction-description-field');
+  identity.querySelector('[name=beneficiary]')?.closest('label')?.classList.add('transaction-beneficiary-field');
+  const descInput=identity.querySelector('[name=description]'),benefInput=identity.querySelector('[name=beneficiary]');
+  if(descInput&&!descInput.placeholder)descInput.placeholder='Ex.: compras supermercado, farmácia, jantar';
+  if(benefInput)benefInput.placeholder='Ex.: Continente, Farmácia, João';
   const typeInput=basics.querySelector('[name=type]'),typeChoices=document.createElement('div');typeChoices.className='transaction-type-choices';typeChoices.setAttribute('role','group');typeChoices.setAttribute('aria-label','Tipo de movimento');
   for(const [value,label,glyph]of [['expense','Despesa','↓'],['income','Receita','↑']]){const b=document.createElement('button');b.type='button';b.className='secondary';b.dataset.movementType=value;b.textContent=glyph+' '+label;b.onclick=()=>{typeInput.value=value;typeInput.dispatchEvent(new Event('change',{bubbles:true}));};typeChoices.append(b);}
   typeInput.closest('label').append(typeChoices);typeInput.classList.add('transaction-native-type');
   const syncType=()=>typeChoices.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.movementType===typeInput.value)));typeInput.addEventListener('change',syncType);syncType();
   const helper=editor.querySelector('.modal-subtitle');if(helper)helper.remove();
-  const submit=editor.querySelector('button[type=submit]'),footer=document.createElement('div');footer.className='transaction-editor-footer';
-  const cancel=document.createElement('button');cancel.type='button';cancel.className='secondary';cancel.textContent='Cancelar';cancel.onclick=closeForm;submit.before(footer);footer.append(cancel,submit);
+  const submit=editor.querySelector('button[type=submit]'),footer=editor.querySelector('.modal-form-footer')||document.createElement('div');footer.className='transaction-editor-footer';
+  if(!footer.parentElement){const cancel=document.createElement('button');cancel.type='button';cancel.className='secondary';cancel.textContent='Cancelar';cancel.onclick=closeForm;submit.before(footer);footer.append(submit,cancel);}
   const categoryInputs=['category','subcategory','categoryDetail','categorySubdetail'].map(name=>$('#modalContent [name='+name+']'));
   const categoryHint=document.createElement('p');categoryHint.id='transactionCategoryHint';categoryHint.className='muted';categoryHint.hidden=true;categoryHint.setAttribute('role','status');$('#transactionMainCategory').append(categoryHint);
   const assignCategoryPath=path=>{
@@ -2354,7 +2472,7 @@ function transactionForm(id) {
   const splitLauncher = $("#transactionSplitLauncher");
   const splitWorkbench = $("#transactionSplitWorkbench");
   const splitRowsHost = $("#transactionSplitRows");
-  const splitAdd = $("#transactionAddSplit");
+  const splitAdd = $("#transactionAddSplit"), splitDone = $("#doneTransactionSplit");
   const splitTotal = $("#transactionSplitTotal");
   const splitStatus = $("#transactionSplitStatus");
   const splitPurchaseTotal = $("#transactionSplitPurchaseTotal");
@@ -2371,20 +2489,29 @@ function transactionForm(id) {
     }));
   };
   const updateTransactionSplitTotal = () => {
-    if (!splitTotal) return;
+    if (!splitTotal || splitFlag?.value !== "1") return;
     const distributedCents = $$("#transactionSplitRows [data-tx-split-amount]").reduce((n, el) => n + F.cents(+el.value || 0), 0);
-    const distributed = distributedCents / 100, amountInput = $("#modalContent [name=amount]");
-    if (splitFlag?.value === "1" && amountInput) amountInput.value = distributed.toFixed(2);
-    if (splitPurchaseTotal) splitPurchaseTotal.textContent = 'Total da compra: '+eur(distributed);
-    splitTotal.textContent = 'Calculado automaticamente pela soma das parcelas.';
-    splitTotal.classList.toggle('positive', distributed > 0);
-    splitTotal.classList.toggle('negative', distributed <= 0);
+    const amountInput = $("#modalContent [name=amount]");
+    const totalCents = editingTransaction ? F.cents(Number(amountInput.value)) : distributedCents;
+    const remaining = totalCents - distributedCents;
+    const correction = $("#splitAmountEdit");
+    if (correction && document.activeElement !== correction) correction.value = amountInput.value;
+    if (amountInput && !editingTransaction) amountInput.value = (totalCents / 100).toFixed(2);
+    if (splitPurchaseTotal) splitPurchaseTotal.textContent = "Total da compra: " + eur(totalCents / 100);
+    splitTotal.textContent = !editingTransaction
+      ? "Total calculado pela soma das parcelas."
+      : remaining > 0 ? "Por distribuir: " + eur(remaining / 100)
+        : remaining < 0 ? "Acima do total: " + eur(-remaining / 100)
+          : "O total registado está distribuído.";
+    splitTotal.classList.toggle("positive", editingTransaction && remaining === 0);
+    splitTotal.classList.toggle("negative", remaining < 0);
+    splitDone.disabled = remaining !== 0;
   };
   const updateTransactionSplitLauncher = () => {
     if (!splitStatus || !splitFlag) return;
     const enabled = splitFlag.value === "1";
     const amountInput = $("#modalContent [name=amount]");
-    if (amountInput) { amountInput.readOnly = enabled; const label = amountInput.closest("label"); if (label?.firstChild?.nodeType === 3) label.firstChild.textContent = enabled ? "Valor total (€) · calculado pelas parcelas" : "Valor (€)"; }
+    if (amountInput) { amountInput.readOnly = enabled && !editingTransaction; const label = amountInput.closest("label"); if (label?.firstChild?.nodeType === 3) label.firstChild.textContent = enabled ? (!editingTransaction ? "Valor total (€) · calculado pelas parcelas" : "Valor total registado (€)") : "Valor (€)"; }
     const mainCategory = $("#transactionMainCategory");
     if (mainCategory) { mainCategory.hidden = enabled; mainCategory.querySelectorAll("input").forEach(input => { input.disabled = enabled; }); }
     splitStatus.textContent = enabled
@@ -2484,10 +2611,24 @@ function transactionForm(id) {
     document.body.classList.remove("split-workbench-open");
   };
   $("#closeTransactionSplitWorkbench")?.addEventListener("click", closeSplitWorkbench);
-  $("#doneTransactionSplit")?.addEventListener("click", () => {
-    readTransactionSplitParts();
-    updateTransactionSplitTotal();
-    closeSplitWorkbench();
+  splitDone?.addEventListener("click", closeSplitWorkbench);
+  // The workbench covers the movement form: Enter must not submit the hidden
+  // form (its error would stay invisible) and Escape returns to the movement
+  // instead of discarding the whole edit.
+  splitWorkbench?.addEventListener("keydown", (event) => {
+    if (splitWorkbench.hidden) return;
+    if (event.key === "Escape") {
+      if (event.target.closest?.(".split-choice")?.querySelector("select")) return;
+      event.preventDefault();
+      event.stopPropagation();
+      closeSplitWorkbench();
+      $("#openTransactionSplitWorkbench")?.focus();
+      return;
+    }
+    if (event.key !== "Enter" || event.target.tagName === "TEXTAREA" || event.target.tagName === "BUTTON" || event.target.tagName === "SELECT") return;
+    event.preventDefault();
+    if (splitDone && !splitDone.disabled) splitDone.click();
+    else splitTotal?.focus?.();
   });
   $("#removeTransactionSplit")?.addEventListener("click", () => {
     if (!splitFlag) return;
@@ -2516,6 +2657,10 @@ function transactionForm(id) {
     transactionSplitParts.push({ category: "", subcategory: "", amount: 0 });
     drawTransactionSplits();
   });
+  $("#splitAmountEdit")?.addEventListener("input", event => {
+    $("#modalContent [name=amount]").value = event.target.value;
+    updateTransactionSplitTotal();
+  });
   $("#modalContent [name=amount]")?.addEventListener("input", updateTransactionSplitTotal);
   $("#modalContent [name=type]")?.addEventListener("change", () => {
     const expense = $("#modalContent [name=type]").value === "expense";
@@ -2531,6 +2676,12 @@ function transactionForm(id) {
   });
   if ($("#modalContent [name=type]")?.value !== "expense") splitLauncher?.setAttribute("hidden", "");
   window.InterfaceUI?.collectHelp(editor);
+  const fields = document.createElement("div");
+  fields.className = "transaction-editor-fields";
+  for (const child of [...editor.children]) {
+    if (child !== footer && child !== splitWorkbench) fields.append(child);
+  }
+  editor.prepend(fields);
   $('#modal').movementDraft={
     capture(){if(splitFlag?.value==='1')readTransactionSplitParts();return {enabled:splitFlag?.value==='1',parts:structuredClone(transactionSplitParts)};},
     restore(draft){if(!draft)return;splitFlag.value=draft.enabled?'1':'';transactionSplitParts=structuredClone(draft.parts||[]);drawTransactionSplits();updateTransactionSplitLauncher();}
@@ -2543,7 +2694,10 @@ function transactionForm(id) {
     again.className = "secondary full";
     again.dataset.afterSave = "new-transaction";
     again.textContent = "Guardar e adicionar outro";
-    footer.append(again);
+    // Confirmation actions stay on the left and Cancelar is always the last action.
+    const cancelAction = [...footer.querySelectorAll("button")].find((b) => b.type === "button" && b.textContent.trim() === "Cancelar");
+    if (cancelAction) cancelAction.before(again);
+    else footer.append(again);
   }
   if (!t)
     $("#modalContent [name=description]").onchange = () => {
@@ -2628,6 +2782,7 @@ function collectionForm(kind, id) {
         "number",
         'required min="1" max="600" step="1"',
       );
+    fields += '<output id="planContributionPreview" class="plan-contribution-preview" aria-live="polite"></output>';
     help =
       "Reservar identifica dinheiro que já tens nas contas. Não cria uma despesa nem retira dinheiro do saldo.";
   }
@@ -2830,6 +2985,27 @@ function collectionForm(kind, id) {
       }),
     help,
   );
+  if (kind === "goal" || kind === "reserve") bindPlanContributionPreview(kind);
+}
+function bindPlanContributionPreview(kind) {
+  const preview = document.getElementById("planContributionPreview");
+  if (preview) {
+    const controls = $("#modalForm").elements;
+    const saved = controls.namedItem(kind === "goal" ? "current" : "saved");
+    const duration = controls.namedItem(kind === "goal" ? "planMonths" : "months") || controls.namedItem("deadline");
+    const target = controls.namedItem("target");
+    const refresh = () => {
+      if (![saved, duration, target].every(input => input.value && input.validity.valid)) {
+        preview.textContent = "";
+        return;
+      }
+      const missing = Math.max(0, F.cents(target.valueAsNumber) - F.cents(saved.valueAsNumber));
+      preview.textContent = missing ? "Falta reservar " + eur(missing / 100) + " · " +
+        (duration.type === "date" ? "até " + dateLabel(duration.value) : eur(Math.ceil(missing / duration.valueAsNumber) / 100) + " por mês") : "Meta atingida";
+    };
+    for (const control of [saved, duration, target]) control.addEventListener("input", refresh);
+    refresh();
+  }
 }
 function transferForm(cardId, transactionId) {
   if (!requireAccounts()) return;
@@ -2844,7 +3020,7 @@ function transferForm(cardId, transactionId) {
   if (original && data.closedMonths.includes(original.date.slice(0, 7)))
     return notice("Reabre o mês para editar esta transferência.", true);
   const pendingIncoming = original?.transferStatus === 'pending' && original.observedSide === 'income';
-  const sourceName = pendingIncoming ? data.accounts.find(a => a.name !== original.account)?.name || '' : original?.account || data.accounts.find((a) => a.id !== card?.id)?.name || "";
+  const sourceName = pendingIncoming ? data.accounts.find(a => a.name !== original.account)?.name || '' : original?.account || (!card && movementFormAccount()) || data.accounts.find((a) => a.id !== card?.id)?.name || "";
   const defaultTarget = pendingIncoming ? original.account : original?.targetAccount || card?.name || data.accounts.find((a) => a.name !== sourceName)?.name || "";
   form(
     converting ? "Converter em transferência" : original ? "Editar transferência" : card ? "Pagar cartão" : "Nova transferência",
@@ -2899,17 +3075,17 @@ function transferForm(cardId, transactionId) {
       : "Transferências não contam como receitas ou despesas.",
   );
 }
-function reconcileForm(id) {
+function reconcileForm(id, statementDate = F.today()) {
   if (!requireAccounts()) return;
   const a = id ? find("accounts", id) : data.accounts[0];
   form(
     "Confirmar saldo",
     accountSelect("account", a.name) +
-      field("Data do saldo no extrato", "date", F.today(), "date", "required") +
+      field("Data do saldo no extrato", "date", statementDate, "date", "required") +
       field(
         "Saldo real no banco ou carteira (€)",
         "balance",
-        a.balance,
+        statementDate === F.today() ? a.balance : "",
         "number",
         'required step="0.01"',
       ) +
@@ -3102,11 +3278,13 @@ function payDebt(id) {
       number("Encargos / comissões (€)", "charges", 0, 0) +
       field("Data", "date", F.today(), "date", `required max="${F.today()}"`),
     (f) => commit(() => {
+      const currentDebt = find("debts", id);
+      if (!currentDebt) throw Error("Este crédito já não existe.");
       const amount = +f.get("amount"), principal = +f.get("principal"), charges = +f.get("charges"), interest = F.money(amount - principal - charges);
       if (![amount, principal, interest, charges].every(Number.isFinite) || amount <= 0 || principal < 0 || interest < 0 || charges < 0) throw Error("Confirma os valores do pagamento. Capital + encargos não podem ultrapassar o total pago.");
-      if (principal > debt.balance + 0.005) throw Error("O capital amortizado não pode ultrapassar o capital em dívida.");
+      if (principal > currentDebt.balance + 0.005) throw Error("O capital amortizado não pode ultrapassar o capital em dívida.");
       if (f.get("date") > F.today()) throw Error("A data não pode estar no futuro.");
-      F.add(data, { description:"Pagamento: " + debt.name, amount:F.money(amount), principal:F.money(principal), interest, charges:F.money(charges), debtId:debt.id, type:"expense", category:"Juros e encargos", account:f.get("account"), date:f.get("date") });
+      F.add(data, { description:"Pagamento: " + currentDebt.name, amount:F.money(amount), principal:F.money(principal), interest, charges:F.money(charges), debtId:currentDebt.id, type:"expense", category:"Juros e encargos", account:f.get("account"), date:f.get("date") });
     }, "Pagamento registado."),
     "O juro é calculado automaticamente: total pago − capital amortizado − encargos. O saldo da conta baixa pelo total; apenas capital reduz a dívida.",
   );
@@ -3123,13 +3301,15 @@ function debtPreviousPayment(id) {
       number("Encargos / comissões (€)", "charges", 0, 0) +
       field("Nota (opcional)", "note", "", "text", 'maxlength="180" placeholder="Ex.: prestação de agosto"'),
     (f) => commit(() => {
+      const currentDebt = find("debts", id);
+      if (!currentDebt) throw Error("Este crédito já não existe.");
       const amount=+f.get("amount"), principal=+f.get("principal"), charges=+f.get("charges"), interest=F.money(amount-principal-charges), date=f.get("date");
       if (!F.validDate(date) || date > F.today()) throw Error("Escolhe uma data válida até hoje.");
       if (![amount, principal, interest, charges].every(Number.isFinite) || amount <= 0 || principal < 0 || interest < 0 || charges < 0) throw Error("Confirma os valores do pagamento. Capital + encargos não podem ultrapassar o total pago.");
-      debt.previousPayments ||= [];
-      debt.previousPayments.push({ id:F.id(), date, amount:F.money(amount), principal:F.money(principal), interest, charges:F.money(charges), note:(f.get("note")||"").trim() });
-      debt.previousPayments.sort((a,b)=>a.date.localeCompare(b.date));
-      debt.originalPrincipal = Math.max(Number(debt.originalPrincipal)||0, F.money(debt.balance + debtHistoryRows(debt).reduce((n,h)=>n+h.principal,0)));
+      currentDebt.previousPayments ||= [];
+      currentDebt.previousPayments.push({ id:F.id(), date, amount:F.money(amount), principal:F.money(principal), interest, charges:F.money(charges), note:(f.get("note")||"").trim() });
+      currentDebt.previousPayments.sort((a,b)=>a.date.localeCompare(b.date));
+      currentDebt.originalPrincipal = Math.max(Number(currentDebt.originalPrincipal)||0, F.money(currentDebt.balance + debtHistoryRows(currentDebt).reduce((n,h)=>n+h.principal,0)));
     }, "Pagamento anterior guardado no histórico do crédito."),
     "O juro é calculado automaticamente a partir do total, capital e encargos. Este registo completa o histórico sem alterar o saldo atual nem o capital atualmente em dívida.",
     "Guardar no histórico",
@@ -3348,10 +3528,24 @@ function attachReceiptQuick(id) {
     async (f) => {
       const attachment = await attachmentFromFile(f.get("attachment"));
       if (!attachment) throw Error("Escolhe um ficheiro.");
-      return commit(() => { ReceiptFinance.replaceAttachment(tx,attachment); }, "Comprovativo anexado.");
+      return commit(() => {
+        const currentTx = find("transactions", id);
+        if (!currentTx) throw Error("Este movimento já não existe.");
+        ReceiptFinance.replaceAttachment(currentTx, attachment);
+      }, "Comprovativo anexado.");
     },
     "Fica associado diretamente a este movimento.",
     "Anexar",
+  );
+}
+function promptMonthClose(selectedMonth = month) {
+  const closed = data.closedMonths.includes(selectedMonth);
+  const label = monthLabel(selectedMonth);
+  confirmAction(
+    closed ? "Reabrir mês" : "Fechar mês",
+    closed ? "Permitir alterações em " + label + "?" :
+      "Os movimentos de " + label + " ficam protegidos contra edição, importação e eliminação. Podes reabrir o mês.",
+    () => ReconciliationModel.setMonthClosed(data, selectedMonth, !closed, FinancePlus),
   );
 }
 function confirmAction(title, text, action) {
@@ -3362,6 +3556,49 @@ function occurrenceOwner(kind, ownerId) {
   if (kind === "subscription") return (data.subscriptions || []).find((r) => String(r.id) === String(ownerId));
   return null;
 }
+function skipOccurrence(id) {
+  const [kind, ownerId, originalDate] = String(id).split("~");
+  const owner = occurrenceOwner(kind, ownerId);
+  if (!owner || !F.validDate(originalDate)) return notice("A ocorrência já não existe.", true);
+  const name = owner.description || owner.name || "Recorrência";
+  const label = monthLabel(originalDate.slice(0, 7));
+  form(
+    "Saltar " + name + " em " + label,
+    `<div class="occurrence-adjust-summary"><b>${esc(name)}</b><span>Previsto para ${dateLabel(originalDate)}${owner.amount ? " · " + eur(owner.amount) : ""}</span></div>` +
+      "<p>Este mês não fica registado nem aparece como atraso. A série continua normalmente no mês seguinte.</p>" +
+      field("Motivo (opcional)", "reason", "", "text", 'maxlength="240" placeholder="Ex.: este mês não vou ao ginásio"'),
+    (f) => commit(() => {
+      const list = Array.isArray(owner.occurrenceOverrides) ? owner.occurrenceOverrides : [];
+      const reason = String(f.get("reason") || "").trim();
+      const next = list.filter((o) => o && o.originalDate !== originalDate);
+      next.push({ originalDate, date: originalDate, skipped: true, reason: reason || "Saltado este mês", updatedAt: new Date().toISOString() });
+      owner.occurrenceOverrides = next.sort((a, b) => a.originalDate.localeCompare(b.originalDate));
+    }, name + " saltado em " + label + ". Continua no mês seguinte; podes repor na Agenda."),
+    "",
+    "Saltar este mês",
+  );
+}
+function restoreOccurrence(id) {
+  const [kind, ownerId, originalDate] = String(id).split("~");
+  const owner = occurrenceOwner(kind, ownerId);
+  if (!owner || !Array.isArray(owner.occurrenceOverrides)) return notice("A ocorrência já não existe.", true);
+  const name = owner.description || owner.name || "Recorrência";
+  commit(() => {
+    owner.occurrenceOverrides = owner.occurrenceOverrides.filter((o) => !(o && o.originalDate === originalDate && o.skipped));
+  }, name + " volta a estar previsto para " + dateLabel(originalDate) + ".");
+}
+function skippedOccurrences(month) {
+  const rows = [];
+  const collect = (kind, owner) => {
+    for (const o of Array.isArray(owner?.occurrenceOverrides) ? owner.occurrenceOverrides : [])
+      if (o && o.skipped && F.validDate(o.originalDate) && o.originalDate.slice(0, 7) === month)
+        rows.push({ id: kind + "~" + owner.id + "~" + o.originalDate, name: owner.description || owner.name || "Recorrência", date: o.originalDate, amount: Number(owner.amount) || 0, reason: o.reason || "" });
+  };
+  for (const r of data.recurring || []) if (r.active !== false) collect("recurring", r);
+  for (const sub of data.subscriptions || []) if (sub.status !== "cancelled") collect("subscription", sub);
+  return rows.sort((a, b) => a.date.localeCompare(b.date));
+}
+window.skippedOccurrences = skippedOccurrences;
 function adjustOccurrence(id) {
   const [kind, ownerId, originalDate] = String(id).split("~");
   const owner = occurrenceOwner(kind, ownerId);
@@ -3644,8 +3881,9 @@ function updateDecisionSimulatorFields() {
   show(".sim-field-rate, .sim-field-credit-term, .sim-field-credit-spend", type === "credit");
   show(".sim-field-custom-monthly, .sim-field-custom-oneoff", type === "custom");
   const b = decisionBaseline();
+  const periodLabel = b.months.length ? monthLabel(b.months[b.months.length - 1]) + " a " + monthLabel(b.months[0]) : "3 meses completos";
   const summary = $("#simBaselineSummary");
-  if (summary) summary.innerHTML = `<div><span>Saldo atual</span><strong>${eur(b.cash)}</strong></div><div><span>Receita média</span><strong>${eur(b.avgIncome)}/mês</strong></div><div><span>Despesa média</span><strong>${eur(b.avgExpense)}/mês</strong></div><div><span>Resultado médio</span><strong class="${b.monthlyNet >= 0 ? "positive" : "negative"}">${b.monthlyNet > 0 ? "+" : ""}${eur(b.monthlyNet)}/mês</strong></div>`;
+  if (summary) summary.innerHTML = `<div><span>Saldo atual</span><strong>${eur(b.cash)}</strong></div><div><span>Receita média (${esc(periodLabel)})</span><strong>${eur(b.avgIncome)}/mês</strong></div><div><span>Despesa média (${esc(periodLabel)})</span><strong>${eur(b.avgExpense)}/mês</strong></div><div><span>Resultado médio (${esc(periodLabel)})</span><strong class="${b.monthlyNet >= 0 ? "positive" : "negative"}">${b.monthlyNet > 0 ? "+" : ""}${eur(b.monthlyNet)}/mês</strong></div>`;
 }
 function runSimulation() {
   const type = $("#simDecisionType")?.value || "purchase",
@@ -3703,10 +3941,12 @@ function runSimulation() {
     samples = [...new Set([1, 3, 6, 12, months].filter((m) => m <= months))].sort((a,b)=>a-b);
   const rows = samples.map((m) => `<tr><th>Mês ${m}</th><td>${eur(baseRows[m - 1])}</td><td class="${scenarioRows[m - 1] >= 0 ? "" : "negative"}">${eur(scenarioRows[m - 1])}</td><td class="${scenarioRows[m - 1] - baseRows[m - 1] >= 0 ? "positive" : "negative"}">${scenarioRows[m - 1] - baseRows[m - 1] > 0 ? "+" : ""}${eur(F.money(scenarioRows[m - 1] - baseRows[m - 1]))}</td></tr>`).join("");
   const known=PlanningFinance.decisionImpact(data,{oneOff,monthlyDelta,monthlyCount:type==='credit'?creditMonths:120});
+  const periodLabel = baseline.months.length ? monthLabel(baseline.months[baseline.months.length - 1]) + " a " + monthLabel(baseline.months[0]) : "3 meses completos";
   const knownExplanation='<p role="status"><b>Compromissos conhecidos nos próximos 90 dias:</b> '+(known.canSpend?'manténs os valores reservados e a margem.':'faltam '+eur(known.compromised)+' para proteger reservas e margem.')+' Disponibilidade após a decisão: '+eur(known.availableAfter)+'.'+(known.firstCompromise?' Primeiro dia abaixo da proteção: '+dateLabel(known.firstCompromise)+'.':'')+'</p>';
+  const premisesSummary = `<p class="simulation-premises muted"><b>Premissas:</b> base na média dos 3 meses completos anteriores (${esc(periodLabel)}) · saldo atual ${eur(baseline.cash)} · dinheiro reservado ${eur(known.reserved)} · margem de segurança ${eur(known.margin)} · saldo mínimo com compromissos conhecidos (90 dias) ${eur(known.base.min)}.</p>`;
   $("#simulationResult").innerHTML =
-    knownExplanation + `<div class="simulation-comparison simulation-comparison-v25"><div><span>Situação atual</span><strong>${eur(baseEnd)}</strong><small>Saldo total projetado em ${months} meses</small></div><div><span>${esc(label)}</span><strong>${eur(scenarioEnd)}</strong><small>${esc(detail)}</small></div><div class="${impact >= 0 ? "positive" : "negative"}"><span>Impacto</span><strong>${impact > 0 ? "+" : ""}${eur(impact)}</strong><small>Diferença face à situação atual</small></div><div class="${minScenario >= 0 ? "" : "negative"}"><span>Ponto mais baixo</span><strong>${eur(minScenario)}</strong><small>${firstNegative === -2 ? "Saldo negativo logo no início" : firstNegative >= 0 ? `Saldo negativo a partir do mês ${firstNegative + 1}` : "Sem saldo negativo no horizonte"}</small></div></div>` +
-    `<details class="simulation-projection"><summary>Evolução projetada · ${months} meses</summary><div class="panel-heading"><div><h3>Evolução projetada</h3><p>Usa o resultado médio dos últimos 3 meses completos como base.</p></div></div><div class="planning-table"><table><thead><tr><th></th><th>Situação atual</th><th>Cenário</th><th>Diferença</th></tr></thead><tbody>${rows}</tbody></table></div></details>` +
+    `<div class="simulation-comparison simulation-comparison-v25"><div class="${impact >= 0 ? "positive" : "negative"}"><span>Impacto</span><strong>${impact > 0 ? "+" : ""}${eur(impact)}</strong><small>Diferença face à situação atual</small></div><div><span>Situação atual</span><strong>${eur(baseEnd)}</strong><small>Saldo total projetado em ${months} meses</small></div><div><span>${esc(label)}</span><strong>${eur(scenarioEnd)}</strong><small>${esc(detail)}</small></div><div class="${minScenario >= 0 ? "" : "negative"}"><span>Ponto mais baixo</span><strong>${eur(minScenario)}</strong><small>${firstNegative === -2 ? "Saldo negativo logo no início" : firstNegative >= 0 ? `Saldo negativo a partir do mês ${firstNegative + 1}` : "Sem saldo negativo no horizonte"}</small></div></div>` + knownExplanation + premisesSummary +
+    `<details class="simulation-projection"><summary>Evolução projetada · ${months} meses</summary><div class="panel-heading"><div><h3>Evolução projetada</h3><p>Usa o resultado médio de ${esc(periodLabel)} como base.</p></div></div><div class="planning-table"><table><thead><tr><th></th><th>Situação atual</th><th>Cenário</th><th>Diferença</th></tr></thead><tbody>${rows}</tbody></table></div></details>` +
     `<p class="muted">A projeção é uma estimativa de liquidez: parte dos saldos atuais e do resultado médio recente. Não prevê inflação, impostos, rendimentos de investimentos nem despesas futuras ainda não registadas.${type === "credit" ? " A prestação é uma aproximação financeira; confirma sempre a proposta real do banco." : ""}</p>`;
 }
 function resetDecisionSimulation() {
@@ -4189,6 +4429,8 @@ const actions = {
   "settle-pending": (id) => settle("pending", id),
   "settle-recurring": (id) => settle("recurring", id),
   "adjust-occurrence": adjustOccurrence,
+  "skip-occurrence": skipOccurrence,
+  "restore-occurrence": restoreOccurrence,
   "recurring-history": recurringHistory,
   "link-recurring-history": linkRecurringHistoryForm,
   "tx-page": (page) => { transactionPage = Math.max(1, Number(page) || 1); renderTransactions(); },
@@ -4216,7 +4458,16 @@ const actions = {
   "delete-tx": deleteTransaction,
   receipt: async (id, preservedAttachment) => {
     const a = preservedAttachment || find("transactions", id)?.attachment;
-    if (a?.url) { window.open(a.url, "_blank", "noopener"); return; }
+    if (a?.url) {
+      try {
+        const parsed = new URL(a.url);
+        if (!["http:", "https:"].includes(parsed.protocol)) throw Error("Protocolo não suportado.");
+        window.open(parsed.href, "_blank", "noopener,noreferrer");
+      } catch {
+        notice("Ligação de comprovativo inválida.", true);
+      }
+      return;
+    }
     if (a?.referenceOnly) return notice(`O comprovativo registado é “${a.name}”. O navegador não pode reabrir automaticamente um caminho local por motivos de segurança.`, true);
     if (!a || !/^data:(image\/(png|jpeg|webp)|application\/pdf);base64,/.test(a.data))
       return notice("Comprovativo inválido ou formato não suportado.", true);
@@ -4283,6 +4534,13 @@ function setup() {
   $("#modalForm .close").type = "button";
   const closeModalPreservingView = closeForm;
   $("#modalForm .close").onclick = closeModalPreservingView;
+  $("#modal").addEventListener("close", () => {
+    const opener = lastModalOpener;
+    lastModalOpener = null;
+    if (opener?.isConnected && (!document.activeElement || document.activeElement === document.body)) {
+      opener.focus({ preventScroll: true });
+    }
+  });
   $("#modal").addEventListener("cancel", (e) => {
     e.preventDefault();
     closeModalPreservingView();
@@ -4295,11 +4553,13 @@ function setup() {
     formSubmitting = true;
     const revision = formRevision, action = formAction;
     const b = e.submitter;
+    $("#formError").hidden = true;
     const values = new FormData(e.currentTarget);
     const buttons = $$('#modalForm button, #modalForm input, #modalForm select, #modalForm textarea');
     const disabled = buttons.map(button => button.disabled);
     buttons.forEach(button => button.disabled = true);
     try {
+      const revBefore = window.equilibrioDataRevision || 0;
       const ok = await action(values);
       if(ok!==false)window.DraftUI?.complete(draftToken);
       if (revision !== formRevision) return;
@@ -4310,7 +4570,9 @@ function setup() {
         else {
           const returnView = $("#modal").dataset.returnView;
           $("#modal").close();
-          if (returnView && view === returnView && $("#" + returnView)) navigate(returnView);
+          document.body.classList.remove("split-workbench-open");
+          if (returnView && view === returnView && $("#" + returnView) && (window.equilibrioDataRevision || 0) === revBefore)
+            navigate(returnView);
         }
       }
     } catch (err) {
@@ -4412,7 +4674,9 @@ function setup() {
     movementHistoryToggle: () => {
       const period = $("#periodFilter");
       if (!period) return;
-      period.value = period.value === "all" ? "month" : "all";
+      const { start, end } = window.CompleteUI?.getFilters() || {};
+      period.value = period.value === "all" && !start && !end ? "month" : "all";
+      $("#movementDateOptions").open = false;
       window.CompleteUI?.clearDateRange?.();
       resetTransactionPage();
       renderTransactions();
@@ -4456,8 +4720,12 @@ function setup() {
   };
   for (const [id, fn] of Object.entries(binds)) $("#" + id).onclick = fn;
   $("#simDecisionType")?.addEventListener("change", () => { updateDecisionSimulatorFields(); runSimulation(); });
+  let simulationFrame = 0;
   document.querySelectorAll(".decision-simulator-v25 input, .decision-simulator-v25 select").forEach((el) => {
-    if (el.id !== "simDecisionType") el.addEventListener("change", runSimulation);
+    if (el.id !== "simDecisionType") el.addEventListener("input", () => {
+      cancelAnimationFrame(simulationFrame);
+      simulationFrame = requestAnimationFrame(runSimulation);
+    });
   });
   let movementSearchFrame = 0;
   $("#searchTransactions").oninput = () => {
@@ -4498,7 +4766,10 @@ function setup() {
     if (filterButton) {
       const kind = filterButton.dataset.movementFilter, value = filterButton.dataset.value || "";
       if (kind === "account" && $("#accountFilter")) $("#accountFilter").value = value;
-      if (kind === "category") transactionCategoryFilter = value;
+      if (kind === "category") {
+        window.CompleteUI?.clearExactCategoryFilter();
+        transactionCategoryFilter = value;
+      }
       if (kind === "tag") transactionTagFilter = value;
       if (kind === "status") transactionStatusFilter = value || "all";
       resetTransactionPage(); renderTransactions();
@@ -4622,18 +4893,7 @@ function setup() {
     }, "Movimentos importados e histórico atualizado.");
     if (ok && learnedRules) notice(`${learnedRules} regra${learnedRules === 1 ? "" : "s"} de importação memorizada${learnedRules === 1 ? "" : "s"}.`);
   };
-  $("#closeMonth").onclick = () => {
-    const closed = data.closedMonths.includes(month);
-    confirmAction(
-      closed ? "Reabrir mês" : "Fechar mês",
-      closed
-        ? "Permitir alterações aos movimentos deste mês?"
-        : "Os movimentos deste mês ficam protegidos contra edição, importação e eliminação. Podes reabri-lo a qualquer altura.",
-      () => {
-        ReconciliationModel.setMonthClosed(data, month, !closed, FinancePlus);
-      },
-    );
-  };
+  $("#closeMonth").onclick = () => promptMonthClose();
   $("#undo").onclick = () => {
     if (!undoState) return;
     const previous = structuredClone(undoState);

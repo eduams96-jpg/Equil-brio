@@ -100,3 +100,11 @@ backup-info.js identifica cópias com UUID, data, versão, origem e nome opciona
 O importador e o assistente MMEX foram retirados. Campos históricos mmexId/mmexBalanceAfter continuam apenas para preservar migrações, referências e proteção contra duplicados dos dados já guardados. O parser antigo está fora do programa, no histórico, e os testes históricos usam a baseline congelada .41.2.
 
 Relatórios calculam saldos de todas as contas numa passagem pelo ledger. O relatório anual completo deixa de ser recalculado quando se abre outra página. Índices e caches continuam transitórios; nenhuma otimização escreve saldos ou altera o núcleo financeiro.
+
+## Endurecimento transversal e sincronização — .42
+
+O renderer protege a interface com política CSP explícita em `index.html`, escaping uniforme nos ajudantes de formulário (`select`, `field`, `dateStepperField`, `button`, `empty`, `metric`), validação de protocolo HTTP(S) na abertura de anexos e links externos, verificação estrita de imagens personalizadas em `ProviderIcons.resolve` e isolamento por `sandbox="allow-same-origin"` com `referrerPolicy="no-referrer"` nas pré-visualizações de PDF em iframe.
+
+Painéis pesados fora da vista ativa usam renderização diferida com marcas de atualização pendente e só reconstroem o DOM ao entrar na respetiva rota (respeitando os portais de `UnifiedWorkspaceUI`). Campos de pesquisa incremental atualizam apenas os contentores de resultados para preservar composição IME e cursor no Windows. O observador de valores sensíveis ignora subárvores `.view:not(.active)` e reexamina apenas a vista ativa ao navegar ou alternar privacidade.
+
+No armazenamento nativo e em cópias verificadas, `verified-backup.cjs` serializa escritas atómicas por destino em `writeVerifiedAtomic`. Na partilha em rede (`mobile-sync/server/service.cjs`), rotas autenticadas validam o token (`timingSafeEqual` com verificação de comprimento) antes de qualquer `refresh()` de estado, enquanto `/api/v1/info` mantém descoberta de novos espaços e `pairing.cjs` limpa códigos expirados não reclamados.

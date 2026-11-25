@@ -29,9 +29,7 @@ function pairing(state, connection, savedConnection) {
     return '<div class="note">Existe uma associação por concluir. O código e a credencial estão guardados com proteção do Android.</div>'
       + '<button type="button" id="resume-pair" class="primary full">Retomar associação</button><button type="button" id="cancel-pair" class="full">Cancelar tentativa</button>';
   }
-  const L = state.confirmed.ledger;
-  const needsConfirm = state.outbox.length || L.transactions.length || (L.pendingPayments && L.pendingPayments.length) || (L.casa && L.casa.catalog && L.casa.catalog.length)
-    || state.movementDraft || state.commitmentDraft || state.paymentDraft || state.accountDraft || state.houseDraft;
+  const needsConfirm = !P.isBlankOffline(state);
   return '<div class="note">No PC de ensaio, cria um código para este dispositivo. Podes associar uma base vazia ou confirmar a substituição pelos dados do PC. Nesse caso, o estado local fica conservado num ponto anterior.</div>'
     + '<form id="pairing"><label>Endereço apresentado no PC<input name="server" id="pair-server" type="url" placeholder="https://pc:…" required autocomplete="off"></label>'
     + '<label>Código do PC<input name="code" id="pair-code" maxlength="19" placeholder="XXXX-XXXX-XXXX-XXXX" required autocomplete="off" autocapitalize="characters"></label>'

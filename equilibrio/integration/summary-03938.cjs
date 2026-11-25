@@ -25,6 +25,37 @@ const { createServer } = require('../serve.cjs');
       render();
       navigate('dashboard');
     });
+    const agenda = await page.evaluate(() => {
+      const before = data;
+      data = F.normalize(demoData());
+      const selected = month;
+      const account = data.accounts[0].name;
+      const previous = dashboardMonthOffset(selected, -1);
+      const following = dashboardMonthOffset(selected, 1);
+      const rows = [
+        { id: "summary-pending", date: selected + "-10", account, type: "expense", amount: 21, description: "Por pagar" },
+        { id: "summary-posted", date: selected + "-12", account, type: "expense", amount: 24, description: "Já pago" },
+        { id: "summary-following", date: following + "-10", account, type: "expense", amount: 27, description: "Próximo mês" },
+      ];
+      data.pendingPayments.push(...rows);
+      data.transactions.push({ ...rows[1], id: "summary-posted-tx", date: previous + "-25", pendingId: rows[1].id });
+      const result = [];
+      for (month of [previous, selected, following, dashboardMonthOffset(selected, 18)]) {
+        const openPayment = (p) => p.source !== "completed" && p.type === "expense" && p.date.startsWith(month);
+        result.push({
+          summary: schedule({ selectedMonthOnly: true }).filter(openPayment),
+          full: schedule().filter(openPayment),
+        });
+      }
+      month = selected;
+      data = before;
+      render();
+      return result;
+    });
+    for (const { summary, full } of agenda) assert.deepEqual(summary, full);
+    assert.ok(agenda[1].summary.some((p) => p.id === 'summary-pending'));
+    assert.ok(!agenda[1].summary.some((p) => p.id === 'summary-posted'));
+    assert.ok(agenda[2].summary.some((p) => p.id === 'summary-following'));
     for (const count of [3, 6, 12, 24]) {
       await page.locator('#summaryBalanceRange').selectOption(String(count));
       await page.locator('#summaryIncomeRange').selectOption(String(count));

@@ -1,12 +1,21 @@
 (function(){
   'use strict';
   const C=CasaFinance,L=CasaLife;
-  let search='',storeSearch='',catalogStatus='active';
-  const field=(l,n,v='',t='text',a='')=>`<label>${l}<input name="${n}" type="${t}" value="${esc(v)}" ${a}></label>`;
-  const select=(l,n,items,v='')=>`<label>${l}<select name="${n}">${items.map(([id,text])=>`<option value="${esc(id)}" ${String(id)===String(v)?'selected':''}>${esc(text)}</option>`).join('')}</select></label>`;
-  const qty=n=>Number(n).toLocaleString('pt-PT',{maximumFractionDigits:3});
+  let search='',storeSearch='',catalogStatus='active',catalogPage=0;
+  const catalogPageSize = 48;
+  const field=(l,n,v='',t='text',a='')=>`<label>${esc(l)}<input name="${esc(n)}" type="${t}" value="${esc(v)}" ${a}></label>`;
+  const select=(l,n,items,v='')=>`<label>${esc(l)}<select name="${esc(n)}">${items.map(([id,text])=>`<option value="${esc(id)}" ${String(id)===String(v)?'selected':''}>${esc(text)}</option>`).join('')}</select></label>`;
+  const quantityFormat = new Intl.NumberFormat('pt-PT', { maximumFractionDigits: 3 });
+  const dayMonthFormat = new Intl.DateTimeFormat('pt-PT', { day: 'numeric', month: 'short' });
+  const microEurFormat = new Intl.NumberFormat('pt-PT', { style: 'currency', currency: 'EUR', minimumFractionDigits: 3, maximumFractionDigits: 4 });
+  const qty = n => quantityFormat.format(Number(n));
   const units=C.stockUnits;
-  function formatUnitPrice(price,packageQty,unit){const [factor,label]=({ml:[1000,'L'],cl:[100,'L'],g:[1000,'kg']})[unit]||[1,unit];return eur(price/packageQty*factor)+' / '+esc(label);}
+  function formatUnitPrice(price,packageQty,unit){
+  const [factor,label]=({ml:[1000,'L'],cl:[100,'L'],g:[1000,'kg']})[unit]||[1,unit];
+  const val=price/packageQty*factor;
+  const formatted=val>0&&Math.abs(val)<0.01?microEurFormat.format(val):eur(val);
+  return formatted+' / '+esc(label);
+ }
 
 
   function parseHtmlOrTextRows(htmlText,plainText){
@@ -160,10 +169,11 @@
         previewBox.innerHTML='<p class="muted">Nenhuma linha detetada. Verifica o formato da tabela.</p>';
         return;
       }
+      const parsePreviewPrice=v=>{let s=String(v??0).trim().replace(/[^0-9.,-]/g,'');if(s.includes(',')&&s.includes('.'))s=s.lastIndexOf(',')>s.lastIndexOf('.')?s.replace(/\./g,'').replace(',','.'):s.replace(/,/g,'');else if(s.includes(','))s=s.replace(',','.');else if(/^-?\d{1,3}(\.\d{3})+$/.test(s))s=s.replace(/\./g,'');return Number(s);};
       const uniqueProds=new Set(rows.map(r=>String(r.name||'').toLowerCase())).size;
       const withLinks=rows.filter(r=>r.url).length;
       const missingPackages=rows.filter(r=>!String(r.unitQty||'').trim()).length;
-      const missingPrices=rows.filter(r=>!(Number(String(r.price??0).replace(/[^0-9.,-]/g,'').replace(',','.'))>0)).length;
+      const missingPrices=rows.filter(r=>!(parsePreviewPrice(r.price)>0)).length;
       previewBox.innerHTML=
         (prepared.separatedRows?`<p class="importer-variant-note">${prepared.separatedNames} nome(s) com variantes na mesma loja: ${prepared.separatedRows} linha(s) ${content.querySelector('[name=importSeparateVariants]').checked?'separadas por embalagem / marca':'mantidas juntas; a última oferta de cada loja será a atual'}. Confere os nomes e links na pré-visualização.</p>`:'')+
         `<div class="importer-summary-bar">`+
@@ -175,12 +185,13 @@
         `</div>`+
         `<div class="u-table-scroll importer-preview-scroll"><table class="u-table"><thead><tr><th>Produto</th><th>Categoria</th><th>Qtd Unitária</th><th>Marca (e Link)</th><th>Supermercado</th><th>Preço Unit.</th><th>Stock</th></tr></thead><tbody>`+
         rows.slice(0,100).map((r,idx)=>{
-          const numP=Number(String(r.price??0).replace(/[^0-9.,-]/g,'').replace(',','.'));
+          const numP=parsePreviewPrice(r.price);
+          const safeUrl=/^https?:\/\//i.test(String(r.url||'').trim());
           return `<tr>`+
             `<td><b>${esc(r.name)}</b></td>`+
             `<td>${esc(r.category||'—')}</td>`+
             `<td>${r.unitQty?esc(r.unitQty):'<span class="negative">Por indicar · unidade provisória</span>'}</td>`+
-            `<td>${esc(r.brand||'—')} ${r.url?`<a href="${esc(r.url)}" target="_blank" rel="noopener noreferrer" class="brand-link-badge" title="${esc(r.url)}">🔗 Link</a>`:''}`+
+            `<td>${esc(r.brand||'—')} ${safeUrl?`<a href="${esc(r.url)}" target="_blank" rel="noopener noreferrer" class="brand-link-badge" title="${esc(r.url)}">🔗 Link</a>`:''}`+
               `<input type="url" class="importer-inline-url" data-row-url="${idx}" value="${esc(r.url||'')}" placeholder="https://… (opcional)">`+
             `</td>`+
             `<td>${esc(r.storeName||'—')}</td>`+
@@ -238,7 +249,7 @@
     const storeOptions='<datalist id="casaStoreOptions">'+stores.map(s=>`<option value="${esc(s.name)}">`).join('')+'</datalist>';
     const offerRow=(index,storeName='',packageQty=1,price='',url='',explicit=false)=>`<div class="product-offer-row" data-product-offer="${index}" data-explicit="${explicit?'true':'false'}">${field('Supermercado','offerStore_'+index,storeName,'text','list="casaStoreOptions" data-offer-store placeholder="Continente, Mercadona, Pingo Doce…"')}${field('Quantidade da embalagem','offerQty_'+index,packageQty,'number','min="0.001" step="0.001" data-offer-qty')}${field('Preço da embalagem (€; opcional)','offerPrice_'+index,price===0?'':price,'number','min="0" step="0.01" data-offer-price placeholder="Vazio = avisar falta de preço"')}<label class="product-offer-link">Link neste supermercado (opcional)<input name="offerUrl_${index}" type="url" value="${esc(url)}" data-offer-url placeholder="https://..."></label><output data-offer-unit></output><button type="button" class="secondary" data-remove-offer>Remover</button></div>`;
     const legacyLink=p?.url?`<div class="product-legacy-link"><p>Link geral anterior: <a href="${esc(p.url)}" target="_blank" rel="noopener noreferrer">${esc(p.url)}</a></p><label class="checkbox"><input type="checkbox" name="clearProductUrl"> Remover link geral antigo</label></div>`:'';
-    form(p?'Editar produto':'Novo produto','<div class="casa-product-form"><section class="product-identity"><h3>Produto</h3>'+field('Nome','productName',p?.name||'','text','required')+field('Marca (opcional)','productBrand',p?.brand||'')+legacyLink+select('Unidade de stock e comparação','productUnit',units,p?.unit||'un')+'</section><section class="product-offers-section"><div class="product-offers-head"><div><h3>Preços e links por supermercado</h3><p class="muted">Podes indicar apenas o supermercado e deixar o preço vazio (0,00 €) — o programa guardará o supermercado com um aviso que falta colocar o preço.</p></div><button type="button" class="secondary" id="addProductOffer">+ Supermercado</button></div>'+storeOptions+'<div id="productOffersRows"></div></section></div>',v=>{
+    form(p?'Editar produto':'Novo produto','<div class="casa-product-form"><section class="product-identity"><h3>Produto</h3>'+field('Nome','productName',p?.name||'','text','required')+'<details class="catalog-options"><summary>Marca, código e link geral</summary>'+field('Marca (opcional)','productBrand',p?.brand||'')+field('Código de barras (opcional)','productBarcode',p?.barcode||'','text','inputmode="numeric" maxlength="32"')+legacyLink+'</details>'+select('Unidade de stock e comparação','productUnit',units,p?.unit||'un')+'</section><section class="product-offers-section"><div class="product-offers-head"><div><h3>Preços e links por supermercado</h3><p class="muted">Podes indicar apenas o supermercado e deixar o preço vazio (0,00 €) — o programa guardará o supermercado com um aviso que falta colocar o preço.</p></div><button type="button" class="secondary" id="addProductOffer">+ Supermercado</button></div>'+storeOptions+'<div id="productOffersRows"></div></section></div>',v=>{
       const offerRows=[...document.querySelectorAll('#productOffersRows .product-offer-row')];for(const row of offerRows){const storeVal=row.querySelector('[data-offer-store]').value.trim(),priceVal=row.querySelector('[data-offer-price]').value.trim(),urlVal=row.querySelector('[data-offer-url]').value.trim();const filled=row.dataset.explicit==='true'||storeVal||priceVal||urlVal;if(filled&&(!storeVal||!(Number(row.querySelector('[data-offer-qty]').value)>0)||priceVal!==''&&Number(priceVal)<0))throw Error('Indica o nome do supermercado e uma quantidade válida (o preço pode ficar vazio se ainda não o souberes).');}
       const offers=offerRows.map(row=>({
         storeName:row.querySelector('[data-offer-store]').value.trim(),
@@ -246,10 +257,10 @@
         price:row.querySelector('[data-offer-price]').value.trim()===''?0:Number(row.querySelector('[data-offer-price]').value),
         url:row.querySelector('[data-offer-url]').value.trim()
       })).filter(r=>r.storeName);
-      return commit(()=>C.saveProductOffers(data,{id,name:v.get('productName'),category:'',unit:v.get('productUnit'),brand:v.get('productBrand'),url:v.get('clearProductUrl')?'':p?.url,barcode:p?.barcode||'',notes:p?.notes||'',archived:p?.archived||false},offers),'Produto guardado.');
+      return commit(()=>C.saveProductOffers(data,{id,name:v.get('productName'),category:'',unit:v.get('productUnit'),brand:v.get('productBrand'),url:v.get('clearProductUrl')?'':p?.url,barcode:v.get('productBarcode'),notes:p?.notes||'',archived:p?.archived||false},offers,{replaceActiveOffers:true}),'Produto guardado.');
     },'Guardar ou editar produtos, preços e links atualiza apenas o catálogo da Casa; não cria movimentos financeiros.');
     const offersHost=$('#productOffersRows'),unitSelect=$('[name=productUnit]');
-    const updateUnits=()=>{const unit=unitSelect.value;offersHost.querySelectorAll('[data-product-offer]').forEach(row=>{const storeName=row.querySelector('[data-offer-store]').value.trim(),q=Number(row.querySelector('[data-offer-qty]').value),rawPr=row.querySelector('[data-offer-price]').value.trim(),pr=rawPr===''?0:Number(rawPr),out=row.querySelector('[data-offer-unit]');if(q>0&&pr>0){out.innerHTML=eur(pr/q)+' / '+unit;}else if(storeName){out.innerHTML='<span class="offer-missing-price-badge">⚠ Falta colocar preço</span>';}else{out.textContent='Opcional: escolhe a loja (preço pode ficar para depois)';}});};
+    const updateUnits=()=>{const unit=unitSelect.value;offersHost.querySelectorAll('[data-product-offer]').forEach(row=>{const storeName=row.querySelector('[data-offer-store]').value.trim(),q=Number(row.querySelector('[data-offer-qty]').value),rawPr=row.querySelector('[data-offer-price]').value.trim(),pr=rawPr===''?0:Number(rawPr),out=row.querySelector('[data-offer-unit]');if(q>0&&pr>0){out.innerHTML=formatUnitPrice(pr,q,unit);}else if(storeName){out.innerHTML='<span class="offer-missing-price-badge">⚠ Falta colocar preço</span>';}else{out.textContent='Opcional: escolhe a loja (preço pode ficar para depois)';}});};
     const bindOffers=()=>{offersHost.querySelectorAll('input').forEach(i=>i.oninput=updateUnits);offersHost.querySelectorAll('[data-remove-offer]').forEach(b=>b.onclick=()=>{b.closest('[data-product-offer]').remove();updateUnits();});updateUnits();};
     let count=0;for(const [storeId,offer] of Object.entries(p?.offers||{})){const store=c.stores.find(s=>s.id===storeId);if(store&&!store.archived)offersHost.insertAdjacentHTML('beforeend',offerRow(count++,store.name,offer.packageQty,offer.price,offer.url||'',true));}
     if(!count)offersHost.insertAdjacentHTML('beforeend',offerRow(count++,'',1,'','',false));
@@ -266,7 +277,11 @@
   }
   function storeForm(id){
     const s=C.state(data).stores.find(s=>s.id===id);
-    form(s?'Editar supermercado':'Novo supermercado',field('Nome','storeName',s?.name||'','text','required')+field('Distância ida e volta (km)','storeDistance',s?.distanceKm??'','number','min="0" max="1000" step="0.1" inputmode="decimal" placeholder="ex.: 8"'),v=>commit(()=>C.saveStore(data,{id,name:v.get('storeName'),archived:s?.archived||false,distanceKm:v.get('storeDistance')}),'Supermercado guardado.'),'A distância serve para o «Comparar lojas» somar o custo da deslocação. Deixa vazio se fores a pé ou de passagem.');
+    form(s?'Editar supermercado':'Novo supermercado',field('Nome','storeName',s?.name||'','text','required')+field('Morada desta loja','storeAddress',s?.address||'','text','maxlength="240"')+'<details class="catalog-options"><summary>Deslocação à loja</summary>'+
+      field('Ponto de partida da distância','storeOrigin',s?.routeOrigin??C.state(data).travelOrigin??'','text','maxlength="240"')+
+      select('Tipo de distância','storeRouteKind',[['estimate','Estimativa'],['road','Por estrada'],['straight','Linha reta']],s?.routeKind||'estimate')+
+      field('Tempo ida e volta (min, opcional)','storeDuration',s?.durationMinutes??'','number','min="0" max="720" step="1"')+
+      field('Distância ida e volta (km)','storeDistance',s?.distanceKm??'','number','min="0" max="1000" step="0.1" inputmode="decimal" placeholder="ex.: 8"')+'</details>',v=>commit(()=>C.saveStore(data,{id,name:v.get('storeName'),archived:s?.archived||false,distanceKm:v.get('storeDistance'),address:v.get('storeAddress'),routeOrigin:v.get('storeOrigin'),routeKind:v.get('storeRouteKind'),durationMinutes:v.get('storeDuration')}),'Supermercado guardado.'),'Usa a morada da loja específica. Para calcular o custo no comparador, guarda a distância por estrada ou estimada desde o ponto de partida indicado.');
   }
   function queueProductForm(id){
     const c=C.state(data),item=c.shopping.find(s=>s.id===id),products=c.catalog.filter(p=>!p.archived&&Object.keys(p.offers).some(sid=>c.stores.some(s=>s.id===sid&&!s.archived)));
@@ -305,7 +320,7 @@
     const missingHtml=missingOffers.length?`<div class="offer-missing-price-box"><strong>⚠ Falta colocar preço em:</strong><ul>${missingOffers.map(o=>{const store=c.stores.find(s=>s.id===o.storeId);return `<li><b>${esc(store?.name||o.storeName)}</b> (${qty(o.packageQty)} ${esc(p.unit)}) ${o.url?`<button type="button" class="secondary" data-open-product-url="${esc(o.url)}">Abrir link da marca ↗</button>`:''} <button type="button" class="secondary" data-edit-missing-offer="${esc(p.id)}">Colocar preço</button></li>`;}).join('')}</ul></div>`:'';
     const offers=prices.length?'<div class="casa-offers">'+prices.map((o,idx)=>{const store=c.stores.find(s=>s.id===o.storeId);return `<div><span>${idx===0?'<b>Mais barato</b> · ':''}${esc(store?.name||o.storeId)}: ${qty(o.packageQty)} ${esc(p.unit)} por ${eur(o.price)} (${formatUnitPrice(o.price,o.packageQty,p.unit)})</span>${o.url?`<p class="casa-offer-url"><code>${esc(o.url)}</code> <button type="button" class="secondary" data-open-product-url="${esc(o.url)}">Abrir link ↗</button></p>`:''}</div>`;}).join('')+'</div>':(!missingOffers.length?'<p class="offer-missing-price-badge">⚠ Sem preços ou supermercados configurados.</p>':'');
     const content='<div class="casa-product-detail"><p>'+(p.brand?'Marca: <b>'+esc(p.brand)+'</b>':'Sem marca indicada')+'</p><p>'+esc(p.notes||'')+'</p><p>Em casa: <b>'+qty(stock)+' '+esc(p.unit)+'</b></p>'+(prices.every(o=>!o.url)?linkRow('Link geral',p.url):'')+missingHtml+offers+'</div>';
-    form(p.name,content,()=>{productForm(p.id);},'Consulta rápida do produto. Podes abrir os links de supermercado ou editar os dados.','Editar produto');
+    form(esc(p.name),content,()=>{productForm(p.id);},'Consulta rápida do produto. Podes abrir os links de supermercado ou editar os dados.','Editar produto');
     $('#modalContent').querySelectorAll('[data-open-product-url]').forEach(b=>b.onclick=()=>openExternalProductUrl(b.dataset.openProductUrl));
     $('#modalContent').querySelectorAll('[data-edit-missing-offer]').forEach(b=>b.onclick=()=>offerForm(b.dataset.editMissingOffer));
   }
@@ -319,45 +334,235 @@
   const daysAgo=date=>date&&Finance.validDate(date)?Math.round((Date.parse(Finance.today())-Date.parse(date))/86400000):null;
   const STALE=60;
   let catalogSort='name',catalogStore='';
-  function productCard(c,p){
-    const prices=L.prices(data,p.id),missingOffers=L.missingPriceOffers?.(data,p.id)||[],best=prices[0],stockNow=L.available(c,p.id),stale=prices.filter(o=>{const d=daysAgo(o.date);return d===null||d>STALE;}).length;
+  const pricesRunning=new Set();
+  const priceSource='https://prices.openfoodfacts.org';
+  const flyers=[
+    ['Continente','https://www.continente.pt/folhetos/'],
+    ['Lidl','https://www.lidl.pt/c/folhetos/s10020672'],
+    ['Pingo Doce','https://www.pingodoce.pt/folhetos/'],
+  ];
+  // Observations are ISO dates; show them in Portuguese format.
+  const ptDate=value=>/^d{4}-d{2}-d{2}$/.test(String(value||''))?String(value).split('-').reverse().join('/'):String(value||'');
+  function priceCheckMessage(results){
+    const errors=results.filter(r=>r.status==='error').length,found=results.filter(r=>r.status==='found').length;
+    if(errors&&!found&&errors===results.length)return 'Não foi possível contactar o Open Prices. Verifica a ligação e tenta mais tarde.';
+    if(!found)return 'Consulta terminada: o Open Prices não tem observações recentes para estes produtos e lojas.';
+    return 'Consulta terminada: '+found+' produto(s) com observações'+(errors?' e '+errors+' consulta(s) com erro.':'.');
+  }
+  async function refreshPriceWatch(force=false){
+    const workspace=key;
+    if(pricesRunning.has(workspace))return;
+    const c=C.state(data),watch=CasaDaily.priceWatch(data),checks=new Map(watch.checks.map(r=>[r.locationId+':'+r.barcode,r]));
+    const products=[...new Set(c.catalog.filter(p=>!p.archived&&/^\d{8,14}$/.test(p.barcode)).map(p=>p.barcode))];
+    const tasks=watch.stores.filter(s=>c.stores.some(st=>st.id===s.storeId&&!st.archived))
+      .flatMap(s=>products.map(barcode=>({barcode,locationId:s.locationId,previous:checks.get(s.locationId+':'+barcode)})))
+      .filter(x=>force||!x.previous||daysAgo(x.previous.checked)>=(x.previous.status==='error'?1:7))
+      .sort((a,b)=>(a.previous?.checked||'').localeCompare(b.previous?.checked||'')).slice(0,20);
+    if(!tasks.length){if(force)notice('Escolhe uma loja e confirma os códigos de barras no catálogo.');return;}
+    pricesRunning.add(workspace);
+    const results=[];
+    try{
+      for(const {barcode,locationId} of tasks){
+        if(key!==workspace)return;
+        const url=new URL('/api/v1/prices',priceSource);
+        url.search=new URLSearchParams({product_code:barcode,location_id:String(locationId),order_by:'-date',size:'20'});
+        try{
+          const response=await fetch(url,{credentials:'omit',redirect:'error',signal:AbortSignal.timeout(8000)});
+          if(!response.ok)throw Error('Fonte indisponível');
+          const rows=CasaDaily.observedPrices(await response.json(),barcode,locationId);
+          results.push({barcode,locationId,rows,status:rows.length?'found':'missing'});
+        }catch{
+          results.push({barcode,locationId,rows:[],status:'error'});
+          break;
+        }
+      }
+      if(key===workspace&&results.length&&commit(()=>CasaDaily.recordPriceChecks(data,results),force?priceCheckMessage(results):'',{preserveUndo:!force})&&force&&$('#priceWatchForm')&&$('#modal').open)priceWatchForm();
+    }finally{pricesRunning.delete(workspace);}
+  }
+  function priceWatchForm(){
+    const c=C.state(data),w=CasaDaily.priceWatch(data);
+    const shops=c.stores.filter(s=>!s.archived),selected=new Map(w.stores.map(s=>[s.locationId,s.storeId]));
+    const recent=w.observations.filter(r=>selected.has(r.locationId)&&daysAgo(r.date)<=7)
+      .sort((a,b)=>b.date.localeCompare(a.date)||b.id-a.id);
+    const latest=[...new Map(recent.slice().reverse().map(r=>[r.barcode+':'+r.locationId,r])).values()].reverse();
+    const results=latest.flatMap(r=>{
+      const product=c.catalog.find(p=>!p.archived&&p.barcode===r.barcode),store=shops.find(s=>s.id===selected.get(r.locationId));
+      if(!product||!store)return [];
+      const pending=c.shopping.some(s=>!s.done&&s.catalogId===product.id);
+      const normal=r.regular??w.observations.filter(x=>x.barcode===r.barcode&&x.locationId===r.locationId&&x.date<r.date&&!x.promotion).sort((a,b)=>b.date.localeCompare(a.date))[0]?.price;
+      return [{...r,product,store,pending,normal}];
+    }).sort((a,b)=>Number(b.pending)-Number(a.pending)||Number(b.promotion)-Number(a.promotion));
+    const rows=results.map(({product,store,price,date,pending,promotion,normal,proofId})=>'<li><b>'+esc(product.name)+'</b> · '+esc(store.name)+' · '+eur(price)+
+      ' · observado a '+esc(ptDate(date))+(pending?' · Na lista':'')+(promotion?' · Promoção observada':'')+
+      (normal>price?' · Diferença de '+eur(normal-price)+' face ao preço de '+eur(normal):'')+
+      (proofId?' · <a href="'+priceSource+'/proofs/'+proofId+'" target="_blank" rel="noopener noreferrer">Fonte</a>':'')+'</li>').join('');
+    const stats=['found','missing','error'].map(x=>w.checks.filter(r=>r.status===x&&selected.has(r.locationId)).length);
+    const checked=w.checks.filter(r=>selected.has(r.locationId)).map(c=>c.checked).sort().at(-1);
+    form('Preços observados esta semana','<div id="priceWatchForm"><p>A fonte é colaborativa. Confirma cada observação na loja. Os preços registados no catálogo continuam separados.</p>'+
+      (rows?'<ul>'+rows+'</ul>':'<p>Sem observações recentes para estas lojas e códigos de barras.</p>')+
+      (checked?'<p>Última consulta '+esc(ptDate(checked))+' · '+stats[0]+' com dados, '+stats[1]+' sem dados, '+stats[2]+' com erro.</p>':'')+
+      '<button type="button" class="secondary" id="refreshPriceWatch">Consultar agora</button>'+
+      '<details class="panel"><summary>Lojas a acompanhar</summary><p>Indica o número da ficha da loja física no <a href="'+priceSource+'" target="_blank" rel="noopener noreferrer">Open Prices</a>. A consulta envia o código de barras e o identificador da loja. Deixa em branco para desativar.</p>'+
+      shops.map((s,i)=>field(s.name,'watch'+i,w.stores.find(x=>x.storeId===s.id)?.locationId||'','number','min="1" step="1"')).join('')+
+      '</details><details class="panel"><summary>Folhetos oficiais</summary><ul>'+
+      flyers.map(([name,url])=>'<li><a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">'+name+'</a></li>').join('')+
+      '</ul></details></div>',f=>commit(()=>CasaDaily.setPriceWatch(data,shops.flatMap((s,i)=>f.get('watch'+i)?[{storeId:s.id,locationId:Number(f.get('watch'+i))}]:[])),'Lojas a acompanhar guardadas.'),'As consultas semanais correm enquanto a aplicação está aberta. As observações podem corresponder a descontos já terminados.','Guardar lojas');
+    $('#refreshPriceWatch').onclick=e=>{e.currentTarget.disabled=true;e.currentTarget.textContent='A consultar…';refreshPriceWatch(true).finally(()=>{const b=$('#refreshPriceWatch');if(b){b.disabled=false;b.textContent='Consultar agora';}});};
+  }
+  setInterval(()=>{if(!window.equilibrioStartup?.awaitingChoice&&!$('#modal')?.open)refreshPriceWatch();}, 15*60*1000);
+  function productCard(c, p, { prices, missingOffers, stale }) {
+    const best = prices[0], stockNow = L.available(c, p.id);
+    const bestDate = best?.date ? new Date(best.date + 'T12:00') : null;
+    const dateText = bestDate ? (Number.isNaN(bestDate.getTime()) ? '' : dayMonthFormat.format(bestDate)) : '';
     const storeName=id=>c.stores.find(s=>s.id===id)?.name||id;
     const others=prices.slice(1).map(o=>{const diff=best.per>0?Math.round((o.per/best.per-1)*100):0;return `<li><span>${esc(storeName(o.storeId))}</span><b>${eur(o.price)}</b><small class="${diff>0?'is-more':''}">${diff>0?'+'+diff+'%':'igual'}</small>${o.url?`<button type="button" class="cat-link" data-product-url="${esc(o.url)}" title="Abrir na loja" aria-label="Abrir ${esc(storeName(o.storeId))}">↗</button>`:'<span></span>'}</li>`;}).join('')+missingOffers.map(o=>`<li class="is-missing"><span>${esc(o.storeName)}</span><b>—</b><small>sem preço</small><button type="button" class="cat-link" data-product-offer="${esc(p.id)}" title="Colocar preço" aria-label="Colocar preço em ${esc(o.storeName)}">+</button></li>`).join('');
     const flags=(p.archived?'<span class="cat-flag">Arquivado</span>':'')+(missingOffers.length||!prices.length?'<span class="cat-flag is-warn">Falta preço</span>':'')+(stale&&prices.length?`<span class="cat-flag is-old" title="Preços sem data ou com mais de ${STALE} dias">${stale} antigo${stale===1?'':'s'}</span>`:'');
     return `<article class="cat-card${p.archived?' is-archived':''}"><header>${avatar(p.name)}<div class="cat-card-title"><button type="button" class="product-title-button" data-product-detail="${esc(p.id)}" aria-label="Abrir ficha de ${esc(p.name)}">${esc(p.name)}</button><small>${[p.brand,'por '+p.unit].filter(Boolean).map(esc).join(' · ')}</small></div><div class="cat-flags">${flags}</div></header>`+
-      (best?`<div class="cat-best"><div><span>Melhor preço · ${esc(storeName(best.storeId))}</span><strong>${formatUnitPrice(best.price,best.packageQty,p.unit)}</strong><small>${eur(best.price)} por ${qty(best.packageQty)} ${esc(p.unit)}${best.date?' · '+esc(new Date(best.date+'T12:00').toLocaleDateString('pt-PT',{day:'numeric',month:'short'})):''}</small></div>${best.url?`<button type="button" class="cat-link is-big" data-product-url="${esc(best.url)}" title="Abrir na loja" aria-label="Abrir na loja">↗</button>`:''}</div>`:`<button type="button" class="cat-best is-empty" data-product-offer="${esc(p.id)}"><span>Sem preços</span><strong>+ Colocar preço</strong></button>`)+
+      (best?`<div class="cat-best"><div><span>Melhor preço · ${esc(storeName(best.storeId))}</span><strong>${formatUnitPrice(best.price,best.packageQty,p.unit)}</strong><small>${eur(best.price)} por ${qty(best.packageQty)} ${esc(p.unit)}${dateText?' · '+esc(dateText):''}</small></div>${best.url?`<button type="button" class="cat-link is-big" data-product-url="${esc(best.url)}" title="Abrir na loja" aria-label="Abrir na loja">↗</button>`:''}</div>`:`<button type="button" class="cat-best is-empty" data-product-offer="${esc(p.id)}"><span>Sem preços</span><strong>+ Colocar preço</strong></button>`)+
       (others?`<ul class="cat-others">${others}</ul>`:'')+
-      `<footer><span class="cat-stock${stockNow>0?' has-stock':''}">${stockNow>0?'Em casa: '+qty(stockNow)+' '+esc(p.unit):'Sem stock'}</span><div class="cat-actions"><button type="button" class="secondary" data-product-offer="${esc(p.id)}">Preço</button><button type="button" class="secondary" data-product-edit="${esc(p.id)}">Editar</button><details class="cat-more"><summary aria-label="Mais ações">•••</summary><div>${p.url&&prices.every(o=>!o.url)?`<button type="button" class="secondary" data-product-url="${esc(p.url)}">Abrir link</button>`:''}<button type="button" class="secondary" data-product-archive="${esc(p.id)}">${p.archived?'Reativar':'Arquivar'}</button><button type="button" class="secondary danger" data-product-remove="${esc(p.id)}">Eliminar</button></div></details></div></footer></article>`;
+      `<footer><span class="cat-stock${stockNow>0?' has-stock':''}">${stockNow>0?'Em casa: '+qty(stockNow)+' '+esc(p.unit):'Sem stock'}</span><div class="cat-actions"><button type="button" class="secondary" data-product-offer="${esc(p.id)}">Preço</button><button type="button" class="secondary" data-product-edit="${esc(p.id)}">Editar</button><details class="cat-more"><summary aria-label="Mais ações">•••</summary><div><button type="button" class="secondary" data-product-policy="${esc(p.id)}">Reposição</button>${p.url&&prices.every(o=>!o.url)?`<button type="button" class="secondary" data-product-url="${esc(p.url)}">Abrir link</button>`:''}<button type="button" class="secondary" data-product-archive="${esc(p.id)}">${p.archived?'Reativar':'Arquivar'}</button><button type="button" class="secondary danger" data-product-remove="${esc(p.id)}">Eliminar</button></div></details></div></footer></article>`;
   }
   function renderProducts(c){
-    const q=search.trim().toLocaleLowerCase('pt');
-    const priceInfo=new Map(c.catalog.map(p=>{const prices=L.prices(data,p.id),missing=(L.missingPriceOffers?.(data,p.id)||[]).length;return [p.id,{prices,missing:missing||!prices.length,oldest:Math.max(-1,...prices.map(o=>daysAgo(o.date)??9999))}];}));
-    let rows=c.catalog.filter(p=>(catalogStatus==='all'||(catalogStatus==='archived')===!!p.archived)&&(!q||[p.name,p.brand,p.barcode].some(x=>String(x||'').toLocaleLowerCase('pt').includes(q)))&&(!catalogStore||(catalogStore==='__missing'?priceInfo.get(p.id).missing:p.offers?.[catalogStore])));
-    const byName=(a,b)=>a.name.localeCompare(b.name,'pt');
-    rows=rows.slice().sort(catalogSort==='stores'?(a,b)=>Object.keys(b.offers||{}).length-Object.keys(a.offers||{}).length||byName(a,b):catalogSort==='missing'?(a,b)=>Number(priceInfo.get(b.id).missing)-Number(priceInfo.get(a.id).missing)||byName(a,b):catalogSort==='old'?(a,b)=>priceInfo.get(b.id).oldest-priceInfo.get(a.id).oldest||byName(a,b):byName);
+    const priceInfo = new Map(c.catalog.map(p => {
+      const prices = L.prices(data, p.id);
+      const missingOffers = L.missingPriceOffers(data, p.id);
+      const ages = prices.map(offer => daysAgo(offer.date) ?? 9999);
+      return [p.id, {
+        prices, missingOffers, missing: missingOffers.length > 0 || !prices.length,
+        oldest: Math.max(-1, ...ages), stale: ages.filter(age => age > STALE).length,
+      }];
+    }));
+    const byName = (a, b) => a.name.localeCompare(b.name, 'pt');
+    const sort = {
+      stores: (a, b) => Object.keys(b.offers || {}).length - Object.keys(a.offers || {}).length || byName(a, b),
+      missing: (a, b) => Number(priceInfo.get(b.id).missing) - Number(priceInfo.get(a.id).missing) || byName(a, b),
+      old: (a, b) => priceInfo.get(b.id).oldest - priceInfo.get(a.id).oldest || byName(a, b),
+    };
+    const candidates = c.catalog.filter(p => {
+      if (catalogStatus !== 'all' && (catalogStatus === 'archived') !== !!p.archived) return false;
+      if (catalogStore === '__missing') return priceInfo.get(p.id).missing;
+      return !catalogStore || p.offers?.[catalogStore];
+    }).sort(sort[catalogSort] || byName).map(product => ({
+      product,
+      terms: [product.name, product.brand, product.barcode].map(value => String(value || '').toLocaleLowerCase('pt')),
+    }));
     const active=c.catalog.filter(p=>!p.archived),missingCount=active.filter(p=>priceInfo.get(p.id).missing).length,oldCount=active.filter(p=>priceInfo.get(p.id).oldest>STALE).length,offersCount=active.reduce((n,p)=>n+priceInfo.get(p.id).prices.length,0);
     const legacyCategories=c.catalog.filter(p=>p.category||p.storeCategories&&Object.keys(p.storeCategories).length).length;
     const kpi=(label,value,note,tone='',act='')=>`<${act?'button type="button" '+act:'article'} class="cat-kpi ${tone}"><span>${label}</span><strong>${value}</strong><small>${note}</small></${act?'button':'article'}>`;
-    $('#casaProducts').innerHTML=`<div class="section-head cat-head"><div><h2>Produtos</h2><p>Os produtos que compras, com embalagens, preços e links em cada loja.</p></div><div class="casa-actions"><button type="button" class="secondary" data-casa-catalog="import-table">↥ Importar Excel</button><button type="button" class="secondary" data-casa-catalog="prices">Tabela de preços</button><button type="button" class="primary" data-casa-catalog="new-product">+ Novo produto</button></div></div>`+
-      `<div class="cat-kpis">${kpi('Produtos ativos',active.length,c.catalog.length-active.length?(c.catalog.length-active.length)+' arquivados':'nenhum arquivado')}${kpi('Preços registados',offersCount,'em '+c.stores.filter(s=>!s.archived).length+' lojas')}${kpi('Com preço em falta',missingCount,missingCount?'Ver quais →':'tudo preenchido',missingCount?'is-warn':'is-ok',missingCount?'data-cat-quick="missing"':'')}${kpi('Preços antigos',oldCount,'sem data ou com mais de '+STALE+' dias',oldCount?'is-old':'is-ok',oldCount?'data-cat-quick="old"':'')}</div>`+
+    $('#casaProducts').innerHTML=`<div class="section-head cat-head"><div><h2>Produtos</h2><p>Os produtos que compras, com embalagens, preços e links em cada loja.</p></div><div class="casa-actions"><button type="button" class="secondary" data-casa-catalog="price-watch">Preços desta semana</button><button type="button" class="primary" data-casa-catalog="new-product">+ Novo produto</button></div></div>`+
+      `<details class="catalog-overview"><summary>Estado dos preços e do catálogo</summary><div class="cat-kpis">${kpi('Produtos ativos',active.length,c.catalog.length-active.length?(c.catalog.length-active.length)+' arquivados':'nenhum arquivado')}${kpi('Preços registados',offersCount,'em '+c.stores.filter(s=>!s.archived).length+' lojas')}${kpi('Com preço em falta',missingCount,missingCount?'Ver quais →':'tudo preenchido',missingCount?'is-warn':'is-ok',missingCount?'data-cat-quick="missing"':'')}${kpi('Preços antigos',oldCount,'sem data ou com mais de '+STALE+' dias',oldCount?'is-old':'is-ok',oldCount?'data-cat-quick="old"':'')}</div></details>`+
       (legacyCategories?`<div class="casa-legacy-categories"><span>${legacyCategories} produto(s) ainda têm a categoria antiga guardada.</span><button type="button" class="secondary" data-casa-catalog="clear-categories">Retirar categorias</button></div>`:'')+
-      `<div class="cat-toolbar"><label class="cat-search"><span aria-hidden="true">⌕</span><input id="casaProductSearch" type="search" placeholder="Pesquisar produto, marca ou código…" value="${esc(search)}"></label><div class="cat-seg" role="group" aria-label="Estado dos produtos">${[['active','Ativos'],['archived','Arquivados'],['all','Todos']].map(([id,label])=>`<button type="button" class="${catalogStatus===id?'active':''}" data-catalog-status="${id}" aria-pressed="${catalogStatus===id}">${label} <small>${id==='all'?c.catalog.length:c.catalog.filter(p=>!!p.archived===(id==='archived')).length}</small></button>`).join('')}</div><select id="casaCatalogStore" aria-label="Filtrar por loja"><option value="">Todas as lojas</option><option value="__missing" ${catalogStore==='__missing'?'selected':''}>Só com preço em falta</option>${c.stores.filter(s=>!s.archived).map(s=>`<option value="${esc(s.id)}" ${catalogStore===s.id?'selected':''}>Com preço no ${esc(s.name)}</option>`).join('')}</select><select id="casaCatalogSort" aria-label="Ordenar">${[['name','Nome (A–Z)'],['stores','Mais lojas primeiro'],['missing','Preço em falta primeiro'],['old','Preço mais antigo primeiro']].map(([id,l])=>`<option value="${id}" ${catalogSort===id?'selected':''}>${l}</option>`).join('')}</select><span class="cat-count">${rows.length} produto${rows.length===1?'':'s'}</span></div><div id="casaCatalogCards" class="cat-grid"></div>`;
-    $('#casaCatalogCards').innerHTML=rows.map(p=>productCard(c,p)).join('')||`<div class="cat-empty">${c.catalog.length?'<h3>Nenhum produto encontrado</h3><p>Experimenta outra pesquisa ou filtro.</p>':'<h3>O catálogo está vazio</h3><p>Importa a tua tabela do Excel ou cria o primeiro produto.</p><button type="button" class="primary" data-casa-catalog="new-product">+ Novo produto</button>'}</div>`;
-    const refreshCatalog=()=>{render();window.CasaCompleteUI?.render(view);};
-    $('#casaProductSearch').oninput=e=>{const pos=e.target.selectionStart;search=e.target.value;refreshCatalog();const input=$('#casaProductSearch');input.focus();input.setSelectionRange(pos,pos);};
+      `<div class="cat-toolbar"><label class="cat-search"><span aria-hidden="true">⌕</span><input id="casaProductSearch" type="search" placeholder="Pesquisar produto, marca ou código…" value="${esc(search)}"></label><div class="cat-seg" role="group" aria-label="Estado dos produtos">${[['active','Ativos'],['archived','Arquivados'],['all','Todos']].map(([id,label])=>`<button type="button" class="${catalogStatus===id?'active':''}" data-catalog-status="${id}" aria-pressed="${catalogStatus===id}">${label} <small>${id==='all'?c.catalog.length:c.catalog.filter(p=>!!p.archived===(id==='archived')).length}</small></button>`).join('')}</div><select id="casaCatalogStore" aria-label="Filtrar por loja"><option value="">Todas as lojas</option><option value="__missing" ${catalogStore==='__missing'?'selected':''}>Só com preço em falta</option>${c.stores.filter(s=>!s.archived).map(s=>`<option value="${esc(s.id)}" ${catalogStore===s.id?'selected':''}>Com preço no ${esc(s.name)}</option>`).join('')}</select><select id="casaCatalogSort" aria-label="Ordenar">${[['name','Nome (A–Z)'],['stores','Mais lojas primeiro'],['missing','Preço em falta primeiro'],['old','Preço mais antigo primeiro']].map(([id,l])=>`<option value="${id}" ${catalogSort===id?'selected':''}>${l}</option>`).join('')}</select><span class="cat-count"></span></div><div id="casaCatalogCardPages" class="cat-toolbar" role="group" aria-label="Páginas de produtos" hidden><button type="button" class="secondary" data-catalog-page="-1">Anterior</button><span aria-live="polite"></span><button type="button" class="secondary" data-catalog-page="1">Seguinte</button></div><div id="casaCatalogCards" class="cat-grid"></div>`;
+    const grid = $('#casaCatalogCards');
+    const count = $('#casaProducts .cat-count');
+    const pager = $('#casaCatalogCardPages');
+    const [previousPage, nextPage] = pager.querySelectorAll('button');
+    let cards = new Map();
+    const template = document.createElement('template');
+    const empty = document.createElement('div');
+    empty.className = 'cat-empty';
+    empty.innerHTML = c.catalog.length
+      ? '<h3>Nenhum produto encontrado</h3><p>Experimenta outra pesquisa ou filtro.</p>'
+      : '<h3>O catálogo está vazio</h3><p>Cria o primeiro produto para registar embalagens, preços e links por loja.</p><button type="button" class="primary" data-casa-catalog="new-product">+ Novo produto</button>';
+    function drawResults() {
+      const query = search.trim().toLocaleLowerCase('pt');
+      const matches = candidates.filter(entry => !query || entry.terms.some(term => term.includes(query)));
+      count.textContent = matches.length + (matches.length === 1 ? ' produto' : ' produtos');
+
+      const lastPage = Math.max(0, Math.ceil(matches.length / catalogPageSize) - 1);
+      catalogPage = Math.max(0, Math.min(catalogPage, lastPage));
+      previousPage.disabled = catalogPage === 0;
+      nextPage.disabled = catalogPage === lastPage;
+      pager.hidden = lastPage === 0;
+      pager.querySelector('span').textContent = 'Página ' + (catalogPage + 1) + ' de ' + (lastPage + 1);
+      const start = catalogPage * catalogPageSize;
+      const visible = matches.slice(start, start + catalogPageSize).map(entry => entry.product);
+      const fresh = visible.filter(product => !cards.has(product.id));
+      template.innerHTML = fresh.map(product => productCard(c, product, priceInfo.get(product.id))).join('');
+      const nodes = [...template.content.children];
+      fresh.forEach((product, index) => cards.set(product.id, nodes[index]));
+      cards = new Map(visible.map(product => [product.id, cards.get(product.id)]));
+      grid.replaceChildren(...(cards.size ? cards.values() : [empty]));
+    }
+    drawResults();
+    pager.onclick = event => {
+      const button = event.target.closest('[data-catalog-page]');
+      if (!button) return;
+      catalogPage += Number(button.dataset.catalogPage);
+      drawResults();
+      if (button.disabled) (button === previousPage ? nextPage : previousPage).focus();
+      window.CasaCompleteUI?.compactProductActions();
+    };
+    const refreshCatalog=()=>{catalogPage=0;render();window.CasaCompleteUI?.render(view);};
+    $('#casaProductSearch').oninput = event => {
+      search = event.target.value;
+      catalogPage = 0;
+      drawResults();
+      window.CasaCompleteUI?.compactProductActions();
+    };
     for(const b of document.querySelectorAll('#casaProducts [data-catalog-status]'))b.onclick=()=>{catalogStatus=b.dataset.catalogStatus;refreshCatalog();};
     $('#casaCatalogStore').onchange=e=>{catalogStore=e.target.value;refreshCatalog();};$('#casaCatalogSort').onchange=e=>{catalogSort=e.target.value;refreshCatalog();};
     for(const b of document.querySelectorAll('#casaProducts [data-cat-quick]'))b.onclick=()=>{if(b.dataset.catQuick==='missing'){catalogStore='__missing';catalogStatus='active';}else{catalogSort='old';catalogStore='';}refreshCatalog();};
-    document.querySelectorAll('#casaProducts .cat-more').forEach(d=>d.addEventListener('click',ev=>{if(ev.target.closest('.cat-more>div button'))d.open=false;}));
+    grid.onclick = event => {
+      const action = event.target.closest('.cat-more > div button');
+      if (action) action.closest('.cat-more').open = false;
+    };
+  }
+  function splitStoreForm(storeId){
+    const info=window.CasaDaily?.combinedStores?.(data)?.find(x=>x.id===storeId);
+    if(!info)return notice('Esta loja combinada já foi revista ou não tem separação pendente.',true);
+    let currentPreview=null;
+    const rowsHtml=info.offers.length
+      ? `<div class="casa-split-offers">${info.offers.map((o,i)=>{
+          const opts=[['skip','Não atribuir preço (evitar erro)'],...info.parts.map(pt=>[pt,`Atribuir a ${pt}${o.existingByPart[pt]?.price>0?' · já tem '+eur(o.existingByPart[pt].price):''}`]),['all',`Atribuir a todas (${info.parts.join(' e ')})`]];
+          return `<div class="casa-split-row"><div><b>${esc(o.productName)}</b><small>${qty(o.packageQty)} ${esc(o.unit)} · ${o.price>0?eur(o.price):'sem preço'}</small></div>${select('Destino do preço','splitOffer_'+i,opts,'skip')}</div>`;
+        }).join('')}</div>`
+      : '<p class="muted">Sem produtos ativos associados a esta loja combinada.</p>';
+    const shopHtml=info.shoppingCount>0?select('Loja de destino para artigos pendentes na lista ('+info.shoppingCount+')','splitDefaultPart',info.parts.map(p=>[p,p]),info.parts[0]):'';
+    form('Rever loja combinada · '+esc(info.name),
+      `<p>Partes identificadas: <strong>${esc(info.parts.join(' · '))}</strong>. Escolhe a loja certa para cada preço antes de aplicar; os preços incertos ficam por atribuir.</p>`+
+      rowsHtml+shopHtml+'<div id="casaSplitPreview" class="casa-link-preview"></div>',
+      ()=>commit(()=>CasaDaily.applySplitStore(data,storeId,readDecisions(),currentPreview?.token),'Loja combinada separada com pré-visualização confirmada.'),
+      'Nenhuma compra histórica nem despesa é apagada. Os preços atribuídos criam ou atualizam ofertas nas lojas individuais.',
+      'Confirmar separação');
+    const readDecisions=()=>({
+      offers:Object.fromEntries(info.offers.map((o,i)=>[o.catalogId,$('[name=splitOffer_'+i+']')?.value||'skip'])),
+      defaultPart:$('[name=splitDefaultPart]')?.value||''
+    });
+    const updatePreview=()=>{
+      try{
+        currentPreview=CasaDaily.previewSplitStore(data,storeId,readDecisions());
+        const box=$('#casaSplitPreview');
+        if(!box)return;
+        const lines=[];
+        if(currentPreview.createdStores.length)lines.push(`Novas lojas a criar: <b>${esc(currentPreview.createdStores.join(', '))}</b>`);
+        if(currentPreview.reactivatedStores.length)lines.push(`Lojas a reativar: <b>${esc(currentPreview.reactivatedStores.join(', '))}</b>`);
+        lines.push(`Preços a atribuir: <b>${currentPreview.assignedOffers.length}</b>${currentPreview.overwrites.length?' ('+currentPreview.overwrites.length+' atualiza(m) preço existente)':''}`);
+        if(currentPreview.keptPrices?.length)lines.push(`Preços existentes mantidos (a loja combinada não tinha preço): <b>${currentPreview.keptPrices.length}</b>`);
+        lines.push(`Preços não atribuídos (ignorados): <b>${currentPreview.skippedOffers.length}</b>`);
+        if(currentPreview.shoppingMoved.length)lines.push(`Artigos na lista de compras a mover: <b>${currentPreview.shoppingMoved.length}</b>`);
+        lines.push(currentPreview.willDelete?`A loja combinada «${esc(info.name)}» será removida após a revisão.`:`A loja combinada «${esc(info.name)}» será arquivada para preservar ${info.purchasesCount} compra(s) antiga(s).`);
+        box.innerHTML='<b>Pré-visualização antes de guardar</b><ul>'+lines.map(l=>`<li>${l}</li>`).join('')+'</ul>'+
+          (currentPreview.assignedOffers.length?`<p><small>${currentPreview.assignedOffers.map(a=>`${esc(a.productName)} → ${esc(a.targetName)} (${eur(a.price)})`).join(' · ')}</small></p>`:'');
+      }catch(e){
+        const box=$('#casaSplitPreview');if(box)box.innerHTML=`<p class="negative">${esc(e.message)}</p>`;
+      }
+    };
+    $('#modalContent').querySelectorAll('select').forEach(sel=>sel.onchange=updatePreview);
+    updatePreview();
   }
   function renderStores(c){
     const q=storeSearch.trim().toLocaleLowerCase('pt'),stores=c.stores.filter(s=>!q||s.name.toLocaleLowerCase('pt').includes(q));
+    const combined=window.CasaDaily?.combinedStores?CasaDaily.combinedStores(data):[],combinedById=new Map(combined.map(x=>[x.id,x]));
     const winners=new Map();for(const p of c.catalog.filter(p=>!p.archived)){const best=L.prices(data,p.id)[0];if(best)winners.set(best.storeId,(winners.get(best.storeId)||0)+1);}
-    const card=s=>{const products=c.catalog.filter(p=>!p.archived&&p.offers?.[s.id]),missing=products.filter(p=>!(p.offers[s.id].price>0)).length,old=products.filter(p=>p.offers[s.id].price>0&&(daysAgo(p.offers[s.id].date)??9999)>STALE).length,wins=winners.get(s.id)||0,share=products.length?Math.round(wins/products.length*100):0,last=products.map(p=>p.offers[s.id].date).filter(Boolean).sort().at(-1);
-      return `<article class="cat-store${s.archived?' is-archived':''}"><header>${avatar(s.name,'cat-avatar is-big')}<div><h3>${esc(s.name)}</h3><small>${s.archived?'Arquivada':last?'Último preço a '+esc(new Date(last+'T12:00').toLocaleDateString('pt-PT',{day:'numeric',month:'short',year:'numeric'})):'Sem preços com data'}</small></div></header><dl class="cat-store-stats"><div><dt>Produtos</dt><dd>${products.length}</dd></div><div><dt>Mais barata em</dt><dd>${wins}</dd></div><div><dt>Sem preço</dt><dd class="${missing?'is-warn':''}">${missing}</dd></div></dl><div class="cat-store-bar" title="Mais barata em ${share}% dos produtos que vende"><i style="width:${share}%"></i></div><small class="cat-store-note">Mais barata em ${share}% dos produtos que tem${old?` · ${old} preço${old===1?'':'s'} antigo${old===1?'':'s'}`:''}</small><footer><button type="button" class="secondary" data-cat-store-products="${esc(s.id)}">Ver produtos</button><button type="button" class="secondary" data-store-edit="${esc(s.id)}">Editar</button><button type="button" class="secondary" data-store-archive="${esc(s.id)}">${s.archived?'Reativar':'Arquivar'}</button></footer></article>`;};
-    $('#casaStores').innerHTML=`<div class="section-head cat-head"><div><h2>Lojas</h2><p>Onde compras e quanto do catálogo cada loja cobre.</p></div><div class="casa-actions"><button type="button" class="secondary" data-casa-catalog="products">Produtos</button><button type="button" class="primary" data-casa-catalog="new-store">+ Nova loja</button></div></div><div class="cat-toolbar"><label class="cat-search"><span aria-hidden="true">⌕</span><input id="casaStoreSearch" type="search" placeholder="Pesquisar loja…" value="${esc(storeSearch)}"></label></div><div class="cat-store-grid">${stores.slice().sort((a,b)=>Number(!!a.archived)-Number(!!b.archived)||a.name.localeCompare(b.name,'pt')).map(card).join('')||'<div class="cat-empty"><h3>Ainda não há lojas</h3><p>Cria a primeira loja para começar a comparar preços.</p></div>'}</div>`;
-    $('#casaStoreSearch').oninput=e=>{const pos=e.target.selectionStart;storeSearch=e.target.value;render();const i=$('#casaStoreSearch');i.focus();i.setSelectionRange(pos,pos);};
-    for(const b of document.querySelectorAll('[data-cat-store-products]'))b.onclick=()=>{catalogStore=b.dataset.catStoreProducts;catalogStatus='active';navigate('casaProducts');};
+    const card=s=>{const products=c.catalog.filter(p=>!p.archived&&p.offers?.[s.id]),missing=products.filter(p=>!(p.offers[s.id].price>0)).length,old=products.filter(p=>p.offers[s.id].price>0&&(daysAgo(p.offers[s.id].date)??9999)>STALE).length,wins=winners.get(s.id)||0,share=products.length?Math.round(wins/products.length*100):0,last=products.map(p=>p.offers[s.id].date).filter(Boolean).sort().at(-1),isCombined=combinedById.has(s.id);
+      return `<article class="cat-store${s.archived?' is-archived':''}${isCombined?' is-combined':''}"><header>${avatar(s.name,'cat-avatar is-big')}<div><h3>${esc(s.name)}</h3><small>${s.archived?'Arquivada':last?'Último preço a '+esc(new Date(last+'T12:00').toLocaleDateString('pt-PT',{day:'numeric',month:'short',year:'numeric'})):'Sem preços com data'}</small></div>${isCombined?'<span class="cat-flag is-warn">Loja combinada</span>':''}</header><details class="store-coverage"><summary>Cobertura e preços</summary><dl class="cat-store-stats"><div><dt>Produtos</dt><dd>${products.length}</dd></div><div><dt>Mais barata em</dt><dd>${wins}</dd></div><div><dt>Sem preço</dt><dd class="${missing?'is-warn':''}">${missing}</dd></div></dl><div class="cat-store-bar" title="Mais barata em ${share}% dos produtos que vende"><i style="width:${share}%"></i></div><small class="cat-store-note">Mais barata em ${share}% dos produtos que tem${old?` · ${old} preço${old===1?'':'s'} antigo${old===1?'':'s'}`:''}</small></details><footer><button type="button" class="secondary" data-cat-store-products="${esc(s.id)}">Ver produtos</button>${isCombined?`<button type="button" class="secondary" data-store-split="${esc(s.id)}">Rever e separar</button>`:''}<button type="button" class="secondary" data-store-edit="${esc(s.id)}">Editar</button><button type="button" class="secondary" data-store-archive="${esc(s.id)}">${s.archived?'Reativar':'Arquivar'}</button></footer></article>`;};
+    const combinedBanner=combined.length?`<div class="panel casa-combined-banner"><div><strong>${combined.length} ${combined.length===1?'loja combinada detetada':'lojas combinadas detetadas'}</strong><p>Nomes com “//” juntam mais do que uma loja. Revê cada produto com pré-visualização para evitar atribuir um preço à loja errada.</p></div><div class="casa-actions">${combined.map(x=>`<button type="button" class="secondary" data-store-split="${esc(x.id)}">Rever ${esc(x.name)}</button>`).join('')}</div></div>`:'';
+    const storeGridHtml=()=>stores.slice().sort((a,b)=>Number(!!a.archived)-Number(!!b.archived)||Number(combinedById.has(b.id))-Number(combinedById.has(a.id))||a.name.localeCompare(b.name,'pt')).map(card).join('')||'<div class="cat-empty"><h3>Ainda não há lojas</h3><p>Cria a primeira loja para começar a comparar preços.</p></div>';
+    $('#casaStores').innerHTML=`<div class="section-head cat-head"><div><h2>Lojas</h2><p>Onde compras e quanto do catálogo cada loja cobre.</p></div><div class="casa-actions"><button type="button" class="primary" data-casa-catalog="new-store">+ Nova loja</button></div></div>${combinedBanner}<div class="cat-toolbar"><label class="cat-search"><span aria-hidden="true">⌕</span><input id="casaStoreSearch" type="search" placeholder="Pesquisar loja…" value="${esc(storeSearch)}"></label></div><div id="casaStoreGrid" class="cat-store-grid">${storeGridHtml()}</div>`;
+    const bindStoreLinks=()=>{for(const b of document.querySelectorAll('[data-cat-store-products]'))b.onclick=()=>{catalogStore=b.dataset.catStoreProducts;catalogStatus='active';catalogPage=0;navigate('casaProducts');window.CasaRenderUI?.refresh?.();};};
+    bindStoreLinks();
+    $('#casaStoreSearch').oninput=e=>{storeSearch=e.target.value;const sq=storeSearch.trim().toLocaleLowerCase('pt'),filtered=c.stores.filter(s=>!sq||s.name.localeCompare&&s.name.toLocaleLowerCase('pt').includes(sq));const grid=$('#casaStoreGrid');if(grid){grid.innerHTML=filtered.slice().sort((a,b)=>Number(!!a.archived)-Number(!!b.archived)||Number(combinedById.has(b.id))-Number(combinedById.has(a.id))||a.name.localeCompare(b.name,'pt')).map(card).join('')||'<div class="cat-empty"><h3>Nenhuma loja encontrada</h3><p>Ajusta a pesquisa para ver outras lojas.</p></div>';bindStoreLinks();}else render();};
   }
   function render(){
     const c=C.state(data);
@@ -375,6 +580,7 @@
     if(act==='new-product')productForm();
     if(act==='import-table')importTableModal();
     if(act==='new-store')storeForm();
+    if(act==='price-watch')priceWatchForm();
     if(act==='stores')navigate('casaStores');
     if(act==='products')navigate('casaProducts');
     if(act==='prices')navigate('casaPrices');
@@ -382,15 +588,17 @@
     if(act==='queue-product')queueProductForm();
     if(act==='checkout')checkoutForm();
     const edit=e.target.closest('[data-product-edit]')?.dataset.productEdit;if(edit)productForm(edit);
+    const policy=e.target.closest('[data-product-policy]')?.dataset.productPolicy;if(policy)window.CasaLifeUI?.policyForm?.(policy);
     const detail=e.target.closest('[data-product-detail]')?.dataset.productDetail;if(detail)openProductDetail(detail);
     const offer=e.target.closest('[data-product-offer]')?.dataset.productOffer;if(offer)offerForm(offer);
     const prodUrl=e.target.closest('[data-product-url]')?.dataset.productUrl;if(prodUrl)openExternalProductUrl(prodUrl);
     const arch=e.target.closest('[data-product-archive]')?.dataset.productArchive;if(arch){const p=C.state(data).catalog.find(p=>p.id===arch);commit(()=>C.saveProduct(data,{...p,archived:!p.archived}),'Catálogo atualizado.');}
     const remove=e.target.closest('[data-product-remove]')?.dataset.productRemove;if(remove){const p=C.state(data).catalog.find(p=>p.id===remove);if(p)form('Eliminar produto',`<p>Eliminar «${esc(p.name)}» do catálogo? Os preços por loja e as entradas na lista de compras também saem. Produtos com compras, stock ou receitas só podem ser arquivados.</p>`,()=>commit(()=>C.removeProduct(data,remove),'Produto eliminado.'),'','Eliminar');}
     const sEdit=e.target.closest('[data-store-edit]')?.dataset.storeEdit;if(sEdit)storeForm(sEdit);
+    const sSplit=e.target.closest('[data-store-split]')?.dataset.storeSplit;if(sSplit)splitStoreForm(sSplit);
     const sArch=e.target.closest('[data-store-archive]')?.dataset.storeArchive;if(sArch){const s=C.state(data).stores.find(s=>s.id===sArch);commit(()=>C.saveStore(data,{...s,archived:!s.archived}),'Supermercado atualizado.');}
     const qItem=e.target.closest('[data-shop-catalog]')?.dataset.shopCatalog;if(qItem)queueProductForm(qItem);
     const adj=e.target.closest('[data-shop-adjust]')?.dataset.shopAdjust;if(adj)adjustShoppingItem(adj);
   });
-  window.CasaCatalogUI=Object.freeze({render,productForm,offerForm,storeForm,queueProductForm,adjustShoppingItem,checkoutForm,openProductDetail,importTableModal,formatUnitPrice});
+  window.CasaCatalogUI=Object.freeze({render,productForm,offerForm,storeForm,splitStoreForm,queueProductForm,adjustShoppingItem,checkoutForm,openProductDetail,importTableModal,formatUnitPrice});
 })();
